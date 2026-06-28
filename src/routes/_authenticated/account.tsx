@@ -1,0 +1,79 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Bookmark, Plus, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { fetchFavoriteResources } from "@/hooks/use-favorites";
+import { ResourceMasonry } from "@/components/ResourceMasonry";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/_authenticated/account")({
+  head: () => ({ meta: [{ title: "我的账号 — Mingyu's Library" }] }),
+  component: AccountPage,
+});
+
+function AccountPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: favs, isLoading } = useQuery({
+    queryKey: ["favorites", "resources", user?.id ?? null],
+    enabled: !!user,
+    queryFn: fetchFavoriteResources,
+  });
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">我的账号</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/admin"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> 发布资源
+          </Link>
+          <button
+            onClick={signOut}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+          >
+            <LogOut className="h-3.5 w-3.5" /> 退出
+          </button>
+        </div>
+      </header>
+
+      <section>
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+          <Bookmark className="h-4 w-4 text-primary" />
+          我的书架
+          {favs && (
+            <span className="text-xs font-normal text-muted-foreground">
+              ({favs.length})
+            </span>
+          )}
+        </h2>
+
+        {isLoading ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">加载中...</div>
+        ) : !favs || favs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
+            书架还是空的，去
+            <Link to="/resources" className="mx-1 text-primary hover:underline">
+              资源库
+            </Link>
+            收藏一些内容吧
+          </div>
+        ) : (
+          <ResourceMasonry resources={favs} />
+        )}
+      </section>
+    </div>
+  );
+}
