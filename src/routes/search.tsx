@@ -325,7 +325,7 @@ function SearchPage() {
         </section>
       )}
 
-      {(q || tags.length > 0) && total === 0 && (
+      {!showLoading && !error && (q || tags.length > 0) && total === 0 && (
         <NoResults
           q={q}
           tags={tags}
