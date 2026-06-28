@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Globe, Gamepad2, Brain, FileText, ArrowRight, Calendar, Clock } from "lucide-react";
-import { projects, articles, categories } from "@/lib/data";
-import { ProjectCard } from "@/components/ProjectCard";
+import { articles, categories } from "@/lib/data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
