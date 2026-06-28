@@ -15,16 +15,28 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  // 统计
+  // 按大类聚合标签
+  const tagsByCategory = categories
+    .map((cat) => {
+      const items = [
+        ...articles.filter((a) => (a.category || "article") === cat.id),
+        ...projects.filter((p) => p.category === cat.id),
+      ];
+      const freq = items
+        .flatMap((i) => i.tags)
+        .reduce<Record<string, number>>((acc, t) => {
+          acc[t] = (acc[t] || 0) + 1;
+          return acc;
+        }, {});
+      const tags = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+      return { cat, tags };
+    })
+    .filter((g) => g.tags.length > 0);
+
   const allTags = [
     ...articles.flatMap((a) => a.tags),
     ...projects.flatMap((p) => p.tags),
   ];
-  const tagFreq = allTags.reduce<Record<string, number>>((acc, t) => {
-    acc[t] = (acc[t] || 0) + 1;
-    return acc;
-  }, {});
-  const sortedTags = Object.entries(tagFreq).sort((a, b) => b[1] - a[1]);
   const topicCount = new Set(allTags).size;
   const totalCount = articles.length + projects.length;
 
@@ -110,27 +122,31 @@ function HomePage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-card p-6">
-            {sortedTags.map(([tag, count]) => {
-              // 字号按频率缩放：1 → 0.85rem，最高 → 1.35rem
-              const max = sortedTags[0][1];
-              const min = 1;
-              const ratio = (count - min) / Math.max(max - min, 1);
-              const fontSize = 0.85 + ratio * 0.5;
-              const opacity = 0.55 + ratio * 0.45;
-              return (
-                <Link
-                  key={tag}
-                  to="/search"
-                  search={{ q: "", tags: [tag] }}
-                  className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary transition-all hover:bg-primary hover:text-primary-foreground"
-                  style={{ fontSize: `${fontSize}rem`, opacity }}
-                >
-                  {tag}
-                  <span className="ml-1 text-xs opacity-70">{count}</span>
-                </Link>
-              );
-            })}
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
+            {tagsByCategory.map(({ cat, tags }) => (
+              <div key={cat.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+                <div className="flex shrink-0 items-center gap-2 sm:w-32 sm:pt-1">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: cat.color }}
+                  />
+                  <span className="text-sm font-medium text-foreground">{cat.label}</span>
+                </div>
+                <div className="flex flex-1 flex-wrap gap-1.5">
+                  {tags.map(([tag, count]) => (
+                    <Link
+                      key={tag}
+                      to="/search"
+                      search={{ q: "", tags: [tag] }}
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground/80 transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      {tag}
+                      <span className="text-[10px] text-muted-foreground">{count}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
