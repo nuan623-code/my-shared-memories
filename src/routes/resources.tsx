@@ -21,12 +21,50 @@ export const Route = createFileRoute("/resources")({
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(allResourcesQO),
   component: ResourcesPage,
+  pendingMs: 0,
+  pendingComponent: ResourcesPendingPage,
   errorComponent: ({ error }) => (
     <div className="p-8 text-center text-sm text-muted-foreground">出错了：{error.message}</div>
   ),
 });
 
 const TYPES: (ResourceType | "all")[] = ["all", "article", "video", "link", "file", "note"];
+
+function ResourcesPendingPage() {
+  return (
+    <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-8">
+      <aside className="hidden w-56 shrink-0 lg:block">
+        <div className="sticky top-24 space-y-6">
+          <div className="h-5 w-20 rounded-md bg-muted" />
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-8 rounded-md bg-muted/70" />
+            ))}
+          </div>
+        </div>
+      </aside>
+      <div className="min-w-0 flex-1">
+        <div className="mb-5 flex items-baseline justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
+          <span className="text-xs text-muted-foreground">加载中...</span>
+        </div>
+        <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              className="mb-4 break-inside-avoid rounded-2xl border border-border bg-card p-5"
+            >
+              <div className="h-4 w-24 rounded bg-muted" />
+              <div className="mt-4 h-5 w-4/5 rounded bg-muted" />
+              <div className="mt-2 h-3 w-full rounded bg-muted/70" />
+              <div className="mt-2 h-3 w-2/3 rounded bg-muted/70" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ResourcesPage() {
   const { data: resources } = useSuspenseQuery(allResourcesQO);
