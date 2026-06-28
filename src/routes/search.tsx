@@ -288,7 +288,7 @@ function SearchPage() {
         </section>
       )}
 
-      {matchedArticles.length > 0 && (
+      {!showLoading && !error && matchedArticles.length > 0 && (
         <section className="mt-8">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
             <FileText className="h-4 w-4 text-primary" />
