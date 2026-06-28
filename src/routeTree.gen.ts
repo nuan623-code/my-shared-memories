@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as ClassifyRouteImport } from './routes/classify'
 import { Route as ArticlesRouteImport } from './routes/articles'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,11 +26,6 @@ const SearchRoute = SearchRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClassifyRoute = ClassifyRouteImport.update({
-  id: '/classify',
-  path: '/classify',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArticlesRoute = ArticlesRouteImport.update({
@@ -69,7 +63,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/articles': typeof ArticlesRouteWithChildren
-  '/classify': typeof ClassifyRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/search': typeof SearchRoute
   '/articles/$slug': typeof ArticlesSlugRoute
@@ -80,7 +73,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/articles': typeof ArticlesRouteWithChildren
-  '/classify': typeof ClassifyRoute
   '/search': typeof SearchRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/projects/$id': typeof ProjectsIdRoute
@@ -91,7 +83,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/articles': typeof ArticlesRouteWithChildren
-  '/classify': typeof ClassifyRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/search': typeof SearchRoute
   '/articles/$slug': typeof ArticlesSlugRoute
@@ -104,7 +95,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/articles'
-    | '/classify'
     | '/projects'
     | '/search'
     | '/articles/$slug'
@@ -115,7 +105,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/articles'
-    | '/classify'
     | '/search'
     | '/articles/$slug'
     | '/projects/$id'
@@ -125,7 +114,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/articles'
-    | '/classify'
     | '/projects'
     | '/search'
     | '/articles/$slug'
@@ -137,7 +125,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ArticlesRoute: typeof ArticlesRouteWithChildren
-  ClassifyRoute: typeof ClassifyRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   SearchRoute: typeof SearchRoute
 }
@@ -156,13 +143,6 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/classify': {
-      id: '/classify'
-      path: '/classify'
-      fullPath: '/classify'
-      preLoaderRoute: typeof ClassifyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/articles': {
@@ -240,7 +220,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ArticlesRoute: ArticlesRouteWithChildren,
-  ClassifyRoute: ClassifyRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   SearchRoute: SearchRoute,
 }
