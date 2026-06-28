@@ -107,6 +107,20 @@ function ArticleDetailPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+      {/* 阅读进度条 */}
+      <div
+        className="sticky top-0 z-20 h-1 w-full bg-border/40"
+        role="progressbar"
+        aria-label="阅读进度"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div
+          className="h-full bg-gradient-to-r from-primary to-accent transition-[width] duration-150 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
       {/* 顶部工具栏 */}
       <div className="border-b border-border bg-card/50 px-4 py-3">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
