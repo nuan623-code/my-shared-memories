@@ -56,6 +56,12 @@ function ArticleDetailPage() {
         const win = iframe.contentWindow;
         if (!win) return;
         const onScroll = () => {
+          const docEl = doc.documentElement;
+          const scrollTop = docEl.scrollTop || doc.body.scrollTop;
+          const scrollHeight = (docEl.scrollHeight || doc.body.scrollHeight) - win.innerHeight;
+          const pct = scrollHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100)) : 0;
+          setProgress(pct);
+
           let current = "";
           for (const it of items) {
             const el = doc.getElementById(it.id);
