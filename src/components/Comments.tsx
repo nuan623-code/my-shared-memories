@@ -61,6 +61,13 @@ export function Comments({ resourceId }: { resourceId: string }) {
   const tree = useMemo(() => buildTree(rows ?? []), [rows]);
 
   useEffect(() => {
+    const hideCommentsImmediately = () => {
+      document.querySelectorAll<HTMLElement>("[data-article-comments]").forEach((el) => {
+        el.style.display = "none";
+      });
+      setHideForNavigation(true);
+    };
+
     const hideWhenLeavingArticle = (event: PointerEvent) => {
       const target = event.target as Element | null;
       const link = target?.closest("a[href]") as HTMLAnchorElement | null;
@@ -69,7 +76,7 @@ export function Comments({ resourceId }: { resourceId: string }) {
 
       const url = new URL(href, window.location.origin);
       if (url.origin === window.location.origin && !url.pathname.startsWith("/articles/")) {
-        setHideForNavigation(true);
+        hideCommentsImmediately();
       }
     };
 
@@ -113,7 +120,7 @@ export function Comments({ resourceId }: { resourceId: string }) {
   if (hideForNavigation) return null;
 
   return (
-    <section className="mt-6 rounded-lg border border-border bg-card p-6">
+    <section data-article-comments className="mt-6 rounded-lg border border-border bg-card p-6">
       <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
         <MessageSquare className="h-4 w-4 text-primary" />
         评论与批注
