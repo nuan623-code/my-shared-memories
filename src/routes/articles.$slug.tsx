@@ -1,59 +1,43 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, List, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { articles, getArticleById } from "@/lib/data";
-
+import { ArrowLeft, ExternalLink, List } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { fetchResourceBySlug } from "@/lib/resources";
 
 export const Route = createFileRoute("/articles/$slug")({
-  component: ArticleDetailPage,
-  loader: ({ params }) => {
-    const article = getArticleById(params.slug);
+  loader: async ({ params }) => {
+    const article = await fetchResourceBySlug(params.slug);
     if (!article) throw notFound();
     return { article };
   },
   head: ({ loaderData, params }) => {
-    const article = loaderData?.article;
-    const title = `${article?.title ?? "文章"} — Mingyu Yang`;
-    const description =
-      article?.description ||
-      `${article?.title ?? ""} - Mingyu Yang 的文章与笔记`;
+    const a = loaderData?.article;
+    const title = `${a?.title ?? "文章"} — Mingyu's Library`;
+    const description = a?.summary || a?.title || "Mingyu 的文章与笔记";
     const url = `/articles/${params.slug}`;
     return {
       meta: [
         { title },
         { name: "description", content: description },
         { name: "author", content: "Mingyu Yang" },
-        ...(article?.tags?.length
-          ? [{ name: "keywords", content: article.tags.join(", ") }]
-          : []),
+        ...(a?.tags?.length ? [{ name: "keywords", content: a.tags.join(", ") }] : []),
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
-        { property: "og:site_name", content: "Mingyu Yang" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
       ],
       links: [{ rel: "canonical", href: url }],
-      scripts: [
-        {
-          type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            headline: article?.title,
-            description,
-            author: { "@type": "Person", name: "Mingyu Yang" },
-            keywords: article?.tags?.join(", "),
-            datePublished: article?.date || undefined,
-            mainEntityOfPage: url,
-          }),
-        },
-      ],
     };
   },
-
+  component: ArticleDetailPage,
+  errorComponent: ({ error }) => (
+    <div className="p-8 text-center text-sm text-muted-foreground">{error.message}</div>
+  ),
+  notFoundComponent: () => (
+    <div className="p-12 text-center text-sm text-muted-foreground">文章不存在</div>
+  ),
 });
 
 type TocItem = { id: string; text: string; level: 2 | 3 };
@@ -62,98 +46,62 @@ function ArticleDetailPage() {
   const { article } = Route.useLoaderData();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
-  const [activeId, setActiveId] = useState<string>("");
-  const [tocOpen, setTocOpen] = useState(true);
+  const [activeId, setActiveId] = useState("");
   const [progress, setProgress] = useState(0);
 
-  // 相关文章：按 tag 重叠度 + 同分类 排序，取前 4
-  const related = useMemo(() => {
-    const tagSet = new Set(article.tags);
-    return articles
-      .filter((a) => a.id !== article.id)
-      .map((a) => {
-        const overlap = a.tags.filter((t) => tagSet.has(t)).length;
-        const sameCat = a.category === article.category ? 1 : 0;
-        return { article: a, score: overlap * 2 + sameCat };
-      })
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 4)
-      .map((x) => x.article);
-  }, [article]);
-
-
-  // 解析 iframe 内的 H2/H3，生成目录
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe || !article.link) return;
-
-    const buildToc = () => {
+    if (!iframe || !article.url) return;
+    const build = () => {
       try {
         const doc = iframe.contentDocument;
         if (!doc) return;
-        const headings = Array.from(doc.querySelectorAll("h2, h3"));
-        const items: TocItem[] = headings.map((el, i) => {
+        const items: TocItem[] = Array.from(doc.querySelectorAll("h2, h3")).map((el, i) => {
           let id = el.id;
           if (!id) {
-            id = `toc-heading-${i}`;
+            id = `h-${i}`;
             el.id = id;
           }
-          return {
-            id,
-            text: (el.textContent ?? "").trim(),
-            level: el.tagName === "H2" ? 2 : 3,
-          };
+          return { id, text: (el.textContent ?? "").trim(), level: el.tagName === "H2" ? 2 : 3 };
         });
         setToc(items);
-
-        // 监听 iframe 滚动以高亮当前条目
-        const win = iframe.contentWindow;
-        if (!win) return;
+        const win = iframe.contentWindow!;
         const onScroll = () => {
           const docEl = doc.documentElement;
-          const scrollTop = docEl.scrollTop || doc.body.scrollTop;
-          const scrollHeight = (docEl.scrollHeight || doc.body.scrollHeight) - win.innerHeight;
-          const pct = scrollHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100)) : 0;
-          setProgress(pct);
-
-          let current = "";
+          const top = docEl.scrollTop || doc.body.scrollTop;
+          const h = (docEl.scrollHeight || doc.body.scrollHeight) - win.innerHeight;
+          setProgress(h > 0 ? Math.min(100, Math.max(0, (top / h) * 100)) : 0);
+          let cur = "";
           for (const it of items) {
             const el = doc.getElementById(it.id);
             if (!el) continue;
-            const rect = el.getBoundingClientRect();
-            if (rect.top <= 80) current = it.id;
+            if (el.getBoundingClientRect().top <= 80) cur = it.id;
             else break;
           }
-          if (current) setActiveId(current);
+          if (cur) setActiveId(cur);
         };
         win.addEventListener("scroll", onScroll, { passive: true });
         onScroll();
         return () => win.removeEventListener("scroll", onScroll);
       } catch {
-        // 跨域时静默失败
         setToc([]);
       }
     };
-
     let cleanup: (() => void) | undefined;
-    const handleLoad = () => {
+    const onLoad = () => {
       cleanup?.();
-      cleanup = buildToc();
+      cleanup = build();
     };
-    iframe.addEventListener("load", handleLoad);
-    // 若已加载完成则立刻构建
-    if (iframe.contentDocument?.readyState === "complete") handleLoad();
-
+    iframe.addEventListener("load", onLoad);
+    if (iframe.contentDocument?.readyState === "complete") onLoad();
     return () => {
-      iframe.removeEventListener("load", handleLoad);
+      iframe.removeEventListener("load", onLoad);
       cleanup?.();
     };
-  }, [article.link]);
+  }, [article.url]);
 
   const jumpTo = (id: string) => {
-    const doc = iframeRef.current?.contentDocument;
-    const el = doc?.getElementById(id);
+    const el = iframeRef.current?.contentDocument?.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveId(id);
@@ -162,98 +110,75 @@ function ArticleDetailPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
-      {/* 阅读进度条 */}
-      <div
-        className="sticky top-0 z-20 h-1 w-full bg-border/40"
-        role="progressbar"
-        aria-label="阅读进度"
-        aria-valuenow={Math.round(progress)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
+      <div className="sticky top-0 z-20 h-1 w-full bg-border/40">
         <div
-          className="h-full bg-gradient-to-r from-primary to-accent transition-[width] duration-150 ease-out"
+          className="h-full bg-gradient-to-r from-primary to-accent transition-[width]"
           style={{ width: `${progress}%` }}
         />
       </div>
-      {/* 顶部工具栏 */}
       <div className="border-b border-border bg-card/50 px-4 py-3">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <Link
-            to="/articles"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            to="/resources"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            返回文章列表
+            返回资源库
           </Link>
-          <div className="flex items-center gap-4">
-            {toc.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setTocOpen((v) => !v)}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-              >
-                <List className="h-4 w-4" />
-                目录
-              </button>
-            )}
-            {article.link && (
-              <a
-                href={article.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-              >
-                在 GitHub Pages 打开
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            )}
-          </div>
+          {article.url && (
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80"
+            >
+              新标签打开
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
         </div>
       </div>
 
-      {/* 主体：iframe + 目录 */}
       <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-4">
         <div className="flex-1">
-          {article.link ? (
+          {article.url ? (
             <iframe
               ref={iframeRef}
-              src={article.link}
-              title={article.title}
+              src={article.url}
+              title={article.title ?? ""}
               className="h-[calc(100vh-8rem)] w-full rounded-lg border border-border bg-white"
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
             />
           ) : (
-            <div className="flex h-96 items-center justify-center text-muted-foreground">
-              暂无外部链接
+            <div className="prose prose-sm max-w-none rounded-lg border border-border bg-card p-8">
+              <h1>{article.title}</h1>
+              <p className="text-muted-foreground">{article.summary}</p>
+              <div className="whitespace-pre-wrap">{article.content}</div>
             </div>
           )}
         </div>
 
-        {/* 目录侧栏 */}
-        {toc.length > 0 && tocOpen && (
+        {toc.length > 0 && (
           <aside className="hidden w-64 shrink-0 lg:block">
             <div className="sticky top-4 max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-border bg-card p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
                 <List className="h-4 w-4 text-primary" />
                 目录
               </div>
               <nav className="space-y-1">
-                {toc.map((item) => (
+                {toc.map((it) => (
                   <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => jumpTo(item.id)}
-                    className={`block w-full truncate text-left text-sm transition-colors ${
-                      item.level === 3 ? "pl-4" : ""
+                    key={it.id}
+                    onClick={() => jumpTo(it.id)}
+                    className={`block w-full truncate text-left text-sm transition ${
+                      it.level === 3 ? "pl-4" : ""
                     } ${
-                      activeId === item.id
+                      activeId === it.id
                         ? "font-medium text-primary"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
-                    title={item.text}
                   >
-                    {item.text || "（无标题）"}
+                    {it.text || "（无标题）"}
                   </button>
                 ))}
               </nav>
@@ -261,43 +186,6 @@ function ArticleDetailPage() {
           </aside>
         )}
       </div>
-
-      {/* 相关文章 */}
-      {related.length > 0 && (
-        <section className="border-t border-border bg-card/40 px-4 py-10">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-5 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">相关文章</h2>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {related.map((a) => (
-                <Link
-                  key={a.id}
-                  to="/articles/$slug"
-                  params={{ slug: a.id }}
-                  className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
-                >
-                  <h3 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
-                    {a.title}
-                  </h3>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {a.tags.slice(0, 3).map((t) => (
-                      <span
-                        key={t}
-                        className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
-

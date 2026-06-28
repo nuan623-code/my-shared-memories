@@ -1,23 +1,32 @@
-import { Link } from "@tanstack/react-router";
-import { Code2, Menu, X, Search } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Library, Menu, X, Search, LogOut, Plus, User as UserIcon } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
-  { to: "/", label: "首页" },
-  { to: "/projects", label: "项目" },
-  { to: "/articles", label: "文章" },
-  { to: "/about", label: "关于" },
+  { to: "/" as const, label: "首页" },
+  { to: "/resources" as const, label: "资源库" },
+  { to: "/notes" as const, label: "碎片" },
+  { to: "/about" as const, label: "关于" },
 ];
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <Code2 className="h-5 w-5 text-primary" />
-          <span className="font-display">Mingyu Yang</span>
+          <Library className="h-5 w-5 text-primary" />
+          <span className="font-display">Mingyu's Library</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
@@ -26,6 +35,7 @@ export function Header() {
               key={item.to}
               to={item.to}
               activeProps={{ className: "text-primary font-medium" }}
+              activeOptions={{ exact: item.to === "/" }}
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               {item.label}
@@ -41,6 +51,31 @@ export function Header() {
           >
             <Search className="h-4 w-4" />
           </Link>
+          {user ? (
+            <>
+              <Link
+                to="/admin"
+                className="hidden items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 md:inline-flex"
+              >
+                <Plus className="h-3.5 w-3.5" /> 发布
+              </Link>
+              <button
+                onClick={signOut}
+                className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="退出"
+                title="退出登录"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/auth"
+              className="hidden items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-muted md:inline-flex"
+            >
+              <UserIcon className="h-3.5 w-3.5" /> 登录
+            </Link>
+          )}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="rounded-md p-2 text-muted-foreground hover:bg-muted md:hidden"
@@ -65,6 +100,23 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+            {user ? (
+              <Link
+                to="/admin"
+                onClick={() => setMobileOpen(false)}
+                className="text-sm font-medium text-primary"
+              >
+                发布资源
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                onClick={() => setMobileOpen(false)}
+                className="text-sm font-medium text-primary"
+              >
+                登录
+              </Link>
+            )}
           </div>
         </nav>
       )}
