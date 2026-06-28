@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ExternalLink, List } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { fetchResourceBySlug } from "@/lib/resources";
+import { Comments } from "@/components/Comments";
 
 export const Route = createFileRoute("/articles/$slug")({
   loader: async ({ params }) => {
@@ -185,6 +186,10 @@ function ArticleDetailPage() {
             </div>
           </aside>
         )}
+      </div>
+
+      <div className="mx-auto w-full max-w-7xl px-4 pb-12">
+        <Comments resourceId={article.id} />
       </div>
     </div>
   );

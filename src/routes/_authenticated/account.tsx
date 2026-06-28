@@ -6,6 +6,7 @@ import { fetchFavoriteResources } from "@/hooks/use-favorites";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
+import { ProfileEditor } from "@/components/ProfileEditor";
 
 export const Route = createFileRoute("/_authenticated/account")({
   head: () => ({ meta: [{ title: "我的账号 — Mingyu's Library" }] }),
@@ -48,6 +49,8 @@ function AccountPage() {
           </button>
         </div>
       </header>
+
+      <ProfileEditor />
 
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
