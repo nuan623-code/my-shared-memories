@@ -1,7 +1,7 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
-import { LayoutGrid, List } from "lucide-react";
-import { projects, categories } from "@/lib/data";
+import { useState, useMemo } from "react";
+import { LayoutGrid } from "lucide-react";
+import { projects, categories, getCategory, type CategoryId } from "@/lib/data";
 import { ProjectCard } from "@/components/ProjectCard";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/projects/")({
   head: () => ({
     meta: [
       { title: "项目 — Mingyu Yang" },
-      { name: "description", content: "Mingyu Yang 的项目作品集，涵盖 Web 开发、游戏开发、AI 学习和课程作业。" },
+      { name: "description", content: "Mingyu Yang 的项目作品集，按大类与小类筛选。" },
       { property: "og:title", content: "项目 — Mingyu Yang" },
       { property: "og:description", content: "Mingyu Yang 的项目作品集" },
     ],
@@ -18,19 +18,41 @@ export const Route = createFileRoute("/projects/")({
 });
 
 type SearchParams = {
-  category?: "web" | "game" | "ai" | "homework" | "all";
+  category?: CategoryId | "all";
+  sub?: string;
 };
 
 function ProjectsPage() {
   const search = useSearch({ from: "/projects/" }) as SearchParams;
-  const [activeCategory, setActiveCategory] = useState<SearchParams["category"]>(
-    search.category || "all"
+  const [activeCategory, setActiveCategory] = useState<CategoryId | "all">(
+    search.category ?? "all"
   );
+  const [activeSub, setActiveSub] = useState<string>(search.sub ?? "all");
 
-  const filteredProjects =
-    activeCategory && activeCategory !== "all"
-      ? projects.filter((p) => p.category === activeCategory)
-      : projects;
+  const availableSubs = useMemo(() => {
+    if (activeCategory === "all") return [];
+    const cat = getCategory(activeCategory);
+    if (!cat) return [];
+    const used = new Set(
+      projects
+        .filter((p) => p.category === activeCategory && p.subcategory)
+        .map((p) => p.subcategory as string)
+    );
+    return cat.subcategories.filter((s) => used.has(s.id));
+  }, [activeCategory]);
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p) => {
+      if (activeCategory !== "all" && p.category !== activeCategory) return false;
+      if (activeSub !== "all" && p.subcategory !== activeSub) return false;
+      return true;
+    });
+  }, [activeCategory, activeSub]);
+
+  const handleCategory = (id: CategoryId | "all") => {
+    setActiveCategory(id);
+    setActiveSub("all");
+  };
 
   return (
     <div className="px-4 py-12">
@@ -38,14 +60,13 @@ function ProjectsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">项目</h1>
           <p className="mt-2 text-muted-foreground">
-            记录我在 Web 开发、游戏开发、AI 学习和课程中的实践项目
+            按大类与小类浏览所有项目、视频和实验
           </p>
         </div>
 
-        {/* Filter tabs */}
-        <div className="mb-8 flex flex-wrap items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setActiveCategory("all")}
+            onClick={() => handleCategory("all")}
             className={cn(
               "rounded-full px-4 py-2 text-sm font-medium transition-all",
               activeCategory === "all"
@@ -58,7 +79,7 @@ function ProjectsPage() {
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => handleCategory(cat.id)}
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-medium transition-all",
                 activeCategory === cat.id
@@ -71,6 +92,36 @@ function ProjectsPage() {
           ))}
         </div>
 
+        {availableSubs.length > 0 && (
+          <div className="mb-8 flex flex-wrap items-center gap-2 border-l-2 border-primary/30 pl-3">
+            <button
+              onClick={() => setActiveSub("all")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-all",
+                activeSub === "all"
+                  ? "bg-foreground text-background"
+                  : "bg-card text-muted-foreground border border-border hover:text-foreground"
+              )}
+            >
+              全部小类
+            </button>
+            {availableSubs.map((sub) => (
+              <button
+                key={sub.id}
+                onClick={() => setActiveSub(sub.id)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-all",
+                  activeSub === sub.id
+                    ? "bg-foreground text-background"
+                    : "bg-card text-muted-foreground border border-border hover:text-foreground"
+                )}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {filteredProjects.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project) => (
@@ -80,9 +131,7 @@ function ProjectsPage() {
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-20">
             <LayoutGrid className="h-10 w-10 text-muted-foreground/50" />
-            <p className="mt-4 text-muted-foreground">
-              该分类下暂无项目
-            </p>
+            <p className="mt-4 text-muted-foreground">该分类下暂无内容</p>
           </div>
         )}
       </div>
