@@ -26,6 +26,7 @@ function ArticleDetailPage() {
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [tocOpen, setTocOpen] = useState(true);
+  const [progress, setProgress] = useState(0);
 
   // 解析 iframe 内的 H2/H3，生成目录
   useEffect(() => {
@@ -55,6 +56,12 @@ function ArticleDetailPage() {
         const win = iframe.contentWindow;
         if (!win) return;
         const onScroll = () => {
+          const docEl = doc.documentElement;
+          const scrollTop = docEl.scrollTop || doc.body.scrollTop;
+          const scrollHeight = (docEl.scrollHeight || doc.body.scrollHeight) - win.innerHeight;
+          const pct = scrollHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100)) : 0;
+          setProgress(pct);
+
           let current = "";
           for (const it of items) {
             const el = doc.getElementById(it.id);
@@ -100,6 +107,20 @@ function ArticleDetailPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+      {/* 阅读进度条 */}
+      <div
+        className="sticky top-0 z-20 h-1 w-full bg-border/40"
+        role="progressbar"
+        aria-label="阅读进度"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div
+          className="h-full bg-gradient-to-r from-primary to-accent transition-[width] duration-150 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
       {/* 顶部工具栏 */}
       <div className="border-b border-border bg-card/50 px-4 py-3">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
