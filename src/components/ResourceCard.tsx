@@ -42,16 +42,22 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
     </div>
   );
 
+  // Header WITHOUT the favorite button (the button is rendered as a sibling
+  // overlay so it never sits inside the <a> — nested interactive elements
+  // make the HTML parser split the anchor and break navigation).
   const header = (
     <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
       <span className="inline-flex items-center gap-1.5">
         <Icon className="h-3.5 w-3.5" />
         {cat?.label ?? r.type}
       </span>
-      <span className="flex items-center gap-1">
-        <span>{new Date(r.published_at).toISOString().slice(0, 10)}</span>
-        <FavoriteButton resourceId={r.id} className="-mr-1" />
-      </span>
+      <span>{new Date(r.published_at).toISOString().slice(0, 10)}</span>
+    </div>
+  );
+
+  const favOverlay = (
+    <div className="absolute right-3 top-3 z-10">
+      <FavoriteButton resourceId={r.id} />
     </div>
   );
 
@@ -59,9 +65,10 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   if (r.type === "note") {
     return (
       <div
-        className="mb-4 break-inside-avoid rounded-2xl border border-border/60 p-5 shadow-sm transition-all hover:shadow-md"
+        className="relative mb-4 break-inside-avoid rounded-2xl border border-border/60 p-5 shadow-sm transition-all hover:shadow-md"
         style={{ background: noteGradient(r.id) }}
       >
+        {favOverlay}
         {header}
         <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">
           {r.content || r.title}
@@ -74,72 +81,78 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   // LINK — external
   if (r.type === "link") {
     return (
-      <a
-        href={r.url ?? "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group mb-4 block break-inside-avoid rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
-      >
-        {header}
-        {r.cover_url && (
-          <img
-            src={r.cover_url}
-            alt=""
-            className="mb-3 aspect-[16/9] w-full rounded-lg object-cover"
-            loading="lazy"
-          />
-        )}
-        <h3 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
-          {r.title}
-        </h3>
-        {r.summary && (
-          <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
-            {r.summary}
-          </p>
-        )}
-        <div className="mt-3 flex items-center gap-1.5 text-[11px] text-primary/80">
-          <ExternalLink className="h-3 w-3" />
-          {hostnameOf(r.url)}
-        </div>
-        {r.tags.length > 0 && tagPills}
-      </a>
+      <div className="relative mb-4 break-inside-avoid">
+        {favOverlay}
+        <a
+          href={r.url ?? "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+        >
+          {header}
+          {r.cover_url && (
+            <img
+              src={r.cover_url}
+              alt=""
+              className="mb-3 aspect-[16/9] w-full rounded-lg object-cover"
+              loading="lazy"
+            />
+          )}
+          <h3 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
+            {r.title}
+          </h3>
+          {r.summary && (
+            <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
+              {r.summary}
+            </p>
+          )}
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-primary/80">
+            <ExternalLink className="h-3 w-3" />
+            {hostnameOf(r.url)}
+          </div>
+          {r.tags.length > 0 && tagPills}
+        </a>
+      </div>
     );
   }
 
   // FILE — download
   if (r.type === "file") {
     return (
-      <a
-        href={r.file_url ?? "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        download
-        className="group mb-4 block break-inside-avoid rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
-      >
-        {header}
-        <div className="mb-3 flex items-center gap-3 rounded-xl bg-primary/5 p-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <FileDown className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-medium text-muted-foreground uppercase">
-              {r.file_type || "FILE"}
+      <div className="relative mb-4 break-inside-avoid">
+        {favOverlay}
+        <a
+          href={r.file_url ?? "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          download
+          className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+        >
+          {header}
+          <div className="mb-3 flex items-center gap-3 rounded-xl bg-primary/5 p-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FileDown className="h-6 w-6" />
             </div>
-            <div className="text-xs text-muted-foreground">
-              {formatBytes(r.file_size)}
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-medium text-muted-foreground uppercase">
+                {r.file_type || "FILE"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {formatBytes(r.file_size)}
+              </div>
             </div>
           </div>
-        </div>
-        <h3 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
-          {r.title}
-        </h3>
-        {r.summary && (
-          <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
-            {r.summary}
-          </p>
-        )}
-        {r.tags.length > 0 && tagPills}
-      </a>
+          <h3 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
+            {r.title}
+          </h3>
+          {r.summary && (
+            <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
+              {r.summary}
+            </p>
+          )}
+          {r.tags.length > 0 && tagPills}
+        </a>
+      </div>
     );
   }
 
@@ -184,26 +197,28 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
       </>
     );
 
-    if (r.slug) {
-      return (
-        <Link
-          to="/resources/$slug"
-          params={{ slug: r.slug }}
-          className="group mb-4 block break-inside-avoid rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
-        >
-          {inner}
-        </Link>
-      );
-    }
     return (
-      <a
-        href={r.url ?? "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group mb-4 block break-inside-avoid rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
-      >
-        {inner}
-      </a>
+      <div className="relative mb-4 break-inside-avoid">
+        {favOverlay}
+        {r.slug ? (
+          <Link
+            to="/resources/$slug"
+            params={{ slug: r.slug }}
+            className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+          >
+            {inner}
+          </Link>
+        ) : (
+          <a
+            href={r.url ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+          >
+            {inner}
+          </a>
+        )}
+      </div>
     );
   }
 
@@ -231,20 +246,22 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
     </>
   );
 
-  if (r.slug) {
-    return (
-      <Link
-        to="/articles/$slug"
-        params={{ slug: r.slug }}
-        className="group mb-4 block break-inside-avoid rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-md"
-      >
-        {articleInner}
-      </Link>
-    );
-  }
   return (
-    <div className="group mb-4 break-inside-avoid rounded-2xl border border-border bg-card p-5">
-      {articleInner}
+    <div className="relative mb-4 break-inside-avoid">
+      {favOverlay}
+      {r.slug ? (
+        <Link
+          to="/articles/$slug"
+          params={{ slug: r.slug }}
+          className="group block rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-md"
+        >
+          {articleInner}
+        </Link>
+      ) : (
+        <div className="group rounded-2xl border border-border bg-card p-5">
+          {articleInner}
+        </div>
+      )}
     </div>
   );
 }
