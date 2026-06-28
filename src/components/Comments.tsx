@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Reply, Trash2, Send, Pencil, X, Check, ShieldCheck } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -52,12 +52,37 @@ export function Comments({ resourceId }: { resourceId: string }) {
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
+  const [hideForNavigation, setHideForNavigation] = useState(false);
   const { data: rows, isLoading } = useQuery({
     queryKey: ["comments", resourceId],
     queryFn: () => fetchComments(resourceId),
   });
 
   const tree = useMemo(() => buildTree(rows ?? []), [rows]);
+
+  useEffect(() => {
+    const hideCommentsImmediately = () => {
+      document.querySelectorAll<HTMLElement>("[data-article-comments]").forEach((el) => {
+        el.style.display = "none";
+      });
+      setHideForNavigation(true);
+    };
+
+    const hideWhenLeavingArticle = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      const link = target?.closest("a[href]") as HTMLAnchorElement | null;
+      const href = link?.getAttribute("href");
+      if (!link || !href || link.target || link.hasAttribute("download")) return;
+
+      const url = new URL(href, window.location.origin);
+      if (url.origin === window.location.origin && !url.pathname.startsWith("/articles/")) {
+        hideCommentsImmediately();
+      }
+    };
+
+    document.addEventListener("pointerdown", hideWhenLeavingArticle, true);
+    return () => document.removeEventListener("pointerdown", hideWhenLeavingArticle, true);
+  }, []);
 
   const create = useMutation({
     mutationFn: async ({ content, parentId }: { content: string; parentId: string | null }) => {
@@ -92,8 +117,10 @@ export function Comments({ resourceId }: { resourceId: string }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", resourceId] }),
   });
 
+  if (hideForNavigation) return null;
+
   return (
-    <section className="mt-6 rounded-lg border border-border bg-card p-6">
+    <section data-article-comments className="mt-6 rounded-lg border border-border bg-card p-6">
       <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
         <MessageSquare className="h-4 w-4 text-primary" />
         评论与批注

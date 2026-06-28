@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
@@ -19,7 +19,6 @@ export const Route = createFileRoute("/resources")({
       { property: "og:description", content: "浏览所有内容资源" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(allResourcesQO),
   component: ResourcesPage,
   errorComponent: ({ error }) => (
     <div className="p-8 text-center text-sm text-muted-foreground">出错了：{error.message}</div>
@@ -28,8 +27,44 @@ export const Route = createFileRoute("/resources")({
 
 const TYPES: (ResourceType | "all")[] = ["all", "article", "video", "link", "file", "note"];
 
+function ResourcesPendingPage() {
+  return (
+    <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-8">
+      <aside className="hidden w-56 shrink-0 lg:block">
+        <div className="sticky top-24 space-y-6">
+          <div className="h-5 w-20 rounded-md bg-muted" />
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-8 rounded-md bg-muted/70" />
+            ))}
+          </div>
+        </div>
+      </aside>
+      <div className="min-w-0 flex-1">
+        <div className="mb-5 flex items-baseline justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
+          <span className="text-xs text-muted-foreground">加载中...</span>
+        </div>
+        <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              className="mb-4 break-inside-avoid rounded-2xl border border-border bg-card p-5"
+            >
+              <div className="h-4 w-24 rounded bg-muted" />
+              <div className="mt-4 h-5 w-4/5 rounded bg-muted" />
+              <div className="mt-2 h-3 w-full rounded bg-muted/70" />
+              <div className="mt-2 h-3 w-2/3 rounded bg-muted/70" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResourcesPage() {
-  const { data: resources } = useSuspenseQuery(allResourcesQO);
+  const { data: resources = [], isLoading, error, refetch } = useQuery(allResourcesQO);
   const [type, setType] = useState<ResourceType | "all">("all");
   const [cat, setCat] = useState<string>("all");
   const [tag, setTag] = useState<string | null>(null);
@@ -50,6 +85,23 @@ function ResourcesPage() {
       }),
     [resources, type, cat, tag],
   );
+
+  if (isLoading) return <ResourcesPendingPage />;
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
+        <p className="mt-3 text-sm text-muted-foreground">资源加载失败，请稍后重试。</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          重新加载
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-8">
