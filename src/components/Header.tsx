@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Code2, Menu, X } from "lucide-react";
+import { Code2, Menu, X, Search } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
