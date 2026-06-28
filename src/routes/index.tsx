@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Globe, Gamepad2, Brain, FileText, ArrowRight, Calendar, Clock } from "lucide-react";
-import { projects, articles, categories } from "@/lib/data";
-import { ProjectCard } from "@/components/ProjectCard";
+import { articles, categories } from "@/lib/data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,8 +22,7 @@ const categoryIcons: Record<string, typeof Globe> = {
 };
 
 function HomePage() {
-  const featuredProjects = projects.slice(0, 4);
-  const latestArticles = articles.slice(0, 2);
+  const latestArticles = articles.slice(0, 6);
 
   return (
     <div className="flex flex-col">
@@ -40,10 +38,10 @@ function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
-              to="/projects"
+              to="/articles"
               className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg"
             >
-              浏览项目
+              浏览文章
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
@@ -88,26 +86,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Featured Projects */}
-      <section className="px-4 py-12">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-foreground">精选项目</h2>
-            <Link
-              to="/projects"
-              className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              查看全部
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Latest Articles */}
       <section className="px-4 py-12">
@@ -126,7 +104,8 @@ function HomePage() {
             {latestArticles.map((article) => (
               <Link
                 key={article.id}
-                to="/articles"
+                to="/articles/$slug"
+                params={{ slug: article.id }}
                 className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 transition-all hover:shadow-md"
               >
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
