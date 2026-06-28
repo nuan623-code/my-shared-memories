@@ -157,20 +157,35 @@ function ArticleDetailPage() {
             <ArrowLeft className="h-4 w-4" />
             返回资源库
           </Link>
-          {article.url && (
-            <div className="flex items-center gap-3">
-              <DownloadMenu url={article.url} title={article.title ?? "article"} />
-              <a
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80"
-              >
-                新标签打开
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAnnotationsOn((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+              title={annotationsOn ? "隐藏段落批注标记" : "显示段落批注标记"}
+            >
+              {annotationsOn ? (
+                <MessageSquareOff className="h-3.5 w-3.5" />
+              ) : (
+                <MessageSquarePlus className="h-3.5 w-3.5" />
+              )}
+              {annotationsOn ? "隐藏批注" : "显示批注"}
+            </button>
+            {article.url && (
+              <>
+                <DownloadMenu url={article.url} title={article.title ?? "article"} />
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  新标签打开
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -217,13 +232,20 @@ function ArticleDetailPage() {
         {/* Right content */}
         <div className="min-w-0 flex-1">
           {article.url ? (
-            <iframe
-              ref={iframeRef}
-              src={article.url}
-              title={article.title ?? ""}
-              className="h-[calc(100vh-10rem)] w-full rounded-lg border border-border bg-white"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-            />
+            <div className="relative">
+              <iframe
+                ref={iframeRef}
+                src={article.url}
+                title={article.title ?? ""}
+                className="h-[calc(100vh-10rem)] w-full rounded-lg border border-border bg-white"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              />
+              <ParagraphCommentLayer
+                resourceId={article.id}
+                iframeRef={iframeRef}
+                enabled={annotationsOn}
+              />
+            </div>
           ) : (
             <div className="prose prose-sm max-w-none rounded-lg border border-border bg-card p-8">
               <h1>{article.title}</h1>
