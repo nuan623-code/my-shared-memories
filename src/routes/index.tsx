@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Globe, Gamepad2, Brain, FileText, ArrowRight, Calendar, Clock } from "lucide-react";
-import { articles, categories } from "@/lib/data";
+import { ArrowRight, FileText, Tag as TagIcon, Layers, BookOpen } from "lucide-react";
+import { articles, projects, categories, getCategory, type CategoryId } from "@/lib/data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Mingyu Yang — 个人创作空间" },
-      { name: "description", content: "Mingyu Yang 的个人项目记录与分享网站，涵盖 Web 开发、游戏开发、AI 学习与公众号文章。" },
+      { name: "description", content: "Mingyu Yang 的个人项目记录与分享网站，涵盖游戏开发、AI 学习、课程作业与公众号文章。" },
       { property: "og:title", content: "Mingyu Yang — 个人创作空间" },
       { property: "og:description", content: "Mingyu Yang 的个人项目记录与分享网站" },
     ],
@@ -14,21 +14,42 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-const categoryIcons: Record<string, typeof Globe> = {
-  web: Globe,
-  game: Gamepad2,
-  ai: Brain,
-  homework: FileText,
-};
-
 function HomePage() {
-  const latestArticles = articles.slice(0, 6);
+  // 统计
+  const allTags = [
+    ...articles.flatMap((a) => a.tags),
+    ...projects.flatMap((p) => p.tags),
+  ];
+  const tagFreq = allTags.reduce<Record<string, number>>((acc, t) => {
+    acc[t] = (acc[t] || 0) + 1;
+    return acc;
+  }, {});
+  const sortedTags = Object.entries(tagFreq).sort((a, b) => b[1] - a[1]);
+  const topicCount = new Set(allTags).size;
+  const totalCount = articles.length + projects.length;
+
+  // 按大类聚合 articles
+  const articlesByCategory = articles.reduce<Record<string, typeof articles>>(
+    (acc, a) => {
+      const key = a.category || "article";
+      (acc[key] ||= []).push(a);
+      return acc;
+    },
+    {}
+  );
+
+  const stats = [
+    { label: "文章 / 笔记", value: articles.length, icon: FileText },
+    { label: "项目 / 视频", value: projects.length, icon: Layers },
+    { label: "覆盖主题", value: topicCount, icon: TagIcon },
+    { label: "内容总数", value: totalCount, icon: BookOpen },
+  ];
 
   return (
     <div className="flex flex-col">
       {/* Hero */}
       <section className="relative overflow-hidden px-4 py-20 sm:py-28">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-secondary/20" />
         <div className="relative mx-auto max-w-3xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
             Mingyu Yang
@@ -54,31 +75,59 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* Stats */}
+      <section className="px-4">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-4 sm:gap-4 sm:p-6">
+            {stats.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.label} className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-semibold text-foreground">{s.value}</div>
+                    <div className="text-xs text-muted-foreground">{s.label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Tag Cloud */}
       <section className="px-4 py-12">
         <div className="mx-auto max-w-6xl">
-          <h2 className="mb-8 text-center text-2xl font-semibold text-foreground">
-            探索分类
-          </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {categories.map((cat) => {
-              const Icon = categoryIcons[cat.id] || Globe;
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-foreground">主题地图</h2>
+            <Link
+              to="/search"
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              进入搜索
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-card p-6">
+            {sortedTags.map(([tag, count]) => {
+              // 字号按频率缩放：1 → 0.85rem，最高 → 1.35rem
+              const max = sortedTags[0][1];
+              const min = 1;
+              const ratio = (count - min) / Math.max(max - min, 1);
+              const fontSize = 0.85 + ratio * 0.5;
+              const opacity = 0.55 + ratio * 0.45;
               return (
                 <Link
-                  key={cat.id}
-                  to="/projects"
-                  search={{ category: cat.id }}
-                  className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center transition-all hover:shadow-md hover:-translate-y-1"
+                  key={tag}
+                  to="/search"
+                  search={{ q: "", tags: [tag] }}
+                  className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+                  style={{ fontSize: `${fontSize}rem`, opacity }}
                 >
-                  <div
-                    className="flex h-12 w-12 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: `${cat.color}20` }}
-                  >
-                    <Icon className="h-6 w-6" style={{ color: cat.color }} />
-                  </div>
-                  <span className="text-sm font-medium text-foreground">
-                    {cat.label}
-                  </span>
+                  {tag}
+                  <span className="ml-1 text-xs opacity-70">{count}</span>
                 </Link>
               );
             })}
@@ -86,12 +135,11 @@ function HomePage() {
         </div>
       </section>
 
-
-      {/* Latest Articles */}
-      <section className="px-4 py-12">
+      {/* Timeline by Category */}
+      <section className="px-4 pb-16">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-foreground">最新文章</h2>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-foreground">内容时间线</h2>
             <Link
               to="/articles"
               className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
@@ -100,46 +148,58 @@ function HomePage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {latestArticles.map((article) => (
-              <Link
-                key={article.id}
-                to="/articles/$slug"
-                params={{ slug: article.id }}
-                className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 transition-all hover:shadow-md"
-              >
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  {article.date && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {article.date}
-                    </span>
-                  )}
-                  {article.readTime && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {article.readTime}
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">
-                  {article.title}
-                </h3>
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                  {article.description}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {article.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground"
+
+          <div className="relative">
+            {/* 竖线 */}
+            <div className="absolute left-3 top-2 bottom-2 w-px bg-gradient-to-b from-primary/40 via-border to-transparent sm:left-4" />
+
+            <div className="space-y-10">
+              {categories.map((cat) => {
+                const items = articlesByCategory[cat.id] || [];
+                if (items.length === 0) return null;
+                return (
+                  <div key={cat.id} className="relative pl-10 sm:pl-14">
+                    {/* 节点 */}
+                    <div
+                      className="absolute left-0 top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background sm:left-1 sm:h-7 sm:w-7"
+                      style={{ backgroundColor: cat.color }}
                     >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </Link>
-            ))}
+                      <div className="h-2 w-2 rounded-full bg-white/90" />
+                    </div>
+
+                    <div className="mb-3 flex items-baseline gap-2">
+                      <h3 className="text-lg font-semibold text-foreground">{cat.label}</h3>
+                      <span className="text-xs text-muted-foreground">{items.length} 篇 · {cat.description}</span>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {items.map((article) => (
+                        <Link
+                          key={article.id}
+                          to="/articles/$slug"
+                          params={{ slug: article.id }}
+                          className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+                        >
+                          <h4 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
+                            {article.title}
+                          </h4>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {article.tags.slice(0, 3).map((t) => (
+                              <span
+                                key={t}
+                                className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
