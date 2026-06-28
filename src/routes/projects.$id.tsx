@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Calendar, ExternalLink, Github } from "lucide-react";
-import { getProjectById, categories } from "@/lib/data";
+import { ArrowLeft, Calendar, ExternalLink, Github, PlayCircle } from "lucide-react";
+import { getProjectById, getCategory, getSubcategoryLabel, type CategoryId } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +18,13 @@ export const Route = createFileRoute("/projects/$id")({
   component: ProjectDetailPage,
 });
 
-const categoryStyles: Record<string, { bg: string; text: string }> = {
+const categoryStyles: Record<CategoryId, { bg: string; text: string }> = {
   web: { bg: "bg-cat-web/15", text: "text-cat-web" },
   game: { bg: "bg-cat-game/15", text: "text-cat-game" },
   ai: { bg: "bg-cat-ai/15", text: "text-cat-ai" },
   homework: { bg: "bg-cat-homework/15", text: "text-cat-homework" },
+  article: { bg: "bg-primary/10", text: "text-primary" },
+  video: { bg: "bg-accent/20", text: "text-foreground" },
 };
 
 function ProjectDetailPage() {
@@ -45,8 +47,11 @@ function ProjectDetailPage() {
     );
   }
 
-  const catStyle = categoryStyles[project.category] || { bg: "bg-muted", text: "text-muted-foreground" };
-  const catLabel = categories.find((c) => c.id === project.category)?.label || project.category;
+  const catStyle = categoryStyles[project.category] ?? { bg: "bg-muted", text: "text-muted-foreground" };
+  const cat = getCategory(project.category);
+  const subLabel = getSubcategoryLabel(project.category, project.subcategory);
+  const isVideo = project.mediaType === "video";
+  const hasVideoSource = Boolean(project.videoUrl || project.videoEmbedUrl);
 
   return (
     <div className="px-4 py-12">
@@ -59,20 +64,53 @@ function ProjectDetailPage() {
           返回项目列表
         </Link>
 
-        <div className={cn("mb-6 flex h-48 items-center justify-center rounded-2xl", catStyle.bg)}>
-          <div className={cn("text-6xl font-bold", catStyle.text)}>
-            {project.title.slice(0, 2)}
+        {/* 媒体区：视频优先嵌入播放器，否则展示色块 */}
+        {isVideo && hasVideoSource ? (
+          <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-black">
+            <div className="relative aspect-video w-full">
+              {project.videoUrl ? (
+                <video
+                  src={project.videoUrl}
+                  controls
+                  className="absolute inset-0 h-full w-full"
+                />
+              ) : (
+                <iframe
+                  src={project.videoEmbedUrl}
+                  title={project.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full"
+                />
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className={cn("mb-6 flex h-48 items-center justify-center rounded-2xl", catStyle.bg)}>
+            {isVideo ? (
+              <PlayCircle className={cn("h-16 w-16", catStyle.text)} />
+            ) : (
+              <div className={cn("text-6xl font-bold", catStyle.text)}>
+                {project.title.slice(0, 2)}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span className={cn("rounded-full px-3 py-1 text-sm font-medium", catStyle.bg, catStyle.text)}>
-            {catLabel}
+            {cat?.label ?? project.category}
+            {subLabel ? ` · ${subLabel}` : ""}
           </span>
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             {project.date}
           </span>
+          {project.duration && (
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+              {project.duration}
+            </span>
+          )}
         </div>
 
         <h1 className="mb-4 text-3xl font-bold text-foreground">{project.title}</h1>
@@ -81,7 +119,7 @@ function ProjectDetailPage() {
         {project.techStack.length > 0 && (
           <div className="mb-6">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              技术栈
+              {isVideo ? "相关主题" : "技术栈"}
             </h2>
             <div className="flex flex-wrap gap-2">
               {project.techStack.map((tech) => (

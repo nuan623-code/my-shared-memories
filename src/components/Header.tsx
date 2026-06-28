@@ -6,6 +6,7 @@ const navItems = [
   { to: "/", label: "首页" },
   { to: "/projects", label: "项目" },
   { to: "/articles", label: "文章" },
+  { to: "/classify", label: "分类助手" },
   { to: "/about", label: "关于" },
 ];
 
