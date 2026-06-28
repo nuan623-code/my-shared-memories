@@ -56,8 +56,10 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   );
 
   const favOverlay = (
-    <div className="absolute right-3 top-3 z-10">
-      <FavoriteButton resourceId={r.id} />
+    <div className="pointer-events-none absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      <div className="pointer-events-auto rounded-md bg-card/90 shadow-sm backdrop-blur-sm">
+        <FavoriteButton resourceId={r.id} />
+      </div>
     </div>
   );
 
