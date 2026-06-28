@@ -65,6 +65,9 @@ function Highlight({ text, q }: { text: string; q: string }) {
   );
 }
 
+const DEBOUNCE_MS = 300;
+const SEARCH_LATENCY_MS = 250;
+
 function SearchPage() {
   const { q, tags } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -76,22 +79,70 @@ function SearchPage() {
     return Array.from(s).sort();
   }, []);
 
-  const matchedProjects = useMemo(
-    () => projects.filter((p) => projectMatches(p, q, tags)),
-    [q, tags],
-  );
-  const matchedArticles = useMemo(
-    () => articles.filter((a) => articleMatches(a, q, tags)),
-    [q, tags],
-  );
+  // 本地输入值（用于防抖）
+  const [inputValue, setInputValue] = useState(q);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 当 URL q 由外部变化（如点击建议）时，同步到输入框
+  useEffect(() => {
+    setInputValue(q);
+  }, [q]);
+
+  const onInputChange = (value: string) => {
+    setInputValue(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, q: value }) });
+    }, DEBOUNCE_MS);
+  };
+
+  // 搜索请求状态
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<{ projects: Project[]; articles: Article[] }>({
+    projects: [],
+    articles: [],
+  });
+  const [retryToken, setRetryToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      try {
+        const ps = projects.filter((p) => projectMatches(p, q, tags));
+        const as = articles.filter((a) => articleMatches(a, q, tags));
+        setResults({ projects: ps, articles: as });
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "搜索失败，请重试");
+        setLoading(false);
+      }
+    }, SEARCH_LATENCY_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [q, tags, retryToken]);
+
+  const matchedProjects = results.projects;
+  const matchedArticles = results.articles;
   const total = matchedProjects.length + matchedArticles.length;
+  const isPendingDebounce = inputValue !== q;
+  const showLoading = loading || isPendingDebounce;
 
   const toggleTag = (tag: string) => {
     const next = tags.includes(tag) ? tags.filter((t: string) => t !== tag) : [...tags, tag];
     navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, tags: next }) });
   };
 
-  const clearAll = () => navigate({ search: { q: "", tags: [] } });
+  const clearAll = () => {
+    setInputValue("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    navigate({ search: { q: "", tags: [] } });
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
