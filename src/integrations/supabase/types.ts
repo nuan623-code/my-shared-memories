@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      resources: {
+        Row: {
+          category: string | null
+          content: string | null
+          cover_url: string | null
+          created_at: string
+          duration: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          owner_id: string | null
+          published_at: string
+          slug: string | null
+          subcategory: string | null
+          summary: string | null
+          tags: string[]
+          title: string | null
+          type: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          cover_url?: string | null
+          created_at?: string
+          duration?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          owner_id?: string | null
+          published_at?: string
+          slug?: string | null
+          subcategory?: string | null
+          summary?: string | null
+          tags?: string[]
+          title?: string | null
+          type: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          cover_url?: string | null
+          created_at?: string
+          duration?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          owner_id?: string | null
+          published_at?: string
+          slug?: string | null
+          subcategory?: string | null
+          summary?: string | null
+          tags?: string[]
+          title?: string | null
+          type?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
