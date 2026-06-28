@@ -291,11 +291,27 @@ function SearchPage() {
       </div>
 
       {error && !showLoading && (
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+        <div
+          ref={errorRef}
+          tabIndex={0}
+          role="alert"
+          aria-live="assertive"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              setRetryToken((n) => n + 1);
+            } else if (e.key === "ArrowUp" || e.key === "Escape") {
+              e.preventDefault();
+              inputRef.current?.focus();
+            }
+          }}
+          className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 outline-none focus:ring-2 focus:ring-destructive/40"
+        >
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div className="flex-1">
             <div className="font-medium text-foreground">搜索请求失败</div>
             <div className="mt-1 text-sm text-muted-foreground">{error}</div>
+            <div className="mt-1 text-xs text-muted-foreground">按 Enter 重试，↑ 返回搜索框</div>
           </div>
           <button
             onClick={() => setRetryToken((n) => n + 1)}
@@ -307,7 +323,15 @@ function SearchPage() {
       )}
 
       {showLoading && (
-        <div className="mt-6 space-y-3">
+        <div
+          ref={loadingRef}
+          tabIndex={0}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          aria-label="正在搜索"
+          className="mt-6 space-y-3 rounded-xl outline-none focus:ring-2 focus:ring-primary/30"
+        >
           {[0, 1, 2].map((i) => (
             <div
               key={i}
