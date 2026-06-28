@@ -1,8 +1,7 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Library, Menu, X, Search, LogOut, Plus, User as UserIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Library, Menu, X, Search, Plus, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { to: "/" as const, label: "首页" },
@@ -14,12 +13,7 @@ const navItems = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -59,14 +53,14 @@ export function Header() {
               >
                 <Plus className="h-3.5 w-3.5" /> 发布
               </Link>
-              <button
-                onClick={signOut}
+              <Link
+                to="/account"
                 className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="退出"
-                title="退出登录"
+                aria-label="我的账号"
+                title="我的账号"
               >
-                <LogOut className="h-4 w-4" />
-              </button>
+                <UserIcon className="h-4 w-4" />
+              </Link>
             </>
           ) : (
             <Link
@@ -101,13 +95,22 @@ export function Header() {
               </Link>
             ))}
             {user ? (
-              <Link
-                to="/admin"
-                onClick={() => setMobileOpen(false)}
-                className="text-sm font-medium text-primary"
-              >
-                发布资源
-              </Link>
+              <>
+                <Link
+                  to="/account"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  我的账号
+                </Link>
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm font-medium text-primary"
+                >
+                  发布资源
+                </Link>
+              </>
             ) : (
               <Link
                 to="/auth"

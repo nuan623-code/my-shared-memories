@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResourcesSlugRouteImport } from './routes/resources.$slug'
 import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -75,6 +76,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/search': typeof SearchRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/search': typeof SearchRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/search': typeof SearchRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/resources'
     | '/search'
+    | '/account'
     | '/admin'
     | '/articles/$slug'
     | '/resources/$slug'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/resources'
     | '/search'
+    | '/account'
     | '/admin'
     | '/articles/$slug'
     | '/resources/$slug'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/resources'
     | '/search'
+    | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/articles/$slug'
     | '/resources/$slug'
@@ -244,14 +256,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
 }
 

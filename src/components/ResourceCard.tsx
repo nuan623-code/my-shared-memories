@@ -15,6 +15,7 @@ import {
   noteGradient,
 } from "@/lib/resources";
 import { getCategory } from "@/lib/data";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 const TYPE_ICON = {
   article: FileText,
@@ -47,7 +48,10 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
         <Icon className="h-3.5 w-3.5" />
         {cat?.label ?? r.type}
       </span>
-      <span>{new Date(r.published_at).toISOString().slice(0, 10)}</span>
+      <span className="flex items-center gap-1">
+        <span>{new Date(r.published_at).toISOString().slice(0, 10)}</span>
+        <FavoriteButton resourceId={r.id} className="-mr-1" />
+      </span>
     </div>
   );
 
