@@ -23,6 +23,9 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const style = categoryStyles[project.category];
+  const cat = getCategory(project.category);
+  const subLabel = getSubcategoryLabel(project.category, project.subcategory);
+  const isVideo = project.mediaType === "video";
 
   return (
     <Link
@@ -30,14 +33,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
       params={{ id: project.id }}
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:shadow-md hover:-translate-y-1"
     >
-      <div className={cn("flex h-40 items-center justify-center", style.bg)}>
+      <div className={cn("relative flex h-40 items-center justify-center", style.bg)}>
         <div className={cn("text-4xl font-bold", style.text)}>
           {project.title.slice(0, 2)}
         </div>
+        {isVideo && (
+          <PlayCircle className="absolute right-3 top-3 h-6 w-6 text-foreground/70" />
+        )}
+        {project.duration && (
+          <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+            {project.duration}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span
             className={cn(
               "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
@@ -46,13 +57,15 @@ export function ProjectCard({ project }: ProjectCardProps) {
               style.border
             )}
           >
-            {categoryLabels[project.category]}
+            {cat?.label ?? project.category}
+            {subLabel ? ` · ${subLabel}` : ""}
           </span>
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
             {project.date}
           </span>
         </div>
+
 
         <h3 className="mb-2 text-base font-semibold text-foreground group-hover:text-primary transition-colors">
           {project.title}
