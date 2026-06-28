@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Download, ExternalLink, List } from "lucide-react";
+import { ArrowLeft, ExternalLink, List } from "lucide-react";
+import { DownloadMenu } from "@/components/DownloadMenu";
 import { useEffect, useRef, useState } from "react";
 import { fetchResourceBySlug } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
@@ -127,31 +128,8 @@ function ArticleDetailPage() {
             返回资源库
           </Link>
           {article.url && (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch(article.url!);
-                    const blob = await res.blob();
-                    const ext = article.url!.split(".").pop()?.split("?")[0] || "html";
-                    const safe = (article.title || "article").replace(/[\\/:*?"<>|]/g, "_");
-                    const a = document.createElement("a");
-                    const href = URL.createObjectURL(blob);
-                    a.href = href;
-                    a.download = `${safe}.${ext}`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    URL.revokeObjectURL(href);
-                  } catch {
-                    window.open(article.url!, "_blank");
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                <Download className="h-3.5 w-3.5" />
-                下载
-              </button>
+            <div className="flex items-center gap-3">
+              <DownloadMenu url={article.url} title={article.title ?? "article"} />
               <a
                 href={article.url}
                 target="_blank"
