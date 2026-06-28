@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ExternalLink, List } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { fetchResourceBySlug } from "@/lib/resources";
+import { Comments } from "@/components/Comments";
 
 export const Route = createFileRoute("/articles/$slug")({
   loader: async ({ params }) => {
