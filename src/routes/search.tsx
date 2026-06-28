@@ -153,14 +153,15 @@ function SearchPage() {
         <SearchIcon className="h-5 w-5 text-muted-foreground" />
         <input
           autoFocus
-          value={q}
-          onChange={(e) =>
-            navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, q: e.target.value }) })
-          }
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
           placeholder="搜索项目、文章、技术栈..."
           className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
         />
-        {(q || tags.length > 0) && (
+        {showLoading && (
+          <Loader2 className="h-4 w-4 animate-spin text-primary" aria-label="加载中" />
+        )}
+        {(inputValue || tags.length > 0) && !showLoading && (
           <button
             onClick={clearAll}
             className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
