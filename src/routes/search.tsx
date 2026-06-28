@@ -176,9 +176,11 @@ function SearchPage() {
                       </span>
                       <span className="text-xs text-muted-foreground">{p.date}</span>
                     </div>
-                    <div className="mt-2 font-medium">{p.title}</div>
+                    <div className="mt-2 font-medium">
+                      <Highlight text={p.title} q={q} />
+                    </div>
                     <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {p.description}
+                      <Highlight text={p.description} q={q} />
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {p.tags.map((t) => (
@@ -186,7 +188,7 @@ function SearchPage() {
                           key={t}
                           className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                         >
-                          #{t}
+                          #<Highlight text={t} q={q} />
                         </span>
                       ))}
                     </div>
