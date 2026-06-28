@@ -49,7 +49,7 @@ function ResourceDetailPage() {
       {r.summary && <p className="mt-3 text-base text-muted-foreground">{r.summary}</p>}
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {r.tags.map((t) => (
+        {r.tags.map((t: string) => (
           <span key={t} className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
             {t}
           </span>
