@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude 开发者层 · 完整手册</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#0d0c0b; --bg2:#151311; --panel:#1a1816;
+    --orange:#e07a52; --orange-soft:#c96442; --amber:#e8a87c;
+    --ink:#f5f0e8; --muted:#a8a097; --dim:#6f6a62;
+    --line:rgba(245,240,232,0.10); --line2:rgba(245,240,232,0.06);
+    --green:#7fb88a; --blue:#7fa8d4; --red:#e08a7a;
+    --code-bg:#100f0e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      radial-gradient(ellipse 70% 40% at 50% -8%, rgba(224,122,82,0.14), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:"Noto Sans SC",sans-serif; line-height:1.65;
+    min-height:100vh;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* LAYOUT */
+  .shell{display:flex;max-width:1280px;margin:0 auto;position:relative;z-index:1;}
+  .sidebar{
+    width:248px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:30px 18px 30px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:5px;}
+  .sidebar::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+  .main{flex:1;min-width:0;padding:46px 52px 120px;}
+
+  /* SIDEBAR */
+  .sb-brand{display:flex;align-items:center;gap:11px;margin-bottom:6px;}
+  .sb-badge{
+    width:38px;height:38px;border-radius:10px;flex-shrink:0;
+    background:linear-gradient(145deg,#e0a06a,#b87445);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Fraunces",serif;font-weight:900;font-size:18px;color:#1a1410;
+    box-shadow:0 4px 14px -4px #e0a06a;
+  }
+  .sb-brand .t{font-weight:700;font-size:15px;line-height:1.2;}
+  .sb-brand .s{font-size:10px;color:var(--dim);letter-spacing:1px;}
+  .sb-kicker{font-size:10px;letter-spacing:2px;color:var(--orange);text-transform:uppercase;
+    font-weight:700;margin:26px 0 10px;padding-left:4px;}
+  .nav a{
+    display:block;padding:7px 12px;border-radius:8px;color:var(--muted);
+    text-decoration:none;font-size:13.5px;transition:all .2s;margin-bottom:1px;
+    border-left:2px solid transparent;
+  }
+  .nav a:hover{background:rgba(224,122,82,0.08);color:var(--ink);}
+  .nav a.active{background:rgba(224,122,82,0.12);color:var(--amber);border-left-color:var(--orange);font-weight:500;}
+
+  /* HEADER */
+  .page-head{margin-bottom:38px;animation:fadeUp .7s ease both;}
+  .ph-kicker{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--orange);font-weight:700;margin-bottom:14px;}
+  h1{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(32px,5vw,52px);line-height:1.05;letter-spacing:-1px;margin-bottom:16px;}
+  h1 .accent{background:linear-gradient(120deg,var(--orange),var(--amber));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-style:italic;}
+  .ph-lede{font-size:16px;color:var(--muted);max-width:620px;font-weight:300;}
+
+  /* SECTIONS */
+  section{margin-bottom:52px;scroll-margin-top:30px;animation:fadeUp .6s ease both;}
+  h2{font-family:"Fraunces",serif;font-size:26px;font-weight:600;margin-bottom:6px;letter-spacing:-.3px;
+    display:flex;align-items:center;gap:12px;}
+  h2 .num{font-size:13px;color:var(--orange);font-family:"JetBrains Mono";font-weight:700;
+    border:1px solid var(--orange-soft);border-radius:7px;padding:2px 9px;}
+  .sec-lede{color:var(--muted);font-size:14.5px;margin-bottom:20px;font-weight:300;max-width:680px;
+    border-bottom:1px solid var(--line2);padding-bottom:16px;}
+  h3{font-size:17px;font-weight:700;margin:26px 0 10px;color:var(--ink);
+    border-left:3px solid var(--orange);padding-left:11px;}
+  h4{font-size:14.5px;font-weight:700;margin:18px 0 7px;color:var(--amber);}
+  p{margin-bottom:11px;font-size:14px;color:#d8d2c8;font-weight:300;}
+  p b,li b{color:var(--ink);font-weight:600;}
+  ul,ol{margin:8px 0 14px;padding-left:22px;}
+  li{margin-bottom:6px;font-size:13.8px;color:#d8d2c8;font-weight:300;}
+
+  /* CODE BLOCKS with tabs */
+  .codebox{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:14px 0 18px;}
+  .tabs{display:flex;gap:2px;padding:8px 8px 0;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--line2);}
+  .tab{
+    font-family:"JetBrains Mono";font-size:11.5px;padding:7px 15px;border-radius:8px 8px 0 0;
+    background:transparent;border:none;color:var(--dim);cursor:pointer;transition:all .2s;font-weight:500;
+  }
+  .tab:hover{color:var(--muted);}
+  .tab.active{background:var(--code-bg);color:var(--amber);}
+  pre{padding:16px 18px;overflow-x:auto;font-family:"JetBrains Mono";font-size:12.5px;line-height:1.65;}
+  pre::-webkit-scrollbar{height:7px;}
+  pre::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  code{font-family:"JetBrains Mono";}
+  .codepane{display:none;}
+  .codepane.active{display:block;}
+  .inline{background:rgba(224,122,82,0.12);color:var(--amber);padding:1px 6px;border-radius:5px;font-family:"JetBrains Mono";font-size:12px;}
+  /* syntax */
+  .c{color:#6a8a5a;} .k{color:#7fa8d4;} .s{color:#d8a06a;} .n{color:#9fc08a;} .f{color:#e0a06a;} .p{color:#a8a097;}
+
+  /* TABLES */
+  table{width:100%;border-collapse:collapse;margin:14px 0 18px;font-size:13px;}
+  th{background:rgba(255,255,255,0.04);text-align:left;padding:9px 12px;font-weight:600;
+    border-bottom:1px solid var(--line);color:var(--amber);font-size:12.5px;}
+  td{padding:8px 12px;border-bottom:1px solid var(--line2);color:#d8d2c8;font-weight:300;vertical-align:top;}
+  td .inline{font-size:11.5px;}
+  tr:hover td{background:rgba(255,255,255,0.015);}
+
+  /* CALLOUTS */
+  .note{border-radius:11px;padding:14px 17px;margin:14px 0;font-size:13.5px;font-weight:300;border:1px solid;}
+  .note .nt{font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;}
+  .note.tip{background:rgba(127,168,212,0.07);border-color:rgba(127,168,212,0.3);}
+  .note.tip .nt{color:var(--blue);}
+  .note.warn{background:rgba(224,138,82,0.08);border-color:rgba(224,138,82,0.3);}
+  .note.warn .nt{color:var(--orange);}
+  .note.good{background:rgba(127,184,138,0.07);border-color:rgba(127,184,138,0.3);}
+  .note.good .nt{color:var(--green);}
+
+  /* PILLS / cards */
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+  .pill{font-size:12px;padding:5px 13px;border-radius:20px;background:rgba(255,255,255,0.04);
+    border:1px solid var(--line);color:var(--muted);font-weight:300;}
+  .pill b{color:var(--amber);font-weight:600;}
+
+  .flowcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0;}
+  .fc{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px;position:relative;}
+  .fc .step{font-family:"JetBrains Mono";font-size:11px;color:var(--orange);font-weight:700;margin-bottom:6px;}
+  .fc .fct{font-weight:700;font-size:13.5px;margin-bottom:4px;}
+  .fc .fcd{font-size:12px;color:var(--muted);font-weight:300;line-height:1.5;}
+
+  .endpoint{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+    border-radius:9px;padding:10px 14px;margin-bottom:8px;font-family:"JetBrains Mono";font-size:12.5px;}
+  .method{font-weight:700;font-size:11px;padding:3px 9px;border-radius:6px;flex-shrink:0;}
+  .method.post{background:rgba(127,184,138,0.2);color:var(--green);}
+  .method.get{background:rgba(127,168,212,0.2);color:var(--blue);}
+  .endpoint .path{color:var(--amber);}
+  .endpoint .desc{color:var(--muted);font-family:"Noto Sans SC";font-size:12px;margin-left:auto;font-weight:300;}
+
+  .foot{margin-top:60px;border-top:1px solid var(--line);padding-top:24px;font-size:11.5px;color:var(--dim);font-weight:300;line-height:1.8;}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+
+  @media(max-width:880px){
+    .sidebar{display:none;}
+    .main{padding:32px 22px 80px;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-badge">4</div>
+      <div><div class="t">开发者层</div><div class="s">DEVELOPER SURFACE</div></div>
+    </div>
+    <div class="sb-kicker">手册导航</div>
+    <nav class="nav" id="nav">
+      <a href="#intro">概览：这一层是什么</a>
+      <a href="#endpoints">1 · 端点总览</a>
+      <a href="#quickstart">2 · 快速开始</a>
+      <a href="#params">3 · 核心参数详解</a>
+      <a href="#tools">4 · 工具调用</a>
+      <a href="#streaming">5 · 流式输出 SSE</a>
+      <a href="#caching">6 · 提示缓存</a>
+      <a href="#batch">7 · 批处理 API</a>
+      <a href="#code">8 · Claude Code</a>
+      <a href="#agents">9 · Managed Agents</a>
+      <a href="#errors">10 · 错误码与限流</a>
+      <a href="#cost">11 · 成本优化总表</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-head">
+      <div class="ph-kicker">Developer Handbook</div>
+      <h1>开发者层<span class="accent"> 完整手册</span></h1>
+      <p class="ph-lede">把 Claude 嵌进自有产品的全部细节——端点、参数、工具调用、流式、缓存、批处理、Claude Code 与 Managed Agents。概念讲清楚，代码可直接跑。</p>
+    </div>
+
+    <!-- INTRO -->
+    <section id="intro">
+      <h2>概览：这一层是什么</h2>
+      <p class="sec-lede">开发者层是蛋糕的第 4 层——面向开发者，按 token 计费、可程序化调用、成本可精确预算。是把 Claude 接入第三方产品的正路，也是 Agent 类应用的搭建基座。</p>
+      <p>与上层「终端应用层」（订阅制、人坐屏幕前用）最大的区别是：<b>计费逻辑与可控性</b>。订阅是固定月费 + 模糊的滚动额度；开发者层按 token 精确计费，每一次调用的成本都可预估、可优化。</p>
+      <div class="pills">
+        <span class="pill">1M 上下文 <b>标准价不加价</b></span>
+        <span class="pill">缓存命中 <b>降 90%</b> 且不计入限流</span>
+        <span class="pill">Batch <b>降 50%</b></span>
+        <span class="pill">模型 ID 为 <b>固定快照</b>，可 pin 版本</span>
+      </div>
+      <div class="note tip"><span class="nt">本手册数据来源</span>所有端点、参数、限流机制、SSE 事件类型均来自 platform.claude.com 官方文档（2026 年 6 月）。代码示例以 Opus 4.8 为例，可替换为任意模型 ID。</div>
+    </section>
+
+    <!-- ENDPOINTS -->
+    <section id="endpoints">
+      <h2><span class="num">01</span>端点总览</h2>
+      <p class="sec-lede">开发者层围绕 Messages 核心端点，外加批处理、模型查询、token 计数等配套端点。</p>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/v1/messages</span><span class="desc">核心对话 / 生成端点</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/v1/messages/batches</span><span class="desc">异步批量，成本立减 50%</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/v1/messages/count_tokens</span><span class="desc">发送前预估 token</span></div>
+      <div class="endpoint"><span class="method get">GET</span><span class="path">/v1/models</span><span class="desc">列出可用模型及规格</span></div>
+      <p class="small" style="font-size:12px;color:var(--dim);margin-top:8px;">所有请求需带两个 header：<span class="inline">x-api-key</span> 与 <span class="inline">anthropic-version: 2023-06-01</span>。每个响应都返回 <span class="inline">request-id</span>（全局唯一）和 <span class="inline">anthropic-organization-id</span>。</p>
+    </section>
+
+    <!-- QUICKSTART -->
+    <section id="quickstart">
+      <h2><span class="num">02</span>快速开始</h2>
+      <p class="sec-lede">最小可运行调用。三种方式：cURL（理解原始结构）、Python SDK、TypeScript SDK。</p>
+      <div class="codebox">
+        <div class="tabs">
+          <button class="tab active" data-pane="qs-curl">cURL</button>
+          <button class="tab" data-pane="qs-py">Python</button>
+          <button class="tab" data-pane="qs-ts">TypeScript</button>
+        </div>
+        <div class="codepane active" id="qs-curl"><pre><span class="c"># 安装：无需，直接 HTTP 调用</span>
+curl https://api.anthropic.com/v1/messages \
+  -H <span class="s">"x-api-key: $ANTHROPIC_API_KEY"</span> \
+  -H <span class="s">"anthropic-version: 2023-06-01"</span> \
+  -H <span class="s">"content-type: application/json"</span> \
+  -d <span class="s">'{
+    "model": "claude-opus-4-8",
+    "max_tokens": 1024,
+    "system": "你是一个资深解决方案工程师。",
+    "messages": [
+      {"role": "user", "content": "用一句话解释提示缓存。"}
+    ]
+  }'</span></pre></div>
+        <div class="codepane" id="qs-py"><pre><span class="c"># 安装：pip install anthropic</span>
+<span class="k">import</span> anthropic
+
+client = anthropic.<span class="f">Anthropic</span>()  <span class="c"># 自动读取 ANTHROPIC_API_KEY</span>
+
+message = client.messages.<span class="f">create</span>(
+    model=<span class="s">"claude-opus-4-8"</span>,
+    max_tokens=<span class="n">1024</span>,
+    system=<span class="s">"你是一个资深解决方案工程师。"</span>,
+    messages=[
+        {<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"用一句话解释提示缓存。"</span>}
+    ],
+)
+<span class="f">print</span>(message.content[<span class="n">0</span>].text)</pre></div>
+        <div class="codepane" id="qs-ts"><pre><span class="c">// 安装：npm install @anthropic-ai/sdk</span>
+<span class="k">import</span> Anthropic <span class="k">from</span> <span class="s">"@anthropic-ai/sdk"</span>;
+
+<span class="k">const</span> client = <span class="k">new</span> <span class="f">Anthropic</span>();  <span class="c">// 读取 ANTHROPIC_API_KEY</span>
+
+<span class="k">const</span> message = <span class="k">await</span> client.messages.<span class="f">create</span>({
+  model: <span class="s">"claude-opus-4-8"</span>,
+  max_tokens: <span class="n">1024</span>,
+  system: <span class="s">"你是一个资深解决方案工程师。"</span>,
+  messages: [
+    { role: <span class="s">"user"</span>, content: <span class="s">"用一句话解释提示缓存。"</span> }
+  ],
+});
+console.<span class="f">log</span>(message.content[<span class="n">0</span>].text);</pre></div>
+      </div>
+      <div class="note good"><span class="nt">SDK vs 直连</span>官方强烈建议生产环境用 SDK（Python / TypeScript / PHP）——它们自动处理重试、流式累积、beta header 设置。直连 HTTP 仅在需要完全控制或非官方语言时使用。</div>
+    </section>
+
+    <!-- PARAMS -->
+    <section id="params">
+      <h2><span class="num">03</span>核心参数详解</h2>
+      <p class="sec-lede">Messages 端点的关键参数。注意 Opus 4.7+ 对采样参数有破坏性约束。</p>
+      <table>
+        <tr><th>参数</th><th>必填</th><th>说明</th></tr>
+        <tr><td><span class="inline">model</span></td><td>是</td><td>模型 ID，如 <span class="inline">claude-opus-4-8</span></td></tr>
+        <tr><td><span class="inline">max_tokens</span></td><td>是</td><td>最大输出 token；<b>不计入 OTPM 限流</b>，设高无副作用</td></tr>
+        <tr><td><span class="inline">messages</span></td><td>是</td><td>对话数组，每条含 <span class="inline">role</span>（user/assistant）+ <span class="inline">content</span></td></tr>
+        <tr><td><span class="inline">system</span></td><td>否</td><td>系统提示，定义角色与约束；<b>最适合做缓存前缀</b></td></tr>
+        <tr><td><span class="inline">tools</span></td><td>否</td><td>工具定义数组，启用 function calling</td></tr>
+        <tr><td><span class="inline">stream</span></td><td>否</td><td><span class="inline">true</span> 时走 SSE 流式逐 token 返回</td></tr>
+        <tr><td><span class="inline">effort</span></td><td>否</td><td>自适应思考强度；Opus 4.8 <b>默认 high</b>；Claude Code 可用 xhigh/max</td></tr>
+        <tr><td><span class="inline">stop_sequences</span></td><td>否</td><td>遇到指定字符串即停止生成</td></tr>
+        <tr><td><span class="inline">metadata</span></td><td>否</td><td>请求元数据（如 user_id），用于滥用监控</td></tr>
+      </table>
+      <div class="note warn"><span class="nt">破坏性约束（Opus 4.7 起，4.8 沿用）</span>非默认的 <span class="inline">temperature</span> / <span class="inline">top_p</span> / <span class="inline">top_k</span> 会返回 <span class="inline">400</span> 错误。自适应思考已替代旧的扩展思考开关。从 4.7→4.8 无新破坏性变更，分词器假定不变。</div>
+    </section>
+
+    <!-- TOOLS -->
+    <section id="tools">
+      <h2><span class="num">04</span>工具调用 (Function Calling)</h2>
+      <p class="sec-lede">让模型按需调用你定义的函数——查数据库、调内部 API、触发动作。这是搭 Agent 的核心机制，也是 Claude 公认的强项。</p>
+      <h3>完整调用流程（4 步）</h3>
+      <div class="flowcards">
+        <div class="fc"><div class="step">STEP 1</div><div class="fct">定义工具</div><div class="fcd">在请求里传 tools 数组，含 name / description / input_schema</div></div>
+        <div class="fc"><div class="step">STEP 2</div><div class="fct">模型请求调用</div><div class="fcd">模型返回 stop_reason=tool_use 与一个 tool_use 块</div></div>
+        <div class="fc"><div class="step">STEP 3</div><div class="fct">你执行并回传</div><div class="fcd">把结果以 tool_result 块附在新 user 消息里发回</div></div>
+        <div class="fc"><div class="step">STEP 4</div><div class="fct">模型给最终答</div><div class="fcd">据工具结果生成自然语言回复</div></div>
+      </div>
+      <div class="codebox">
+        <div class="tabs">
+          <button class="tab active" data-pane="tl-def">① 定义工具</button>
+          <button class="tab" data-pane="tl-use">② 模型返回 tool_use</button>
+          <button class="tab" data-pane="tl-res">③ 回传 tool_result</button>
+        </div>
+        <div class="codepane active" id="tl-def"><pre><span class="s">"tools"</span>: [{
+  <span class="k">"name"</span>: <span class="s">"get_weather"</span>,
+  <span class="k">"description"</span>: <span class="s">"查询指定城市的当前天气，返回温度与天气状况"</span>,
+  <span class="k">"input_schema"</span>: {
+    <span class="k">"type"</span>: <span class="s">"object"</span>,
+    <span class="k">"properties"</span>: {
+      <span class="k">"city"</span>: {
+        <span class="k">"type"</span>: <span class="s">"string"</span>,
+        <span class="k">"description"</span>: <span class="s">"城市名，如 北京"</span>
+      }
+    },
+    <span class="k">"required"</span>: [<span class="s">"city"</span>]
+  }
+}]</pre></div>
+        <div class="codepane" id="tl-use"><pre><span class="c">// 模型的响应（stop_reason 变为 "tool_use"）</span>
+{
+  <span class="k">"stop_reason"</span>: <span class="s">"tool_use"</span>,
+  <span class="k">"content"</span>: [
+    {
+      <span class="k">"type"</span>: <span class="s">"tool_use"</span>,
+      <span class="k">"id"</span>: <span class="s">"toolu_01A09q90..."</span>,
+      <span class="k">"name"</span>: <span class="s">"get_weather"</span>,
+      <span class="k">"input"</span>: { <span class="k">"city"</span>: <span class="s">"北京"</span> }
+    }
+  ]
+}</pre></div>
+        <div class="codepane" id="tl-res"><pre><span class="c"># 执行函数后，把结果作为新一轮 user 消息回传</span>
+messages=[
+    {<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"北京天气怎么样？"</span>},
+    {<span class="s">"role"</span>: <span class="s">"assistant"</span>, <span class="s">"content"</span>: previous_content},  <span class="c"># 含 tool_use</span>
+    {<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: [
+        {
+            <span class="s">"type"</span>: <span class="s">"tool_result"</span>,
+            <span class="s">"tool_use_id"</span>: <span class="s">"toolu_01A09q90..."</span>,
+            <span class="s">"content"</span>: <span class="s">"晴，22°C"</span>
+        }
+    ]}
+]</pre></div>
+      </div>
+      <div class="note tip"><span class="nt">为什么 Claude 工具编排强</span>在 MCP-Atlas 基准上 Opus 4.7 得 77.3%，领先 GPT-5.4 约 9.2 分。多工具、长链路、需要正确编排调用顺序的场景优势明显。TypeScript SDK 还提供 <span class="inline">toolRunner()</span> 自动跑工具循环。</div>
+    </section>
+
+    <!-- STREAMING -->
+    <section id="streaming">
+      <h2><span class="num">05</span>流式输出 SSE</h2>
+      <p class="sec-lede">设 stream:true 用 Server-Sent Events 逐 token 返回。聊天界面、长文生成、Agent 工具调用必备——否则用户盯着空屏，长输出还可能超时。</p>
+      <h3>9 种事件类型与流程</h3>
+      <table>
+        <tr><th>事件</th><th>含义</th></tr>
+        <tr><td><span class="inline">message_start</span></td><td>含空 content 的 Message 对象，流开始</td></tr>
+        <tr><td><span class="inline">content_block_start</span></td><td>一个内容块开始（按 index 区分）</td></tr>
+        <tr><td><span class="inline">content_block_delta</span></td><td>增量：text_delta（文本）/ input_json_delta（工具参数）/ thinking_delta（思考）</td></tr>
+        <tr><td><span class="inline">content_block_stop</span></td><td>该内容块结束</td></tr>
+        <tr><td><span class="inline">message_delta</span></td><td>顶层变化；<b>累计 token 用量在此</b></td></tr>
+        <tr><td><span class="inline">message_stop</span></td><td>流结束</td></tr>
+        <tr><td><span class="inline">ping</span> / <span class="inline">error</span></td><td>心跳 / 流中错误（如 overloaded_error → 529）</td></tr>
+      </table>
+      <div class="codebox">
+        <div class="tabs">
+          <button class="tab active" data-pane="st-py">Python（推荐）</button>
+          <button class="tab" data-pane="st-ts">TypeScript</button>
+          <button class="tab" data-pane="st-raw">原始 SSE</button>
+        </div>
+        <div class="codepane active" id="st-py"><pre><span class="k">with</span> client.messages.<span class="f">stream</span>(
+    model=<span class="s">"claude-opus-4-8"</span>,
+    max_tokens=<span class="n">1024</span>,
+    messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"写一首关于海的短诗"</span>}],
+) <span class="k">as</span> stream:
+    <span class="k">for</span> text <span class="k">in</span> stream.text_stream:
+        <span class="f">print</span>(text, end=<span class="s">""</span>, flush=<span class="k">True</span>)</pre></div>
+        <div class="codepane" id="st-ts"><pre><span class="k">const</span> stream = <span class="k">await</span> client.messages.<span class="f">create</span>({
+  model: <span class="s">"claude-opus-4-8"</span>,
+  max_tokens: <span class="n">1024</span>,
+  messages: [{ role: <span class="s">"user"</span>, content: <span class="s">"写一首关于海的短诗"</span> }],
+  stream: <span class="k">true</span>,
+});
+<span class="k">for await</span> (<span class="k">const</span> event <span class="k">of</span> stream) {
+  <span class="k">if</span> (event.type === <span class="s">"content_block_delta"</span>)
+    process.stdout.<span class="f">write</span>(event.delta.text ?? <span class="s">""</span>);
+}</pre></div>
+        <div class="codepane" id="st-raw"><pre>event: message_start
+data: {<span class="s">"type"</span>:<span class="s">"message_start"</span>,<span class="s">"message"</span>:{...}}
+
+event: content_block_delta
+data: {<span class="s">"type"</span>:<span class="s">"content_block_delta"</span>,<span class="s">"index"</span>:0,
+       <span class="s">"delta"</span>:{<span class="s">"type"</span>:<span class="s">"text_delta"</span>,<span class="s">"text"</span>:<span class="s">"海"</span>}}
+
+event: message_stop
+data: {<span class="s">"type"</span>:<span class="s">"message_stop"</span>}</pre></div>
+      </div>
+      <div class="note warn"><span class="nt">生产环境 4 个坑</span>① 工具参数在 input_json_delta，是<b>需累积的字符串增量</b>，不是完整 JSON；② SSE 不自动重连，需自己记录 last event id；③ 用户中途取消时，已生成 token 仍计费，别假设零成本；④ 流可能 200 开始后中途 error，别假设 200 就成功。</div>
+    </section>
+
+    <!-- CACHING -->
+    <section id="caching">
+      <h2><span class="num">06</span>提示缓存 (Prompt Caching)</h2>
+      <p class="sec-lede">把固定的长前缀（系统提示、知识库、文档）缓存起来，命中部分按基础输入价 10% 计费——降 90%，且不计入限流。</p>
+      <p>在要缓存的 <span class="inline">system</span> 或 content 块上加 <span class="inline">cache_control</span> 标记即可。Opus 4.8 把可缓存最小 token 从 4,096 降到 <b>1,024</b>，短系统提示也能用上。</p>
+      <div class="codebox">
+        <div class="tabs"><button class="tab active" data-pane="ca-1">标记缓存前缀</button></div>
+        <div class="codepane active" id="ca-1"><pre><span class="s">"system"</span>: [
+  {
+    <span class="k">"type"</span>: <span class="s">"text"</span>,
+    <span class="k">"text"</span>: <span class="s">"&lt;大段固定知识库 / 长文档 / 系统指令...&gt;"</span>,
+    <span class="k">"cache_control"</span>: { <span class="k">"type"</span>: <span class="s">"ephemeral"</span> }
+  }
+]</pre></div>
+      </div>
+      <div class="pills">
+        <span class="pill">最佳用途：<b>系统提示 / 重复上下文 / 长文档</b></span>
+        <span class="pill">缓存命中按 <b>10% 输入价</b>计费</span>
+        <span class="pill"><b>不计入限流</b> → 大幅提升有效吞吐</span>
+      </div>
+      <div class="note good"><span class="nt">实战建议</span>在 Console 的 Usage 页监控缓存命中率（cache_read_input_tokens）。对有长固定前缀、反复调用的负载（如 RAG、客服、文档问答），缓存往往是单笔最大的成本优化。</div>
+    </section>
+
+    <!-- BATCH -->
+    <section id="batch">
+      <h2><span class="num">07</span>批处理 API (Message Batches)</h2>
+      <p class="sec-lede">异步批量处理，成本立减 50%，24 小时内完成。适合离线打标、大规模内容生成等不要求实时的任务。</p>
+      <div class="codebox">
+        <div class="tabs">
+          <button class="tab active" data-pane="bt-py">提交批次（Python）</button>
+          <button class="tab" data-pane="bt-poll">查询结果</button>
+        </div>
+        <div class="codepane active" id="bt-py"><pre>batch = client.messages.batches.<span class="f">create</span>(
+    requests=[
+        {
+            <span class="s">"custom_id"</span>: <span class="s">"req-1"</span>,
+            <span class="s">"params"</span>: {
+                <span class="s">"model"</span>: <span class="s">"claude-sonnet-4-6"</span>,
+                <span class="s">"max_tokens"</span>: <span class="n">1024</span>,
+                <span class="s">"messages"</span>: [{<span class="s">"role"</span>:<span class="s">"user"</span>,<span class="s">"content"</span>:<span class="s">"翻译这段..."</span>}]
+            }
+        },
+        <span class="c"># ... 可批量成千上万条</span>
+    ]
+)
+<span class="f">print</span>(batch.id)</pre></div>
+        <div class="codepane" id="bt-poll"><pre><span class="c"># 轮询批次状态，完成后取结果</span>
+result = client.messages.batches.<span class="f">retrieve</span>(batch.id)
+<span class="k">if</span> result.processing_status == <span class="s">"ended"</span>:
+    <span class="k">for</span> entry <span class="k">in</span> client.messages.batches.<span class="f">results</span>(batch.id):
+        <span class="f">print</span>(entry.custom_id, entry.result)</pre></div>
+      </div>
+      <div class="pills">
+        <span class="pill">全模型 <b>降 50%</b></span>
+        <span class="pill"><b>24h 内</b>处理（异步）</span>
+        <span class="pill">可叠加<b>提示缓存</b></span>
+        <span class="pill">支持 <b>300k 输出</b> beta header</span>
+      </div>
+    </section>
+
+    <!-- CLAUDE CODE -->
+    <section id="code">
+      <h2><span class="num">08</span>Claude Code</h2>
+      <p class="sec-lede">Agent 式编码工具，从 CLI / 桌面 / 移动端委派编码任务，能读写代码库、跑命令、迭代调试、集成 MCP。</p>
+      <div class="codebox">
+        <div class="tabs"><button class="tab active" data-pane="cc-1">安装与启动</button></div>
+        <div class="codepane active" id="cc-1"><pre><span class="c"># 安装（需 Node.js）</span>
+npm install -g @anthropic-ai/claude-code
+
+<span class="c"># 在项目目录启动</span>
+<span class="k">cd</span> your-project
+claude
+
+<span class="c"># 鉴权：可用 Pro/Max 订阅额度，或 API key 按 token 计费</span></pre></div>
+      </div>
+      <h4>计费方式</h4>
+      <table>
+        <tr><th>方式</th><th>计费</th><th>说明</th></tr>
+        <tr><td>Pro ($20/月)</td><td>标准滚动额度</td><td>含全部模型 + Claude Code</td></tr>
+        <tr><td>Max 5×/20× ($100/$200)</td><td>5×/20× 额度 + 优先</td><td>全天高强度开发不撞限</td></tr>
+        <tr><td>API（按 token）</td><td>Sonnet $3/$15、Opus $5/$25</td><td>可精确预算</td></tr>
+      </table>
+      <div class="pills">
+        <span class="pill">90% 用户日活成本 <b>&lt; $30</b></span>
+        <span class="pill">限流按 <b>5 小时滚动窗口</b></span>
+        <span class="pill">2026/05 起付费档限流 <b>翻倍</b></span>
+        <span class="pill">effort 可用 <b>xhigh / max</b></span>
+      </div>
+      <div class="note warn"><span class="nt">Agent Teams 成本</span>Claude Code 可派生子代理，每个维护独立上下文、作为独立实例运行。<b>3 代理团队约用 7× 单代理 token</b>——并行加速的代价是成本成倍上升。本地 MCP server 需手动编辑配置文件，是已知上手门槛。</div>
+    </section>
+
+    <!-- MANAGED AGENTS -->
+    <section id="agents">
+      <h2><span class="num">09</span>Managed Agents（托管 Agent）</h2>
+      <p class="sec-lede">Anthropic 托管的 Agent 基础设施，免自建检索/执行/编排。需 beta header，多代理会话与 Outcomes 已进入公开 beta。</p>
+      <p>所有 Managed Agents 请求需带 <span class="inline">managed-agents-2026-04-01</span> beta header（SDK 自动设置）。事件双向流动：你发 <b>user events</b> 启动并引导会话；系统回 <b>session / span / agent events</b> 供观测。事件命名遵循 <span class="inline">{domain}.{action}</span> 约定。</p>
+      <h4>计费两个维度</h4>
+      <table>
+        <tr><th>维度</th><th>说明</th></tr>
+        <tr><td>Token</td><td>会话内所有 token 按 Model Pricing 计，缓存乘数同样适用</td></tr>
+        <tr><td>会话运行时</td><td>按 session runtime 另计</td></tr>
+        <tr><td>会话内网页搜索</td><td>$10 / 1,000 次，单独计费</td></tr>
+      </table>
+      <div class="pills">
+        <span class="pill">Files / Batches / 代码执行 / 工具调用 <b>全可用</b></span>
+        <span class="pill">支持 <b>Webhooks</b>（会话/凭证生命周期）</span>
+        <span class="pill">会话可按 <b>status 过滤</b>，事件可按 type 过滤</span>
+      </div>
+    </section>
+
+    <!-- ERRORS -->
+    <section id="errors">
+      <h2><span class="num">10</span>错误码与限流</h2>
+      <p class="sec-lede">限流按模型独立计量，分三维度。缓存命中的 token 不计入限流——这是吞吐优化的关键。</p>
+      <h3>限流三维度</h3>
+      <table>
+        <tr><th>维度</th><th>全称</th><th>说明</th></tr>
+        <tr><td><span class="inline">RPM</span></td><td>Requests / Min</td><td>每分钟请求数</td></tr>
+        <tr><td><span class="inline">ITPM</span></td><td>Input Tokens / Min</td><td>每分钟输入 token（多数模型仅计未缓存部分）</td></tr>
+        <tr><td><span class="inline">OTPM</span></td><td>Output Tokens / Min</td><td>实时按实际生成计；max_tokens 不计入</td></tr>
+      </table>
+      <h3>错误码</h3>
+      <table>
+        <tr><th>码</th><th>含义</th><th>处理</th></tr>
+        <tr><td><span class="inline">400</span></td><td>请求无效（如非默认 temperature）</td><td>检查/移除不支持的采样参数</td></tr>
+        <tr><td><span class="inline">413</span></td><td>请求体过大</td><td>直连无硬限；Vertex 30MB / Bedrock 20MB</td></tr>
+        <tr><td><span class="inline">429</span></td><td>触发限流（含 retry-after 头）</td><td>按 retry-after 退避；平滑放量</td></tr>
+        <tr><td><span class="inline">529</span></td><td>服务过载（overloaded_error）</td><td>指数退避重试</td></tr>
+      </table>
+      <div class="note warn"><span class="nt">加速限制</span>用量陡增也可能触发 429——即便没到层级上限。规避：逐步放量、保持稳定使用曲线，不要瞬间灌大流量。可在 Console 查看当前限流，或用 Rate Limits API 程序化读取。</div>
+    </section>
+
+    <!-- COST -->
+    <section id="cost">
+      <h2><span class="num">11</span>成本优化总表</h2>
+      <p class="sec-lede">实际账单不取决于头部单价，而取决于这几个杠杆叠加。</p>
+      <table>
+        <tr><th>杠杆</th><th>效果</th><th>适用条件</th></tr>
+        <tr><td>模型分层路由</td><td>视负载</td><td>简单→Haiku，多数→Sonnet，最难→Opus</td></tr>
+        <tr><td>提示缓存</td><td>命中输入 <b>降 90%</b></td><td>有固定长前缀反复使用</td></tr>
+        <tr><td>批处理 Batch</td><td>全模型 <b>降 50%</b></td><td>可异步、不要求实时</td></tr>
+        <tr><td>缓存 + 批处理叠加</td><td>最多 <b>降 95%</b></td><td>两者条件同时满足</td></tr>
+      </table>
+      <h4>成本测算（1000万输入 + 200万输出）</h4>
+      <table>
+        <tr><th>模型</th><th>标准成本</th><th>叠加优化后</th></tr>
+        <tr><td>Haiku 4.5</td><td>约 $20</td><td>约 $1–4</td></tr>
+        <tr><td>Sonnet 4.6</td><td>约 $60</td><td>约 $3–12</td></tr>
+        <tr><td>Opus 4.8</td><td>约 $100</td><td>约 $5–20</td></tr>
+      </table>
+      <div class="note tip"><span class="nt">优化顺序</span>第一位永远是「选对模型族」——先把负载分类，再上缓存和批处理。顺序反了会先被总价吓退。用真实月 token 量代入测算，比看单价有意义得多。</div>
+    </section>
+
+    <div class="foot">
+      数据时点 2026 年 6 月 · 旗舰 Claude Opus 4.8 · 端点/参数/限流/SSE 事件来自 platform.claude.com 官方文档，代码示例可直接运行（替换模型 ID 即可）。多项功能为 beta 且更新频繁，生产决策前请以官方文档为准。本手册为开发者层（蛋糕第 4 层）的深度展开。
+    </div>
+  </main>
+</div>
+
+<script>
+// 代码标签切换
+document.querySelectorAll('.tabs').forEach(tabs=>{
+  tabs.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const box = tabs.closest('.codebox');
+      tabs.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      box.querySelectorAll('.codepane').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      box.querySelector('#'+tab.dataset.pane).classList.add('active');
+    });
+  });
+});
+// 导航高亮（scroll spy）
+const navLinks = document.querySelectorAll('#nav a');
+const sections = [...navLinks].map(a=>document.querySelector(a.getAttribute('href')));
+const spy = ()=>{
+  let cur = sections[0];
+  const y = window.scrollY + 120;
+  sections.forEach(s=>{ if(s && s.offsetTop <= y) cur = s; });
+  navLinks.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+cur.id));
+};
+window.addEventListener('scroll',spy); spy();
+</script>
+</body>
+</html>

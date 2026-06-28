@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Adjust ODDL — 重新定义深度链接交付速度</title>
+<style>
+:root {
+  --bg:       #060c1a;
+  --surface:  #0d1526;
+  --card:     #111c35;
+  --border:   #1e2d4a;
+  --blue:     #3b82f6;
+  --blue-glow:#1d4ed8;
+  --green:    #10b981;
+  --red:      #ef4444;
+  --amber:    #f59e0b;
+  --text:     #f1f5f9;
+  --muted:    #64748b;
+  --sub:      #94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.7;
+}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(6,12,26,.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:14px 32px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-logo{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.5px;}
+.nav-logo span{color:var(--blue);}
+.nav-badge{
+  background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);
+  color:var(--blue);border-radius:100px;padding:4px 14px;font-size:12px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;
+}
+
+/* ── HERO ── */
+.hero{
+  padding:100px 24px 80px;text-align:center;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,130,246,.12) 0%, transparent 70%);
+  pointer-events:none;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);
+  color:var(--green);border-radius:100px;padding:6px 16px;
+  font-size:13px;font-weight:700;margin-bottom:28px;
+}
+.hero-eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot 1.5s infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.8);}}
+.hero h1{
+  font-size:clamp(32px,5.5vw,64px);font-weight:900;line-height:1.1;
+  margin-bottom:20px;letter-spacing:-1.5px;
+}
+.hero h1 .highlight{
+  background:linear-gradient(90deg,#3b82f6,#10b981);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{font-size:18px;color:var(--sub);max-width:580px;margin:0 auto 40px;line-height:1.7;}
+.hero-cta-row{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;}
+.btn-primary{
+  background:var(--blue);color:#fff;padding:14px 32px;border-radius:8px;
+  font-size:15px;font-weight:700;text-decoration:none;
+  box-shadow:0 0 24px rgba(59,130,246,.35);
+  transition:transform .2s,box-shadow .2s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 36px rgba(59,130,246,.5);}
+.btn-secondary{
+  background:transparent;color:var(--sub);padding:14px 32px;border-radius:8px;
+  font-size:15px;font-weight:600;text-decoration:none;border:1px solid var(--border);
+  transition:border-color .2s,color .2s;
+}
+.btn-secondary:hover{border-color:var(--blue);color:var(--text);}
+
+/* ── SECTION WRAP ── */
+.container{max-width:1000px;margin:0 auto;padding:0 24px;}
+.section{padding:80px 0;}
+.section-eyebrow{
+  font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--blue);margin-bottom:10px;
+}
+.section-title{font-size:clamp(24px,3.5vw,38px);font-weight:800;letter-spacing:-.5px;margin-bottom:12px;}
+.section-sub{font-size:16px;color:var(--sub);max-width:560px;margin-bottom:48px;line-height:1.7;}
+
+/* ── DIVIDER ── */
+hr.div{border:none;border-top:1px solid var(--border);}
+
+/* ══════════════════════════════════════════════════
+   ANIMATED FLOW DIAGRAM
+══════════════════════════════════════════════════ */
+.diagram-section{padding:80px 0;}
+.diagram-header{text-align:center;margin-bottom:48px;}
+
+.diagram-wrap{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px 32px 32px;position:relative;overflow:hidden;
+}
+.diagram-wrap::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--red),transparent 40%,transparent 60%,var(--green));
+}
+
+/* Lane labels */
+.lane-labels{
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;
+}
+.lane-label{
+  text-align:center;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;
+}
+.lane-label.legacy{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);}
+.lane-label.oddl{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green);}
+
+/* Swimlane grid */
+.swimlanes{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+
+.swimlane{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;}
+
+/* Node boxes */
+.node{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 16px;text-align:center;
+  position:relative;z-index:2;
+  transition:border-color .3s,box-shadow .3s;
+}
+.node.active-legacy{border-color:var(--red);box-shadow:0 0 16px rgba(239,68,68,.3);}
+.node.active-oddl{border-color:var(--green);box-shadow:0 0 16px rgba(16,185,129,.3);}
+.node.done-legacy{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.05);}
+.node.done-oddl{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.05);}
+.node.blocked{border-color:var(--amber);background:rgba(245,158,11,.08);animation:blocked-pulse 1s infinite;}
+@keyframes blocked-pulse{0%,100%{box-shadow:0 0 8px rgba(245,158,11,.3);}50%{box-shadow:0 0 20px rgba(245,158,11,.5);}}
+.node.delivered{border-color:var(--green);background:rgba(16,185,129,.12);animation:delivered-glow 1.5s ease;}
+@keyframes delivered-glow{0%{box-shadow:0 0 0 rgba(16,185,129,0);}50%{box-shadow:0 0 32px rgba(16,185,129,.6);}100%{box-shadow:0 0 16px rgba(16,185,129,.3);}}
+
+.node-icon{font-size:20px;margin-bottom:4px;}
+.node-title{font-size:13px;font-weight:700;color:var(--text);}
+.node-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* Arrow connector */
+.arrow-connector{
+  width:2px;height:28px;position:relative;z-index:1;
+  background:var(--border);margin:2px 0;flex-shrink:0;
+}
+.arrow-connector::after{
+  content:"▼";position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--muted);
+}
+/* Particle that travels down */
+.packet{
+  position:absolute;width:10px;height:10px;border-radius:50%;
+  top:-5px;left:50%;transform:translateX(-50%);
+  z-index:10;pointer-events:none;
+  opacity:0;
+}
+.packet.legacy-color{background:var(--red);box-shadow:0 0 8px var(--red);}
+.packet.oddl-color{background:var(--green);box-shadow:0 0 8px var(--green);}
+.packet.visible{opacity:1;}
+
+/* Attribution node special */
+.node.attribution-node{
+  border-style:dashed;
+  position:relative;
+}
+.attribution-spinner{
+  display:none;
+  width:20px;height:20px;border:2px solid rgba(245,158,11,.3);
+  border-top-color:var(--amber);border-radius:50%;
+  animation:spin .8s linear infinite;margin:6px auto 2px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.node.blocked .attribution-spinner{display:block;}
+
+/* Background attribution node for ODDL */
+.bg-attribution{
+  background:rgba(59,130,246,.06);border:1px dashed rgba(59,130,246,.3);
+  border-radius:10px;padding:10px 16px;width:100%;text-align:center;
+  margin-top:8px;
+}
+.bg-attribution .node-title{color:var(--blue);font-size:12px;}
+.bg-attribution .node-desc{font-size:10px;color:var(--muted);}
+
+/* Timer display */
+.timer-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px;
+}
+.timer-box{
+  text-align:center;background:var(--surface);border-radius:10px;
+  padding:16px;border:1px solid var(--border);
+}
+.timer-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.timer-value{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-1px;}
+.timer-value.red{color:var(--red);}
+.timer-value.green{color:var(--green);}
+.timer-status{font-size:12px;color:var(--muted);margin-top:4px;min-height:18px;}
+
+/* Replay button */
+.replay-btn{
+  display:block;margin:24px auto 0;
+  background:transparent;border:1px solid var(--border);color:var(--sub);
+  padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;
+  transition:border-color .2s,color .2s;
+}
+.replay-btn:hover{border-color:var(--blue);color:var(--text);}
+
+/* ── SPEED BREAKDOWN ── */
+.speed-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+.speed-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:28px;transition:border-color .2s;
+}
+.speed-card:hover{border-color:var(--blue);}
+.speed-card-icon{font-size:28px;margin-bottom:14px;}
+.speed-card h3{font-size:17px;font-weight:700;margin-bottom:8px;}
+.speed-card p{font-size:14px;color:var(--sub);line-height:1.65;}
+
+/* ── COMPARE TABLE ── */
+.compare-table{width:100%;border-collapse:collapse;}
+.compare-table th,.compare-table td{
+  padding:14px 18px;text-align:left;border-bottom:1px solid var(--border);
+  font-size:14px;
+}
+.compare-table th{
+  font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--muted);background:var(--surface);
+}
+.compare-table td:first-child{color:var(--sub);}
+.compare-table .val-bad{color:var(--red);}
+.compare-table .val-good{color:var(--green);}
+.compare-table-wrap{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+}
+
+/* ── TIMELINE BAR ── */
+.timeline-comparison{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:32px;margin-bottom:48px;
+}
+.timeline-comparison h3{font-size:16px;font-weight:700;margin-bottom:24px;color:var(--sub);text-align:center;}
+.tl-row{display:grid;grid-template-columns:100px 1fr;align-items:center;gap:16px;margin-bottom:20px;}
+.tl-label{font-size:13px;font-weight:700;}
+.tl-label.red{color:var(--red);}
+.tl-label.green{color:var(--green);}
+.tl-track{position:relative;height:36px;background:rgba(255,255,255,.04);border-radius:8px;overflow:hidden;}
+.tl-bar{
+  height:100%;border-radius:8px;display:flex;align-items:center;
+  padding-left:12px;font-size:12px;font-weight:700;color:#fff;
+  width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1);
+}
+.tl-bar.legacy{background:linear-gradient(90deg,#ef4444,#f87171);}
+.tl-bar.oddl-main{background:linear-gradient(90deg,#10b981,#34d399);}
+.tl-bar.oddl-bg{
+  background:linear-gradient(90deg,rgba(59,130,246,.4),rgba(59,130,246,.2));
+  border:1px dashed rgba(59,130,246,.5);color:var(--blue);
+}
+.tl-marker{
+  position:absolute;top:50%;right:0;transform:translateY(-50%);
+  font-size:11px;font-weight:700;margin-right:10px;
+  white-space:nowrap;
+}
+.tl-note{grid-column:2;font-size:11px;color:var(--muted);margin-top:-8px;}
+.tl-divider{height:1px;background:var(--border);margin:8px 0 20px;}
+
+/* ── USE CASES ── */
+.uc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+.uc-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:22px;transition:border-color .2s,transform .2s;
+}
+.uc-card:hover{border-color:rgba(59,130,246,.5);transform:translateY(-2px);}
+.uc-icon{font-size:28px;margin-bottom:12px;}
+.uc-card h4{font-size:15px;font-weight:700;margin-bottom:6px;}
+.uc-card p{font-size:13px;color:var(--sub);}
+.uc-pill{
+  display:inline-block;margin-top:10px;background:rgba(16,185,129,.1);
+  color:var(--green);border-radius:100px;padding:2px 10px;font-size:11px;font-weight:700;
+}
+
+/* ── SETUP STEPS ── */
+.steps{display:flex;flex-direction:column;gap:12px;}
+.step{
+  display:flex;align-items:flex-start;gap:16px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;
+}
+.step-num{
+  width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;
+  font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.step h4{font-size:15px;font-weight:700;margin-bottom:4px;}
+.step p{font-size:13px;color:var(--sub);}
+
+/* SDK mini table */
+.sdk-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;
+  margin-top:24px;
+}
+.sdk-chip{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;text-align:center;
+}
+.sdk-chip .platform{font-size:13px;font-weight:700;}
+.sdk-chip .version{font-size:11px;color:var(--green);margin-top:2px;}
+
+/* ── CTA ── */
+.cta-box{
+  background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(16,185,129,.1));
+  border:1px solid rgba(59,130,246,.3);border-radius:20px;
+  padding:60px 40px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.cta-box::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 70% at 50% 50%,rgba(59,130,246,.08),transparent);
+  pointer-events:none;
+}
+.cta-box h2{font-size:clamp(22px,3vw,34px);font-weight:800;margin-bottom:12px;letter-spacing:-.5px;}
+.cta-box p{font-size:16px;color:var(--sub);margin-bottom:32px;}
+
+/* ── FOOTER ── */
+footer{
+  padding:32px;text-align:center;font-size:13px;color:var(--muted);
+  border-top:1px solid var(--border);
+}
+footer a{color:var(--blue);text-decoration:none;}
+footer a:hover{text-decoration:underline;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  .swimlanes,.lane-labels,.timer-row{grid-template-columns:1fr;}
+  .tl-row{grid-template-columns:70px 1fr;}
+  nav{padding:12px 16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════ NAV ══════ -->
+<nav>
+  <div class="nav-logo">adjust <span>×</span> ODDL</div>
+  <div class="nav-badge">🔒 Early Access</div>
+</nav>
+
+<!-- ══════ HERO ══════ -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">全新功能 · 优化延迟深度链接</div>
+    <h1>深度链接<span class="highlight">不再等待归因</span><br/>用户点击，即刻直达</h1>
+    <p class="hero-sub">
+      传统方案让深度链接交付被归因流程"绑架"，每一次延迟都是流失的用户。<br/>
+      ODDL 将两者解耦——深度链接通过极速 Session 响应独立交付，体验无缝衔接。
+    </p>
+    <div class="hero-cta-row">
+      <a href="mailto:support@adjust.com" class="btn-primary">申请 Early Access →</a>
+      <a href="#diagram" class="btn-secondary">查看工作原理</a>
+    </div>
+  </div>
+</section>
+
+<hr class="div"/>
+
+<!-- ══════ ANIMATED FLOW DIAGRAM ══════ -->
+<section class="diagram-section" id="diagram">
+  <div class="container">
+    <div class="diagram-header">
+      <div class="section-eyebrow">动态流程对比</div>
+      <h2 class="section-title" style="text-align:center;">为什么 ODDL 更快？看这里</h2>
+      <p style="color:var(--sub);font-size:16px;text-align:center;max-width:520px;margin:0 auto 40px;">
+        两条路径同时出发——左边的传统方案在"归因"这一步被迫等待，右边的 ODDL 早已把深度链接送达用户手中。
+      </p>
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="lane-labels">
+        <div class="lane-label legacy">❌ 传统方案（归因阻塞）</div>
+        <div class="lane-label oddl">⚡ ODDL（极速路径）</div>
+      </div>
+
+      <div class="swimlanes">
+        <!-- LEGACY LANE -->
+        <div class="swimlane" id="lane-legacy">
+          <div class="node" id="ln-click">
+            <div class="node-icon">👆</div>
+            <div class="node-title">用户点击 Adjust 链接</div>
+          </div>
+          <div class="arrow-connector"><div class="packet legacy-color" id="lp1"></div></div>
+          <div class="node" id="ln-install">
+            <div class="node-icon">📲</div>
+            <div class="node-title">前往 App Store 下载</div>
+            <div class="node-desc">Install / Reinstall</div>
+          </div>
+          <div class="arrow-connector"><div class="packet legacy-color" id="lp2"></div></div>
+          <div class="node" id="ln-open">
+            <div class="node-icon">🚀</div>
+            <div class="node-title">App 打开 · SDK 启动</div>
+          </div>
+          <div class="arrow-connector"><div class="packet legacy-color" id="lp3"></div></div>
+          <div class="node" id="ln-server">
+            <div class="node-icon">🖥️</div>
+            <div class="node-title">Adjust 服务器接收请求</div>
+          </div>
+          <div class="arrow-connector"><div class="packet legacy-color" id="lp4"></div></div>
+          <div class="node attribution-node" id="ln-attr">
+            <div class="attribution-spinner" id="legacy-spinner"></div>
+            <div class="node-icon" id="ln-attr-icon">⏳</div>
+            <div class="node-title" id="ln-attr-title">归因引擎处理中…</div>
+            <div class="node-desc" id="ln-attr-desc">等待匹配结果，链路阻塞</div>
+          </div>
+          <div class="arrow-connector"><div class="packet legacy-color" id="lp5"></div></div>
+          <div class="node" id="ln-deeplink">
+            <div class="node-icon">🔗</div>
+            <div class="node-title">深度链接交付</div>
+            <div class="node-desc" id="ln-dl-desc">归因完成后才能下发</div>
+          </div>
+        </div>
+
+        <!-- ODDL LANE -->
+        <div class="swimlane" id="lane-oddl">
+          <div class="node" id="on-click">
+            <div class="node-icon">👆</div>
+            <div class="node-title">用户点击 Adjust 链接</div>
+          </div>
+          <div class="arrow-connector"><div class="packet oddl-color" id="op1"></div></div>
+          <div class="node" id="on-install">
+            <div class="node-icon">📲</div>
+            <div class="node-title">前往 App Store 下载</div>
+            <div class="node-desc">Install / Reinstall</div>
+          </div>
+          <div class="arrow-connector"><div class="packet oddl-color" id="op2"></div></div>
+          <div class="node" id="on-open">
+            <div class="node-icon">🚀</div>
+            <div class="node-title">App 打开 · SDK 启动</div>
+          </div>
+          <div class="arrow-connector"><div class="packet oddl-color" id="op3"></div></div>
+          <div class="node" id="on-server">
+            <div class="node-icon">🖥️</div>
+            <div class="node-title">Adjust 服务器接收请求</div>
+            <div class="node-desc">检测到 15 min 内最近点击</div>
+          </div>
+          <div class="arrow-connector"><div class="packet oddl-color" id="op4"></div></div>
+          <div class="node" id="on-deeplink">
+            <div class="node-icon">⚡</div>
+            <div class="node-title">深度链接即时交付</div>
+            <div class="node-desc">随 Session 响应立刻下发</div>
+          </div>
+          <div style="margin-top:12px;width:100%;">
+            <div class="bg-attribution" id="on-attr-bg">
+              <div class="node-icon" style="font-size:14px;">⚙️</div>
+              <div class="node-title">归因引擎（后台独立运行）</div>
+              <div class="node-desc">不阻塞深度链接 · 数据完整</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timers -->
+      <div class="timer-row">
+        <div class="timer-box">
+          <div class="timer-label">传统方案 · 深度链接到达时间</div>
+          <div class="timer-value red" id="timer-legacy">0.0s</div>
+          <div class="timer-status" id="status-legacy">等待开始…</div>
+        </div>
+        <div class="timer-box">
+          <div class="timer-label">ODDL · 深度链接到达时间</div>
+          <div class="timer-value green" id="timer-oddl">0.0s</div>
+          <div class="timer-status" id="status-oddl">等待开始…</div>
+        </div>
+      </div>
+
+      <button class="replay-btn" id="replay-btn" onclick="startAnimation()">▶ 开始演示</button>
+    </div>
+  </div>
+</section>
+
+<hr class="div"/>
+
+<!-- ══════ WHY FASTER — TIMELINE BAR ══════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-eyebrow">速度解析</div>
+    <h2 class="section-title">快在哪里？一图看懂</h2>
+    <p class="section-sub">ODDL 的核心创新是"解耦"——深度链接交付与归因分析彼此独立，互不等待。</p>
+
+    <div class="timeline-comparison" id="tl-section">
+      <h3>深度链接交付时间轴对比</h3>
+      <div class="tl-row">
+        <div class="tl-label red">传统方案</div>
+        <div class="tl-track">
+          <div class="tl-bar legacy" id="tl-legacy-bar">SDK 请求 → 归因等待 → 深度链接</div>
+          <div class="tl-marker" style="color:var(--red);">~3–5s ❌</div>
+        </div>
+      </div>
+      <div class="tl-row" style="margin-bottom:4px;">
+        <div class="tl-label green">ODDL</div>
+        <div class="tl-track">
+          <div class="tl-bar oddl-main" id="tl-oddl-bar">深度链接（极速）</div>
+          <div class="tl-marker" style="color:var(--green);">&lt;0.5s ⚡</div>
+        </div>
+      </div>
+      <div class="tl-row" style="margin-top:8px;">
+        <div></div>
+        <div class="tl-track">
+          <div class="tl-bar oddl-bg" id="tl-attr-bar">归因继续运行（后台，不阻塞）</div>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div></div>
+        <div class="tl-note">↑ 归因数据完整，在后台独立完成，不影响深度链接的即时交付</div>
+      </div>
+    </div>
+
+    <div class="speed-cards">
+      <div class="speed-card">
+        <div class="speed-card-icon">🔓</div>
+        <h3>解耦：深度链接不再被归因"绑架"</h3>
+        <p>传统方案中，SDK 必须等待归因引擎返回匹配结果后，才能下发深度链接。ODDL 打破这个依赖——服务端检测到近期点击后，立刻通过 Session 响应返回深度链接，归因在后台并行继续。</p>
+      </div>
+      <div class="speed-card">
+        <div class="speed-card-icon">🎯</div>
+        <h3>最近点击优先：捕获用户真实意图</h3>
+        <p>ODDL 捕获安装前 15 分钟内的最近一次 Adjust 链接点击，确保用户被路由到他们当时真正点击的内容页——而不是模糊匹配的结果。</p>
+      </div>
+      <div class="speed-card">
+        <div class="speed-card-icon">🛡️</div>
+        <h3>双路径兜底：任何场景都有保障</h3>
+        <p>若 15 分钟内未找到符合条件的点击，系统自动回退至传统归因路径。ODDL 只在能更快的时候"出手"，不会牺牲覆盖率换速度。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="div"/>
+
+<!-- ══════ LEGACY VS ODDL TABLE ══════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-eyebrow">能力对比</div>
+    <h2 class="section-title">传统方案 vs ODDL</h2>
+    <p class="section-sub">关键指标一览，数字说话。</p>
+    <div class="compare-table-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>指标</th>
+            <th>传统延迟深度链接</th>
+            <th>ODDL（优化版）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>深度链接交付时机</td>
+            <td class="val-bad">等待归因完成后</td>
+            <td class="val-good">⚡ 随 Session 响应即时下发</td>
+          </tr>
+          <tr>
+            <td>与归因的依赖关系</td>
+            <td class="val-bad">强依赖，链路阻塞</td>
+            <td class="val-good">完全解耦，并行运行</td>
+          </tr>
+          <tr>
+            <td>交付速度</td>
+            <td class="val-bad">~3–5 秒（归因延迟）</td>
+            <td class="val-good">&lt;0.5 秒</td>
+          </tr>
+          <tr>
+            <td>用户体验</td>
+            <td class="val-bad">打开 App 看到空白首页</td>
+            <td class="val-good">直接落地目标内容页</td>
+          </tr>
+          <tr>
+            <td>归因数据完整性</td>
+            <td>完整</td>
+            <td class="val-good">完整（后台独立运行）</td>
+          </tr>
+          <tr>
+            <td>SAN 渠道支持</td>
+            <td>支持</td>
+            <td>⚠️ 暂不支持（回退至归因路径）</td>
+          </tr>
+          <tr>
+            <td>接入改动</td>
+            <td>—</td>
+            <td class="val-good">升级 SDK + 开启一个配置项</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<hr class="div"/>
+
+<!-- ══════ USE CASES ══════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-eyebrow">适用场景</div>
+    <h2 class="section-title">哪些业务最能受益？</h2>
+    <p class="section-sub">所有需要将用户从广告精准引导至 App 特定内容的场景，ODDL 都能带来显著提升。</p>
+    <div class="uc-grid">
+      <div class="uc-card">
+        <div class="uc-icon">🎬</div>
+        <h4>流媒体 / 内容平台</h4>
+        <p>用户点击某部剧的广告，安装后直接播放该剧，而非看到空白首页。</p>
+        <span class="uc-pill">直接播放率 ↑</span>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🛍️</div>
+        <h4>电商 / 零售</h4>
+        <p>商品促销广告点击后，安装即进入该商品详情页，购买路径最短化。</p>
+        <span class="uc-pill">转化率 ↑</span>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🎮</div>
+        <h4>游戏</h4>
+        <p>限时活动广告引流，进入 App 即看到对应活动界面，活动承接率提升。</p>
+        <span class="uc-pill">活动参与率 ↑</span>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🏦</div>
+        <h4>金融 / 银行</h4>
+        <p>开户引导链接安装后直接进入申请流程，新用户激活门槛大幅降低。</p>
+        <span class="uc-pill">激活率 ↑</span>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🚗</div>
+        <h4>出行 / O2O</h4>
+        <p>线下扫码或广告点击后安装，直接唤起对应服务或优惠券，闭环完整。</p>
+        <span class="uc-pill">首单率 ↑</span>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">📅</div>
+        <h4>票务 / 本地生活</h4>
+        <p>活动推广链接安装后直接显示购票界面，减少用户自行搜索的流失。</p>
+        <span class="uc-pill">购票转化 ↑</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="div"/>
+
+<!-- ══════ GET STARTED ══════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-eyebrow">快速上手</div>
+    <h2 class="section-title">4 步接入，最快当天生效</h2>
+    <p class="section-sub">无需修改现有深度链接配置，只需升级 SDK 并开启一个选项。</p>
+
+    <div class="steps" style="margin-bottom:40px;">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>申请加入 ODDL Early Access 计划</h4>
+          <p>联系您的 Adjust 客户成功经理，或发送邮件至 <strong style="color:var(--blue);">support@adjust.com</strong>，确认资格后即可开通。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>升级 Adjust SDK 至以下最低版本</h4>
+          <p>升级后 ODDL 逻辑将自动包含在 SDK 中，无需额外集成代码。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>在 App 归因设置中开启概率匹配（Probabilistic Modeling）</h4>
+          <p>当设备标识符不可用时，ODDL 依赖概率匹配确保深度链接依然可以被交付。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>使用现有深度链接，测试安装与重装流程</h4>
+          <p>无需修改任何链接配置，按照官方测试步骤验证 install / reinstall 流程即可上线。</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--sub);">SDK 最低版本要求</h3>
+    <div class="sdk-grid">
+      <div class="sdk-chip"><div class="platform">iOS</div><div class="version">≥ 5.4.4</div></div>
+      <div class="sdk-chip"><div class="platform">Android</div><div class="version">≥ 5.4.3</div></div>
+      <div class="sdk-chip"><div class="platform">Unity</div><div class="version">≥ 5.4.3</div></div>
+      <div class="sdk-chip"><div class="platform">React Native</div><div class="version">≥ 5.4.3</div></div>
+      <div class="sdk-chip"><div class="platform">Flutter</div><div class="version">≥ 5.4.3</div></div>
+      <div class="sdk-chip"><div class="platform">Cordova</div><div class="version">≥ 5.4.3</div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="div"/>
+
+<!-- ══════ CTA ══════ -->
+<section class="section">
+  <div class="container">
+    <div class="cta-box">
+      <h2>让每一次广告点击都完整落地</h2>
+      <p>ODDL 目前处于 Early Access 阶段，名额有限。<br/>立即联系您的 Adjust 客户经理，抢先解锁极速深度链接交付能力。</p>
+      <a href="mailto:support@adjust.com" class="btn-primary" style="display:inline-block;">联系 Adjust 团队，申请开通 →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ FOOTER ══════ -->
+<footer>
+  <p>© 2026 Adjust GmbH · 本文档仅供参考，功能细节以 <a href="https://help.adjust.com/en/article/optimized-deferred-deep-linking-oddl" target="_blank">Adjust 官方文档</a> 为准</p>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════
+   ANIMATION ENGINE
+═══════════════════════════════════════════ */
+let animRunning = false;
+let legacyStartTime = null;
+let oddlStartTime = null;
+let legacyDelivered = false;
+let oddlDelivered = false;
+let rafId = null;
+
+// All legacy nodes in order
+const legacyNodes = ['ln-click','ln-install','ln-open','ln-server','ln-attr','ln-deeplink'];
+const oddlNodes   = ['on-click','on-install','on-open','on-server','on-deeplink'];
+
+// Timings (ms): how long each node stays "active" before moving on
+// Legacy: click(500), install(700), open(400), server(400), attribution(2800!), deeplink(400)
+const legacyTiming = [500, 700, 400, 400, 2800, 400];
+const oddlTiming   = [500, 700, 400, 400, 400];
+
+function resetAll() {
+  // Clear all node classes
+  [...legacyNodes, ...oddlNodes, 'on-attr-bg'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = el.className.replace(/\s*(active-legacy|active-oddl|done-legacy|done-oddl|blocked|delivered)\s*/g,' ').trim();
+  });
+  // Reset node class for attribution bg
+  const attrBg = document.getElementById('on-attr-bg');
+  if (attrBg) attrBg.style.opacity = '0.4';
+
+  // Reset attribution node appearance
+  document.getElementById('ln-attr').classList.remove('blocked');
+  document.getElementById('legacy-spinner').style.display = 'none';
+  document.getElementById('ln-attr-icon').textContent = '⏳';
+  document.getElementById('ln-attr-title').textContent = '归因引擎处理中…';
+  document.getElementById('ln-attr-desc').textContent = '等待匹配结果，链路阻塞';
+  document.getElementById('ln-dl-desc').textContent = '归因完成后才能下发';
+
+  // Reset timers
+  document.getElementById('timer-legacy').textContent = '0.0s';
+  document.getElementById('timer-oddl').textContent = '0.0s';
+  document.getElementById('status-legacy').textContent = '等待开始…';
+  document.getElementById('status-oddl').textContent = '等待开始…';
+
+  // Reset timeline bars
+  document.getElementById('tl-legacy-bar').style.width = '0';
+  document.getElementById('tl-oddl-bar').style.width = '0';
+  document.getElementById('tl-attr-bar').style.width = '0';
+
+  document.getElementById('replay-btn').textContent = '▶ 开始演示';
+  legacyDelivered = false;
+  oddlDelivered = false;
+}
+
+function startAnimation() {
+  if (animRunning) {
+    animRunning = false;
+    cancelAnimationFrame(rafId);
+    resetAll();
+    return;
+  }
+
+  resetAll();
+  animRunning = true;
+  document.getElementById('replay-btn').textContent = '⏹ 重置';
+
+  const startTime = performance.now();
+  legacyStartTime = startTime;
+  oddlStartTime = startTime;
+
+  // Animate legacy path step by step
+  animateLane(legacyNodes, legacyTiming, 'legacy', startTime);
+  // Animate ODDL path step by step
+  animateLane(oddlNodes, oddlTiming, 'oddl', startTime);
+
+  // Start timer loop
+  function timerLoop(now) {
+    if (!animRunning) return;
+    const elapsed = (now - startTime) / 1000;
+
+    if (!legacyDelivered) {
+      document.getElementById('timer-legacy').textContent = elapsed.toFixed(1) + 's';
+    }
+    if (!oddlDelivered) {
+      document.getElementById('timer-oddl').textContent = elapsed.toFixed(1) + 's';
+    }
+    rafId = requestAnimationFrame(timerLoop);
+  }
+  rafId = requestAnimationFrame(timerLoop);
+}
+
+function animateLane(nodes, timings, type, startTime) {
+  let cumulativeDelay = 0;
+
+  nodes.forEach((nodeId, idx) => {
+    const delay = cumulativeDelay;
+    cumulativeDelay += timings[idx];
+
+    setTimeout(() => {
+      if (!animRunning) return;
+      // De-activate previous node, mark as done
+      if (idx > 0) {
+        const prev = document.getElementById(nodes[idx-1]);
+        if (prev) {
+          prev.classList.remove('active-' + type);
+          prev.classList.add('done-' + type);
+        }
+      }
+      // Activate current node
+      const curr = document.getElementById(nodeId);
+      if (!curr) return;
+      curr.classList.add('active-' + type);
+
+      // Special: legacy attribution blocking
+      if (type === 'legacy' && nodeId === 'ln-attr') {
+        curr.classList.add('blocked');
+        document.getElementById('legacy-spinner').style.display = 'block';
+        document.getElementById('ln-attr-icon').textContent = '';
+        document.getElementById('ln-attr-title').textContent = '⏳ 归因等待中…';
+        document.getElementById('ln-attr-desc').textContent = '服务器等待归因结果（阻塞深度链接）';
+        document.getElementById('status-legacy').textContent = '归因阻塞中，深度链接等待…';
+      }
+
+      // Special: ODDL delivery
+      if (type === 'oddl' && nodeId === 'on-deeplink') {
+        curr.classList.add('delivered');
+        oddlDelivered = true;
+        const t = ((performance.now() - startTime) / 1000).toFixed(2);
+        document.getElementById('timer-oddl').textContent = t + 's';
+        document.getElementById('status-oddl').textContent = '✅ 深度链接已送达！用户直达目标页面';
+        // Show attribution running in background
+        document.getElementById('on-attr-bg').style.opacity = '1';
+        // Animate timeline bars
+        setTimeout(() => {
+          document.getElementById('tl-oddl-bar').style.width = '30%';
+          document.getElementById('tl-attr-bar').style.width = '85%';
+        }, 200);
+      }
+
+      // Special: legacy delivery
+      if (type === 'legacy' && nodeId === 'ln-deeplink') {
+        curr.classList.add('delivered');
+        // Remove blocked from attr
+        const attrNode = document.getElementById('ln-attr');
+        attrNode.classList.remove('blocked');
+        document.getElementById('legacy-spinner').style.display = 'none';
+        attrNode.classList.add('done-legacy');
+        legacyDelivered = true;
+        const t = ((performance.now() - startTime) / 1000).toFixed(2);
+        document.getElementById('timer-legacy').textContent = t + 's';
+        document.getElementById('status-legacy').textContent = '⚠️ 深度链接最终送达，但用户等待已久';
+        setTimeout(() => {
+          document.getElementById('tl-legacy-bar').style.width = '100%';
+        }, 200);
+        // End animation loop after both done
+        setTimeout(() => {
+          animRunning = false;
+          cancelAnimationFrame(rafId);
+          document.getElementById('replay-btn').textContent = '↺ 重新播放';
+        }, 800);
+      }
+    }, delay);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   TIMELINE BARS: animate on scroll
+═══════════════════════════════════════════ */
+const tlObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      setTimeout(() => { document.getElementById('tl-legacy-bar').style.width = '100%'; }, 200);
+      setTimeout(() => { document.getElementById('tl-oddl-bar').style.width  = '30%'; }, 400);
+      setTimeout(() => { document.getElementById('tl-attr-bar').style.width  = '85%'; }, 600);
+      tlObserver.disconnect();
+    }
+  });
+}, {threshold: 0.3});
+const tlSection = document.getElementById('tl-section');
+if (tlSection) tlObserver.observe(tlSection);
+
+// Init attr bg opacity
+document.addEventListener('DOMContentLoaded', () => {
+  const attrBg = document.getElementById('on-attr-bg');
+  if (attrBg) attrBg.style.opacity = '0.4';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>深入理解 ChatGPT 这类大语言模型 · Karpathy 完整图解</title>
+<style>
+  :root {
+    --ink: #0f1b2d; --ink-soft: #33455c; --muted: #5f7186;
+    --paper: #f1f5f9; --card: #ffffff; --line: #d8e2ec;
+    --accent: #1d6fb8; --accent-soft: #dbeafe;
+    --teal: #0e7490; --teal-soft: #d3eef5;
+    --gold: #2563a8; --gold-soft: #dde9f8;
+    --indigo: #3b4d8f; --indigo-soft: #e2e6f5;
+    --code-bg: #16243a; --code-ink: #dce6f2;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; line-height: 1.88; font-size: 17px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 840px; margin: 0 auto; padding: 0 24px; }
+  header.hero { background: linear-gradient(160deg, #0f1b2d 0%, #163355 55%, #1d6fb8 100%); color: #fff; padding: 72px 0 64px; position: relative; overflow: hidden; }
+  header.hero::after { content: ""; position: absolute; right: -80px; top: -80px; width: 360px; height: 360px; background: radial-gradient(circle, rgba(56,140,210,0.5), transparent 70%); pointer-events: none; }
+  .eyebrow { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: #b8cbe0; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  header.hero h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.18; margin: 0 0 22px; font-weight: 800; letter-spacing: -0.01em; }
+  header.hero h1 .hl { color: #7dc4f0; }
+  header.hero p.lede { font-size: 18px; color: #cfe0f0; max-width: 660px; margin: 0 0 32px; }
+  .pipeline { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); padding: 9px 16px; border-radius: 100px; font-size: 14px; font-weight: 600; }
+  .arrow-sm { color: #7dc4f0; font-weight: 700; }
+  section { padding: 52px 0; }
+  .intro-card { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 30px 34px; margin-top: -36px; position: relative; z-index: 2; box-shadow: 0 18px 40px rgba(15,27,45,0.1); }
+  .intro-card p { margin: 0 0 14px; color: var(--ink-soft); }
+  .intro-card p:last-child { margin-bottom: 0; }
+  .stage-tag { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .stage-num { flex: none; width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; font-size: 26px; color: #fff; }
+  .s1 .stage-num { background: var(--accent); } .s2 .stage-num { background: var(--teal); }
+  .s3 .stage-num { background: var(--gold); } .s4 .stage-num { background: var(--indigo); }
+  .stage-meta { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  h2 { font-size: 28px; margin: 4px 0 0; letter-spacing: -0.01em; line-height: 1.25; }
+  .s1 h2 .accent { color: var(--accent); } .s2 h2 .accent { color: var(--teal); }
+  .s3 h2 .accent { color: var(--gold); } .s4 h2 .accent { color: var(--indigo); }
+  h3 { font-size: 21px; margin: 40px 0 12px; display: flex; align-items: center; gap: 10px; letter-spacing: -0.01em; line-height: 1.35; }
+  .ico { flex: none; width: 32px; height: 32px; display: grid; place-items: center; font-size: 18px; }
+  p { margin: 0 0 16px; }
+  .lead-divider { height: 2px; background: var(--line); border: none; margin: 14px 0 26px; }
+  strong { color: var(--ink); font-weight: 700; }
+  .term { color: var(--accent); font-weight: 700; }
+  .s2 .term { color: var(--teal); } .s3 .term { color: var(--gold); } .s4 .term { color: var(--indigo); }
+  .def { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 22px 0 28px; }
+  .def .def-row { padding: 18px 24px; border-bottom: 1px solid var(--line); display: flex; gap: 14px; }
+  .def .def-row:last-child { border-bottom: none; }
+  .def .tag { flex: none; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; padding: 4px 10px; border-radius: 6px; height: fit-content; margin-top: 3px; white-space: nowrap; }
+  .def .def-body { flex: 1; }
+  .def .def-body p { margin: 0; }
+  .def .def-body p + p { margin-top: 10px; }
+  .tag-what { background: var(--accent-soft); color: var(--accent); }
+  .tag-why  { background: var(--indigo-soft); color: var(--indigo); }
+  .tag-eg   { background: var(--teal-soft); color: var(--teal); }
+  .s2 .tag-what { background: var(--teal-soft); color: var(--teal); }
+  .s3 .tag-what { background: var(--gold-soft); color: #1f4e86; }
+  .s4 .tag-what { background: var(--indigo-soft); color: var(--indigo); }
+  .eg-example { background: #eef6fb; border-left: 3px solid var(--teal); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 10px 0 0; font-size: 15.5px; color: var(--ink-soft); }
+  .eg-example .eg-lbl { font-weight: 700; color: var(--teal); font-size: 13px; display: block; margin-bottom: 3px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 26px 0; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 16px; text-align: center; }
+  .stat .big { font-size: 26px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+  .stat .lbl { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .callout { border-radius: 12px; padding: 20px 24px; margin: 24px 0; display: flex; gap: 16px; align-items: flex-start; border: 1px solid; }
+  .callout .c-ico { font-size: 22px; flex: none; line-height: 1.4; }
+  .callout .c-body { flex: 1; }
+  .callout .c-title { font-weight: 800; margin-bottom: 4px; }
+  .callout p { margin: 0; }
+  .callout p + p { margin-top: 10px; }
+  .key { background: var(--accent-soft); border-color: #a9cdf2; } .key .c-title { color: var(--accent); }
+  .key-teal { background: var(--teal-soft); border-color: #9fd2e2; } .key-teal .c-title { color: var(--teal); }
+  .key-gold { background: var(--gold-soft); border-color: #a9c4ec; } .key-gold .c-title { color: #1f4e86; }
+  .warn { background: #fde8e3; border-color: #f0b3a4; } .warn .c-title { color: var(--accent); }
+  .quote-box { background: linear-gradient(120deg, #0f1b2d, #1d6fb8); color: #fff; border: none; }
+  .quote-box .c-title { color: #7dc4f0; } .quote-box p { color: #d6e6f4; }
+  .cases { margin: 24px 0; display: grid; gap: 12px; }
+  .case { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+  .case .case-h { font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .case .case-d { font-size: 15px; color: var(--ink-soft); }
+  .time-badge { flex: none; text-align: right; font-weight: 800; font-size: 15px; color: var(--teal); white-space: nowrap; }
+  .time-badge .from { color: var(--muted); text-decoration: line-through; font-weight: 600; font-size: 13px; display: block; }
+  code { background: var(--code-bg); color: var(--code-ink); padding: 2px 7px; border-radius: 5px; font-size: 14.5px; font-family: "SF Mono", "JetBrains Mono", Consolas, monospace; }
+  pre { background: var(--code-bg); color: var(--code-ink); padding: 16px 18px; border-radius: 10px; overflow-x: auto; font-size: 14px; line-height: 1.7; margin: 14px 0; font-family: "SF Mono", "JetBrains Mono", Consolas, monospace; }
+  pre .cmt { color: #7e93ab; } pre .hl2 { color: #7dc4f0; }
+  .practice { list-style: none; padding: 0; margin: 20px 0; display: grid; gap: 14px; }
+  .practice li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; display: flex; gap: 14px; }
+  .practice .p-ico { flex: none; font-size: 20px; }
+  .practice .p-name { font-weight: 700; color: var(--indigo); }
+  .toc { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 26px 30px; margin: 28px 0; }
+  .toc h4 { margin: 0 0 16px; font-size: 16px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .toc ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 32px; }
+  .toc li { margin-bottom: 9px; break-inside: avoid; }
+  .toc a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px dotted var(--line); }
+  .toc a:hover { color: var(--accent); }
+  .final { background: linear-gradient(165deg, #0f1b2d, #163355); color: #fff; padding: 60px 0; }
+  .final h2 { color: #fff; } .final h2 .accent { color: #7dc4f0; } .final h3 { color: #7dc4f0; }
+  .final p { color: #cfe0f0; } .final strong { color: #fff; }
+  .final blockquote { margin: 0; padding: 20px 26px; border-left: 4px solid #7dc4f0; background: rgba(125,196,240,0.1); border-radius: 0 12px 12px 0; font-size: 18px; color: #eef5fb; font-style: italic; }
+  footer { text-align: center; padding: 36px 24px; color: var(--muted); font-size: 13.5px; background: var(--paper); border-top: 1px solid var(--line); }
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    .stats { grid-template-columns: 1fr; }
+    .case { grid-template-columns: 1fr; }
+    .time-badge { text-align: left; }
+    h2 { font-size: 23px; }
+    .def .def-row { flex-direction: column; gap: 8px; }
+    .toc ol { columns: 1; }
+  }
+  /* ===== 左侧悬浮目录 ===== */
+  .side-toc { position: fixed; top: 0; left: 0; height: 100vh; width: 244px; padding: 28px 18px 28px 24px; overflow-y: auto; z-index: 50; box-sizing: border-box; border-right: 1px solid var(--line); background: rgba(241,245,249,0.82); backdrop-filter: blur(8px); }
+  .side-toc .st-brand { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+  .side-toc .st-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+  .side-toc ol { list-style: none; margin: 0; padding: 0; counter-reset: st; }
+  .side-toc li { counter-increment: st; margin: 0; }
+  .side-toc a { display: flex; gap: 9px; align-items: baseline; padding: 7px 10px; border-radius: 8px; font-size: 13px; line-height: 1.4; color: var(--ink-soft); text-decoration: none; transition: background .15s, color .15s; }
+  .side-toc a::before { content: counter(st, decimal-leading-zero); flex: none; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .side-toc a:hover { background: var(--accent-soft); color: var(--accent); }
+  .side-toc a.active { background: var(--accent); color: #fff; }
+  .side-toc a.active::before { color: rgba(255,255,255,0.8); }
+  .side-toc::-webkit-scrollbar { width: 6px; }
+  .side-toc::-webkit-scrollbar-thumb { background: #c2d2e2; border-radius: 6px; }
+  /* 侧栏阅读进度条 */
+  .st-progress { margin: 0 0 18px; }
+  .st-prog-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .st-prog-head #progPct { font-size: 14px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .st-prog-lbl { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .st-prog-track { height: 6px; border-radius: 6px; background: #d8e2ec; overflow: hidden; }
+  .st-prog-fill { height: 100%; width: 0%; border-radius: 6px; background: linear-gradient(90deg, #1d6fb8, #0e7490); transition: width .15s ease-out; }
+  /* 顶部细进度条(窄屏侧栏隐藏时显示) */
+  .top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0%; z-index: 70; background: linear-gradient(90deg, #1d6fb8, #0e7490); display: none; }
+  @media (max-width: 1179px) { .top-progress { display: block; } }
+  .toc-toggle { display: none; }
+  @media (min-width: 1180px) {
+    body { padding-left: 244px; }
+    .toc { display: none; } /* 宽屏下隐藏正文内目录,改用悬浮目录 */
+  }
+  @media (max-width: 1179px) {
+    .side-toc { transform: translateX(-100%); transition: transform .25s ease; box-shadow: 0 0 40px rgba(15,27,45,0.18); }
+    .side-toc.open { transform: translateX(0); }
+    .toc-toggle { display: flex; position: fixed; top: 16px; left: 16px; z-index: 60; width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--accent); font-size: 20px; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 18px rgba(15,27,45,0.12); }
+  }
+
+  /* ===== SVG 流程图容器 ===== */
+  .figure { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 20px 16px; margin: 26px 0; box-shadow: 0 8px 24px rgba(15,27,45,0.05); }
+  .figure svg { width: 100%; height: auto; display: block; }
+  .figure .fig-cap { font-size: 13.5px; color: var(--muted); text-align: center; margin-top: 12px; line-height: 1.5; }
+  .figure .fig-cap b { color: var(--accent); }
+  /* 图表入场动画:整体淡入上浮 */
+  .figure { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+  .figure.in { opacity: 1; transform: translateY(0); }
+  /* 图内元素逐个浮现 */
+  .figure svg [data-anim] { opacity: 0; transform: translateY(8px); transform-box: fill-box; transform-origin: center; transition: opacity .5s ease, transform .5s ease; }
+  .figure.in svg [data-anim] { opacity: 1; transform: translateY(0); }
+  /* 连线"画出"效果 */
+  .figure svg [data-draw] { stroke-dasharray: var(--len, 120); stroke-dashoffset: var(--len, 120); transition: stroke-dashoffset .7s ease; }
+  .figure.in svg [data-draw] { stroke-dashoffset: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .figure, .figure svg [data-anim] { opacity: 1; transform: none; transition: none; }
+    .figure svg [data-draw] { stroke-dashoffset: 0; transition: none; }
+    .st-prog-fill, .top-progress { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topProg" aria-hidden="true"></div>
+
+<button class="toc-toggle" aria-label="目录" onclick="document.querySelector('.side-toc').classList.toggle('open')">☰</button>
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">🧠 LLM 深度讲解</div>
+  <div class="st-sub">Karpathy 完整图解 · 13 章</div>
+  <div class="st-progress" aria-hidden="true">
+    <div class="st-prog-head"><span id="progPct">0%</span><span class="st-prog-lbl">阅读进度</span></div>
+    <div class="st-prog-track"><div class="st-prog-fill" id="progFill"></div></div>
+  </div>
+  <ol>
+    <li><a href="#s-pretrain">预训练数据(互联网)</a></li>
+    <li><a href="#s-token">分词 Tokenization</a></li>
+    <li><a href="#s-io">神经网络输入输出</a></li>
+    <li><a href="#s-internal">神经网络内部结构</a></li>
+    <li><a href="#s-inference">推理 Inference</a></li>
+    <li><a href="#s-gpt2">GPT-2 与 Llama 基座</a></li>
+    <li><a href="#s-post">后训练:对话数据</a></li>
+    <li><a href="#s-halluc">幻觉、工具、记忆</a></li>
+    <li><a href="#s-think">模型需要 token 思考</a></li>
+    <li><a href="#s-jagged">拼写与锯齿状智能</a></li>
+    <li><a href="#s-rl">强化学习与 R1</a></li>
+    <li><a href="#s-rlhf">RLHF 人类反馈</a></li>
+    <li><a href="#s-future">未来展望与使用</a></li>
+  </ol>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">🧠 大语言模型科普 · Andrej Karpathy 深度讲解</div>
+    <h1>深入理解像 ChatGPT 这样的<br><span class="hl">大语言模型(LLM)</span></h1>
+    <p class="lede">当你在输入框里打字、按下回车,屏幕另一端到底是什么?这份文档跟着 Karpathy 走完模型的完整训练链路——从下载整个互联网,到分词、神经网络、推理,再到把"文本模拟器"训练成"助手"的三大阶段,并建立一套理解模型"心理"的思维模型。</p>
+    <div class="pipeline">
+      <span class="pill">①预训练</span><span class="arrow-sm">→</span>
+      <span class="pill">②监督微调 SFT</span><span class="arrow-sm">→</span>
+      <span class="pill">③强化学习 RL</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="intro-card">
+    <p>这是一份面向<strong>普通读者</strong>的全面讲解。讲师 Andrej Karpathy 是 OpenAI 创始成员(2015),曾任特斯拉 AI 高级总监(2017–2022),现创办 Eureka Labs。目标是让你建立思考"这个工具到底是什么"的心智模型——它在某些方面神奇强大,在另一些方面很差,还有很多需要警惕的"锋利边缘"。</p>
+    <p>本文档<strong>完整保留视频转录的全部信息</strong>,并在此基础上为关键术语补充"是什么/为什么/例子"的解释,配以图标和卡片化排版。原文里的每一个事实、数据、案例都被保留,增补只用于帮助你把抽象概念理解透彻。</p>
+  </div>
+
+  <div class="toc">
+    <h4>📑 全文导航 · 13 个章节</h4>
+    <ol>
+      <li><a href="#s-pretrain">预训练数据(互联网)</a></li>
+      <li><a href="#s-token">分词 Tokenization</a></li>
+      <li><a href="#s-io">神经网络的输入与输出</a></li>
+      <li><a href="#s-internal">神经网络内部结构</a></li>
+      <li><a href="#s-inference">推理 Inference</a></li>
+      <li><a href="#s-gpt2">GPT-2 与 Llama 3.1 基座模型</a></li>
+      <li><a href="#s-post">从预训练到后训练(对话数据)</a></li>
+      <li><a href="#s-halluc">幻觉、工具调用、记忆</a></li>
+      <li><a href="#s-think">模型需要 token 来思考</a></li>
+      <li><a href="#s-jagged">拼写缺陷与锯齿状智能</a></li>
+      <li><a href="#s-rl">强化学习与 DeepSeek-R1</a></li>
+      <li><a href="#s-rlhf">基于人类反馈的强化学习 RLHF</a></li>
+      <li><a href="#s-future">未来展望与如何使用</a></li>
+    </ol>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+      <defs>
+        <marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#1d6fb8"/>
+        </marker>
+      </defs>
+      <!-- stage 1 -->
+      <rect data-anim x="20" y="40" width="220" height="150" rx="14" fill="#dbeafe" stroke="#1d6fb8" stroke-width="1.5"/>
+      <text data-anim x="130" y="68" text-anchor="middle" font-size="15" font-weight="800" fill="#1d6fb8">① 预训练</text>
+      <text data-anim x="130" y="90" text-anchor="middle" font-size="12" fill="#33455c">读互联网 15 万亿 token</text>
+      <text data-anim x="130" y="112" text-anchor="middle" font-size="12" fill="#33455c">建立知识库</text>
+      <rect data-anim x="48" y="130" width="164" height="42" rx="8" fill="#fff" stroke="#a9cdf2"/>
+      <text data-anim x="130" y="148" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0f1b2d">产出:基座模型</text>
+      <text data-anim x="130" y="164" text-anchor="middle" font-size="10.5" fill="#5f7186">互联网文档模拟器 · 约 3 月</text>
+      <!-- stage 2 -->
+      <rect data-anim x="300" y="40" width="220" height="150" rx="14" fill="#d3eef5" stroke="#0e7490" stroke-width="1.5"/>
+      <text data-anim x="410" y="68" text-anchor="middle" font-size="15" font-weight="800" fill="#0e7490">② 监督微调 SFT</text>
+      <text data-anim x="410" y="90" text-anchor="middle" font-size="12" fill="#33455c">人类标注的对话数据</text>
+      <text data-anim x="410" y="112" text-anchor="middle" font-size="12" fill="#33455c">模仿专家回应</text>
+      <rect data-anim x="328" y="130" width="164" height="42" rx="8" fill="#fff" stroke="#9fd2e2"/>
+      <text data-anim x="410" y="148" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0f1b2d">产出:助手模型</text>
+      <text data-anim x="410" y="164" text-anchor="middle" font-size="10.5" fill="#5f7186">会问答 · 约 3 小时</text>
+      <!-- stage 3 -->
+      <rect data-anim x="580" y="40" width="220" height="150" rx="14" fill="#e2e6f5" stroke="#3b4d8f" stroke-width="1.5"/>
+      <text data-anim x="690" y="68" text-anchor="middle" font-size="15" font-weight="800" fill="#3b4d8f">③ 强化学习 RL</text>
+      <text data-anim x="690" y="90" text-anchor="middle" font-size="12" fill="#33455c">做练习题 · 试错</text>
+      <text data-anim x="690" y="112" text-anchor="middle" font-size="12" fill="#33455c">自己发现解法</text>
+      <rect data-anim x="608" y="130" width="164" height="42" rx="8" fill="#fff" stroke="#aab6e0"/>
+      <text data-anim x="690" y="148" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0f1b2d">产出:思考模型</text>
+      <text data-anim x="690" y="164" text-anchor="middle" font-size="10.5" fill="#5f7186">涌现思维链 · 仍很新</text>
+      <!-- arrows -->
+      <line data-draw x1="244" y1="115" x2="294" y2="115" stroke="#1d6fb8" stroke-width="2" marker-end="url(#ar)"/>
+      <line data-draw x1="524" y1="115" x2="574" y2="115" stroke="#1d6fb8" stroke-width="2" marker-end="url(#ar)"/>
+      <text data-anim x="20" y="225" font-size="12" fill="#5f7186">类比上学:</text>
+      <text data-anim x="130" y="225" text-anchor="middle" font-size="11.5" fill="#1d6fb8">读教科书阐述</text>
+      <text data-anim x="410" y="225" text-anchor="middle" font-size="11.5" fill="#0e7490">看带解答的例题</text>
+      <text data-anim x="690" y="225" text-anchor="middle" font-size="11.5" fill="#3b4d8f">做练习题</text>
+    </svg>
+    <div class="fig-cap">图 1 · <b>三大训练阶段总览</b>:全文的主线。预训练注入知识,SFT 赋予助手人格,RL 让模型在试错中自我进化。</div>
+  </div>
+</div>
+
+<!-- ========================= SECTION 1: PRETRAINING ========================= -->
+<section class="s1" id="s-pretrain">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🌐</div>
+      <div><div class="stage-meta">第一阶段 · 预训练</div><h2>第一步:<span class="accent">下载并处理整个互联网</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>构建 ChatGPT 这样的东西要经过多个<strong>顺序排列</strong>的阶段。第一个阶段叫<span class="term">预训练(pre-training)</span>,而预训练的第一步,就是把互联网下载下来并加以处理。</p>
+
+    <p>要直观感受这个过程,可以看 Hugging Face 这家公司整理、创建并精选的数据集——<span class="term">FineWeb</span>。他们在一篇博客里详细记录了如何构建这个数据集。所有主流 LLM 提供商(OpenAI、Anthropic、Google 等)内部都有类似 FineWeb 的等价物。</p>
+
+    <p>我们想要达到的目标是:从公开来源获取海量文本,要<strong>高质量、海量、且高度多样</strong>——因为我们希望模型内部装下尽可能多的知识。实现这一点相当复杂,需要多个阶段才能做好。</p>
+
+    <div class="callout key">
+      <div class="c-ico">💾</div>
+      <div class="c-body"><div class="c-title">互联网很大,但过滤后的文本并不大</div><p>FineWeb 数据集相当有代表性,但最终只占大约 <strong>44 TB</strong> 磁盘空间。这点数据一块硬盘几乎就能装下。互联网虽然庞大,但我们处理的是文本,而且做了激进的过滤,所以最后只剩 44 TB。</p></div>
+    </div>
+
+    <h3><span class="ico">🕸️</span>① 数据起点:Common Crawl</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>Common Crawl 是一个自 2007 年起持续爬取互联网的组织。截至 2024 年,它已索引了约 <strong>27 亿个网页</strong>。它的爬虫从几个种子网页出发,顺着所有链接一直爬下去,不断索引信息。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>它是大多数预训练数据努力的起点,贡献了最终数据的大部分。但这些原始数据非常粗糙,需要经过很多道过滤工序才能用。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>你可以把它想象成一个"互联网的快照仓库"——里面什么都有,但也夹杂了大量垃圾、重复、隐私信息,必须先清洗。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🧹</span>② 清洗的几道关键工序</h3>
+    <p>FineWeb 的处理流程(同一张示意图里记录的)大致包含以下几步:</p>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">URL 过滤</span><div class="def-body"><p>有一份"黑名单",列出不想取数据的域名,通常包括恶意软件网站、垃圾站、营销站、种族主义网站、成人网站等。这些网站在这一步就被剔除。</p></div></div>
+      <div class="def-row"><span class="tag tag-what">文本提取</span><div class="def-body"><p>爬虫保存的是网页的<strong>原始 HTML</strong>,里面有列表、CSS、各种标记代码。但我们只想要网页的正文文本,不要导航栏之类的东西。这需要大量过滤和启发式处理,把真正的好内容提取出来。</p></div></div>
+      <div class="def-row"><span class="tag tag-what">语言过滤</span><div class="def-body"><p>FineWeb 用一个语言分类器猜测每个网页是什么语言,然后只保留英文占比超过 65% 的网页。这是一个设计决策:不同公司可以自行决定保留各种语言的比例。FineWeb 很专注英文,所以它训练出的模型英文很强,其他语言可能不太行。</p></div></div>
+      <div class="def-row"><span class="tag tag-what">去重 + PII 移除</span><div class="def-body"><p>之后还有去重等步骤,最后是 <strong>PII(个人可识别信息)移除</strong>——比如地址、社保号等,会被检测并过滤掉这类网页。</p></div></div>
+    </div>
+
+    <p>经过这一整套处理,你就得到了 FineWeb 这样的数据集。点进去能看到最终文本的样子:比如一篇关于 2012 年龙卷风的文章,或者一篇讲"你体内有两个 9V 电池大小的黄色肾上腺"的奇怪医学文章。把它们想象成各种被过滤、只留下文本的网页就行。</p>
+
+    <div class="callout key-teal">
+      <div class="c-ico">🧵</div>
+      <div class="c-body"><div class="c-title">现在我们手里有了什么</div><p>把前 200 个网页的文本全部拼接起来,就得到一大块"原始互联网文本的织锦"。这些文本里有各种模式(pattern)。接下来要做的,就是<strong>在这堆数据上训练神经网络,让网络内化并建模这些文本的流动方式</strong>——我们想要神经网络去模仿它。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 2: TOKENIZATION ========================= -->
+<section class="s2" id="s-token">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🔤</div>
+      <div><div class="stage-meta">第二部分 · 表示</div><h2>分词:<span class="accent">把文本变成符号序列</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>在把文本喂进神经网络之前,得先决定<strong>怎么表示这些文本</strong>。我们的技术要求:神经网络期望一个<strong>一维的符号序列</strong>,而且符号集合必须是有限的。所以我们要决定符号是什么,再把数据表示成这些符号的一维序列。</p>
+
+    <p>现在我们手上的文本本身就是一维序列(从左到右、从上到下)。在计算机里,如果用 <span class="term">UTF-8 编码</span>,就能拿到对应的原始比特(bit)。这样我们就有了恰好两个符号(0 和 1)以及一段很长的序列。</p>
+
+    <h3><span class="ico">⚖️</span>① 词汇表大小 vs 序列长度的权衡</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>序列长度在神经网络里是一种<strong>非常有限且宝贵的资源</strong>。我们不想要"只有两个符号、但序列极长"的表示;我们想在<strong>符号种类(词汇表)</strong>和<strong>序列长度</strong>之间做权衡——更多符号、更短序列。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>因为处理超长序列在计算上极其昂贵。把序列缩短,就能让有限的计算资源覆盖更多实际内容。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>一个朴素的压缩办法:把连续 8 个 bit 分成一组,叫一个<strong>字节(byte)</strong>。8 个 bit 只有 256 种组合,于是序列长度缩短 8 倍,但符号变成了 256 种(0–255)。
+        <div class="eg-example"><span class="eg-lbl">🔎 换个角度想</span>不要把这些数字当成"数字",而要当成<strong>独一无二的 ID 或符号</strong>。甚至可以把每个数字换成一个独特的 emoji——于是你得到一串 emoji,共 256 种可能。</div></p></div></div>
+    </div>
+
+    <h3><span class="ico">🧩</span>② 字节对编码 BPE</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>在最先进的语言模型里,我们想进一步缩短序列,用更多符号换更短的长度。方法是运行 <span class="term">字节对编码(Byte Pair Encoding, BPE)</span>:寻找<strong>非常常见的连续字节对</strong>,把它们合并成一个新符号。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>每合并一个新符号,序列就变短一点、符号数变多一点。可以反复迭代。实践中,一个不错的词汇表大小约为 <strong>10 万个符号</strong>。比如 GPT-4 用了 <strong>100,277</strong> 个符号。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>比如序列"116 后面跟着 32"非常常见,就铸造一个 ID 为 256 的新符号,把所有 116-32 改写成这个新符号。把原始文本转成这些符号(token)的过程,就叫<span class="term">分词(tokenization)</span>。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🎴</span>③ 用 Tiktokenizer 看分词的样子</h3>
+    <p>有个网站叫 <strong>Tiktokenizer</strong>,选 <code>cl100k_base</code>(GPT-4 基座分词器),左边输入文本,就能看到分词结果。一些有趣的观察:</p>
+    <pre><span class="cmt"># "hello world" → 恰好 2 个 token</span>
+hello        → token 15339
+ world       → token 11917  <span class="cmt">(注意 world 前带一个空格)</span>
+
+<span class="cmt"># 大小写敏感、空格也算</span>
+"Hello world"  → 又是不同的分词
+"hello world" 中间放两个空格 → 多出一个 token 220
+"HELLO WORLD"  → 变成 3 个 token,而不是 2 个</pre>
+
+    <div class="callout key-teal">
+      <div class="c-ico">🔢</div>
+      <div class="c-body"><div class="c-title">记住这一点</div><p>一行文本在 GPT-4 看来就是一段 token 序列(比如长度 62)。这些 token 都只是小小的文本块,是序列的"原子";它们的数字编号<strong>本身没有任何数值意义</strong>,只是独一无二的 ID。共有 100,277 种可能的符号。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 3: NEURAL NETWORK I/O ========================= -->
+<section class="s3" id="s-io">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">⚙️</div>
+      <div><div class="stage-meta">第三部分 · 训练</div><h2>神经网络:<span class="accent">输入、输出与预测下一个 token</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>现在我们把数据集里的文本用分词器重新表示成 token 序列。回到 FineWeb,它不仅是 44 TB 磁盘空间,更是一段约 <strong>15 万亿 token</strong> 的序列。再次提醒:这些数字都代表小文本块,是序列的原子,数字本身没有意义,只是 ID。</p>
+
+    <div class="stats">
+      <div class="stat"><div class="big">44 TB</div><div class="lbl">FineWeb 磁盘占用</div></div>
+      <div class="stat"><div class="big">15 万亿</div><div class="lbl">FineWeb 的 token 总数</div></div>
+      <div class="stat"><div class="big">~8000</div><div class="lbl">典型上下文窗口 token 数</div></div>
+    </div>
+
+    <h3><span class="ico">🪟</span>① 取一个 token 窗口,预测下一个</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>训练时,我们要建模 token 在序列中<strong>互相跟随的统计关系</strong>。做法是从数据里随机取一个 token 窗口(长度从 0 到某个最大值,比如 8000),把它当作<strong>上下文(context)</strong>喂进神经网络,让网络预测<strong>接下来的那个 token</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>窗口长度原则上可以任意,但处理超长窗口在计算上太贵,所以人为定一个值(4000、8000、16000 等)并在那里截断。这个最大值就是模型的<strong>最大上下文长度</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>取 4 个 token 作上下文:<code>bar / view / in / 空格single</code>,网络要预测下一个 token(实际是 3962)。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🎲</span>② 输出是一个概率分布</h3>
+    <p>因为词汇表有 100,277 个可能 token,神经网络会<strong>输出同样多的数字</strong>,每个对应"该 token 是下一个"的概率。一开始网络是<strong>随机初始化</strong>的,所以这些概率也是随机的。</p>
+
+    <p>但我们从数据里采样了这个窗口,所以<strong>知道正确答案</strong>(标签就是 3962)。于是有了一套数学过程来<strong>更新网络</strong>:让正确 token 的概率<strong>调高一点</strong>,其他 token 的概率<strong>调低一点</strong>。下一次再喂同样这 4 个 token,网络就会给出略微调整后的预测。</p>
+
+    <div class="callout key-gold">
+      <div class="c-ico">🔁</div>
+      <div class="c-body"><div class="c-title">并行,在整个数据集上同时发生</div><p>这个"微调推动"不只发生在某一个 token 上,而是<strong>对整个数据集里所有 token 同时进行</strong>。实践中我们采样一小批(batch)窗口,在每个 token 上都更新网络,让那个 token 的概率略微升高。这就是训练神经网络的过程——不断更新,直到它的预测与训练集的统计规律一致。</p></div>
+    </div>
+
+    <div class="figure">
+      <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+        <defs>
+          <marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1d6fb8"/></marker>
+        </defs>
+        <text data-anim x="20" y="34" font-size="13" font-weight="800" fill="#1d6fb8">上下文(4 个 token)</text>
+        <g data-anim font-size="13" font-weight="700">
+          <rect data-anim x="20" y="46" width="80" height="40" rx="8" fill="#dbeafe" stroke="#1d6fb8"/><text data-anim x="60" y="71" text-anchor="middle" fill="#0f1b2d">bar</text>
+          <rect data-anim x="108" y="46" width="80" height="40" rx="8" fill="#dbeafe" stroke="#1d6fb8"/><text data-anim x="148" y="71" text-anchor="middle" fill="#0f1b2d">view</text>
+          <rect data-anim x="196" y="46" width="80" height="40" rx="8" fill="#dbeafe" stroke="#1d6fb8"/><text data-anim x="236" y="71" text-anchor="middle" fill="#0f1b2d">in</text>
+          <rect data-anim x="284" y="46" width="80" height="40" rx="8" fill="#dbeafe" stroke="#1d6fb8"/><text data-anim x="324" y="71" text-anchor="middle" fill="#0f1b2d">single</text>
+        </g>
+        <!-- arrow to NN -->
+        <line data-draw x1="192" y1="92" x2="192" y2="118" stroke="#1d6fb8" stroke-width="2" marker-end="url(#ar2)"/>
+        <!-- NN box -->
+        <rect data-anim x="60" y="122" width="264" height="56" rx="12" fill="#163355"/>
+        <text data-anim x="192" y="148" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">Transformer 神经网络</text>
+        <text data-anim x="192" y="167" text-anchor="middle" font-size="11" fill="#9fc4ea">数十亿参数 · 固定计算量/token</text>
+        <line data-draw x1="192" y1="180" x2="192" y2="206" stroke="#1d6fb8" stroke-width="2" marker-end="url(#ar2)"/>
+        <!-- prob dist -->
+        <text data-anim x="60" y="226" font-size="12" font-weight="700" fill="#33455c">输出:100,277 个 token 的概率分布</text>
+        <g data-anim font-size="11">
+          <rect data-anim x="60" y="236" width="60" height="20" rx="4" fill="#eef" stroke="#aab6e0"/><text data-anim x="90" y="250" text-anchor="middle" fill="#33455c">space 4%</text>
+          <rect data-anim x="128" y="236" width="60" height="20" rx="4" fill="#eef" stroke="#aab6e0"/><text data-anim x="158" y="250" text-anchor="middle" fill="#33455c">11799 2%</text>
+          <rect data-anim x="196" y="236" width="92" height="20" rx="4" fill="#0e7490"/><text data-anim x="242" y="250" text-anchor="middle" fill="#fff" font-weight="700">post(3962)✓</text>
+        </g>
+        <!-- right side: update -->
+        <rect data-anim x="430" y="60" width="360" height="180" rx="14" fill="#d3eef5" stroke="#0e7490" stroke-width="1.5"/>
+        <text data-anim x="610" y="90" text-anchor="middle" font-size="14" font-weight="800" fill="#0e7490">更新网络(训练)</text>
+        <text data-anim x="450" y="120" font-size="12.5" fill="#33455c">✓ 已知正确答案 = 3962(post)</text>
+        <text data-anim x="450" y="146" font-size="12.5" fill="#1d6fb8">↑ 把正确 token 的概率调高一点</text>
+        <text data-anim x="450" y="172" font-size="12.5" fill="#5f7186">↓ 把其它所有 token 的概率调低</text>
+        <text data-anim x="450" y="206" font-size="12" fill="#33455c">在全数据集所有 token 上</text>
+        <text data-anim x="450" y="224" font-size="12" fill="#33455c">并行重复 → 预测逼近真实统计</text>
+        <line data-draw x1="324" y1="150" x2="424" y2="150" stroke="#0e7490" stroke-width="2" marker-end="url(#ar2)"/>
+      </svg>
+      <div class="fig-cap">图 2 · <b>预测下一个 token 的训练循环</b>:网络对每个位置输出概率分布,再通过更新把"正确答案"的概率往上推。推理时则是反过来——按这个分布"抛硬币"采样。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 4: INTERNALS ========================= -->
+<section class="s4" id="s-internal">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🔬</div>
+      <div><div class="stage-meta">第四部分 · 内部</div><h2>神经网络内部:<span class="accent">参数、Transformer 与"巨大的数学表达式"</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>输入 X 是 token 序列(0 到约 8000 个)。这些输入会和网络的<strong>参数(权重)</strong>一起,混进一个巨大的数学表达式。视频里只画了 6 个示例参数,但现代网络有<strong>数十亿个参数</strong>。</p>
+
+    <h3><span class="ico">🎛️</span>① 参数就像 DJ 调音台上的旋钮</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>一开始参数完全随机,网络做的预测也完全随机。通过反复迭代更新(这个过程就叫训练),参数被调整,使网络输出与训练集中的模式一致。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>把参数想成调音台上的旋钮,拧动它们就会对每种可能的 token 输入给出不同预测。训练神经网络,本质就是<strong>找到一组让预测符合训练集统计规律的旋钮设置</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>这个数学表达式其实不可怕:输入 x1、x2 和权重 w0、w1、w2…… 混在一起,做的只是乘法、加法、指数、除法这类简单运算。神经网络架构研究,就是设计出"有表达力、可优化、可并行"的数学表达式。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🏗️</span>② Transformer 架构</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>生产环境里用的这种特殊结构叫 <span class="term">Transformer</span>。视频里展示的可视化例子约有 <strong>85,000 个参数</strong>。顶部输入 token 序列,信息流经网络,最后输出 logits/softmax——也就是对下一个 token 的预测。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>token 先被<strong>嵌入(embed)</strong>成分布式表示(每个 token 对应一个向量),然后这些值流过层归一化(layer norm)、矩阵乘法、softmax、注意力块(attention)、多层感知机(MLP)等一系列简单的数学变换。这些中间值你可以<strong>松散地</strong>类比成合成神经元的"放电率"。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>但要小心别把它当成真正的脑神经元——生物神经元是有记忆的复杂动态过程,而这里<strong>没有记忆</strong>,是一个从输入到输出、无状态的固定数学表达式。可以把它想成一小块"合成脑组织"。</p></div></div>
+    </div>
+
+    <div class="callout quote-box">
+      <div class="c-ico">📣</div>
+      <div class="c-body"><div class="c-title">核心要点</div><p>不必纠结所有变换的数学细节。真正重要的是理解:<strong>这是一个由固定参数(比如 85000 个)参数化的数学函数,把输入变成输出</strong>。拧动参数会得到不同预测,而我们要找到一组好参数,让预测匹配训练集的模式。这就是 Transformer。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 5: INFERENCE ========================= -->
+<section class="s1" id="s-inference">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🎰</div>
+      <div><div class="stage-meta">第五部分 · 推理</div><h2>推理:<span class="accent">从模型里"抛硬币"生成新数据</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>训练之外的另一大阶段是<span class="term">推理(inference)</span>——从模型生成新数据,看看它在参数里内化了什么模式。</p>
+
+    <h3><span class="ico">🪙</span>① 抛一枚"有偏的硬币"</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>从一些起始 token(前缀)开始,喂进网络,网络给出概率向量。我们根据这个分布<strong>采样</strong>一个 token——就像抛一枚有偏的硬币:模型给的概率越高,越可能被抽中。抽到一个 token 后追加进去,再问下一个,如此循环。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>因为是采样,系统是<strong>随机的(stochastic)</strong>。有时会复现训练数据里的某个小片段,但更多时候会得到训练文档里没有逐字出现过的 token。所以生成的内容是训练数据的<strong>"混音(remix)"</strong>——统计性质相似,但不完全相同,像是受训练数据启发而来。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>从 token 91 开始,采样得到 860,再得到 287……到第四个时抽到的是 token "article"(13659),而不是训练里原本的 3962。于是序列就和训练数据分叉了——因为每一步都在抛硬币,运气不同,会走向很不一样的模式。</p></div></div>
+    </div>
+
+    <div class="callout key">
+      <div class="c-ico">🗣️</div>
+      <div class="c-body"><div class="c-title">你在 ChatGPT 上看到的,就是纯推理</div><p>下载互联网并分词是<strong>一次性</strong>的预处理;有了 token 序列后才开始训练许多不同设置的网络。训练完、对参数满意后,就可以做推理。当你和 ChatGPT 对话时,模型早在几个月前就训练好了,参数<strong>固定不变</strong>——你看到的生成,全部都是推理,没有任何训练在进行。它只是在<strong>续写 token 序列</strong>。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 6: GPT-2 / Llama ========================= -->
+<section class="s2" id="s-gpt2">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🦙</div>
+      <div><div class="stage-meta">第六部分 · 真实模型</div><h2>GPT-2 与 Llama 3.1:<span class="accent">具体的训练与基座模型</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">📜</span>① GPT-2:第一个"可辨认的现代技术栈"</h3>
+    <p><span class="term">GPT</span> 意为"生成式预训练 Transformer(Generatively Pre-trained Transformer)"。GPT-2 由 OpenAI 于 2019 年发表。Karpathy 喜欢它,因为它<strong>第一次把现代技术栈以可辨认的形态组合起来</strong>——今天的一切都能在 GPT-2 里认出来,只是后来一切都变大了。</p>
+
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">GPT-2 的规格</span><div class="def-body"><p>Transformer 神经网络,<strong>16 亿参数</strong>(原文口误为 1.6 billion,论文为 15 亿),最大上下文长度 <strong>1024 token</strong>,训练数据约 <strong>1000 亿 token</strong>。这些数字按今天标准都很小:现代 Transformer 接近上万亿或几千亿参数,上下文长度几十万甚至上百万,FineWeb 则有 15 万亿 token。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">成本为何暴跌</span><div class="def-body"><p>Karpathy 在 <code>llm.c</code> 项目里复现了 GPT-2。2019 年训练 GPT-2 估计约 <strong>$40,000</strong>;如今约一天、<strong>$600</strong> 就能完成,甚至可压到约 $100。原因:① 数据集质量大幅提高、过滤更精细;② <strong>最大的差别是硬件变快了很多</strong>;③ 软件也优化得更好,能榨干硬件速度。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">训练时的体感</span><div class="def-body"><p>训练界面里,<strong>每一行就是对模型的一次更新</strong>,每次改善对 100 万 token 的预测。要紧盯一个叫 <span class="term">loss(损失)</span>的数字——它衡量网络当前表现,<strong>越低越好</strong>。研究员就是边喝咖啡边等 loss 下降。
+        <div class="eg-example"><span class="eg-lbl">🔎 一组实测数字</span>每次更新处理 100 万 token、约 7 秒;总共 32000 步,即约 330 亿 token。第 1 步时输出完全随机;到 1% 时已有局部连贯性(但仍像胡言乱语);跑完 32000 步后,就能生成相当连贯的英文了。</div></p></div></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="big">$40,000</div><div class="lbl">2019 年训练 GPT-2 的估算成本</div></div>
+      <div class="stat"><div class="big">~$600</div><div class="lbl">如今复现一次的成本(约一天)</div></div>
+      <div class="stat"><div class="big">8×H100</div><div class="lbl">作者租用的云端单节点配置</div></div>
+    </div>
+
+    <h3><span class="ico">🖥️</span>② 算力:GPU、数据中心与"淘金热"</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>这种优化跑在云端的 <strong>8×H100 节点</strong>上(8 块 H100 GPU 在一台机器里)。作者从 Lambda 这类公司租用,按需价格约 <strong>每 GPU 每小时 $3</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么用 GPU</span><div class="def-body"><p>GPU 非常适合训练网络:计算虽贵,但展现出大量<strong>并行性</strong>——许多独立的"工人"可同时求解训练背后的矩阵乘法。把 8 块 GPU 堆成一个节点,多个节点堆成数据中心或整个系统。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>所有大科技公司都极度渴望 GPU,这正是把英伟达股价推到约 <strong>$3.4 万亿</strong>(视频录制时)的根本原因。这就是"淘金热"——抢到足够多的 GPU 协同优化。比如有报道称马斯克在单个数据中心部署 10 万块 GPU,它们都只在做一件事:<strong>预测数据集里的下一个 token 并改进网络</strong>。</p></div></div>
+    </div>
+
+    <h3><span class="ico">📦</span>③ 什么是"基座模型"?发布它需要什么?</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>预训练结束时产出的模型叫 <span class="term">基座模型(base model)</span>。它本质是一个<strong>"互联网文本 token 模拟器"</strong>。它本身还不直接有用,因为我们想要的是能回答问题的"助手",而基座模型只会生成互联网网页的"混音"、做"网页梦境"。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么很少发布</span><div class="def-body"><p>基座模型只是后续几步里的第一步,所以厂商通常不发布。但也有例外:2019 年发布的 15 亿参数 GPT-2 就是基座模型。发布一个基座模型需要两样东西。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">两样东西</span><div class="def-body"><p><strong>① 代码</strong>:描述网络运算顺序的 Python 代码(即前向传播 forward pass),通常只有几百行,相当标准、易懂。<br><strong>② 参数</strong>:真正有价值的东西——这一长串数字(GPT-2 约 15 亿个)是所有旋钮的精确、良好设置。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🦙</span>④ Llama 3:更大更现代的开源基座</h3>
+    <p><span class="term">Llama 3</span> 由 Meta 训练发布,方式与 GPT-2 相同但大得多:最大基座模型 <strong>Llama 3.1 405B</strong>(4050 亿参数,在 15 万亿 token 上训练)。Meta 同时发布了基座模型和 <strong>instruct(指令)模型</strong>——后者就是能问答的"助手"(后面章节会讲)。</p>
+
+    <h3><span class="ico">🔮</span>⑤ 把玩基座模型,看它都学到了什么</h3>
+    <p>作者用 hyperbolic 网站(托管 Llama 3.1 405B 基座)演示。注意:<strong>务必选"base"基座版本</strong>。几个关键观察:</p>
+
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">还不是助手</span><div class="def-body"><p>问它"2+2 等于几",它不会答"是 4,还能帮你什么"。"2+2" 只是被当作前缀,模型只是个<strong>极其昂贵的自动补全</strong>,按训练文档(网页)的统计去续写。而且它是<strong>随机的</strong>:同样的前缀每次给出不同答案,因为每次都从概率分布里重新采样。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">却已学到海量世界知识</span><div class="def-body"><p>尽管还不能直接当助手用,但在"预测下一个 token"的任务中,模型已经<strong>学到大量关于世界的知识,并存进了参数</strong>。可以把 4050 亿参数看成<strong>互联网的一种压缩</strong>——但不是无损压缩,而是<strong>有损压缩</strong>,留下的是互联网的"模糊轮廓(gestalt)"。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>用"巴黎十大必看地标"这样的提示去"诱导"知识,它会续写出一份列表。但<strong>不能完全信任</strong>:互联网上出现频率高的东西更可能被正确记住,稀有的则未必。知识不是显式存储的,而是对互联网文档的<strong>模糊、概率性、统计性的回忆</strong>。
+        <div class="eg-example"><span class="eg-lbl">🔎 三个行为演示</span><strong>逐字背诵:</strong>给它维基百科"斑马"词条的第一句,它能凭记忆<strong>逐字复述</strong>一大段(这叫"反刍 regurgitation",通常不被期望)——因为高质量来源(如维基)在训练时会被<strong>优先重复采样</strong>,模型可能"见过这页 10 次"。<br><strong>幻觉:</strong>用未来事件(如 2024 大选,而数据截止 2023 年底)做前缀,它会<strong>瞎猜</strong>——一次说副手是彭斯、对手是希拉里;重采一次又说是德桑蒂斯、对手是拜登和哈里斯。这就是平行宇宙式的<strong>幻觉</strong>。<br><strong>少样本学习:</strong>给 10 对"英文:韩文"翻译,它能在<strong>上下文中</strong>识别出算法模式并续写正确翻译——这叫<span class="term">上下文学习(in-context learning)</span>。<br><strong>"伪装"成助手:</strong>把提示写成"AI 助手与人类的对话网页",基座模型就会续写出助手的角色,从而被巧妙地当助手用。</div></p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 7: POST-TRAINING ========================= -->
+<section class="s3" id="s-post">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">💬</div>
+      <div><div class="stage-meta">第二大阶段 · 后训练</div><h2>从基座到助手:<span class="accent">用对话数据做监督微调</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>小结一下到目前为止:预训练把互联网文档拆成 token、用神经网络预测 token 序列,产出<strong>基座模型</strong>——一个 token 级别的互联网文档模拟器。但我们要的是<strong>助手</strong>,能提问、能得到答案。于是进入第二大阶段:<span class="term">后训练(post-training)</span>。</p>
+
+    <div class="callout key-gold">
+      <div class="c-ico">⏱️</div>
+      <div class="c-body"><div class="c-title">后训练便宜得多</div><p>预训练在实践中可能要在数千台计算机上训练约<strong>三个月</strong>;后训练通常短得多,比如<strong>三小时</strong>。因为人工构建的对话数据集,比整个互联网的文本小得多。但算法完全一样——只是<strong>换掉数据集</strong>。</p></div></div>
+
+    <h3><span class="ico">🗂️</span>① 用"对话"替换"互联网文档"</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>我们想让模型不再生成互联网文档,而是回答问题。于是构建<strong>多轮对话</strong>数据集:人类与助手之间的对话。比如人类问"2+2 等于几",助手答"2+2=4";追问"如果是乘呢",助手回应;遇到不该帮的请求,则产生<strong>拒绝(refusal)</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么是"以例编程"</span><div class="def-body"><p>因为是神经网络,我们<strong>无法用代码显式编程</strong>助手的行为,一切都通过在数据集上训练来<strong>隐式编程</strong>。我们拿预训练得到的基座模型,把互联网数据集扔掉,换成对话数据集继续训练。模型会很快调整,学会"助手该如何回应人类"的统计规律。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">数据从哪来</span><div class="def-body"><p>来自<strong>人类标注员(human labelers)</strong>。给他们对话上下文,让他们写出理想的助手回应,模型再去模仿。一个真实数据集可能有<strong>几十万条</strong>多轮、长篇、覆盖多样话题的对话。</p></div></div>
+    </div>
+
+    <h3><span class="ico">📨</span>② 如何把对话变成 token 序列</h3>
+    <p>一切都得变成 token。这类似互联网上的 <strong>TCP/IP 数据包</strong>——需要精确的规则和协议来表示、结构化信息。各家 LLM 格式略有不同,目前还是"狂野西部"。以 GPT-4o 为例:</p>
+    <pre><span class="cmt"># 一段用户↔助手两轮对话 → 最终 49 个 token</span>
+&lt;|im_start|&gt;user&lt;|im_sep|&gt; 什么是 2+2 ? &lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant&lt;|im_sep|&gt; 2+2 是 4 &lt;|im_end|&gt;
+<span class="cmt"># im_start = "imaginary monologue start"(想象独白开始)
+# user 是 token 428,im_sep 是内部独白分隔符</span></pre>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">关键:特殊 token</span><div class="def-body"><p><code>&lt;|im_start|&gt;</code> 这类<strong>不是文本</strong>,而是后训练阶段<strong>全新创建</strong>的特殊 token,此前从未被训练过。它们与文本穿插在一起,让模型学会"这是某一轮的开始,这一轮属于 user / assistant"。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">推理时</span><div class="def-body"><p>当你在 ChatGPT 输入"如果是乘呢",OpenAI 服务器会构造好上下文,在末尾放上 <code>&lt;|im_start|&gt;assistant&lt;|im_sep|&gt;</code>,然后让模型<strong>从这里开始采样</strong>,逐个 token 生成回应。细节不重要,重点是:对话这种结构化对象,经编码后变成<strong>一维 token 序列</strong>,于是之前所有方法都能照用。</p></div></div>
+    </div>
+
+    <h3><span class="ico">👷</span>③ InstructGPT:人类标注员怎么工作</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>OpenAI 2022 年的 <span class="term">InstructGPT</span> 论文,首次公开讲了如何在对话上微调语言模型。论文 3.4 节提到,他们通过 Upwork 或 Scale AI 雇佣人类承包商来构建对话:标注员既要<strong>想出 prompt</strong>,也要<strong>写出理想的助手回应</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">理想回应的标准从哪来</span><div class="def-body"><p>来自公司写的<strong>标注指南(labeling instructions)</strong>。高层原则就是:<strong>有帮助(helpful)、真实(truthful)、无害(harmless)</strong>。真实的指南通常有<strong>几百页</strong>,标注员要专业地学习后照着写。所以这是个非常依赖人力的过程。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>标注员想出的 prompt 比如:"列出 5 个重燃职业热情的点子""我接下来该读的十大科幻小说""把这句话翻译成西班牙语"。InstructGPT 的数据集从未公开,但有开源复现,如 <strong>Open Assistant</strong>——网友们照着写出类似对话(例如"用例子简要介绍经济学中边际效用的相关性",再续写助手回应和追问)。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🤖</span>④ 如今:LLM 帮忙造数据集</h3>
+    <p>过去 2–3 年技术栈进步了:现在很少由人类<strong>从零</strong>写回应,更常见的是<strong>用已有的 LLM 生成答案,人类再编辑</strong>。像 <strong>UltraChat</strong> 这类现代数据集很大程度是<strong>合成的</strong>,但通常仍有人类参与。这些数据集如今已有<strong>数百万条对话</strong>,跨越巨大的话题多样性,是"部分合成、部分人工"的 SFT 混合数据集。</p>
+
+    <div class="callout quote-box">
+      <div class="c-ico">🪄</div>
+      <div class="c-body"><div class="c-title">破除"和神奇 AI 对话"的幻觉</div><p>当你在 ChatGPT 提问,回来的内容在统计上<strong>对齐于训练集</strong>,而训练集的种子是<strong>人类遵循标注指南</strong>写出来的。所以你不是在和某个神奇 AI 对话,而是在和一个<strong>"人类标注员的统计模拟"</strong>对话——想象在问"一个标注员在这种对话里会怎么回答"。而且这些标注员往往是被公司雇来的<strong>受过教育的专家</strong>(比如代码问题会找懂代码的人),你像是在询问这类人的"瞬时模拟"。</p></div></div>
+
+    <p>再举个具体例子:问"推荐巴黎五大必看地标"。如果这个问题恰好在 OpenAI 的后训练数据集里,你很可能看到与标注员所写<strong>非常相似</strong>的答案(标注员自己上网研究 20 分钟列出清单)。如果不在数据集里,得到的就更<strong>涌现(emergent)</strong>一些——模型结合预训练知识(它见过大量关于巴黎、地标的对话)和后训练数据,做出统计性的模仿。</p>
+  </div>
+</section>
+
+<!-- ========================= SECTION 8: HALLUCINATIONS / TOOLS ========================= -->
+<section class="s4" id="s-halluc">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🧠</div>
+      <div><div class="stage-meta">LLM 心理学 · 一</div><h2>幻觉、工具调用与<span class="accent">"记忆 vs 工作记忆"</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>接下来谈 Karpathy 所说的"LLM 心理学"——训练流程带来的<strong>涌现认知效应</strong>。第一个就是<span class="term">幻觉(hallucination)</span>:模型凭空编造信息。</p>
+
+    <h3><span class="ico">🌫️</span>① 幻觉从何而来</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>设想训练集里有很多"某某是谁"的对话:汤姆·克鲁斯是演员、约翰·巴拉索是参议员……人类标注员写答案时,要么知道这人、要么上网查,然后用<strong>自信的口吻</strong>写下答案。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么会编造</span><div class="def-body"><p>于是测试时你问一个<strong>根本不存在的名字</strong>(如 Orson Kovats),模型不会说"我不知道"——即便它内部某些特征/激活其实"知道"这人很陌生。因为它在<strong>统计上模仿训练集</strong>:训练集里"某某是谁"都被<strong>自信地正确回答</strong>,所以它会沿用这种风格,给出统计上最可能的猜测,然后<strong>编造</strong>。这些模型不上网、不做研究,只是 token 采样器。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>用旧模型 Falcon-7B 问 Orson Kovats:一会儿说他是美国科幻作家,重采一次说是 1950 年代电视剧虚构角色,再来一次说是退役小联盟棒球运动员——全是胡编。而最新的 ChatGPT 会告诉你"没有这个知名人物",说明幻觉已被缓解。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🩹</span>② 缓解一:教模型说"我不知道"</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>需要在数据集里加入这样的样本:对于<strong>模型确实不知道</strong>的事实,正确答案就是"我不知道"。关键问题是:怎么知道模型知不知道?答案是<strong>用经验去探测(probe)模型</strong>,找出它知识的边界。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">Meta 在 Llama 3 里怎么做</span><div class="def-body"><p>① 取训练集里一段文档,用 LLM 基于该段<strong>生成事实性问答</strong>(信息就在上下文窗口里,LLM 能高准确率地重构);② 拿这些问题<strong>反复盘问</strong>模型(比如 3–5 次);③ 用另一个 LLM 当裁判,比对模型答案与正确答案是否一致。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>问"他为哪支球队效力"——模型 3 次都答"布法罗军刀队",正确,说明它知道。问"他赢了几次斯坦利杯"(正确答案 2)——模型一会儿说 4 次、一会儿说没赢过,显然不知道。于是<strong>新增一条训练样本</strong>:该问题的答案是"抱歉,我不记得了"。这样模型就有机会把"不确定神经元"和"基于知识的拒绝"关联起来,大幅缓解幻觉。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🔧</span>③ 缓解二:给模型工具(联网搜索)</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>比"说不知道"更进一步:让模型像人一样<strong>查资料</strong>。引入新的特殊 token 和协议,模型可以发射 <code>&lt;SEARCH_START&gt;</code> 查询词 <code>&lt;SEARCH_END&gt;</code>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么有用</span><div class="def-body"><p>当采样程序看到 <code>SEARCH_END</code>,就<strong>暂停生成</strong>,去 Bing/Google 搜索,把检索到的文本(可能用其他特殊 token 包裹)<strong>复制粘贴进上下文窗口</strong>。把上下文窗口想成模型的<strong>工作记忆(working memory)</strong>——里面的数据可被模型直接访问,不再是模糊回忆。教会模型用工具,同样靠几千条示范对话。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>问 ChatGPT"Orson Kovats 是谁",它判断这是稀有人物,于是触发联网搜索(界面会闪一下"搜索网络"),把网页文本塞进上下文,再附上引用来源作答。你也可以说"别用工具",它就只靠记忆回答。</p></div></div>
+    </div>
+
+    <div class="callout quote-box">
+      <div class="c-ico">📣</div>
+      <div class="c-body"><div class="c-title">最重要的心理学要点</div><p><strong>参数里的知识 = 模糊的回忆</strong>(像你一个月前读过的东西);<strong>上下文窗口里的 token = 工作记忆</strong>(像你几秒前刚经历的、可直接调用)。这对实际使用很有启发。</p></div></div>
+
+    <div class="cases">
+      <div class="case"><div><div class="case-h"><span>📖</span>只说"总结《傲慢与偏见》第一章"</div><div class="case-d">靠模糊回忆,因为这是名著、网上讨论多,质量尚可但有限。</div></div><div class="time-badge">依赖记忆</div></div>
+      <div class="case"><div><div class="case-h"><span>📎</span>把第一章原文粘贴进去再让它总结</div><div class="case-d">模型可直接访问原文,无需回忆,总结质量显著更高——就像你重读一遍再总结。</div></div><div class="time-badge">质量更高</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 8b: KNOWLEDGE OF SELF ========================= -->
+<section class="s1">
+  <div class="wrap">
+    <h3 id="self"><span class="ico">🪞</span>④ "你是谁?":模型的自我认知</h3>
+    <p>网上常有人问 LLM"你是什么模型、谁造的"。Karpathy 说这问题有点<strong>无意义</strong>:这东西不是人,没有持久存在——它启动、处理 token、然后关闭,对每个人都如此。每次对话都从零重启,<strong>没有持久的自我</strong>,只是个遵循训练集统计规律的"token 翻滚器"。</p>
+
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">默认会瞎答</span><div class="def-body"><p>如果不显式编程,问"你是谁"会得到相当随机的答案。比如 Falcon 会说"我由 OpenAI 基于 GPT-3 构建"——纯属编造。很多人以为这证明它用了 OpenAI 数据,但<strong>未必</strong>:这只是它<strong>幻觉出的自我标签</strong>,因为互联网上有海量来自 ChatGPT 的此类回答,于是它默认自己是"OpenAI 的 ChatGPT"。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">两种覆盖方式</span><div class="def-body"><p><strong>① 硬编码对话</strong>:如 Allen AI 的开源模型 OLMo,在 100 万条 SFT 混合数据里专门放了 <strong>240 条硬编码对话</strong>("告诉我你自己"→"我是 Allen 人工智能研究所开发的开放语言模型……"),模型训练后就会复述。<br><strong>② 系统消息(system message)</strong>:对话开头有一条隐藏的系统消息,硬编码提醒模型"你是 ChatGPT-4o、由 OpenAI 开发、知识截止某日"。这些 token 在上下文窗口里,提醒模型它的身份。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">本质</span><div class="def-body"><p>无论哪种方式,自我认知都是被"编造并栓上去"的,并不像人那样真正深植于内。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 9: TOKENS TO THINK ========================= -->
+<section class="s2" id="s-think">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🧮</div>
+      <div><div class="stage-meta">LLM 心理学 · 二</div><h2>模型需要 token 来思考:<span class="accent">把计算摊开在多个 token 上</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>构造对话样本时有很多"锋利边缘"。看这道题:<em>Emily 买 3 个苹果和 2 个橙子,每个橙子 $2,总价 $13,问每个苹果多少钱?</em> 有两个都得出正确答案(3)的回应,但其中一个<strong>明显更好</strong>。</p>
+
+    <h3><span class="ico">⚡</span>① 为什么"每个 token 的计算量是有限的"</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>模型在训练和推理时,都在<strong>从左到右</strong>处理一维 token 序列。从前一段 token 到"下一个 token 的概率",中间只经过<strong>有限的计算层数</strong>(现代 SOTA 网络约 100 层)。所以<strong>每个 token 上花的计算量大致固定,而且很小</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么影响答案质量</span><div class="def-body"><p>模型<strong>无法在单次前向传播里完成任意大的计算</strong>。因此必须把推理<strong>分摊到许多 token 上</strong>,不能指望任何单个 token 承担太多计算。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">两种答案的对比</span><div class="def-body"><p><strong>差答案</strong>:"答案是 $3"——直接把全部计算硬塞进"3"这一个 token,后面的文字只是<strong>事后辩解</strong>(答案早已生成在上下文里,没真在算)。这等于训练模型"一个 token 猜出答案",注定不可靠。<br><strong>好答案</strong>:逐步给出中间结果(橙子共 $4,所以 13−4=9,再 9÷3=3)。每一步计算都不贵,模型从左到右慢慢逼近答案,到末尾时所有中间结果都在工作记忆里,得出 3 就容易多了。</p></div></div>
+    </div>
+
+    <div class="callout warn">
+      <div class="c-ico">⚠️</div>
+      <div class="c-body"><div class="c-title">实测:逼模型"一个 token 内算完"会出错</div><p>简单数字时,要求"只用一个 token 立刻给答案",它居然能做到(其实是 2 个 token,因为 $ 是独立 token)。但把数字改大(23 个苹果、177 个橙子),它一口气给出 5——<strong>错了</strong>。允许它正常摊开计算后,它逐步得出正确答案 7。可见单次前向传播塞不下太多计算。</p></div></div>
+
+    <h3><span class="ico">🐍</span>② 更稳的做法:让模型用代码工具</h3>
+    <p>Karpathy 说实践中他<strong>不完全信任</strong>模型的"心算"(每个中间步骤原则上都可能出错)。所以他会说"<strong>use code(用代码)</strong>"。代码是 ChatGPT 可用的工具之一:模型写出 Python 程序,程序被送到计算机的另一部分<strong>真正运行</strong>,再把结果返回。Python 解释器的正确性保证,远高于语言模型的心算。</p>
+
+    <h3><span class="ico">🔢</span>③ 同理:模型不擅长数数</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>问"下面有多少个点",模型想在<strong>单个 token、单次前向传播</strong>里数完,计算量根本不够。它把一组点看成一两个 token,结果常数错(比如该 177 个却说 161)。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">用代码巧解</span><div class="def-body"><p>说"use code"就对了。这其实<strong>把难题拆成了模型擅长的子任务</strong>:模型不会数数,但<strong>很擅长复制粘贴</strong>。它把输入的 token 复制成 Python 字符串,再调用 <code>.count()</code> 让<strong>解释器去数</strong>,于是得出正确的 177。</p></div></div>
+    </div>
+
+    <div class="callout key-teal">
+      <div class="c-ico">🧰</div>
+      <div class="c-body"><div class="c-title">本节口诀</div><p><strong>模型需要 token 来思考。</strong>把计算分摊到多个 token、让模型产出中间结果;能用工具就用工具,别让模型把所有事都在"脑内"完成——它脑内算的东西,不能完全信任。</p></div></div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 10: SPELLING / JAGGED ========================= -->
+<section class="s3" id="s-jagged">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🪚</div>
+      <div><div class="stage-meta">LLM 心理学 · 三</div><h2>拼写缺陷与<span class="accent">"锯齿状智能"</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">✂️</span>① 为什么模型拼写差</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>模型<strong>看不到字符,只看到 token</strong>(小文本块)。它的整个世界是 token,不像我们的眼睛能看到一个个字母。所以字符级任务常常失败。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>让它"把 ubiquitous 每隔三个字符打印一个、从第一个开始",它做错了。因为 <code>ubiquitous</code> 在分词器里是 <strong>3 个 token</strong>,模型无法像我们一样直接索引单个字母。<strong>用 code</strong> 就行——把单词复制进 Python 解释器去操作字符,轻松得到正确结果。
+        <div class="eg-example"><span class="eg-lbl">🍓 著名的"strawberry"难题</span>"strawberry 里有几个 r"曾让一众 SOTA 模型坚称只有 2 个(实际 3 个)。原因是<strong>双重叠加</strong>:① 模型看不到字符(分词所致);② 模型不擅长数数。我们之所以还用 token,主要是为了效率;有人想做字符级/字节级模型,但那会产生超长序列,目前没人知道怎么处理。</div></p></div></div>
+    </div>
+
+    <h3><span class="ico">🧀</span>② 锯齿状智能与"瑞士奶酪"模型</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>模型有一些<strong>说不通的奇怪短板</strong>。比如问"9.11 和 9.9 哪个大",它会说 9.11 更大(错误),有时中途改口、有时又答对,很不稳定。可它却能解奥赛级数学、答博士级理化生问题。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">一个可能的解释</span><div class="def-body"><p>有团队研究发现:当模型处理"9.11 vs 9.9"时,网络里<strong>一批通常与《圣经》经文关联的神经元被激活</strong>。在圣经语境下,9.11 排在 9.9 之后(更"大"),模型似乎被这种联想"分心"了,即便它一边用数学论证,最后仍给出错误答案。这个现象<strong>尚未被完全理解</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">如何看待</span><div class="def-body"><p>把它当成它本来的样子:一个<strong>随机的、神奇但不能完全信任</strong>的系统。模型能力像"<strong>瑞士奶酪</strong>"——大体很强,但布满随机的"洞",你不想一脚踩进去。要把它当工具用,而不是把问题丢给它就直接复制结果。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 11: RL + DEEPSEEK ========================= -->
+<section class="s4" id="s-rl">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🎓</div>
+      <div><div class="stage-meta">第三大阶段 · 强化学习</div><h2>强化学习:<span class="accent">让模型在"练习题"中自我发现解法</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">📚</span>① 用"上学"类比三大阶段</h3>
+    <p>教科书里有三类信息,恰好对应训练的三阶段:</p>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">阐述/背景知识</span><div class="def-body"><p>课文的大部分是<strong>阐述(exposition)</strong>。阅读这些就相当于<span class="term">预训练</span>——建立知识库、获得领域感觉。</p></div></div>
+      <div class="def-row"><span class="tag tag-what">带解答的例题</span><div class="def-body"><p>专家(作者)既给问题也给完整解答,相当于助手的"理想回应"。模仿这些专家数据,就相当于<span class="term">监督微调(SFT)</span>。</p></div></div>
+      <div class="def-row"><span class="tag tag-what">练习题</span><div class="def-body"><p>只给问题和<strong>最终答案</strong>(答案页),不给解法。你要自己<strong>试错、发现</strong>哪条路最能到达正确答案。这就是<span class="term">强化学习(RL)</span>。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🤔</span>② 为什么需要 RL:人类不知道哪种解法最适合模型</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>同一道题有多种到达答案 3 的解法(列方程、用英文讲、直接跳到答案)。解法有两个目的:① <strong>得到正确答案</strong>;② <strong>对人类呈现得好看</strong>。先只关注"正确"这一目的。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么人类标注会失灵</span><div class="def-body"><p>因为<strong>对人类容易/困难的,和对 LLM 容易/困难的不一样</strong>——它们的认知不同。某个 token 上"30−4÷3"这种跳跃对人很简单,但对模型可能<strong>太大、会算错</strong>;反过来,我对模型平凡的东西又在浪费 token。模型可能有我没有的博士级知识,我也可能注入它参数里没有的知识、造成困惑的跳跃。所以人类<strong>不在好位置</strong>替模型标注最优 token 序列。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">结论</span><div class="def-body"><p>我们需要<strong>让 LLM 自己发现</strong>对它有效、能可靠到达答案的 token 序列——通过强化学习的试错来发现。SFT 只是把模型<strong>初始化</strong>到正确解法的"附近"。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🔁</span>③ RL 怎么运作:猜测—检验—强化</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>对同一个 prompt,让模型<strong>并行生成大量解法</strong>(实践中可能上千甚至上百万个)。因为模型是随机系统,每次生成都不同。我们知道正确答案,于是检验哪些解法对了。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么有效</span><div class="def-body"><p>对得到正确答案的解法<strong>加以鼓励</strong>:把这些(由模型自己产生、非人类标注的)序列拿来训练。比如 15 个解法只有 4 个正确,就取其中最好的一个(可能最短、最漂亮),训练后模型未来更可能走这条路。这就像学生看自己的解答:"这个方法管用,以后就这么解。"</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>同时在<strong>成千上万个 prompt</strong>(数学、物理等)上、每个 prompt 上千个解法地迭代。模型逐渐<strong>为自己发现</strong>能可靠到达正确答案、不做认知跳跃、充分利用自身知识的 token 序列。这就是强化学习:<strong>猜测、检验、多做有效的</strong>。</p></div></div>
+    </div>
+
+    <div class="figure">
+      <svg viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+        <defs><marker id="ar3" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3b4d8f"/></marker></defs>
+        <!-- prompt -->
+        <rect data-anim x="20" y="110" width="120" height="60" rx="12" fill="#e2e6f5" stroke="#3b4d8f" stroke-width="1.5"/>
+        <text data-anim x="80" y="135" text-anchor="middle" font-size="13" font-weight="800" fill="#3b4d8f">同一个</text>
+        <text data-anim x="80" y="155" text-anchor="middle" font-size="13" font-weight="800" fill="#3b4d8f">Prompt</text>
+        <!-- many rollouts -->
+        <text data-anim x="300" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#33455c">并行生成大量解法(可上千个)</text>
+        <g data-anim font-size="11" font-weight="700">
+          <rect data-anim x="200" y="44" width="200" height="26" rx="6" fill="#d3f5e4" stroke="#1a9d63"/><text data-anim x="300" y="61" text-anchor="middle" fill="#0c6b41">解法 ✓ 到达正确答案</text>
+          <rect data-anim x="200" y="78" width="200" height="26" rx="6" fill="#fde8e3" stroke="#d0593f"/><text data-anim x="300" y="95" text-anchor="middle" fill="#a13a22">解法 ✗ 答案错误</text>
+          <rect data-anim x="200" y="112" width="200" height="26" rx="6" fill="#d3f5e4" stroke="#1a9d63"/><text data-anim x="300" y="129" text-anchor="middle" fill="#0c6b41">解法 ✓ 到达正确答案</text>
+          <rect data-anim x="200" y="146" width="200" height="26" rx="6" fill="#fde8e3" stroke="#d0593f"/><text data-anim x="300" y="163" text-anchor="middle" fill="#a13a22">解法 ✗ 答案错误</text>
+          <rect data-anim x="200" y="180" width="200" height="26" rx="6" fill="#d3f5e4" stroke="#1a9d63"/><text data-anim x="300" y="197" text-anchor="middle" fill="#0c6b41">解法 ✓ 到达正确答案</text>
+        </g>
+        <line data-draw x1="140" y1="140" x2="196" y2="100" stroke="#3b4d8f" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <line data-draw x1="140" y1="140" x2="196" y2="155" stroke="#3b4d8f" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <!-- check -->
+        <line data-draw x1="404" y1="125" x2="456" y2="125" stroke="#3b4d8f" stroke-width="2" marker-end="url(#ar3)"/>
+        <rect data-anim x="460" y="92" width="150" height="66" rx="12" fill="#fff" stroke="#3b4d8f" stroke-width="1.5"/>
+        <text data-anim x="535" y="118" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3b4d8f">检验</text>
+        <text data-anim x="535" y="138" text-anchor="middle" font-size="11" fill="#5f7186">对照答案,挑出最优解</text>
+        <!-- reinforce -->
+        <line data-draw x1="614" y1="125" x2="666" y2="125" stroke="#3b4d8f" stroke-width="2" marker-end="url(#ar3)"/>
+        <rect data-anim x="670" y="86" width="130" height="78" rx="12" fill="#e2e6f5" stroke="#3b4d8f" stroke-width="1.5"/>
+        <text data-anim x="735" y="112" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3b4d8f">强化</text>
+        <text data-anim x="735" y="132" text-anchor="middle" font-size="11" fill="#33455c">训练这些好序列</text>
+        <text data-anim x="735" y="150" text-anchor="middle" font-size="11" fill="#33455c">未来更可能走这条路</text>
+        <!-- loop back -->
+        <path data-draw d="M735 164 Q735 240 80 240 Q80 200 80 172" fill="none" stroke="#3b4d8f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar3)"/>
+        <text data-anim x="400" y="236" text-anchor="middle" font-size="11.5" fill="#5f7186">循环迭代:模型自己发现对它有效的解题路径(非人类标注)</text>
+      </svg>
+      <div class="fig-cap">图 3 · <b>强化学习:猜测 → 检验 → 强化</b>。关键在于解法由模型自己生成,人类只提供"最终答案"做对错判定——这正是 DeepSeek-R1 中"思维链"涌现的机制。</div>
+    </div>
+
+    <div class="callout quote-box">
+      <div class="c-ico">👶</div>
+      <div class="c-body"><div class="c-title">训练 LLM ≈ 训练孩子</div><p>预训练 = 读所有教科书的阐述、建知识库;SFT = 看专家的全部例题、学会模仿(但有点盲目);RL = 做所有练习题,自己发现解法。不同的是,我们得为 LLM<strong>跨所有人类知识学科编写教科书</strong>。前两阶段已是行业标准多年,而 <strong>RL 这一阶段还很新、尚未标准化</strong>。</p></div></div>
+
+    <h3><span class="ico">🐋</span>④ DeepSeek-R1:把 RL 公开讲清楚的论文</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>许多公司(如 OpenAI)内部早就用 RL 微调,但<strong>不公开</strong>。中国公司 <span class="term">DeepSeek</span> 最近的论文<strong>第一次非常公开</strong>地讲了对 LLM 做 RL 微调、它有多重要、如何激发推理能力,并给出了复现所需的细节。这重新点燃了业界对 RL 的公开兴趣。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">关键发现</span><div class="def-body"><p>① <strong>定量</strong>:随着上千步更新,模型解数学题的准确率持续攀升。② <strong>定性更震撼</strong>:优化后期,模型每个回应的<strong>平均长度变长</strong>——它学会用更多 token、生成很长的解法来获得更高准确率。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">"思维链"是涌现的</span><div class="def-body"><p>解法变长,是因为模型开始出现这样的行为:"等等,等等,这是个值得标记的时刻,让我重新逐步评估……"。它在<strong>重新评估、从不同角度尝试、回溯、重构</strong>——这些正是人类解题时<strong>脑子里</strong>(而非写在纸上)做的事。没有任何人能把这些硬编码进"理想回应",它<strong>只能在 RL 中被发现</strong>。模型学会了所谓<span class="term">思维链(chain of thought)</span>,这是优化的涌现性质,既撑长了回应、也提高了准确率。</p></div></div>
+    </div>
+
+    <h3><span class="ico">💭</span>⑤ "思考模型"长什么样,在哪里用</h3>
+    <p>把同一道苹果题给<strong>推理/思考模型</strong>(经 RL 训练),你能看到它在"思考":先推导出 $3,然后"等一下,我再检查一遍",换个角度设方程验证,"嗯,确实是 $3,我有信心",最后才为人类写出漂亮解答并框出答案。这种思考过程正来自 RL,也是这里看到"啊哈时刻"和各种策略的原因。</p>
+
+    <ul class="practice">
+      <li><span class="p-ico">🐋</span><div><span class="p-name">DeepSeek-R1(开源/开放权重,MIT 许可)</span><br>可在 chat.deepseek.com 打开"DeepThink"使用;也可下载自托管。完整大模型无法在 MacBook 上跑,但可用 together.ai 等推理商访问(美国公司托管,介意数据隐私者可选)。</div></li>
+      <li><span class="p-ico">🟢</span><div><span class="p-name">OpenAI 的 o1 / o3-mini / o3-mini-high</span><br>"使用高级推理"指的就是用了与 DeepSeek-R1 类似的 RL 技术(据 OpenAI 员工公开说法)。但 OpenAI <strong>不显示完整思维链</strong>,只给摘要——出于"蒸馏风险"考虑(怕别人模仿推理轨迹复现性能)。需要 $20 或 $200/月订阅。</div></li>
+      <li><span class="p-ico">🔵</span><div><span class="p-name">GPT-4o / GPT-4o-mini(免费档)</span><br>应视为<strong>主要是 SFT 模型</strong>,它们不做这种"思考"。即便涉及一点 RLHF(见下一节),也仍主要是 SFT。</div></li>
+      <li><span class="p-ico">🟡</span><div><span class="p-name">Google Gemini 2.0 Flash Thinking Experimental</span><br>Google 在 AI Studio 里的早期实验性思考模型,也会做类似的思考并给出正确答案。</div></li>
+    </ul>
+
+    <div class="callout key-gold">
+      <div class="c-ico">⏳</div>
+      <div class="c-body"><div class="c-title">何时用思考模型</div><p>需要高级推理(数学、代码)时用思考模型,但要多等它"想"一会儿。Karpathy 自己约 <strong>80–90% 的使用</strong>是 GPT-4o(简单的知识性问题没必要思考 30 秒),遇到难题才转向思考模型。<strong>(注:视频录于 2025 年初,称当时 Anthropic 尚未提供思考模型——这一情况此后已发生变化。)</strong></p></div></div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 11b: ALPHAGO ========================= -->
+<section class="s1">
+  <div class="wrap">
+    <h3 id="alphago"><span class="ico">♟️</span>⑥ AlphaGo 的启示:RL 能超越人类</h3>
+    <p>RL 的强大并非新鲜事。DeepMind 的 <span class="term">AlphaGo</span> 就是例证。论文里有张关键图:对比<strong>监督学习</strong>(模仿人类专家棋手)和<strong>强化学习</strong>训练的模型的 ELO 等级分。</p>
+
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">监督学习的天花板</span><div class="def-body"><p>只模仿人类专家,你会进步,但会<strong>触顶</strong>,永远超不过李世石这样的顶尖棋手——因为单纯模仿,根本上无法超越被模仿的人。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">RL 不受人类水平约束</span><div class="def-body"><p>RL 中,系统通过<strong>自我对弈</strong>做 rollout(与苹果题一样的图,只是没有 prompt,而是固定的围棋规则),把<strong>导向胜利</strong>的下法强化。它学到"统计上能赢"的行动序列,可以显著超越顶尖人类。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">著名的"第 37 手"</span><div class="def-body"><p>AlphaGo 在对局中走出一手<strong>人类专家几乎不会下</strong>的棋(人类下出该手的概率约 <strong>万分之一</strong>),当时连解说都以为是失误,但事后看是<strong>神之一手</strong>。RL 在自我对弈中发现了人类未知、却绝妙的策略。</p></div></div>
+    </div>
+
+    <div class="callout quote-box">
+      <div class="c-ico">🚀</div>
+      <div class="c-body"><div class="c-title">在开放思维领域里的"第 37 手"会是什么?</div><p>RL 不被训练数据(英文)的分布束缚。原则上,语言模型若持续扩展这一范式,可能发现人类想不到的<strong>类比、全新思维策略</strong>,甚至<strong>发明一种比英文更适合思考的语言</strong>。要实现这一切,需要<strong>大量、多样的练习题(游戏环境)</strong>让策略得以精炼——这正是当前前沿 LLM 研究的重点:为所有知识领域创造海量练习题。</p></div></div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 12: RLHF ========================= -->
+<section class="s2" id="s-rlhf">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🎭</div>
+      <div><div class="stage-meta">强化学习 · 不可验证领域</div><h2>RLHF:<span class="accent">在"无法验证"的领域里做强化学习</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>前面所有问题都在<strong>可验证领域</strong>(答案是 3,容易自动打分:对答案查相等,或用 LLM 裁判)。但<strong>不可验证领域</strong>(写笑话、写诗、做摘要)难以给解法打分——比如"写个关于鹈鹕的笑话",可以生成很多个,但<strong>怎么评分</strong>?</p>
+
+    <div class="callout warn">
+      <div class="c-ico">⚠️</div>
+      <div class="c-body"><div class="c-title">朴素做法不可行</div><p>原则上可让人类逐个看笑话打分,但 RL 要做上千次更新、每次上千个 prompt、每个 prompt 上百/上千个生成。Karpathy 算过:这需要让人类评估笑话约 <strong>10 亿次</strong>——海量人力看着一堆烂笑话,完全不可扩展。</p></div></div>
+
+    <h3><span class="ico">🎯</span>① RLHF 的核心技巧:间接(indirection)</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p><span class="term">基于人类反馈的强化学习(RLHF)</span>由当时在 OpenAI 的团队提出(其中许多人现为 Anthropic 联合创始人)。技巧是:只让人类参与<strong>一点点</strong>,训练一个<strong>独立的神经网络——奖励模型(reward model)</strong>,让它<strong>模仿人类打分</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么能扩展</span><div class="def-body"><p>奖励模型成为"人类偏好的模拟器"。有了它,就能<strong>无限次查询</strong>这个模拟器、全自动地对它做 RL,而不必每次问真人。模拟器虽不完美,但只要在统计上接近人类判断,就能起作用。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">训练奖励模型的过程</span><div class="def-body"><p>对一个 prompt 生成 5 个笑话,让人类<strong>从最好到最差排序</strong>(排序比直接打分更容易、对人更友好)。奖励模型(独立的 Transformer、纯打分而非生成)对每个"prompt+笑话"输出一个 <strong>0 到 1 的分数</strong>。用数学方法让<strong>模型打分与人类排序保持一致</strong>:模型给的分若与人类排序冲突,就更新它(比如人类排第二的笑话模型只给 0.1,就把分数往上推)。如此反复,奖励模型越来越像人类打分的模拟器。
+        <div class="eg-example"><span class="eg-lbl">🔎 规模对比</span>不再需要 10 亿次人工评估,而是约 1000 个 prompt × 每个 5 个生成 = 约 <strong>5000 个笑话</strong>让人类排序即可。</div></p></div></div>
+    </div>
+
+    <div class="figure">
+      <svg viewBox="0 0 820 290" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+        <defs><marker id="ar4" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#0e7490"/></marker></defs>
+        <!-- left: humans rank -->
+        <rect data-anim x="20" y="40" width="240" height="210" rx="14" fill="#d3eef5" stroke="#0e7490" stroke-width="1.5"/>
+        <text data-anim x="140" y="68" text-anchor="middle" font-size="13.5" font-weight="800" fill="#0e7490">① 人类只需"排序"</text>
+        <text data-anim x="140" y="88" text-anchor="middle" font-size="11" fill="#5f7186">约 5000 个笑话即可(非 10 亿次)</text>
+        <g data-anim font-size="11.5">
+          <rect data-anim x="44" y="104" width="192" height="24" rx="5" fill="#fff" stroke="#9fd2e2"/><text data-anim x="54" y="120" fill="#33455c">🥇 笑话 B  ← 最好</text>
+          <rect data-anim x="44" y="134" width="192" height="24" rx="5" fill="#fff" stroke="#9fd2e2"/><text data-anim x="54" y="150" fill="#33455c">🥈 笑话 D</text>
+          <rect data-anim x="44" y="164" width="192" height="24" rx="5" fill="#fff" stroke="#9fd2e2"/><text data-anim x="54" y="180" fill="#33455c">🥉 笑话 A</text>
+          <rect data-anim x="44" y="194" width="192" height="24" rx="5" fill="#fff" stroke="#9fd2e2"/><text data-anim x="54" y="210" fill="#33455c">4️⃣ 笑话 E</text>
+          <rect data-anim x="44" y="224" width="192" height="20" rx="5" fill="#fff" stroke="#9fd2e2"/><text data-anim x="54" y="239" fill="#5f7186">5️⃣ 笑话 C  ← 最差</text>
+        </g>
+        <!-- middle: train reward model -->
+        <line data-draw x1="264" y1="145" x2="312" y2="145" stroke="#0e7490" stroke-width="2" marker-end="url(#ar4)"/>
+        <rect data-anim x="316" y="92" width="190" height="106" rx="14" fill="#163355"/>
+        <text data-anim x="411" y="120" text-anchor="middle" font-size="13.5" font-weight="800" fill="#fff">② 奖励模型</text>
+        <text data-anim x="411" y="140" text-anchor="middle" font-size="10.5" fill="#9fc4ea">独立的神经网络</text>
+        <text data-anim x="411" y="158" text-anchor="middle" font-size="10.5" fill="#9fc4ea">输入:prompt + 一个笑话</text>
+        <text data-anim x="411" y="176" text-anchor="middle" font-size="10.5" fill="#9fc4ea">输出:0~1 的分数</text>
+        <text data-anim x="411" y="218" text-anchor="middle" font-size="10.5" fill="#0e7490">↑ 训练它,使打分与人类排序一致</text>
+        <!-- right: RL against simulator -->
+        <line data-draw x1="510" y1="145" x2="558" y2="145" stroke="#0e7490" stroke-width="2" marker-end="url(#ar4)"/>
+        <rect data-anim x="562" y="92" width="238" height="106" rx="14" fill="#d3eef5" stroke="#0e7490" stroke-width="1.5"/>
+        <text data-anim x="681" y="120" text-anchor="middle" font-size="13.5" font-weight="800" fill="#0e7490">③ 对"模拟器"做 RL</text>
+        <text data-anim x="681" y="142" text-anchor="middle" font-size="11" fill="#33455c">无限次查询,全自动打分</text>
+        <text data-anim x="681" y="162" text-anchor="middle" font-size="11" fill="#33455c">在不可验证领域也能跑 RL</text>
+        <text data-anim x="681" y="186" text-anchor="middle" font-size="10.5" fill="#a13a22">⚠ 但只能跑几百步,否则被钻空子</text>
+        <!-- caption note adversarial -->
+        <rect data-anim x="316" y="222" width="484" height="40" rx="10" fill="#fde8e3" stroke="#f0b3a4"/>
+        <text data-anim x="558" y="240" text-anchor="middle" font-size="11" fill="#a13a22">跑太久 → RL 发现对抗样本(如 "the the the" 竟被打 1.0 分)</text>
+        <text data-anim x="558" y="255" text-anchor="middle" font-size="11" fill="#a13a22">所以 RLHF "不是有魔力的 RL",只是小幅微调</text>
+      </svg>
+      <div class="fig-cap">图 4 · <b>RLHF 的间接技巧</b>:人类排序 → 训练奖励模型当"人类偏好模拟器" → 对模拟器做 RL。好处是把"生成"难题换成更易的"判别",代价是模拟器可被博弈。</div>
+    </div>
+
+    <h3><span class="ico">👍</span>② RLHF 的好处</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">能在任意领域跑 RL</span><div class="def-body"><p>让我们能在<strong>不可验证领域</strong>(摘要、写诗、写笑话等创意写作)用上 RL 这套强大技术。经验上,正确做 RLHF 能让模型<strong>变好一点</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么变好:判别 vs 生成的差距</span><div class="def-body"><p>Karpathy 的最佳猜测是 <span class="term">判别器—生成器差距(discriminator-generator gap)</span>:对人类而言,<strong>判别(分辨好坏)往往比生成容易得多</strong>。在 SFT 里我们要人类<strong>写出</strong>理想回应(写诗、写笑话很难);RLHF 则只要人类<strong>从 5 个里挑出排序</strong>,任务简单得多,能产出更高准确度的数据。系统随后在 RLHF 中发现那些会被人类高分评价的回应。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🚨</span>③ RLHF 的严重缺陷:奖励模型会被"钻空子"</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">缺陷一:有损模拟</span><div class="def-body"><p>我们不是对真实人类判断做 RL,而是对人类的<strong>有损模拟</strong>做 RL。这个模拟可能误导,因为它只是个输出分数的语言模型,未必在所有情况下都准确反映真人意见。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">缺陷二:RL 极擅长"博弈"模拟</span><div class="def-body"><p>更微妙也更致命:RL <strong>极其擅长发现欺骗奖励模型的方法</strong>。奖励模型是有数十亿参数的庞大神经网络,存在大量<strong>对抗样本(adversarial examples)</strong>——某些不在训练集里的奇怪输入,会莫名其妙拿到极高分。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">"the the the"的荒诞例子</span><div class="def-body"><p>若 RLHF 跑太久(比如 1000 步更新):前几百步笑话确实在改善,然后<strong>突然崩塌</strong>,开始产出无意义结果——比如关于鹈鹕的"头号笑话"竟变成 <code>the the the the</code>。你以为该得 0 分,奖励模型却给它打 1.0 分,认定是顶级笑话。你可以把它加进数据集打低分,但<strong>对抗样本是无限的</strong>,这游戏永远赢不了。</p></div></div>
+    </div>
+
+    <div class="callout quote-box">
+      <div class="c-ico">📣</div>
+      <div class="c-body"><div class="c-title">"RLHF 不是(那种有魔力的)RL"</div><p>所以 RLHF 只能跑<strong>几百步</strong>更新,然后必须叫停、收工发布——不能像可验证领域那样无限跑。可验证领域(答案对错分明、AlphaGo 的输赢)<strong>无法被钻空子</strong>,能跑成千上万步、发现疯狂而强大的新策略,真正"超越李世石"。而奖励模型可被博弈,所以 RLHF 更像是<strong>一点小小的微调改进</strong>,而非"投入更多算力、跑更久就能得到神奇结果"的真正 RL。GPT-4o 经过了 RLHF(因为它确实有效),但这只是个小幅提升的微调。</p></div></div>
+  </div>
+</section>
+
+<!-- ========================= SECTION 13: FUTURE + WHERE TO FIND ========================= -->
+<section class="s3" id="s-future">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🔭</div>
+      <div><div class="stage-meta">展望 · 追踪 · 使用</div><h2>未来能力、<span class="accent">如何追踪进展与在哪里使用</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">🚀</span>① 即将到来的能力</h3>
+    <ul class="practice">
+      <li><span class="p-ico">🎙️</span><div><span class="p-name">多模态(很快普及)</span><br>不只处理文本,还能原生处理音频(听与说)和图像(看与画)。原理上没有根本变化:把音频(取频谱图的切片)和图像(取图块 patch)<strong>也分词成 token</strong>,加进上下文窗口照常训练即可。</div></li>
+      <li><span class="p-ico">🤝</span><div><span class="p-name">智能体(Agents)</span><br>目前任务还是"喂一个、做一个"。未来会出现长时间运行、能纠错、串联多个任务的智能体,由人类监督、定期汇报进度。如同工厂里的"人机比",数字领域会出现<strong>"人类:智能体"的监督比例</strong>。</div></li>
+      <li><span class="p-ico">🫥</span><div><span class="p-name">无处不在且隐形</span><br>能力会融入各种工具、随处可用。</div></li>
+      <li><span class="p-ico">🖱️</span><div><span class="p-name">能代你操作计算机</span><br>如 ChatGPT 的 Operator——可把控制权交给模型,代你执行键盘鼠标操作。</div></li>
+      <li><span class="p-ico">🧪</span><div><span class="p-name">测试时训练(Test-time training)等研究方向</span><br>如今模型部署后参数<strong>固定</strong>,只能靠上下文窗口做"上下文学习"。但人类睡觉时还会更新参数;模型目前没有等价机制。当多模态长任务让上下文窗口变得极大时,单靠"加长上下文"不可扩展,需要新思路。</div></li>
+    </ul>
+
+    <h3><span class="ico">📡</span>② 如何追踪 LLM 进展(三个资源)</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">LM Arena 排行榜</span><div class="def-body"><p>基于<strong>人类盲测对比</strong>(不知道是哪个模型,只选更好的答案)来排名。视频录制时 Google Gemini 居首、OpenAI 紧随、DeepSeek 第三(MIT 开放权重,十分罕见)。<strong>注意</strong>:Karpathy 说近几个月该榜<strong>有点被"刷分"</strong>,他已不像以前那样信任——建议当作初筛,然后亲自试几个模型。(他举例:很多人爱用的 Anthropic Claude Sonnet 排在第 14,而用 Gemini 的人没那么多却排得很高。)</p></div></div>
+      <div class="def-row"><span class="tag tag-what">AI News 邮件简报</span><div class="def-body"><p>由 swix 等人维护,几乎每隔一天一期,<strong>极其全面</strong>(部分人工撰写、大量由 LLM 自动构建)。读完基本不会错过重大进展;顶部的摘要质量尤其好。</p></div></div>
+      <div class="def-row"><span class="tag tag-what">X(Twitter)</span><div class="def-body"><p>大量 AI 动态发生在 X 上,关注你信任的人即可获取最新资讯。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🗺️</span>③ 在哪里使用这些模型</h3>
+    <ul class="practice">
+      <li><span class="p-ico">🏢</span><div><span class="p-name">专有大模型 → 厂商官网</span><br>如 OpenAI 用 chatgpt.com;Google 用 gemini.google.com 或 AI Studio。</div></li>
+      <li><span class="p-ico">🔓</span><div><span class="p-name">开放权重模型 → 推理服务商</span><br>如 DeepSeek、Llama 等,作者最爱 <strong>together.ai</strong> 的 Playground,可选很多 SOTA 开放模型对话。</div></li>
+      <li><span class="p-ico">🌀</span><div><span class="p-name">基座模型 → hyperbolic</span><br>推理服务商大多面向"助手/聊天",基座模型不常见。作者用 <strong>hyperbolic</strong> 访问他喜爱的 Llama 3.1 base。</div></li>
+      <li><span class="p-ico">💻</span><div><span class="p-name">本地运行 → LM Studio</span><br>较小的模型(蒸馏版 + 更低精度,如低于 fp8/bf16)可在笔记本上跑。作者最爱 <strong>LM Studio</strong>(虽然界面对新手不太友好),所有运算都在本机 GPU 上,用完可卸载模型释放内存。</div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========================= GRAND SUMMARY ========================= -->
+<div class="final">
+  <div class="wrap">
+    <h2><span class="accent">🧩</span> 总结:当你在 ChatGPT 按下回车,到底发生了什么</h2>
+    <hr class="lead-divider" style="background:rgba(255,255,255,0.15);">
+    <p>你的查询先被<strong>切成 token</strong>,放进对话协议格式,成为一段一维 token 序列。ChatGPT 看到这段序列,按下回车后,它就像 <strong>token 自动补全</strong>一样不断往后追加 token。为什么是这些 token?这要回到三个阶段:</p>
+
+    <p><strong>① 预训练</strong>——从互联网把知识获取进神经网络的参数;<strong>② 监督微调(SFT)</strong>——用人类标注员按指南写的大量对话,赋予模型"助手人格"。所以你得到的回应,本质是<strong>"一个 OpenAI 数据标注员的神经网络模拟"</strong>:仿佛把问题交给一位先读完标注指南、再花两小时写出理想回应的标注员——只不过你没等两小时,得到的是这个过程的有损模拟。由于认知差异,模型会<strong>幻觉</strong>,会有"瑞士奶酪式"的随机短板。</p>
+
+    <p><strong>③ 强化学习(RL)</strong>——当你用 o3-mini 这类<strong>思考模型</strong>时,情况不同了:GPT-4o 只做 RLHF(没有魔力的微调),而思考模型真正经历了 RL,<strong>磨练出思考过程、发现新的思维策略</strong>。此时回来的东西不再只是"模拟人类标注员",而是某种<strong>新颖、涌现于模拟之中的"思考函数"</strong>——原则上有能力做出类似 AlphaGo"第 37 手"那样、连人类都没想到的东西。但目前 RL 还很<strong>原始、初生(primordial)</strong>,主要在数学、代码等可验证领域大放异彩。</p>
+
+    <blockquote>"把它当作工具箱里的工具,别完全信任。它会随机犯傻、会幻觉、会跳过心算、会数错数。用它来获得灵感、写初稿、提问——但永远要核查与验证,并对你工作的最终成果负责。如果你这样做,就会用得非常成功。"</blockquote>
+
+    <p style="margin-top:22px;">这是一个极其令人兴奋的领域。Karpathy 自己每天都用这些模型几十上百次,因为它们极大加速了工作;他相信我们会因此看到巨大的财富创造——只要清楚它们的短板,把它们当工具用。</p>
+  </div>
+</div>
+
+<footer>📄 整理自 Andrej Karpathy《Deep Dive into LLMs like ChatGPT》(2025-02-06,YouTube,3h22m,770 万+ 观看)· 逐字整理 + 概念展开与可视化<br>内容遵循原视频的教育用途授权;本文档仅用于学习理解,完整保留原始信息并补充解释。</footer>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.side-toc a'));
+  var map = {};
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) map[id] = a;
+  });
+  var ids = Object.keys(map);
+
+  var progFill = document.getElementById('progFill');
+  var progPct = document.getElementById('progPct');
+  var topProg = document.getElementById('topProg');
+
+  function onScroll() {
+    // 活动章节高亮
+    var pos = window.scrollY + window.innerHeight * 0.3;
+    var current = ids[0];
+    ids.forEach(function (id) {
+      if (document.getElementById(id).offsetTop <= pos) current = id;
+    });
+    links.forEach(function (a) { a.classList.remove('active'); });
+    if (map[current]) map[current].classList.add('active');
+
+    // 阅读进度
+    var docH = document.documentElement.scrollHeight - window.innerHeight;
+    var pct = docH > 0 ? Math.min(100, Math.max(0, (window.scrollY / docH) * 100)) : 0;
+    var r = Math.round(pct);
+    if (progFill) progFill.style.width = r + '%';
+    if (progPct) progPct.textContent = r + '%';
+    if (topProg) topProg.style.width = r + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+  onScroll();
+
+  // 移动端点击目录后自动收起
+  links.forEach(function (a) {
+    a.addEventListener('click', function () {
+      if (window.innerWidth < 1180) document.querySelector('.side-toc').classList.remove('open');
+    });
+  });
+
+  // ===== 图表入场动画 =====
+  var figures = Array.prototype.slice.call(document.querySelectorAll('.figure'));
+  figures.forEach(function (fig) {
+    // 给图内元素设置错落延迟
+    var anims = fig.querySelectorAll('svg [data-anim]');
+    anims.forEach(function (el, i) {
+      var d = Math.min(i * 45, 900); // 逐个浮现,封顶 0.9s
+      el.style.transitionDelay = d + 'ms';
+    });
+    // 连线"画出":按路径长度设置 dash,并稍晚于方块出现
+    var draws = fig.querySelectorAll('svg [data-draw]');
+    draws.forEach(function (el, i) {
+      var len = 120;
+      try { len = Math.ceil(el.getTotalLength()) || 120; } catch (e) {}
+      el.style.setProperty('--len', len);
+      el.style.transitionDelay = (300 + i * 80) + 'ms';
+    });
+  });
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.25 });
+    figures.forEach(function (f) { io.observe(f); });
+  } else {
+    figures.forEach(function (f) { f.classList.add('in'); });
+  }
+})();
+</script>
+</body>
+</html>

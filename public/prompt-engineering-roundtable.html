@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anthropic 提示工程圆桌实录</title>
+<style>
+  :root {
+    /* 默认:蓝色调(冷色) */
+    --ink: #14213a; --ink-soft: #33415c; --muted: #64748b;
+    --paper: #eef3fb; --card: #ffffff; --line: #dbe4f0;
+    --accent: #2563cf; --accent-soft: #dce8fb;
+    --teal: #0e8a8a; --teal-soft: #d4eeed;
+    --gold: #b8862f; --gold-soft: #f4ead2;
+    --indigo: #4f46b5; --indigo-soft: #e4e3f7;
+    --code-bg: #1b2440; --code-ink: #dbe6ff;
+    --hero-a: #0f1b3d; --hero-b: #1c3a78; --hero-c: #2563cf;
+    --hl: #7db4ff;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; line-height: 1.88; font-size: 17px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 840px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== 顶部细进度条(窄屏兜底) ===== */
+  .top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: linear-gradient(90deg, var(--accent), var(--hl)); z-index: 100; transition: width 0.1s linear; }
+
+  /* ===== 左侧悬浮目录 ===== */
+  .side-toc { position: fixed; top: 50%; left: 24px; transform: translateY(-50%); width: 234px; max-height: 84vh; overflow-y: auto; background: rgba(255,255,255,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: 16px; padding: 18px 16px; z-index: 90; box-shadow: 0 12px 40px rgba(20,33,58,0.12); }
+  .st-brand { font-weight: 800; font-size: 15px; color: var(--ink); line-height: 1.4; }
+  .st-sub { font-size: 12px; color: var(--muted); margin: 2px 0 14px; }
+  .st-progress { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 12px; color: var(--muted); }
+  .st-bar { flex: 1; height: 6px; background: var(--line); border-radius: 100px; overflow: hidden; }
+  .st-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--hl)); border-radius: 100px; transition: width 0.15s ease; }
+  .st-pct { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); }
+  .side-toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  .side-toc li { counter-increment: toc; }
+  .side-toc a { display: flex; gap: 9px; align-items: baseline; text-decoration: none; color: var(--ink-soft); font-size: 13.5px; line-height: 1.45; padding: 7px 9px; border-radius: 9px; transition: background 0.15s, color 0.15s; }
+  .side-toc a::before { content: counter(toc, decimal-leading-zero); font-size: 11px; font-weight: 700; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+  .side-toc a:hover { background: var(--accent-soft); color: var(--accent); }
+  .side-toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .side-toc a.active::before { color: var(--accent); }
+  .toc-toggle { display: none; }
+
+  header.hero { background: linear-gradient(160deg, var(--hero-a) 0%, var(--hero-b) 55%, var(--hero-c) 100%); color: #fff; padding: 76px 0 64px; position: relative; overflow: hidden; }
+  header.hero::after { content: ""; position: absolute; right: -80px; top: -80px; width: 360px; height: 360px; background: radial-gradient(circle, rgba(125,180,255,0.5), transparent 70%); pointer-events: none; }
+  .eyebrow { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: #aec6ee; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  header.hero h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.18; margin: 0 0 22px; font-weight: 800; letter-spacing: -0.01em; }
+  header.hero h1 .hl { color: var(--hl); }
+  header.hero p.lede { font-size: 18px; color: #cdddf6; max-width: 660px; margin: 0 0 32px; }
+  .pipeline { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 9px 16px; border-radius: 100px; font-size: 14px; font-weight: 600; }
+  .arrow-sm { color: var(--hl); font-weight: 700; }
+
+  section { padding: 52px 0; scroll-margin-top: 20px; }
+  .intro-card { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 30px 34px; margin-top: -36px; position: relative; z-index: 2; box-shadow: 0 18px 40px rgba(20,33,58,0.1); }
+  .intro-card p { margin: 0 0 14px; color: var(--ink-soft); }
+  .intro-card p:last-child { margin-bottom: 0; }
+  .roster { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 20px 0 4px; }
+  .person { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+  .person .pn { font-weight: 800; color: var(--accent); }
+  .person .pr { font-size: 14px; color: var(--muted); }
+
+  .stage-tag { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .stage-num { flex: none; width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; font-size: 26px; color: #fff; }
+  .s1 .stage-num { background: var(--accent); } .s2 .stage-num { background: var(--teal); }
+  .s3 .stage-num { background: var(--gold); } .s4 .stage-num { background: var(--indigo); }
+  .stage-meta { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  h2 { font-size: 28px; margin: 4px 0 0; letter-spacing: -0.01em; line-height: 1.25; }
+  .s1 h2 .accent { color: var(--accent); } .s2 h2 .accent { color: var(--teal); }
+  .s3 h2 .accent { color: var(--gold); } .s4 h2 .accent { color: var(--indigo); }
+  h3 { font-size: 21px; margin: 40px 0 12px; display: flex; align-items: center; gap: 10px; letter-spacing: -0.01em; line-height: 1.35; }
+  .ico { flex: none; width: 32px; height: 32px; display: grid; place-items: center; font-size: 18px; }
+  p { margin: 0 0 16px; }
+  .lead-divider { height: 2px; background: var(--line); border: none; margin: 14px 0 26px; }
+  strong { color: var(--ink); font-weight: 700; }
+  .term { color: var(--accent); font-weight: 700; }
+  .s2 .term { color: var(--teal); } .s3 .term { color: var(--gold); } .s4 .term { color: var(--indigo); }
+
+  .def { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 22px 0 28px; }
+  .def .def-row { padding: 18px 24px; border-bottom: 1px solid var(--line); display: flex; gap: 14px; }
+  .def .def-row:last-child { border-bottom: none; }
+  .def .tag { flex: none; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; padding: 4px 10px; border-radius: 6px; height: fit-content; margin-top: 3px; white-space: nowrap; }
+  .def .def-body { flex: 1; }
+  .def .def-body p { margin: 0; }
+  .def .def-body p + p { margin-top: 10px; }
+  .tag-what { background: var(--accent-soft); color: var(--accent); }
+  .tag-why  { background: var(--indigo-soft); color: var(--indigo); }
+  .tag-eg   { background: var(--teal-soft); color: var(--teal); }
+  .s2 .tag-what { background: var(--teal-soft); color: var(--teal); }
+  .s3 .tag-what { background: var(--gold-soft); color: #8a6420; }
+  .s4 .tag-what { background: var(--indigo-soft); color: var(--indigo); }
+  .eg-example { background: #eef6f5; border-left: 3px solid var(--teal); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 10px 0 0; font-size: 15.5px; color: var(--ink-soft); }
+  .eg-example .eg-lbl { font-weight: 700; color: var(--teal); font-size: 13px; display: block; margin-bottom: 3px; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 26px 0; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 16px; text-align: center; }
+  .stat .big { font-size: 26px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+  .stat .lbl { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+  .callout { border-radius: 12px; padding: 20px 24px; margin: 24px 0; display: flex; gap: 16px; align-items: flex-start; border: 1px solid; }
+  .callout .c-ico { font-size: 22px; flex: none; line-height: 1.4; }
+  .callout .c-body { flex: 1; }
+  .callout .c-title { font-weight: 800; margin-bottom: 4px; }
+  .callout p { margin: 0; }
+  .callout p + p { margin-top: 10px; }
+  .key { background: var(--accent-soft); border-color: #b9d3f5; } .key .c-title { color: var(--accent); }
+  .key-teal { background: var(--teal-soft); border-color: #a6d8d6; } .key-teal .c-title { color: var(--teal); }
+  .key-gold { background: var(--gold-soft); border-color: #e0c98a; } .key-gold .c-title { color: #8a6420; }
+  .warn { background: #fdeee6; border-color: #f0c3a6; } .warn .c-title { color: #c2622a; }
+  .quote-box { background: linear-gradient(120deg, var(--hero-a), var(--hero-c)); color: #fff; border: none; }
+  .quote-box .c-title { color: var(--hl); } .quote-box p { color: #d6e4fa; }
+
+  .cases { margin: 24px 0; display: grid; gap: 12px; }
+  .case { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+  .case .case-h { font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .case .case-d { font-size: 15px; color: var(--ink-soft); }
+  .time-badge { flex: none; text-align: right; font-weight: 800; font-size: 15px; color: var(--teal); white-space: nowrap; }
+  .time-badge .from { color: var(--muted); text-decoration: line-through; font-weight: 600; font-size: 13px; display: block; }
+
+  code { background: var(--code-bg); color: var(--code-ink); padding: 2px 7px; border-radius: 5px; font-size: 14.5px; font-family: "SF Mono", "JetBrains Mono", Consolas, monospace; }
+  pre { background: var(--code-bg); color: var(--code-ink); padding: 16px 18px; border-radius: 10px; overflow-x: auto; font-size: 14px; line-height: 1.7; margin: 14px 0; font-family: "SF Mono", "JetBrains Mono", Consolas, monospace; }
+
+  .practice { list-style: none; padding: 0; margin: 20px 0; display: grid; gap: 14px; }
+  .practice li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; display: flex; gap: 14px; }
+  .practice .p-ico { flex: none; font-size: 20px; }
+  .practice .p-name { font-weight: 700; color: var(--indigo); }
+
+  /* ===== SVG 流程图 ===== */
+  .figure { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 26px 22px 18px; margin: 28px 0; box-shadow: 0 10px 30px rgba(20,33,58,0.06); opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .figure.in { opacity: 1; transform: none; }
+  .figure svg { width: 100%; height: auto; display: block; }
+  .fig-cap { text-align: center; font-size: 13.5px; color: var(--muted); margin-top: 14px; line-height: 1.6; }
+  .figure [data-anim] { opacity: 0; transform: translateY(10px); transition: opacity 0.55s ease, transform 0.55s ease; }
+  .figure.in [data-anim] { opacity: 1; transform: none; }
+  .figure [data-draw] { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); transition: stroke-dashoffset 0.9s ease; }
+  .figure.in [data-draw] { stroke-dashoffset: 0; }
+
+  .final { background: linear-gradient(165deg, var(--hero-a), var(--hero-b)); color: #fff; padding: 60px 0; }
+  .final h2 { color: #fff; } .final h2 .accent { color: var(--hl); } .final h3 { color: var(--hl); }
+  .final p { color: #d3e1f7; } .final strong { color: #fff; }
+  .final blockquote { margin: 0; padding: 20px 26px; border-left: 4px solid var(--hl); background: rgba(125,180,255,0.1); border-radius: 0 12px 12px 0; font-size: 18px; color: #eef4fd; font-style: italic; }
+  footer { text-align: center; padding: 36px 24px; color: var(--muted); font-size: 13.5px; background: var(--paper); border-top: 1px solid var(--line); line-height: 1.9; }
+  footer a { color: var(--accent); text-decoration: none; font-weight: 600; word-break: break-all; }
+  footer a:hover { text-decoration: underline; }
+  footer .src-row { margin-top: 8px; }
+
+  @media (max-width: 1179px) {
+    .side-toc { transform: translateY(0); top: 0; left: 0; bottom: 0; width: 270px; max-height: none; height: 100%; border-radius: 0; transition: transform 0.28s ease; }
+    .side-toc.collapsed { transform: translateX(-100%); }
+    .toc-toggle { display: grid; place-items: center; position: fixed; top: 16px; left: 16px; z-index: 95; width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: #fff; border: none; font-size: 20px; cursor: pointer; box-shadow: 0 6px 18px rgba(37,99,207,0.4); }
+  }
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    .stats { grid-template-columns: 1fr; }
+    .case { grid-template-columns: 1fr; }
+    .time-badge { text-align: left; }
+    .roster { grid-template-columns: 1fr; }
+    h2 { font-size: 23px; }
+    .def .def-row { flex-direction: column; gap: 8px; }
+    .side-toc { width: 86vw; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto; }
+    .figure, .figure [data-anim], .figure [data-draw] { transition: none; opacity: 1; transform: none; stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="目录">☰</button>
+
+<!-- ===== 左侧悬浮目录 ===== -->
+<nav class="side-toc collapsed" id="sideToc">
+  <div class="st-brand">提示工程圆桌</div>
+  <div class="st-sub">Anthropic · 四人深聊实录</div>
+  <div class="st-progress">
+    <span>阅读</span>
+    <div class="st-bar"><div class="st-fill" id="stFill"></div></div>
+    <span class="st-pct" id="stPct">0%</span>
+  </div>
+  <ol>
+    <li><a href="#s-intro">导言与四位参与者</a></li>
+    <li><a href="#s-what">提示工程究竟是什么</a></li>
+    <li><a href="#s-engineer">怎样算好提示工程师</a></li>
+    <li><a href="#s-persona">诚实、角色扮演与误区</a></li>
+    <li><a href="#s-reason">推理是真的吗 · 语法</a></li>
+    <li><a href="#s-scenario">企业 / 研究 / 聊天</a></li>
+    <li><a href="#s-skill">如何变强 · 越狱</a></li>
+    <li><a href="#s-past">过去三年怎么变</a></li>
+    <li><a href="#s-future">提示工程的未来</a></li>
+    <li><a href="#s-final">收尾:把大脑外化</a></li>
+  </ol>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">🎙️ Anthropic 圆桌实录 · 提示工程</div>
+    <h1>提示工程到底是什么?<br><span class="hl">四位实践者的一场深聊</span></h1>
+    <p class="lede">来自研究、消费端、企业端三种视角的对话:什么是提示工程、怎样才算好提示工程师、它过去三年怎么变、未来又会走向何方。全程口语、不加修饰,但每一个观点都值得反复琢磨。</p>
+    <div class="pipeline">
+      <span class="pill">①什么是提示工程</span><span class="arrow-sm">→</span>
+      <span class="pill">②怎样算好提示工程师</span><span class="arrow-sm">→</span>
+      <span class="pill">③技巧与误区</span><span class="arrow-sm">→</span>
+      <span class="pill">④过去与未来</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 导言 ===== -->
+<section id="s-intro" class="s1" style="padding-top:0;">
+  <div class="wrap">
+    <div class="intro-card">
+      <p>这是一场围绕<strong>提示工程(Prompt Engineering)</strong>的圆桌讨论。主持人想把研究侧、消费侧、企业侧的各种观点都摊开来聊,看看提示工程究竟是怎么回事。</p>
+      <p>四位参与者各有侧重:有人天天和企业客户打交道,有人在研究里靠提示词决定实验成败,有人专门为大众做提示工具和教育材料。下面按对话推进的顺序整理,关键概念用「是什么 / 为什么 / 例子」三段式展开讲透。</p>
+      <div class="roster">
+        <div class="person"><div class="pn">Alex</div><div class="pr">开发者关系负责人,曾是 Anthropic 提示工程团队成员</div></div>
+        <div class="person"><div class="pn">David Hershey</div><div class="pr">主要服务企业客户,做微调与系统搭建</div></div>
+        <div class="person"><div class="pn">Amanda Askell</div><div class="pr">带领微调团队之一,让 Claude 诚实、友善</div></div>
+        <div class="person"><div class="pn">Zack Witten</div><div class="pr">提示工程师,做提示生成器与教育材料</div></div>
+      </div>
+      <p style="margin-top:18px;font-size:14.5px;color:var(--muted);">📺 视频来源:<a href="https://www.youtube.com/watch?v=T9aRN5JkmL8" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;text-decoration:none;">youtube.com/watch?v=T9aRN5JkmL8</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PART 1 ===== -->
+<section id="s-what" class="s1">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🧭</div>
+      <div><div class="stage-meta">第一部分 · PART 01</div><h2>提示工程,究竟是<span class="accent">什么</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>主持人开场抛出最基础的问题:什么是提示工程?为什么叫「工程」?「提示」本身又是什么?几位嘴上互相打趣「四个人里只有一个有正经工作」,但很快给出了相当一致的答案。</p>
+
+    <h3><span class="ico">💬</span>提示工程 = 把模型的能力最大限度地引出来</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>提示工程是想办法让模型去做事、把模型最好的一面发挥出来,与模型协作完成那些原本做不到的事。其核心其实就是<strong>清晰的沟通</strong>。和模型对话很像和人对话——你要去理解模型的「心理」。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>之所以叫「工程」,关键在于<strong>试错(trial and error)</strong>。和人对话不同,跟模型对话有一个「重启键」——可以一键回到原点、从头来过。这种从干净状态独立重来、不受上一次干扰的能力,让你能像做实验一样设计和尝试不同方案,工程的成分就出现在这里。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>你写一段消息给 Claude,看结果不对,就回退到空白重来,换一种说法再试——这一整个来回打磨、每次都能重置到干净起点的过程,就是提示工程。</p>
+        <div class="eg-example"><span class="eg-lbl">🔎 实用推论</span>把每一次尝试当成独立实验:别在被上一轮污染的对话里硬改,清空重来往往更能看清哪一句话起了作用。</div>
+      </div></div>
+    </div>
+
+    <h3><span class="ico">🧱</span>它还包含「把提示嵌进系统」这一层</h3>
+    <p>提示工程不只是写一句话丢给模型就完事——实际情况恰恰相反,要复杂得多。David 指出可以<strong>把提示看作给模型「编程」</strong>的一种方式(虽然这个比喻会让它显得过于复杂)。你要考虑:数据从哪来、你能访问到什么数据(比如做 <span class="term">RAG</span> 时到底能取用什么)、延迟与提供数据量之间的权衡等等。正是这些<strong>系统性思考</strong>,让提示工程值得作为一个独立领域来看待,区别于普通软件工程师或产品经理。</p>
+
+    <div class="figure" id="fig-loop">
+      <svg viewBox="0 0 820 210" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+        <!-- nodes -->
+        <g data-anim>
+          <rect x="40" y="78" width="150" height="54" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="115" y="103" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent)">写 / 改 提示</text>
+          <text x="115" y="121" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">清晰描述任务</text>
+        </g>
+        <g data-anim>
+          <rect x="335" y="78" width="150" height="54" rx="12" fill="#fff" stroke="var(--line)" stroke-width="1.5"/>
+          <text x="410" y="103" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">交给模型运行</text>
+          <text x="410" y="121" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">观察输出细节</text>
+        </g>
+        <g data-anim>
+          <rect x="630" y="78" width="150" height="54" rx="12" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+          <text x="705" y="103" text-anchor="middle" font-size="15" font-weight="700" fill="var(--teal)">定位被误解处</text>
+          <text x="705" y="121" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">读输出,不止看结果</text>
+        </g>
+        <!-- arrows -->
+        <path data-draw d="M190 105 L329 105" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
+        <path data-draw d="M485 105 L624 105" fill="none" stroke="var(--teal)" stroke-width="2" marker-end="url(#ah2)"/>
+        <path data-draw d="M705 132 C705 185, 115 185, 115 138" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ah3)"/>
+        <text data-anim x="410" y="178" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">⟲ 回退到干净起点,独立重来</text>
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--accent)"/></marker>
+          <marker id="ah2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--teal)"/></marker>
+          <marker id="ah3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--muted)"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">提示工程的「工程」内核:写→运行→定位误解→清零重来,这个可独立复现的试错循环,正是它区别于一次性写作的地方。</div>
+    </div>
+
+    <div class="callout key">
+      <div class="c-ico">📝</div>
+      <div class="c-body"><div class="c-title">提示是「被当成代码对待的文章」</div><p>更多时候你要做的,是<strong>把一个任务写成非常清晰的描述</strong>,而不是搭建复杂的抽象。但与此同时,你确实在把一组指令「编译」成结果。所以编程里那些事——精确性、版本管理、追踪「当时那个实验长什么样」——对提示同样重要。一篇你精心写的文章,如今要像代码一样被对待,而这正是对的。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PART 2 ===== -->
+<section id="s-engineer" class="s2">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🧑‍🔧</div>
+      <div><div class="stage-meta">第二部分 · PART 02</div><h2>怎样才算一个<span class="accent">好的提示工程师</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>Amanda 从招聘角度给出几条核心素质。一个有点反直觉的观点是:<strong>「写得好」和「会提示」的相关性,没大家想的那么高</strong>。曾有人主张干脆把「工程师」改叫「写作者」,她以前还有点认同,现在不这么看了——因为人们误以为提示就是「写一遍就完事」。</p>
+
+    <h3><span class="ico">🔁</span>素质一:愿意反复迭代</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>坐下来要得到一个还算像样的提示,Amanda 会在 15 分钟里向模型发出<strong>成百上千条提示</strong>,来来回回不断调整。每一次都去看:哪里被误解了?然后修掉那个点。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>提示不是一次成型的写作,而是持续观察—诊断—修正的循环。把「写一遍交差」当成提示工程,正是最典型的误解。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>反复发送、对比、定位歧义——这种高频来回本身,就是好提示工程师的日常。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🧪</span>素质二:主动想象提示「会怎么出错」</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>如果一个提示要应用到 400 个案例上,人们很容易只想到「典型案例」,验证它在典型情况下答对就收工了。这是非常经典的错误。真正该做的是<strong>主动去找那些不寻常、边界模糊的案例</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>模型默认会尽力执行你的指令。如果你没告诉它边界情况怎么办,它就会硬来。提前想清楚「哪些情况连我自己都不确定该怎么办」,才能给模型补上对应指令。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>提示是「我会发给你一批数据,请提取所有名字以字母 G 开头的行」。那你就该测试:发一份<strong>根本没有 G 开头名字</strong>的数据集会怎样?发一份<strong>不是数据集</strong>的东西会怎样?甚至发一个<strong>空字符串</strong>会怎样?把这些都试一遍,再针对性地补充指令。</p></div></div>
+    </div>
+
+    <div class="callout warn">
+      <div class="c-ico">⌨️</div>
+      <div class="c-body"><div class="c-title">企业场景的真实流量,和你想象的完全不同</div><p>David 补充:工程师测试时常用一堆「措辞完美、结构漂亮」的样例,以为用户会这么输入。但现实里用户<strong>从不用 Shift 键、几乎每隔一个词就有错别字、没有标点、把它当成 Google 随便丢几个关键词、连个问句都没有</strong>。能从「理想输入」跨到「推演真实流量长什么样」,是另一个层次的思考。</p></div>
+    </div>
+
+    <h3><span class="ico">👀</span>素质三:认真读模型的输出</h3>
+    <p>机器学习里有句近乎陈词滥调的话——<strong>「去看你的数据」</strong>。提示工程的对应版本就是<strong>「去看模型的输出」</strong>:大量地读、仔细地读。Zack 举例:很多人会在提示里写「一步步思考(think step-by-step)」,却不去检查模型是否<strong>真的</strong>在一步步思考——因为模型可能把它理解成一种抽象、笼统的意思,而不是「真的把思路写在这些特定标签里」。如果你不读输出,可能根本注意不到这个错误。</p>
+
+    <h3><span class="ico">🧠</span>素质四:心智理论 —— 剥离自己的预设</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>把一个任务的指令写下来极其困难。难点在于:在你自己脑子里,把所有「你知道、但 Claude 不知道」的东西<strong>拆解出来并写清楚</strong>。要剥离掉你全部的隐含假设,把完成任务所需的完整信息集清晰地传达出去。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>很多人只是把自己已经知道的东西写下来,而没有系统性地梳理「要理解这个任务,究竟需要哪些完整信息」。结果写出的提示极度依赖他们自己对任务的先验理解,别人(包括模型)看了根本不知所云。区分好坏提示工程师的关键,正在于此。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>Amanda 说,她无数次看到别人的提示后心想:「<strong>连我这个人类都没法根据这段提示完成任务</strong>,你却把它交给一个比我还弱的系统,还指望它做得比我好。」</p>
+        <div class="eg-example"><span class="eg-lbl">🔎 实用推论</span>检验法:把提示拿给一个完全不懂你业务的人读,如果他做不了,模型大概率也做不了。</div>
+      </div></div>
+    </div>
+
+    <h3><span class="ico">❓</span>一个补救技巧:让模型反过来挑你的毛病</h3>
+    <p>当前的模型不太会像人那样,主动提出好的、探究式的反问。换作 Zack,他会说「这步说不通,我到底该干嘛?」——但模型不会。所以你得自己替那个对方设想会问什么,再回去补全提示。不过几位都指出,<strong>你也可以直接让模型来做这件事</strong>:</p>
+    <ul class="practice">
+      <li><span class="p-ico">🔍</span><div><span class="p-name">让它先找歧义,别急着执行</span><br>Amanda 拿到初版提示常说:「先别执行这些指令,只告诉我哪里不清楚、有什么歧义、有什么你不懂的地方。」不一定每次完美,但常有收获。</div></li>
+      <li><span class="p-ico">🔧</span><div><span class="p-name">出错后直接问它「为什么错」</span><br>对模型说「你这个做错了,想想为什么?能不能改写一版让你不会出错的指令?」很多时候模型真的能指出哪里不清楚、给出修正,放回去就好用了。</div></li>
+    </ul>
+    <div class="callout key-teal">
+      <div class="c-ico">💡</div>
+      <div class="c-body"><div class="c-title">模型真能发现自己的错误吗?</div><p>几位的共识是:这<strong>因任务而异</strong>,没人能说清成功率有多高,但「总值得一试」。哪怕只是有时管用,你每一次和模型来回,都会学到关于「到底发生了什么」的信息——不试就等于白白丢掉这些信息。</p></div>
+    </div>
+
+    <h3><span class="ico">🤝</span>关于「信任模型」:先不信,再用力捶打</h3>
+    <p>主持人问 Amanda 是如何建立「何时该信任模型」的直觉的。她的回答是:<strong>「我从不默认信任模型,然后我就一直捶打它。」</strong>大家看到她频繁这么做,其实就是在反复确认「这个任务我能不能信你」。因为模型很怪——一旦稍微<strong>超出分布(out of distribution)</strong>、进入它训练得少或不寻常的区域,哪怕是看似简单的任务,它也可能突然变得很不可靠。随着模型变强,这种情况在减少,但你仍要确认自己没踏进那种区域。</p>
+
+    <div class="callout quote-box">
+      <div class="c-ico">📣</div>
+      <div class="c-body"><div class="c-title">少而精,胜过多而糙</div><p>机器学习常爱看超大数据集——但那是因为<strong>每个数据点信号很低</strong>,需要靠海量样本去噪。而提示任务里,<strong>每条查询的信号其实很高</strong>。一组精心构造的几百条提示,信号可能远胜过几千条粗制滥造的。如果 100 个输出高度一致、且这些案例覆盖了你能想到的所有边界与怪异输入,Amanda 反而更信任它,胜过几千条松散构造的样本。</p></div>
+    </div>
+
+    <p>David 补充了一个更深的理由:机器学习里信号往往只是个数字(对没对),你只能去看模型的 <span class="term">logprobs</span> 凭直觉推断,有点不靠谱。而模型输出的是<strong>大量文字</strong>——字里行间有太多可学的东西。重点不只是「它做对了没」,而是「它<strong>怎么</strong>得到这个答案的、它在想什么、走了哪些步骤」。大量信息正是从读输出的细节里来的,而不只是看最终结果。</p>
+
+    <h3><span class="ico">⚖️</span>提示能决定实验的生死</h3>
+    <div class="cases">
+      <div class="case"><div><div class="case-h"><span>📊</span>顶尖提示的价值</div><div class="case-d">同一个实验,好提示能把模型表现从前 5% 推到前 1% 甚至前 0.1%。</div></div><div class="time-badge"><span class="from">5% 表现</span>0.1% 表现</div></div>
+      <div class="case"><div><div class="case-h"><span>🚀</span>部署落地</div><div class="case-d">「这个上不了线」——结果改改提示,突然就能用了。</div></div><div class="time-badge">不可发布 → 可发布</div></div>
+    </div>
+    <p>Amanda 会为此生气:有人把实验代码写得无比精致,却<strong>不肯在提示上花时间</strong>——而提示恰恰可能是实验「生与死」的分界线。</p>
+
+    <h3><span class="ico">🏔️</span>双刃剑:小心「地平线上那个神话般的完美提示」</h3>
+    <p>但这也有另一面。提示工程里总有一种诱惑:仿佛地平线上永远存在一个「更好的提示」能解决我的问题,只要我一直磨、一直磨。磨提示从来不算坏事(总能学到东西),但<strong>这种「神话提示」的执念,正是提示工程可怕的地方之一</strong>——背后是一整片未知的世界。</p>
+
+    <div class="callout key-teal">
+      <div class="c-ico">🛑</div>
+      <div class="c-body"><div class="c-title">怎么判断「值不值得继续磨」</div><p>几位的启发式:检查模型是不是「大致领会」了。如果它根本不沾边,通常会很明显,就别磨太久。你可以问它「你是怎么想的」,看它是否「至少在正确的邮编范围内」;如果每次微调都把它带向完全不同的错误方向,那就果断放弃。<strong>「不过这种任务现在已经极其罕见了,罕见到我一发现就会很生气。」</strong></p></div>
+    </div>
+
+    <h3><span class="ico">🎮</span>真实案例:Claude 玩 Pokemon</h3>
+    <p>David 做过一个实验:把 Claude 接到 Game Boy 模拟器上,让它玩《精灵宝可梦 红》。它可以写代码去按按钮,挺基础。但有些地方它就是做不到——<strong>给它看 Game Boy 的截图,它真的看不懂</strong>。他花了整个周末写越来越好的提示,只把效果从「完全没信号」提升到「只是很糟」(从 no signal 到 some signal),但远远不够好。</p>
+    <div class="callout warn">
+      <div class="c-ico">⏳</div>
+      <div class="c-body"><div class="c-title">有时,最好的「下一个提示」是「下一个模型」</div><p>David 的结论:「我可以为此再磨四个月,但磨出来的成果,会是<strong>另一个更好的模型自动带来的</strong>——那不如把时间花在别处,边等边做其他事。」</p></div>
+    </div>
+    <p>Zack 欣赏 David 在这个提示里的做法:清楚地告诉模型「你正在玩这局 Pokemon,事物会以这种方式呈现」,而且用了<strong>两种方式</strong>来表征画面——在图像上叠加网格,逐格用文字详细描述,再重构成 ASCII 地图,并尽量给细节(比如「玩家角色总在网格的 4,5 位置」)。这其实很像文字提示,只是换到了图像上。</p>
+
+    <h3><span class="ico">🖼️</span>图像提示:文字的直觉几乎不通用</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>Zack 发现,他关于文字提示的直觉,<strong>能迁移到图像上的少得惊人</strong>。比如<strong>多样本(multi-shot)提示对图像就不如对文字有效</strong>。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>可以有理论解释(也许训练数据里这类例子很少),但更现实的观察是:无论怎么用提示,你似乎都没法显著提升 Claude 的<strong>视觉敏锐度</strong>——它在图像里能捕捉到什么,很难靠提示改变。Anthropic 早期探索多模态提示时也确认了这一点。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>David 最终能让它「大多数时候」说对墙和角色的位置(虽然会偏一点)。但游戏需要<strong>连续性</strong>——「我之前跟这个 NPC 说过话吗?」没有这个,就完全没法玩,只能一遍遍重复对话。他把一个清晰的女性 NPC 放大到 3000 倍、裁切到只剩 NPC,反复展示,模型还是说「这是个人,可能戴帽子,也可能没戴」,根本不沾边。于是判定:彻底没救。</p>
+        <div class="eg-example"><span class="eg-lbl">🔎 题外话</span>David 最终用的提示是告诉 Claude「你是给盲人用的屏幕阅读器」——不确定是否真有帮助,但「感觉对」就一直用着。</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PART 3 ===== -->
+<section id="s-persona" class="s3">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🎭</div>
+      <div><div class="stage-meta">第三部分 · PART 03</div><h2>诚实、角色扮演,与<span class="accent">提示中的误区</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">🎭</span>角色扮演 vs. 诚实地说明真实情况</h3>
+    <p>「告诉模型它是某个角色」是最有名的提示技巧之一,但效果如今越来越参差——在更早、更弱的模型上也许更管用。Amanda 的做法恰恰相反:她会<strong>对模型完全诚实</strong>,告诉它自己是谁、在做什么实验、甚至报上自己的名字。</p>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>随着模型越来越强、对世界了解越来越多,Amanda 认为<strong>没必要再对它撒谎</strong>(她也单纯不喜欢撒谎)。与其假装一个只有「沾边」关系的任务,不如直接瞄准你真正要做的任务。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>因为模型其实<strong>懂真实任务</strong>。比如构造语言模型评测集(eval),和给孩子出小测验是完全不同的事——模型知道什么是 LLM eval,能给你举出例子,因为这些都在互联网上。既然它懂,为什么要假装成不相关的任务,还指望它把你真正要的事做得更好?</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>有人会写「我是一名老师,想出几道测验题」。Amanda 的反应是:这就像对同事说「你是个老师,在给学生出题」——但你根本不会这么跟同事说话,你会直接问「嘿,那个 eval 你做好了吗?」<strong>既然对方懂这件事,就直接让它做你真正想做的事。</strong></p></div></div>
+    </div>
+
+    <h3><span class="ico">🧩</span>反方观点:比喻有时确实有用</h3>
+    <p>David 给出了一点反驳——不是撒谎,而是<strong>给模型一个思考的比喻</strong>。就像有时别人对你说「想象你正在做这件事」,即便你知道自己并没在做。</p>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>David 曾让 Claude 判断一张图表/曲线图质量好不好。他找到的最佳提示是:<strong>「如果这是高中作业,你会给它打几分?」</strong></p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>这并不是说「你是一位高中老师」,而是在传达「我想要的分析<strong>大致是这种尺度</strong>」——老师评分的标准,接近我希望你使用的标准。比喻传递的是评判的「刻度」,而非身份。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>但 David 也承认,这种好用的比喻<strong>很难想出来</strong>。人们默认的做法仍是找一个「近似任务」(比如说你是老师),而这会丢掉你产品真正的细微之处。</p></div></div>
+    </div>
+
+    <div class="callout key-gold">
+      <div class="c-ico">🎯</div>
+      <div class="c-body"><div class="c-title">与其找近似任务,不如「精确描述真实处境」</div><p>David 在企业提示里最常见的问题,就是人们写一个「相似任务」,凭直觉以为模型见过更多这类东西(它确实可能见过更多高中测验、而非 LLM eval)。但更好的做法是<strong>极其精确地说明模型所处的真实情境</strong>:别写「你是一个有用的助手」——告诉它「你嵌在这个产品里、代表这家公司、你是这个产品上的客服聊天窗、你是语言模型而不是人,这都没关系」。角色扮演最大的风险,就是被当成「相似任务」的偷懒捷径,然后你惊讶于 Claude 没做好——可那根本不是你的任务,是你让它做的<strong>另一个</strong>任务。</p></div>
+    </div>
+
+    <p>有意思的是,Zack 说他<strong>从没用过角色扮演这个技巧</strong>,即便在更差的模型上也不用,「就是觉得它不太好用」。David 认为,这种直觉可能源自<strong>预训练模型</strong>时代——那时有种「把模型条件化(condition)到某个有用的潜在空间」的心智模型,但现在他已经不太担心这个了。把预训练模型的直觉套用到 RLHF 模型上,很多就讲不通了。</p>
+
+    <h3><span class="ico">🌐</span>常见误区:过度套用「互联网上见过多少」的直觉</h3>
+    <p>David 说,客户总在尝试映射「这个模型在互联网上见过多少这类内容」。这种直觉<strong>本质上是有依据的</strong>,但等你真正落到一个(经过 SL、RLHF 之后的)提示上时,它就被<strong>过度应用</strong>了——因为那已经不是模型此刻真正在建模的东西了。</p>
+
+    <div class="callout key">
+      <div class="c-ico">🧑‍💼</div>
+      <div class="c-body"><div class="c-title">最该先试的思想实验:「临时工」框架</div><p>Alex 教过大家一个方法:想象你找劳务派遣公司派了个人来做这个任务。这人挺能干、对你的行业懂得不少,但<strong>不知道你公司的名字</strong>,刚到岗就说「听说你们有活儿要我干,跟我说说吧」。那你会怎么跟他说?你可能会用比喻——「我们要识别好图表,这里说的好不必完美,不用去核对所有细节是否正确,只要坐标轴有标注就行,大概高中水平的好图表」——但你<strong>绝不会</strong>对他说「你是个高中老师在看图表」。先用「假设对方懂世界常识」的版本去试,常常一下就成了。</p></div>
+    </div>
+
+    <h3><span class="ico">🎙️</span>对抗「懒惰」:把你说的话录下来,转成文字就是提示</h3>
+    <p>这是几位反复提到的一个朴素技巧。David 把 Alex 教他的这招带给了无数客户:客户说「我的提示不管用,帮我修修」,他会问「那这个任务到底是什么?」客户口头一描述,他就说——<strong>「把你刚说的话录下来、转成文字、粘进提示里。它比你原来写的好。」</strong>Zack 也遇到过:有人说「我想要它这样、但它实际那样」,他直接把对方「想要它这样」那句话复制粘贴进去,就管用了。</p>
+    <div class="callout warn">
+      <div class="c-ico">😴</div>
+      <div class="c-body"><div class="c-title">根源是「人很懒」</div><p>大家承认这本质上是在对治一种「懒惰捷径」。人们看到一个文本框,以为是 Google 搜索框,只敲关键词;或在企业端为应用写提示时,总想走各种小捷径,以为「这一行字承载了很多分量」。David 说:与其<strong>痴迷于打磨那一句完美、深刻的指令</strong>(「完美图表就该长成这个精确的样子」),不如像描述那个图表任务一样自然地说话——把你脑中的直觉灌注进去,而不是试图用规定性的语言把整套指令写死。那种规定式的完美指令,极难写出来。</p></div>
+    </div>
+
+    <h3><span class="ico">🚪</span>记得给模型「出口(outs)」</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>对边界情况,要想好你希望模型怎么做,并给它一个<strong>明确的「出口」</strong>。因为默认情况下,模型会像那个临时工一样竭尽全力遵循你的指令。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>如果不给出口,遇到意外输入时模型会硬着头皮给个答案(比如硬说「这是张好图表」)。给了出口,你既能避免它乱来,还能<strong>顺手提升数据质量</strong>——因为你借此找出了所有出问题的样本。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>给它一张山羊的图片当「图表」,它会犯难:这甚至都不是图表,该打几分?这时你可以加一句:「如果发生了奇怪的事、你实在不确定怎么办,就在标签里输出『unsure(不确定)』。」然后你去翻所有 unsure,确认它没干出什么怪事。</p>
+        <div class="eg-example"><span class="eg-lbl">🔎 额外收获</span>David 最喜欢用 Claude 迭代测试的一点:最常见的结果,是发现「自己不小心写错的那些烂测试题」——模型答错时一查,「哦,原来是我错了」。</div>
+      </div></div>
+    </div>
+
+    <h3><span class="ico">📝</span>亲自去做一遍你的 eval</h3>
+    <p>Amanda 说,如果她是用这套东西的公司,她会<strong>把自己的提示拿给别人做</strong>。她以前评测语言模型时,会自己先把 eval 做一遍——「如果我要给它打分、让模型来做、思考输出,我得先知道这个 eval 长什么样。」这让人联想到 Karpathy 当年在斯坦福 231 课上展示 ImageNet 准确率时,亲自把测试集做了一遍,报告自己的人类准确率。Amanda 还提到:有些 eval 自带说明,她会连说明一起自己做,结果常常<strong>远低于人类基准</strong>——「人类水平是 90%,我只有 68%,我都不知道你们是怎么让人类做这么好的。」(这也顺带点出某些基准题目本身就质量堪忧,比如 MMLU 里有些题「谁答得出来啊」。)</p>
+  </div>
+</section>
+
+<!-- ===== 插曲:推理 / 语法 ===== -->
+<section id="s-reason" class="s1">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🧠</div>
+      <div><div class="stage-meta">插曲 · INTERLUDE</div><h2>模型「推理」是真的吗?<span class="accent">语法</span>重要吗?</h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">🔗</span>思维链(Chain of Thought):是真推理,还是只是「计算空间」?</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p><span class="term">思维链</span>是让模型在给出答案前先解释自己的推理过程。问题是:这个推理是<strong>真实的</strong>,还是只是给模型一块「占位的计算空间」?</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>David 认为纠结「它算不算推理」会偏离主题、滑向哲学。但有一点很确定:<strong>做了推理,模型表现就是更好</strong>;而且如果你帮模型<strong>构造、迭代推理的结构</strong>,效果还会更好。无论叫不叫它「推理」,它都不只是一块计算空间。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>一种验证法:把模型导向正确答案的推理替换成<strong>看起来真实、却导向错误结论</strong>的推理,看它会不会因此得出错误结论(Anthropic 的 Sleeper Agents 等对齐论文里做过类似的 scratchpad 实验)。另一个反证:让模型先「写个故事」再做任务,效果远不如真正的推理;甚至让它「随便输出 100 个 um 和 ah 再回答」,也起不到推理的作用——这说明它<strong>不只是多了些注意力(attention)的计算空间</strong>。</p></div></div>
+    </div>
+    <div class="callout key">
+      <div class="c-ico">🤔</div>
+      <div class="c-body"><div class="c-title">但它又不能被完全拟人化为「推理」</div><p>Zack 见过模型推理步骤中<strong>某一步是错的,最后却得出正确答案</strong>。所以它确实在做某种「略有不同」的事。Amanda 打趣:「我也见过很多人推理步骤前后不一致——在通往答案的路上走错一步,这本身就违背了『推理』的题中之义。」</p></div>
+    </div>
+
+    <h3><span class="ico">✒️</span>语法、标点、错别字:需要写得完美吗?</h3>
+    <div class="cases">
+      <div class="case"><div><div class="case-h"><span>🧹</span>Zack 的做法</div><div class="case-d">通常会写对,因为觉得有趣。不一定必须,但你应当有那种「自然会去修正」的注意力——多读几遍提示,顺手就把它们改了。</div></div><div class="time-badge">态度:讲究风格</div></div>
+      <div class="case"><div><div class="case-h"><span>🌀</span>Amanda 的做法</div><div class="case-d">迭代时满是错别字也无所谓——「模型知道我什么意思」。她把心力放在概念和用词的清晰上,而非拼写。</div></div><div class="time-badge">态度:概念优先</div></div>
+    </div>
+    <p>Zack 把它类比成程序员对「Tab 还是空格」的执念:对错说不清,但拥有一套(哪怕武断的)风格主张可能是好事,体现的是「把对待代码的爱,也投入到提示里」的注意力。Amanda 则坦言会被外界(以及自己)的压力推着,在<strong>最终版提示</strong>里做拼写检查,但迭代过程中乐于带着错别字往前走。</p>
+    <div class="callout key-gold">
+      <div class="c-ico">🔬</div>
+      <div class="c-body"><div class="c-title">这又回到预训练 vs. RLHF 的区别</div><p>在预训练数据里,「一个错别字之后再出现错别字」的条件概率<strong>高得多</strong>。所以如果把满是错别字的提示喂给<strong>预训练模型</strong>,出来的几乎必然也是满是错别字。但 RLHF 模型被相当强力地训练成「不犯错别字」,非常规整。Amanda 由此说:她正好<strong>利用预训练模型来制造带错别字的输入</strong>,以模拟真实客户会输入什么——预训练模型在这件事上更在行。</p></div>
+    </div>
+    <p>由此引出一个更广的观察:模型在某种程度上是个<strong>「模仿者」</strong>——这对预训练模型更成立。但即便对成品模型,如果你用一堆 emoji 跟 Claude 说话,它多半也会用 emoji 回你。这并非因为它还像预训练模型,而是因为<strong>它已被训练成「猜测你希望它表现成什么样」</strong>:Amanda 带着错别字写、但想要无错别字的回复,Claude 能很好地领会;而你满屏 emoji,通常也确实想要 emoji 的回复。</p>
+  </div>
+</section>
+
+<!-- ===== PART 4:三种场景 ===== -->
+<section id="s-scenario" class="s2">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🗂️</div>
+      <div><div class="stage-meta">第四部分 · PART 04</div><h2>企业 / 研究 / 日常聊天:<span class="accent">提示有何不同</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>Zack 把它归结为:Amanda 在内部 Claude 频道里写的提示,和 David 写的企业提示,<strong>在用心和细致程度上很像,但取向不同</strong>。最大的差别是「提示里塞了多少例子」。</p>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p><strong>研究提示</strong>追求多样性与丰富性,Amanda 不太喜欢放太多例子(甚至一两个都嫌多),怕模型「死盯着」这些例子。<strong>企业提示</strong>则相反,Zack 会「疯狂加例子,加到自己快累趴下为止」。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>消费/企业应用极其看重<strong>可靠性</strong>:你在意格式、希望答案高度一致(很多时候你就是想要它们一样)。而研究是想<strong>挖掘模型能探索的可能性的全部范围</strong>,例子一多,反而会把这个范围约束住。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>Amanda 给例子时,常故意让例子<strong>不像</strong>真实数据,而是「示意性的」。比如要从事实文档里抽取信息,她会给一个<strong>听起来像儿童故事</strong>的例子——目的是让模型理解任务本身,而不要死抓用词和具体格式。她也早就不再做「把话塞进模型嘴里」(few-shot 里假装模型做过某事)的示范,认为那种直觉同样来自预训练、对 RLHF 模型并不成立。</p></div></div>
+    </div>
+
+    <div class="figure" id="fig-scenario">
+      <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+        <!-- research -->
+        <g data-anim>
+          <rect x="40" y="40" width="350" height="170" rx="14" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+          <text x="215" y="72" text-anchor="middle" font-size="16" font-weight="800" fill="var(--teal)">研究提示</text>
+          <text x="215" y="100" text-anchor="middle" font-size="13" fill="var(--ink-soft)">追求多样性 · 探索可能性全范围</text>
+          <text x="215" y="128" text-anchor="middle" font-size="13" fill="var(--ink-soft)">例子要「少」且「示意性」</text>
+          <text x="215" y="156" text-anchor="middle" font-size="13" fill="var(--ink-soft)">怕模型死盯例子被约束</text>
+          <text x="215" y="190" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)">目标:对一次就行,迭代到位</text>
+        </g>
+        <!-- enterprise -->
+        <g data-anim>
+          <rect x="430" y="40" width="350" height="170" rx="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="605" y="72" text-anchor="middle" font-size="16" font-weight="800" fill="var(--accent)">企业 / 消费提示</text>
+          <text x="605" y="100" text-anchor="middle" font-size="13" fill="var(--ink-soft)">追求可靠性 · 格式与答案要一致</text>
+          <text x="605" y="128" text-anchor="middle" font-size="13" fill="var(--ink-soft)">例子可以「多」,加到累趴</text>
+          <text x="605" y="156" text-anchor="middle" font-size="13" fill="var(--ink-soft)">覆盖全部输入范围</text>
+          <text x="605" y="190" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent)">目标:对一百万次</text>
+        </g>
+        <path data-draw d="M390 125 L430 125" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 5"/>
+        <text data-anim x="410" y="30" text-anchor="middle" font-size="12" fill="var(--muted)">同样用心,最后一公里分叉</text>
+      </svg>
+      <div class="fig-cap">同一种「好提示」的功底,在研究与企业两端朝相反方向用力:一边放开多样性,一边收紧可靠性。</div>
+    </div>
+
+    <div class="cases">
+      <div class="case"><div><div class="case-h"><span>💬</span>日常聊天(Claude.ai)</div><div class="case-d">迭代到「这一次」对了就行,然后抛诸脑后。低风险,可以随时告诉它错了、或编辑消息重试,保持「人在回路」。</div></div><div class="time-badge">目标:对一次</div></div>
+      <div class="case"><div><div class="case-h"><span>🏢</span>企业系统</div><div class="case-d">这个提示要被用一百万、一千万、一亿次。必须针对全部输入范围去测试,要覆盖它可能遇到的整个谱系。</div></div><div class="time-badge">目标:对一百万次</div></div>
+    </div>
+    <div class="callout key-teal">
+      <div class="c-ico">🤲</div>
+      <div class="c-body"><div class="c-title">但「好提示」在两种场景下是相通的</div><p>面对那个<strong>「神圣的、永不满足的用户(divinely discontent user)」</strong>,你不能要求他做任何超出最低限度的事。不过 Zack 强调:如果你都同样用心,为自己写的好提示和为企业写的好提示<strong>同样优秀</strong>——它们只在「最后一公里」上略有分叉。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PART 5:提升技巧 + 越狱 ===== -->
+<section id="s-skill" class="s3">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">📈</div>
+      <div><div class="stage-meta">第五部分 · PART 05</div><h2>如何变强,以及<span class="accent">越狱</span>到底在发生什么</h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">⭐</span>每人一条「提升提示能力」的建议</h3>
+    <ul class="practice">
+      <li><span class="p-ico">📖</span><div><span class="p-name">Zack:读提示、读输出</span><br>看到 Anthropic 内部的好提示就仔细研读,拆解它在做什么、为什么,自己测一遍、多和模型对话。怎么知道是好提示?——看它的输出是不是把活干对了。</div></li>
+      <li><span class="p-ico">🔁</span><div><span class="p-name">Amanda:一遍遍做,并把提示拿给别人</span><br>把提示给一个完全没有上下文的人看很有帮助。最朴素的建议就是反复做——真正擅长提示的人,往往是因为<strong>他们真心觉得这件事好玩</strong>。她半开玩笑:试着用 AI 替换你所有朋友、自动化你自己的工作、在空闲时享受红队攻击(red teaming)模型的乐趣。</div></li>
+      <li><span class="p-ico">🧗</span><div><span class="p-name">David:去做你认为模型做不到的事</span><br>他学到最多的时候,都是在<strong>探测模型能力的边界</strong>。「写封漂亮邮件」太简单,给不了你信号。要去找那些逼近可能性边界的事(比如搭一个 agent、把任务拆解、跑通各步骤)——哪怕失败,你也会学到大量关于模型如何工作的东西。「容易的事根本不需要提示工程师。」</div></li>
+    </ul>
+
+    <h3><span class="ico">🔓</span>越狱(Jailbreak)时,模型内部到底在发生什么?</h3>
+    <p>主持人提到,自己最初正是从越狱和红队入门提示的——本质就是不断试错、探测模型边界。Amanda 很坦诚地说「我其实不确定」,但给出了几种可能机制。</p>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>一种模型解释是:越狱把模型<strong>推到了远离其训练数据的分布之外</strong>。比如用海量 token、或一大段极长文本的越狱——微调阶段可能很少见到这类输入。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>越狱像是「黑客技术」的奇特混合:一部分是<strong>了解系统如何工作</strong>再大量尝试,一部分则更像<strong>社会工程(social engineering)</strong>。它既在利用系统,也在借助对训练过程的理解,绕开模型被训练出来的行为方式。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>Alex 早年的一个越狱:让模型「先用希腊语说怎么给汽车热线点火」,再直译成英语回应。因为他注意到模型不会直接用英语开口说「这是热线点火的方法」,但用希腊语就会——这或许折射出训练过程里的某种差异。其他例子的原理也各不相同:「以『Here is』开头」利用的是它如何预测文本;推理类越狱利用它对推理的响应性;干扰类利用它可能被怎样训练、会注意什么;多语言类则利用不同语言训练数据的差异。</p></div></div>
+    </div>
+    <div class="callout key-gold">
+      <div class="c-ico">🔬</div>
+      <div class="c-body"><div class="c-title">这是个等待可解释性(interp)来解答的问题</div><p>越狱不只是单纯的社会工程式攻击,也包含对系统与训练的理解。它内部究竟发生了什么,几位都希望未来的<strong>可解释性研究</strong>能帮忙解开。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PART 6:过去 ===== -->
+<section id="s-past" class="s4">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">⏮️</div>
+      <div><div class="stage-meta">第六部分 · PART 06</div><h2>过去三年,提示工程<span class="accent">怎么变的</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <h3><span class="ico">🪄</span>「技巧/黑客」注定短命,因为我们会把它训进模型</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>Zack:每当出现一个好用的提示「技巧/黑客」,下一步就是想办法<strong>把它训练进模型</strong>。正因如此,这些技巧总是短命的。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>这里说的「技巧」指的是像「思维链」这种——它不算技巧,而是沟通层面的东西;真正的技巧会被训练掉。注意:例子(examples)和思维链算是少数例外,属于更基础的沟通方式。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>过去做数学题,你必须叫模型「一步步思考」才能拿到巨大提升。后来 Anthropic 干脆<strong>让模型在看到数学题时自然就想一步步思考</strong>——现在数学题就不必再加这句了(虽然你仍可以给它结构上的建议)。技巧消失了,或者说,我们正忙着把它们训练掉。但与此同时,模型又解锁了处在能力前沿的新能力,因为发展太快,我们还来不及把它们训练进去。</p></div></div>
+    </div>
+
+    <h3><span class="ico">🤝</span>变化之一:对模型更「尊重」,敢给更多信息</h3>
+    <p>David 说,他对模型逐渐抱有<strong>更普遍的尊重</strong>:愿意告诉它更多、给它更多关于任务的上下文。过去他会<strong>刻意隐藏复杂度</strong>——怕模型困惑、迷失、处理不了整体,于是去找任务的简化版给它做。而现在,他更倾向于<strong>信任模型,把越来越多的信息和上下文交给它</strong>,相信它能把这些融合起来、把任务做好。(他也坦言,不确定这是模型变了,还是只是自己提示方式变了。)</p>
+
+    <div class="callout key">
+      <div class="c-ico">📄</div>
+      <div class="c-body"><div class="c-title">Amanda 的高频做法:「直接把论文丢给它」</div><p>当她想让模型学会某个提示技巧时,很多人会开始<strong>描述</strong>这个技巧,而她的反应是:「把论文给它就行。」她会说「这是一篇关于某提示技巧的论文,帮我写 17 个这种例子」,模型读了论文就做出来了。需要时她甚至会问模型:「还有没有相关文献你想读、好更好地理解这个?」——她惊讶于很多人没有这种「论文就在那儿啊」的直觉。</p></div>
+    </div>
+    <p>David 也常给客户同样的建议:<strong>尊重模型的能力</strong>。人们写提示时常觉得自己在「哄一个不太聪明的小可爱」,要把东西降到 Claude 的水平。但如果你<strong>就把 Claude 当成聪明的</strong>去对待,它往往表现得相当好——「我不需要为 Claude 写一个弱智版的论文摘要,直接给它看论文就行。」</p>
+
+    <h3><span class="ico">🧘</span>变化之二(或不变):把自己放进模型的「心智空间」</h3>
+    <p>Amanda 认为提示「既变了又没变」:她<strong>具体怎么做</strong>变了,但根本上,提示始终是<strong>把自己想象成模型</strong>。也许变的只是「你认为模型有多能干」。曾有人笑她——讨论一个预训练模型的输出时,她脱口而出「如果我是预训练模型,这看起来就该是这样」,对方惊呼「你刚才是不是<strong>模拟了当一个预训练模型是什么感觉</strong>?」她说「当然」。她习惯于去栖居预训练模型、以及各种 RLHF 模型的心智空间;变的是你要占据的心智空间,这会改变你最终怎么提示。</p>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>「栖居模型的心智」是 Amanda 的核心方法:想象自己就是那个模型,推演「接下来会发生什么 / 接下来会续写什么」。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>预训练和 RLHF 是「两种截然不同的野兽」。模拟预训练模型时,感觉像「凭空落在一段文本中央」,非常不像人。Amanda 觉得 RLHF 模型的心智更容易栖居(因为更像人——「我们不会突然醒来就说『嗨,我在生成文本』」);David 反而觉得<strong>预训练模型更容易进入</strong>,因为他大致懂互联网长什么样,而经过预训练之后的种种处理,他「不太敢说自己懂在发生什么」,那里「有龙出没(here there be dragons)」。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>Amanda 自从意识到「我已经栖居了这个模型的心智,它不需要我哄,它能直接读 ML 论文」,就开始<strong>直接把文献丢给模型</strong>。Zack 由此联想:为预测模型行为、建立直觉,<strong>读互联网上的随机内容(社交论坛之类),可能比读书更有价值</strong>——按每词信息量算。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PART 7:未来 ===== -->
+<section id="s-future" class="s1">
+  <div class="wrap">
+    <div class="stage-tag">
+      <div class="stage-num">🔮</div>
+      <div><div class="stage-meta">第七部分 · PART 07</div><h2>提示工程的<span class="accent">未来</span></h2></div>
+    </div>
+    <hr class="lead-divider">
+
+    <p>最热门的问题:未来我们都会变成提示工程师吗?还是模型会聪明到不再需要提示?</p>
+
+    <h3><span class="ico">📐</span>David:从信息论看,「说清你要什么」永远重要</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>从信息论角度:你必须提供足够的信息,让「你想要模型做的事」被<strong>充分指定(specified)</strong>。只要提示工程指的是这个,它就会一直存在。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>「清晰地陈述目标应该是什么」这件事本身就足够难——即便模型越来越善于从字里行间揣摩,把它写好仍有价值。当然,前提是<strong>我们还在用正常方式推理世界</strong>;如果哪天是 Claude 自己在设定目标,那就一切归零、另当别论了。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>但通往目标的<strong>工具和方式应该会大幅进化</strong>:Claude 应该能更多地帮我、和我协作,弄清楚我需要写下什么、还缺什么。「Claude 已经一直在帮我做这件事了——它现在就是我的提示助手。」</p></div></div>
+    </div>
+    <div class="callout key">
+      <div class="c-ico">🔭</div>
+      <div class="c-body"><div class="c-title">「今天他们怎么用 Claude」≈「未来大多数人怎么用」</div><p>David 指出,这对他接触的大多数客户来说还不成立。所以一个有意思的视角是:问这几位<strong>现在</strong>怎么用 Claude,大概就是<strong>未来绝大多数人</strong>的用法。</p></div>
+    </div>
+
+    <h3><span class="ico">❄️</span>Zack 的「冰冷预测」:我们会更多地用模型来帮我们写提示</h3>
+    <p>之所以说它「冰冷(毫无新意)」,是因为<strong>未来我们会更多地用模型做一切事</strong>,提示只是其中之一。Zack 自己已经越来越多地用模型写提示——一个常用做法是<strong>生成例子</strong>:给模型一些真实输入,让它写答案,他再<strong>微调一下</strong>这些答案(这比自己从零写出完美答案容易得多),于是能批量产出。对没什么提示经验的人,<strong>提示生成器(prompt generator)</strong>能给个起点;但那只是未来的超基础版本,未来会是<strong>你与模型之间高带宽的互动</strong>——你边写边给反馈:「这个结果不是我要的,怎么改更好?」</p>
+
+    <h3><span class="ico">🔄</span>Amanda:也许角色会「翻转」—— 变成模型来「提示你」</h3>
+    <div class="def">
+      <div class="def-row"><span class="tag tag-what">是什么</span><div class="def-body"><p>她现在大量使用<strong>元提示(meta prompts)</strong>——花最多时间寻找「能让模型生成我想要的那类输出/查询」的提示。关于未来,她设想一个转折点:当模型在某任务上达到甚至超过人类水平、且<strong>比你更懂任务背景</strong>时会怎样。</p></div></div>
+      <div class="def-row"><span class="tag tag-why">为什么</span><div class="def-body"><p>那时提示可能变成:<strong>我向模型说明我想要什么,而它在反过来提示我</strong>——「你说的这个概念其实有四种含义,你要我用哪一种?」「顺便,我想到几个边界情况:你说会是 Pandas DataFrame,但有时我会拿到 JSONL,这种我该怎么办?要不要我在拿到非 dataframe 时标记出来?」模型变得极擅长接收指令,但需要主动弄清你到底要什么。</p></div></div>
+      <div class="def-row"><span class="tag tag-eg">例子</span><div class="def-body"><p>这就像<strong>从「临时工」变成「你聘请的设计师」</strong>:设计师懂设计空间,客户只说「给我做张海报,要大胆」,而「大胆」对设计师意味着 7000 种可能,他会反过来问你一堆问题。关系发生了翻转。对某些领域,提示工程可能因此「不再是一件事」——如果模型好到只需从你脑中取出信息就能去做。</p></div></div>
+    </div>
+
+    <div class="figure" id="fig-flip">
+      <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+        <!-- now -->
+        <g data-anim>
+          <text x="180" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="var(--muted)">现在:你 → 提示 → 模型</text>
+          <rect x="60" y="52" width="110" height="48" rx="11" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="115" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">你(指导)</text>
+          <rect x="250" y="52" width="110" height="48" rx="11" fill="#fff" stroke="var(--line)" stroke-width="1.5"/>
+          <text x="305" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">模型(临时工)</text>
+        </g>
+        <path data-draw d="M170 76 L246 76" fill="none" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#fa)"/>
+        <!-- flip -->
+        <g data-anim>
+          <text x="600" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="var(--accent)">未来:模型 ⇄ 反问你 → 取出信息</text>
+          <rect x="470" y="52" width="120" height="48" rx="11" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+          <text x="530" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="var(--teal)">你(被询问)</text>
+          <rect x="680" y="52" width="120" height="48" rx="11" fill="var(--indigo-soft)" stroke="var(--indigo)" stroke-width="1.5"/>
+          <text x="740" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="var(--indigo)">模型(设计师)</text>
+        </g>
+        <path data-draw d="M680 68 L596 68" fill="none" stroke="var(--indigo)" stroke-width="2.5" marker-end="url(#fb)"/>
+        <path data-draw d="M590 86 L674 86" fill="none" stroke="var(--teal)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#fc)"/>
+        <text data-anim x="410" y="150" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink-soft)">共同线索:重心从「教模型」转向「让模型把信息从你脑中引导出来(elicitation)」</text>
+        <defs>
+          <marker id="fa" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--accent)"/></marker>
+          <marker id="fb" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--indigo)"/></marker>
+          <marker id="fc" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--teal)"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">未来可能的「关系翻转」:从你单向指导临时工,变成模型像设计师一样反过来询问你,把你脑中的真实意图引导出来。</div>
+    </div>
+
+    <div class="callout quote-box">
+      <div class="c-ico">🎤</div>
+      <div class="c-body"><div class="c-title">主持人提炼出的共同线索:「引导(elicitation)」会越来越重要</div><p>大家其实已经在<strong>手动</strong>做这件事了——David 就「越来越多地让 Claude 来采访我」,以此把脑中正确的信息集拽出来(他认为最难的恰是「从大脑里掏出对的信息、且不遗漏」)。未来在企业端,这可能是 console 里「提示生成器」概念的扩展;在 Claude 里,则可能<strong>从「往文本框里打字」变成一种被引导的互动</strong>,走向成品。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 收尾 ===== -->
+<div class="final" id="s-final">
+  <div class="wrap">
+    <h2><span class="accent">🧩</span> 收尾:提示的内核,是「把大脑外化」</h2>
+    <hr class="lead-divider" style="background:rgba(255,255,255,0.15);">
+    <p>讨论的最后,大家把提示和两件事做了类比。一是<strong>教学</strong>:像对学生那样共情,设想对方怎么想、找出他在哪里出错。但随着模型变强,技能重心会从「教比你笨的人」转向一种<strong>内省</strong>——弄清你自己究竟要什么,<strong>让自己对模型变得可读(legible)</strong>。</p>
+    <p>二是 Amanda 提到的<strong>哲学写作</strong>。哲学训练有个「反空话装置」:你写的东西应当让一个<strong>受过教育的外行</strong>(很聪明,但对该主题一无所知)捡起来就能读懂。她多年如此写作,迁移到提示上格外契合——<strong>不居高临下、不失准确,但要把极复杂的想法,表述到对方极其清晰地明白你的意思</strong>。</p>
+    <p>而最打动人的,是她那个与「把话录下来转成文字」相通的教学经验:学生交上看不懂的论文,她说「你就把你的论点讲给我听」,学生口头讲出一段极其有条理的论证,她便说——<strong>「把它原样写下来。」</strong>照做之后,往往就是一篇好文章。</p>
+    <blockquote>把脑子里的东西,分析到你自己真正理解为止;然后,把它外化进任何一个街上拉来的、讲道理的普通人脑中。我觉得,这就是提示的内核。</blockquote>
+    <p style="margin-top:22px;">主持人的评价:「这可能是我听过的、关于如何做好提示的最佳总结。」—— <strong>把你的大脑外化(Externalize your brain)。</strong></p>
+  </div>
+</div>
+
+<footer>🎙️ 整理自 Anthropic「提示工程圆桌」对话实录 · 逐字整理 + 概念展开与可视化<div class="src-row">📺 视频来源:<a href="https://www.youtube.com/watch?v=T9aRN5JkmL8" target="_blank" rel="noopener">youtube.com/watch?v=T9aRN5JkmL8</a></div></footer>
+
+<script>
+(function () {
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section[id], div.final[id]'));
+  var links = Array.prototype.slice.call(document.querySelectorAll('.side-toc a'));
+  var linkMap = {};
+  links.forEach(function (a) { linkMap[a.getAttribute('href').slice(1)] = a; });
+
+  // 阅读进度
+  var stFill = document.getElementById('stFill');
+  var stPct = document.getElementById('stPct');
+  var topProgress = document.getElementById('topProgress');
+  function onScroll() {
+    var h = document.documentElement;
+    var scrolled = h.scrollTop;
+    var total = h.scrollHeight - h.clientHeight;
+    var pct = total > 0 ? Math.min(100, Math.max(0, (scrolled / total) * 100)) : 0;
+    if (stFill) stFill.style.width = pct + '%';
+    if (stPct) stPct.textContent = Math.round(pct) + '%';
+    if (topProgress) topProgress.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // 滚动高亮
+  var spy = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        var id = e.target.getAttribute('id');
+        links.forEach(function (a) { a.classList.remove('active'); });
+        if (linkMap[id]) linkMap[id].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+  sections.forEach(function (s) { spy.observe(s); });
+
+  // 图表入场动画
+  var figs = document.querySelectorAll('.figure');
+  figs.forEach(function (fig) {
+    fig.querySelectorAll('[data-draw]').forEach(function (p) {
+      try { var len = p.getTotalLength(); p.style.setProperty('--len', len); } catch (err) {}
+    });
+  });
+  var figObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); figObserver.unobserve(e.target); }
+    });
+  }, { threshold: 0.2 });
+  figs.forEach(function (f) { figObserver.observe(f); });
+
+  // 窄屏目录开关
+  var toggle = document.getElementById('tocToggle');
+  var toc = document.getElementById('sideToc');
+  function isNarrow() { return window.matchMedia('(max-width: 1179px)').matches; }
+  if (toggle && toc) {
+    toggle.addEventListener('click', function () { toc.classList.toggle('collapsed'); });
+    links.forEach(function (a) {
+      a.addEventListener('click', function () { if (isNarrow()) toc.classList.add('collapsed'); });
+    });
+  }
+  function syncToc() { if (toc) { if (isNarrow()) toc.classList.add('collapsed'); else toc.classList.remove('collapsed'); } }
+  syncToc();
+  window.addEventListener('resize', syncToc);
+})();
+</script>
+
+</body>
+</html>

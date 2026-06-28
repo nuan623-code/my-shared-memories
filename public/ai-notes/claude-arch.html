@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude 产品架构 · 分层蛋糕模型</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+
+  :root{
+    --bg:#0d0c0b;
+    --bg2:#151311;
+    --orange:#e07a52;
+    --orange-soft:#c96442;
+    --amber:#e8a87c;
+    --ink:#f5f0e8;
+    --muted:#a8a097;
+    --line:rgba(245,240,232,0.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(224,122,82,0.18), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(200,100,66,0.10), transparent 70%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans SC",sans-serif;
+    line-height:1.6;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  /* grain */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0.04;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:64px 24px 100px;position:relative;z-index:2;}
+
+  /* HEADER */
+  header{text-align:center;margin-bottom:56px;animation:fadeUp 0.9s ease both;}
+  .kicker{
+    font-size:12px;letter-spacing:6px;text-transform:uppercase;color:var(--orange);
+    font-weight:700;margin-bottom:18px;
+  }
+  h1{
+    font-family:"Fraunces",serif;font-weight:900;font-size:clamp(38px,7vw,72px);
+    line-height:1.02;letter-spacing:-1.5px;margin-bottom:18px;
+  }
+  h1 .accent{
+    background:linear-gradient(120deg,var(--orange),var(--amber));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    font-style:italic;
+  }
+  .lede{font-size:clamp(15px,2vw,18px);color:var(--muted);max-width:560px;margin:0 auto;font-weight:300;}
+  .hint{
+    margin-top:26px;font-size:13px;color:var(--orange);letter-spacing:1px;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .hint .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);
+    animation:pulse 1.8s ease infinite;}
+
+  /* CAKE */
+  .cake{display:flex;flex-direction:column;gap:14px;perspective:1600px;}
+  .layer{
+    position:relative;border-radius:16px;cursor:pointer;overflow:hidden;
+    border:1px solid var(--line);
+    background:linear-gradient(145deg,rgba(255,255,255,0.045),rgba(255,255,255,0.015));
+    backdrop-filter:blur(6px);
+    transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .45s,border-color .45s;
+    transform-style:preserve-3d;
+    animation:layerIn .7s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .layer:nth-child(1){animation-delay:.05s;}
+  .layer:nth-child(2){animation-delay:.13s;}
+  .layer:nth-child(3){animation-delay:.21s;}
+  .layer:nth-child(4){animation-delay:.29s;}
+  .layer:nth-child(5){animation-delay:.37s;}
+  .layer:hover{
+    transform:translateY(-4px) scale(1.008);
+    border-color:rgba(224,122,82,0.45);
+    box-shadow:0 18px 50px -20px rgba(224,122,82,0.5);
+  }
+  .layer.open{
+    border-color:rgba(224,122,82,0.6);
+    box-shadow:0 22px 60px -22px rgba(224,122,82,0.55);
+  }
+  /* layer accent stripe by depth */
+  .layer::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:linear-gradient(180deg,var(--c1),var(--c2));
+  }
+  .layer .head{
+    display:flex;align-items:center;gap:20px;padding:22px 26px;position:relative;
+  }
+  .badge{
+    flex-shrink:0;width:54px;height:54px;border-radius:13px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Fraunces",serif;font-weight:900;font-size:22px;
+    background:linear-gradient(145deg,var(--c1),var(--c2));color:#1a1410;
+    box-shadow:0 6px 18px -6px var(--c1);
+  }
+  .head-txt{flex:1;min-width:0;}
+  .layer-name{font-size:clamp(17px,2.4vw,21px);font-weight:700;letter-spacing:-.3px;}
+  .layer-name .en{color:var(--muted);font-weight:400;font-size:.7em;margin-left:8px;letter-spacing:.5px;}
+  .layer-sub{font-size:13.5px;color:var(--muted);font-weight:300;margin-top:2px;}
+  .chev{
+    flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--orange);
+    transition:transform .4s,background .3s;font-size:14px;
+  }
+  .layer.open .chev{transform:rotate(180deg);background:rgba(224,122,82,0.15);}
+
+  /* expand body */
+  .body{
+    max-height:0;overflow:hidden;
+    transition:max-height .55s cubic-bezier(.2,.8,.2,1),opacity .4s;
+    opacity:0;
+  }
+  .layer.open .body{max-height:900px;opacity:1;}
+  .body-inner{padding:4px 26px 26px 26px;}
+  .divider{height:1px;background:var(--line);margin:0 0 18px 0;}
+  .body-desc{font-size:14px;color:var(--muted);margin-bottom:18px;font-weight:300;max-width:760px;}
+  .body-desc b{color:var(--ink);font-weight:500;}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;}
+  .card{
+    background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:11px;
+    padding:15px 16px;transition:border-color .3s,background .3s,transform .3s;
+  }
+  .card:hover{border-color:rgba(224,122,82,0.4);background:rgba(224,122,82,0.06);transform:translateY(-2px);}
+  .card .ct{font-weight:700;font-size:14.5px;margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+  .card .ct .tg{font-size:9px;padding:1px 7px;border-radius:20px;background:var(--orange-soft);color:#fff;font-weight:600;letter-spacing:.5px;}
+  .card .ct .tg.beta{background:#6b7a8f;}
+  .card .cd{font-size:12.5px;color:var(--muted);font-weight:300;line-height:1.55;}
+
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+  .pill{
+    font-size:11.5px;padding:5px 12px;border-radius:20px;font-weight:400;
+    background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--muted);
+  }
+  .pill b{color:var(--amber);font-weight:600;}
+
+  /* footer note */
+  .foot{
+    margin-top:54px;text-align:center;font-size:12px;color:var(--muted);
+    font-weight:300;line-height:1.8;border-top:1px solid var(--line);padding-top:28px;
+  }
+  .foot .legend{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-bottom:18px;}
+  .leg-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+  .leg-dot{width:14px;height:14px;border-radius:4px;}
+
+  /* arrow between header and cake showing "build up" */
+  .axis{
+    position:absolute;left:-6px;top:0;bottom:0;width:2px;
+    display:none;
+  }
+  @media(min-width:920px){
+    .cake-region{position:relative;padding-left:46px;}
+    .axis-label{
+      position:absolute;left:-2px;writing-mode:vertical-rl;text-orientation:mixed;
+      font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;
+      top:50%;transform:translateY(-50%);
+    }
+    .axis-line{
+      position:absolute;left:18px;top:8px;bottom:8px;width:2px;
+      background:linear-gradient(180deg,var(--orange),rgba(224,122,82,0.15));
+    }
+    .axis-line::before{content:"▲";position:absolute;top:-14px;left:-5px;color:var(--orange);font-size:11px;}
+    .axis-cap{position:absolute;left:34px;top:0;font-size:10px;color:var(--orange);letter-spacing:1px;}
+    .axis-cap.bot{top:auto;bottom:0;color:var(--muted);}
+  }
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+  @keyframes layerIn{from{opacity:0;transform:translateY(28px) rotateX(-6deg);}to{opacity:1;transform:none;}}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.6);opacity:.4;}}
+
+  .toolbar{display:flex;justify-content:center;gap:10px;margin-bottom:24px;}
+  .tbtn{
+    font-family:"Noto Sans SC";font-size:12.5px;padding:8px 18px;border-radius:22px;
+    background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--muted);
+    cursor:pointer;transition:all .3s;font-weight:400;
+  }
+  .tbtn:hover{border-color:var(--orange);color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Layered Architecture</div>
+    <h1>Claude 产品架构的<br><span class="accent">分层蛋糕</span></h1>
+    <p class="lede">从底层算力到顶层终端应用，同一批模型如何层层向上支撑起整个产品族。每一层都建立在下一层之上。</p>
+    <div class="hint"><span class="dot"></span>点击任意一层展开该层的产品细节</div>
+  </header>
+
+  <div class="toolbar">
+    <button class="tbtn" id="expandAll">展开全部</button>
+    <button class="tbtn" id="collapseAll">收起全部</button>
+  </div>
+
+  <div class="cake-region">
+    <div class="axis-line"></div>
+    <div class="axis-cap">越上层 · 越贴近终端用户</div>
+    <div class="axis-cap bot">越下层 · 越贴近底层算力</div>
+
+    <div class="cake" id="cake"></div>
+  </div>
+
+  <div class="foot">
+    <div class="legend">
+      <div class="leg-item"><span class="leg-dot" style="background:linear-gradient(145deg,#e8a87c,#c96442)"></span>终端应用层</div>
+      <div class="leg-item"><span class="leg-dot" style="background:linear-gradient(145deg,#e0a06a,#b87445)"></span>开发者层</div>
+      <div class="leg-item"><span class="leg-dot" style="background:linear-gradient(145deg,#d4a574,#9d6a4a)"></span>能力/工具层</div>
+      <div class="leg-item"><span class="leg-dot" style="background:linear-gradient(145deg,#c4946a,#8a5d42)"></span>模型层</div>
+      <div class="leg-item"><span class="leg-dot" style="background:linear-gradient(145deg,#a8896b,#6b5340)"></span>算力/基础设施层</div>
+    </div>
+    数据时点 2026 年 6 月 · 旗舰 Claude Opus 4.8 · 多项功能为 beta 且更新频繁，以官方文档为准
+  </div>
+
+</div>
+
+<script>
+const layers = [
+  {
+    n:"5", c1:"#e8a87c", c2:"#c96442",
+    name:"终端应用层", en:"End-User Apps",
+    sub:"人直接打开就能用，无需写代码",
+    desc:"最贴近用户的一层。<b>同一批模型</b>被包装成可直接交互的产品，按订阅计费（固定月费 + 滚动用量额度）。这一层卖的是「访问方式与用量」，不是「智能本身」。",
+    cards:[
+      {t:"Claude.ai", d:"网页 / 桌面 / 移动端对话界面，主入口"},
+      {t:"Free", d:"$0，基础对话+搜索+Artifacts，额度最低"},
+      {t:"Pro", d:"$20/月，约5×Free额度，个人专业默认档"},
+      {t:"Max 5× / 20×", d:"$100 / $200，重度与全职用户"},
+      {t:"Team", d:"$20–30/坐席，共享Projects+管理后台+SSO"},
+      {t:"Enterprise", d:"定制，最高合规/审计/数据驻留+量价"},
+    ],
+    pills:["所有付费档<b>都能用最新模型</b>","额度按<b>滚动窗口</b>重置","区别在用量/协作/合规"]
+  },
+  {
+    n:"4", c1:"#e0a06a", c2:"#b87445",
+    name:"开发者层", en:"Developer Surface",
+    sub:"把模型嵌进自有产品与工作流",
+    desc:"面向开发者，<b>按 token 计费</b>、可程序化调用、成本可精确预算。是把 Claude 能力接入第三方产品的正路，也是 Agent 类应用的搭建基座。",
+    cards:[
+      {t:"Claude API", d:"标准 /v1/messages 端点；工具调用、流式、视觉/PDF输入"},
+      {t:"Message Batches", d:"异步批量，成本立减50%，24h内处理"},
+      {t:"Claude Code", d:"Agent式编码工具，CLI/桌面/移动端委派代码任务"},
+      {t:"Managed Agents", d:"托管Agent基建，按token+会话运行时计费"},
+      {t:"Models / Token API", d:"查询模型规格、发送前预估token"},
+    ],
+    pills:["1M 上下文<b>标准价不加价</b>","缓存命中<b>降90%</b>且不计入限流","Batch <b>降50%</b>"]
+  },
+  {
+    n:"3", c1:"#d4a574", c2:"#9d6a4a",
+    name:"能力 / 工具层", en:"Capabilities & Tools",
+    sub:"让模型能用工具、记上下文、连外部世界",
+    desc:"夹在模型与应用之间的「增强层」。这些能力既出现在 Claude.ai 界面里，也通过 API 暴露给开发者，是把「会聊天的模型」变成「能干活的系统」的关键。",
+    cards:[
+      {t:"Artifacts", d:"侧栏实时渲染代码/文档/图表，约到可用app的70%"},
+      {t:"Projects", d:"持久上下文容器：系统提示+知识库+工件库"},
+      {t:"Memory", d:"跨对话记住偏好与背景，与Projects互补"},
+      {t:"MCP / 连接器", d:"开放标准接入Gmail/Drive/Slack等，200+ server"},
+      {t:"应用代理", d:"Excel/Word/Chrome代理、Cowork桌面工作代理", beta:true},
+      {t:"服务端工具", d:"网页搜索、代码执行等托管工具（按次计费）"},
+    ],
+    pills:["工具编排<b>实测第一梯队</b>","多项为 <b>beta</b>，需人工监督","MCP 已成<b>事实标准</b>之一"]
+  },
+  {
+    n:"2", c1:"#c4946a", c2:"#8a5d42",
+    name:"模型层", en:"Models",
+    sub:"底层智能，所有上层共享同一批",
+    desc:"整个蛋糕的<b>核心</b>。三档模型按「质量 / 速度 / 成本」分化——同一个 Opus 4.8 既驱动 Claude.ai 的对话，也驱动 API 与 Claude Code。选哪档是所有成本与质量权衡的起点。",
+    cards:[
+      {t:"Opus 4.8", d:"$5/$25 · 1M上下文 · 最强推理与长程Agent编码", tag:"旗舰"},
+      {t:"Sonnet 4.6", d:"$3/$15 · 1M上下文 · 速度与智能最佳平衡", tag:"默认"},
+      {t:"Haiku 4.5", d:"$1/$5 · 200k上下文 · 最快、高并发、低成本"},
+      {t:"Mythos Preview", d:"防御性网络安全研究预览，受邀制（Glasswing）", beta:true},
+    ],
+    pills:["输出价 = 输入价 <b>×5</b>","模型ID为<b>固定快照</b>可pin","Opus 4.8 自适应思考默认 <b>high</b>"]
+  },
+  {
+    n:"1", c1:"#a8896b", c2:"#6b5340",
+    name:"算力 / 基础设施层", en:"Compute & Infrastructure",
+    sub:"训练与推理跑在哪里、经哪条渠道分发",
+    desc:"蛋糕的<b>地基</b>。模型需要海量算力来训练和推理，并通过不同云渠道分发——渠道决定了客户的合规边界、数据驻留与计费归属，是企业能否采购的前提。",
+    cards:[
+      {t:"训练/推理算力", d:"大规模GPU集群（含与xAI Colossus等算力协议）"},
+      {t:"Anthropic 直连", d:"第一时间拿新模型/功能，灵活性优先"},
+      {t:"AWS Bedrock", d:"并入AWS账单与IAM，请求体上限20MB"},
+      {t:"Google Vertex AI", d:"并入GCP，含全局/多区域/区域端点，30MB"},
+      {t:"Microsoft Foundry", d:"并入Azure，Opus 4.8上下文为200k"},
+      {t:"数据合规", d:"EU多区域驻留、US-only推理选项、区域端点"},
+    ],
+    pills:["模型同一批，<b>渠道决定合规</b>","区域端点<b>保证数据路由</b>","渠道选择常是采购问题"]
+  },
+];
+
+const cake = document.getElementById('cake');
+layers.forEach((L,i)=>{
+  const el = document.createElement('div');
+  el.className='layer';
+  el.style.setProperty('--c1',L.c1);
+  el.style.setProperty('--c2',L.c2);
+  const cardsHtml = L.cards.map(c=>`
+    <div class="card">
+      <div class="ct">${c.t}${c.tag?`<span class="tg">${c.tag}</span>`:''}${c.beta?`<span class="tg beta">beta</span>`:''}</div>
+      <div class="cd">${c.d}</div>
+    </div>`).join('');
+  const pillsHtml = L.pills.map(p=>`<span class="pill">${p}</span>`).join('');
+  el.innerHTML=`
+    <div class="head">
+      <div class="badge">${L.n}</div>
+      <div class="head-txt">
+        <div class="layer-name">${L.name}<span class="en">${L.en}</span></div>
+        <div class="layer-sub">${L.sub}</div>
+      </div>
+      <div class="chev">▾</div>
+    </div>
+    <div class="body">
+      <div class="body-inner">
+        <div class="divider"></div>
+        <div class="body-desc">${L.desc}</div>
+        <div class="cards">${cardsHtml}</div>
+        <div class="meta-row">${pillsHtml}</div>
+      </div>
+    </div>`;
+  el.querySelector('.head').addEventListener('click',()=>{
+    el.classList.toggle('open');
+  });
+  cake.appendChild(el);
+});
+
+document.getElementById('expandAll').onclick=()=>document.querySelectorAll('.layer').forEach(l=>l.classList.add('open'));
+document.getElementById('collapseAll').onclick=()=>document.querySelectorAll('.layer').forEach(l=>l.classList.remove('open'));
+</script>
+</body>
+</html>

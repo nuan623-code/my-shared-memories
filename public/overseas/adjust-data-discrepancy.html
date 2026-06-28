@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adjust 数据差异排查总表</title>
+<style>
+  :root {
+    --blue-dark: #1B4F8A;
+    --blue-mid: #2E75B6;
+    --blue-light: #EBF3FB;
+    --blue-pale: #F4F9FF;
+    --orange: #E67E22;
+    --orange-pale: #FEF9F0;
+    --green: #27AE60;
+    --green-pale: #F0FAF4;
+    --red: #E74C3C;
+    --gray-dark: #2C3E50;
+    --gray-mid: #7F8C8D;
+    --gray-light: #ECF0F1;
+    --white: #FFFFFF;
+    --border: #D5E8F5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+    background: #F0F4F8;
+    color: var(--gray-dark);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    background: linear-gradient(135deg, #1B4F8A 0%, #2E75B6 60%, #3498DB 100%);
+    color: white;
+    padding: 36px 40px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .site-header::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .site-header::after {
+    content: '';
+    position: absolute; bottom: -80px; left: 30%;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .header-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  .header-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+  .site-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .site-header p { font-size: 14px; opacity: 0.85; max-width: 640px; }
+  .header-stats {
+    display: flex; gap: 24px; margin-top: 24px; flex-wrap: wrap;
+  }
+  .stat-item {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 10px 18px;
+    text-align: center;
+    min-width: 90px;
+  }
+  .stat-num { font-size: 22px; font-weight: 700; }
+  .stat-label { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+  /* ── CONTROLS ── */
+  .controls {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 40px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .controls-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .search-wrap {
+    position: relative; flex: 1; min-width: 200px;
+  }
+  .search-wrap svg {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--gray-mid);
+  }
+  #search {
+    width: 100%;
+    padding: 9px 14px 9px 38px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #search:focus { border-color: var(--blue-mid); }
+  .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    color: var(--gray-dark);
+  }
+  .chip:hover { border-color: var(--blue-mid); color: var(--blue-mid); }
+  .chip.active { background: var(--blue-mid); border-color: var(--blue-mid); color: white; }
+  .toggle-all {
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--gray-mid);
+    white-space: nowrap;
+  }
+  .toggle-all:hover { border-color: var(--blue-mid); color: var(--blue-mid); }
+
+  /* ── MAIN ── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 24px 40px 60px; }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 20px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--blue-dark);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .section-header:hover { background: #154070; }
+  .section-num {
+    width: 26px; height: 26px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .section-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .section-count {
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 12px;
+  }
+  .chevron {
+    transition: transform 0.25s;
+    flex-shrink: 0;
+  }
+  .chevron.open { transform: rotate(180deg); }
+  .section-body {
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    overflow: hidden;
+  }
+  .section-body.collapsed { display: none; }
+
+  /* ── CARD ── */
+  .card {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .card:last-child { border-bottom: none; }
+  .card-header {
+    display: flex; align-items: flex-start; gap: 0;
+    cursor: pointer;
+    padding: 16px 20px;
+    background: white;
+    transition: background 0.15s;
+  }
+  .card-header:hover { background: var(--blue-pale); }
+  .card-platform {
+    min-width: 160px; max-width: 160px;
+    padding-right: 16px;
+    border-right: 2px solid var(--border);
+    margin-right: 16px;
+  }
+  .platform-name {
+    font-weight: 600; font-size: 14px; color: var(--blue-dark);
+    margin-bottom: 4px;
+  }
+  .platform-metric {
+    font-size: 12px; color: var(--gray-mid);
+  }
+  .card-summary {
+    flex: 1;
+    font-size: 13px; color: var(--gray-mid);
+    line-height: 1.5;
+  }
+  .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tag {
+    padding: 2px 9px;
+    border-radius: 12px;
+    font-size: 11px; font-weight: 500;
+  }
+  .tag-normal { background: #E8F8F0; color: #1E8449; }
+  .tag-config { background: #EBF3FB; color: #2471A3; }
+  .tag-ios { background: #F4ECF7; color: #7D3C98; }
+  .tag-android { background: #FEF9E7; color: #B7950B; }
+  .card-expand-icon {
+    margin-left: 12px;
+    color: var(--gray-mid);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .card-expand-icon.open { transform: rotate(180deg); }
+
+  .card-detail {
+    padding: 0 20px 20px 196px;
+    background: #FAFCFF;
+    display: none;
+  }
+  .card-detail.open { display: block; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 4px;
+  }
+  @media (max-width: 800px) {
+    .detail-grid { grid-template-columns: 1fr; }
+    .card-detail { padding-left: 20px; }
+    .card-platform { min-width: 120px; max-width: 120px; }
+  }
+
+  .detail-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .detail-box.full { grid-column: 1 / -1; }
+  .detail-box h4 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .detail-box h4.cause { color: var(--blue-mid); }
+  .detail-box h4.checklist { color: var(--green); }
+  .detail-box h4.note { color: var(--orange); }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-cause { background: var(--blue-mid); }
+  .dot-check { background: var(--green); }
+  .dot-note { background: var(--orange); }
+
+  .cause-list, .check-list {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .cause-list li {
+    padding-left: 18px;
+    position: relative;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--gray-dark);
+  }
+  .cause-list li::before {
+    content: '';
+    position: absolute; left: 0; top: 8px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--blue-light);
+    border: 1.5px solid var(--blue-mid);
+  }
+  .check-list li {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 13px; line-height: 1.55;
+    color: var(--gray-dark);
+  }
+  .check-num {
+    min-width: 20px; height: 20px;
+    background: var(--green);
+    color: white;
+    border-radius: 50%;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .note-box {
+    background: var(--orange-pale);
+    border: 1px solid #FAD7A0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #784212;
+    grid-column: 1 / -1;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .highlight-normal .note-box {
+    background: var(--green-pale);
+    border-color: #A9DFBF;
+    color: #1E5631;
+  }
+
+  /* ── NO RESULTS ── */
+  .no-results {
+    text-align: center; padding: 60px 20px; color: var(--gray-mid);
+    display: none;
+  }
+  .no-results.show { display: block; }
+
+  /* ── FOOTER ── */
+  .footer {
+    text-align: center; padding: 24px;
+    color: var(--gray-mid); font-size: 12px;
+    border-top: 1px solid var(--border);
+    background: white;
+  }
+
+  /* ── HIGHLIGHT ── */
+  mark { background: #FFF176; border-radius: 2px; padding: 0 1px; }
+
+  /* hidden */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-badge">Adjust 技术支持参考文档</div>
+    <h1>数据差异排查总表</h1>
+    <p>整合各类数据差异的根本原因与排查步骤，可直接用于与客户沟通。差异 ≠ 错误，大部分属方法论差异，需先判断再排查。</p>
+    <div class="header-stats">
+      <div class="stat-item"><div class="stat-num">8</div><div class="stat-label">差异场景</div></div>
+      <div class="stat-item"><div class="stat-num">22</div><div class="stat-label">排查条目</div></div>
+      <div class="stat-item"><div class="stat-num">5</div><div class="stat-label">媒体平台</div></div>
+      <div class="stat-item"><div class="stat-num">100+</div><div class="stat-label">排查步骤</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="search-wrap">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input id="search" type="text" placeholder="搜索差异场景、平台、关键词…">
+    </div>
+    <div class="filter-chips">
+      <div class="chip active" data-filter="all">全部</div>
+      <div class="chip" data-filter="bi">BI后台</div>
+      <div class="chip" data-filter="media">媒体平台</div>
+      <div class="chip" data-filter="store">应用商店</div>
+      <div class="chip" data-filter="skan">SKAN/iOS</div>
+      <div class="chip" data-filter="adjust">Adjust后台</div>
+      <div class="chip" data-filter="normal">正常现象</div>
+    </div>
+    <button class="toggle-all" id="toggleAll">全部折叠</button>
+  </div>
+</div>
+
+<div class="main" id="main">
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 1 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="1">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">一</div>
+    <div class="section-title">客户 BI / 业务后台 vs Adjust</div>
+    <div class="section-count">4 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="bi">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">BI / 业务后台</div>
+          <div class="platform-metric">安装数</div>
+          <div class="card-tags">
+            <span class="tag tag-config">配置差异</span>
+          </div>
+        </div>
+        <div class="card-summary">
+          安装定义不同、时区/日期口径不一致、SDK未全量覆盖、去重逻辑不同，是最常见的四类原因。
+        </div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>安装定义不同：Adjust的"安装"= 首次打开 App；客户后台可能是注册/激活/卸载重装等</li>
+              <li>时区/日期统计口径不一致（Adjust 默认 UTC）</li>
+              <li>App 版本未全量集成 Adjust SDK，导致部分安装未被追踪</li>
+              <li>去重逻辑不同</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>对齐"安装"定义（首次打开 vs 注册/激活）</li>
+              <li><span class="check-num">2</span>确认双方统计时区一致（Adjust 默认 UTC）</li>
+              <li><span class="check-num">3</span>确认所有 App 版本均已集成 Adjust SDK</li>
+              <li><span class="check-num">4</span>确认去重逻辑一致</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">💡</span>
+            <span><strong>最常见原因：安装定义不同。</strong>建议先确认定义再排查其他项。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="bi">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">BI / 业务后台</div>
+          <div class="platform-metric">事件数</div>
+          <div class="card-tags"><span class="tag tag-config">配置差异</span></div>
+        </div>
+        <div class="card-summary">事件触发定义不同、上报失败、唯一事件开关、拦截规则均可导致事件数差异。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>事件触发条件/定义不同</li>
+              <li>部分事件上报失败（SDK 未触发 / S2S 上报异常）</li>
+              <li>Adjust 勾选了"唯一事件"，同一用户多次触发只算一次</li>
+              <li>事件被转化规则/事件规则拦截</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认事件触发条件定义一致</li>
+              <li><span class="check-num">2</span>检查 SDK 埋点是否正确</li>
+              <li><span class="check-num">3</span>检查 S2S 服务器上报是否成功</li>
+              <li><span class="check-num">4</span>后台确认"唯一事件"开关状态</li>
+              <li><span class="check-num">5</span>检查转化规则/事件规则是否在过滤数据</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">💡</span>
+            <span>后台有事件但偏少 → 优先查唯一事件开关和拦截规则。<br>后台完全无事件 → 先查 SDK 埋点和上报。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="bi">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">BI / 业务后台</div>
+          <div class="platform-metric">事件收入</div>
+          <div class="card-tags"><span class="tag tag-config">配置差异</span></div>
+        </div>
+        <div class="card-summary">收入差异通常是事件数差异的延伸，建议先解决事件数问题。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>事件数本身有差异（先解决事件差异）</li>
+              <li>币种设置不一致</li>
+              <li>收入上报失败或被拦截</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>先确认事件数是否一致</li>
+              <li><span class="check-num">2</span>确认双方使用相同货币单位</li>
+              <li><span class="check-num">3</span>检查收入参数是否正确传入上报</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="bi normal">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Firebase / 其他</div>
+          <div class="platform-metric">留存率</div>
+          <div class="card-tags"><span class="tag tag-normal">正常现象</span></div>
+        </div>
+        <div class="card-summary">Adjust 使用严格 24h 制留存，Firebase 使用自然日，Adjust 留存数字通常偏低——这是正常现象。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail highlight-normal">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li><strong>Adjust：严格 24 小时制</strong><br>用户 3 月 10 日 19:00 安装，D1 须在 3 月 11 日 19:00 ~ 3 月 12 日 19:00 之间打开才算</li>
+              <li><strong>Firebase / 其他：自然日制</strong><br>只要在次日（同一日期范围内）打开即可</li>
+              <li>时区不一致也会导致同期群基准不同</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>向客户说明 Adjust 使用 24h 制，数字低于自然日统计属正常</li>
+              <li><span class="check-num">2</span>确认双方时区设置一致</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">✅</span>
+            <span><strong>正常现象，无需修复。</strong>24h 制更严格，能真实反映产品粘性，避免跨午夜使用被误计入次日留存。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /section 1 -->
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 2 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="2">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">二</div>
+    <div class="section-title">媒体后台 vs Adjust（归因数据）</div>
+    <div class="section-count">5 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="media normal">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Meta (Facebook)</div>
+          <div class="platform-metric">安装数</div>
+          <div class="card-tags"><span class="tag tag-normal">方法论差异</span><span class="tag tag-ios">iOS</span></div>
+        </div>
+        <div class="card-summary">排重周期（Adjust 永久 vs FB 90天）、归因窗口、展示归因开关、记数逻辑，是四大核心差异来源。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail highlight-normal">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因（方法论差异）</h4>
+            <ul class="cause-list">
+              <li><strong>排重周期：</strong>Adjust 永久排重 vs Facebook 90 天排重窗口——同一设备 90 天后重装，FB 重计，Adjust 不计</li>
+              <li><strong>归因窗口：</strong>确认点击 7d / 展示 1d 是否已对齐</li>
+              <li><strong>展示归因：</strong>Adjust 默认不开，FB 默认开——未开则 Adjust 数字低于 FB</li>
+              <li><strong>记数逻辑：</strong>Adjust 将事件记录在激活日期；FB 记录在广告交互日期（点击/展示日期）</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认归因窗口：点击 7d，展示 1d（与 FB 一致）</li>
+              <li><span class="check-num">2</span>确认是否已开启展示归因</li>
+              <li><span class="check-num">3</span>确认数据分享回传配置正确</li>
+              <li><span class="check-num">4</span>确认是否启用 AEM 概率模型匹配（iOS 无 IDFA 设备）</li>
+              <li><span class="check-num">5</span>确认对比日期和时区一致</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">📌</span>
+            <span><strong>可对齐：</strong>归因窗口、展示归因开关。<br><strong>本质差异（无法消除）：</strong>排重周期不同、记数逻辑不同。大部分差异属方法论，需向客户解释。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="media normal">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Google Ads</div>
+          <div class="platform-metric">安装数</div>
+          <div class="card-tags"><span class="tag tag-normal">方法论差异</span></div>
+        </div>
+        <div class="card-summary">GG 归因窗口默认 30 天，与 Adjust 默认 7 天差异大，建议先对齐窗口再比较数据。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail highlight-normal">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li><strong>排重周期：</strong>Adjust 永久排重 vs GG Firebase 卸载重装重新计算</li>
+              <li><strong>归因窗口：</strong>GG 点击 30d（Adjust 默认 7d），窗口差异大导致数字差异明显</li>
+              <li><strong>展示归因：</strong>Adjust 默认不开，GG 默认开</li>
+              <li><strong>数据来源：</strong>Adjust 后台"安装（渠道）"取自 GG Ads API 的 conversions 接口，非 first-open</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认归因窗口：点击 30d，展示 1d（与 GG 对齐）</li>
+              <li><span class="check-num">2</span>确认是否开启展示归因</li>
+              <li><span class="check-num">3</span>确认是否启用 ICM 概率模型匹配</li>
+              <li><span class="check-num">4</span>确认数据分享回传配置正确</li>
+              <li><span class="check-num">5</span>确认对比日期和时区一致</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">⚠️</span>
+            <span><strong>注意：</strong>GG 归因窗口默认 30d，与 Adjust 默认 7d 差异大，这是最常见的数字偏差来源。建议先对齐窗口再比较数据。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="media normal">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">TikTok</div>
+          <div class="platform-metric">安装数</div>
+          <div class="card-tags"><span class="tag tag-normal">方法论差异</span></div>
+        </div>
+        <div class="card-summary">TikTok 使用 Audience Reporting API 的 real_time_conversion 指标，与安装归因口径存在差异。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>排重/归因窗口与 Adjust 存在差异（点击 7d，展示 1d）</li>
+              <li>TikTok 使用 Audience Reporting API 的 real_time_conversion 指标，与安装归因有出入</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认归因窗口：点击 7d，展示 1d</li>
+              <li><span class="check-num">2</span>确认是否开启展示归因</li>
+              <li><span class="check-num">3</span>确认是否启用概率模型匹配</li>
+              <li><span class="check-num">4</span>确认数据分享回传配置正确</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">💡</span>
+            <span>TikTok API 指标差异：Adjust 用 real_time_conversion 作为渠道安装数，与 TT 后台展示的数字口径可能不同，属正常现象。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="media skan ios">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Apple Search Ads</div>
+          <div class="platform-metric">安装数</div>
+          <div class="card-tags"><span class="tag tag-ios">iOS</span><span class="tag tag-config">需配置</span></div>
+        </div>
+        <div class="card-summary">ASA 归因依赖 AdServices.framework，未接入则 ASA 安装无法被 Adjust 追踪。归因窗口为点击 30d。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>iOS ATT 限制：无 IDFA 设备走 SKAN，数据有延迟且聚合</li>
+              <li>归因窗口：点击 30d，展示 1d</li>
+              <li>AdServices.framework 未集成，导致 ASA 归因缺失</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认已添加 AdServices.framework</li>
+              <li><span class="check-num">2</span>确认归因窗口：点击 30d，展示 1d</li>
+              <li><span class="check-num">3</span>对比指标定义（ATT/SKAN 指标需区分）</li>
+              <li><span class="check-num">4</span>对比日期和时区是否一致</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="media">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">各平台通用</div>
+          <div class="platform-metric">事件数 / 收入</div>
+          <div class="card-tags"><span class="tag tag-config">配置排查</span></div>
+        </div>
+        <div class="card-summary">事件/收入差异通常是安装差异的延伸，建议先对齐安装数。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>安装数本身有差异（延伸问题）</li>
+              <li>事件未正确回传给媒体平台</li>
+              <li>回传事件未映射</li>
+              <li>币种不一致（收入类）</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>先确认安装数是否一致</li>
+              <li><span class="check-num">2</span>确认已开启事件回传</li>
+              <li><span class="check-num">3</span>确认回传事件已正确映射</li>
+              <li><span class="check-num">4</span>收入：确认币种一致，已回传收入事件</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /section 2 -->
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 3 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="3">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">三</div>
+    <div class="section-title">App Store / Google Play Store vs Adjust</div>
+    <div class="section-count">2 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="store normal">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">App Store / GP</div>
+          <div class="platform-metric">安装数（系统性）</div>
+          <div class="card-tags"><span class="tag tag-normal">正常现象</span></div>
+        </div>
+        <div class="card-summary">8 大系统性差异原因，均属正常现象，无法消除。Adjust 与应用商店数据统计口径根本不同，不可直接对比。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail highlight-normal">
+        <div class="detail-grid">
+          <div class="detail-box full">
+            <h4 class="cause"><span class="dot dot-cause"></span>8 大根本原因（均属正常现象，无需修复）</h4>
+            <ul class="cause-list">
+              <li><strong>下载 ≠ 安装：</strong>商店统计下载；Adjust 统计首次打开，部分用户下载后未打开</li>
+              <li><strong>时间/时区：</strong>商店记录下载时间；Adjust 记录首次打开时间（UTC），用户可能几天前下载今天才打开</li>
+              <li><strong>用户维度 vs 设备维度：</strong>商店按账号去重（同账号多设备=1次）；Adjust 按设备计算</li>
+              <li><strong>SDK 接入时间：</strong>上线后才接 Adjust SDK，老用户更新后被重新计为安装，持续数周后回落</li>
+              <li><strong>iOS 隐私授权：</strong>App Store 只统计同意分享数据给 Apple 的 iOS 8+ 用户（opt-in only）</li>
+              <li><strong>Google Play Service：</strong>无 GPS 设备的安装不被 GP 统计，但 Adjust 会统计</li>
+              <li><strong>防作弊逻辑不同：</strong>GP 与 Adjust 识别假量的标准不同，导致被拒绝的安装数不同</li>
+              <li><strong>归因逻辑不同：</strong>GP 自然量/非自然量是 GP 自己的归因，与 Adjust 的 Last-Click 归因逻辑完全不同</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>建议操作</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>明确"安装"定义后选择统一口径</li>
+              <li><span class="check-num">2</span>不建议直接将商店数据与 Adjust 数据对比</li>
+              <li><span class="check-num">3</span>若差异异常偏大，检查 SDK 版本覆盖情况</li>
+            </ul>
+          </div>
+          <div class="note-box">
+            <span class="note-icon">✅</span>
+            <span><strong>告知客户：</strong>Adjust 与应用商店数据统计口径根本不同，不可直接对比。这不是数据错误，是统计方法的本质差异。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="store normal android">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Google Play</div>
+          <div class="platform-metric">卸载数</div>
+          <div class="card-tags"><span class="tag tag-normal">正常现象</span><span class="tag tag-android">Android</span></div>
+        </div>
+        <div class="card-summary">Adjust 卸载统计有延迟（最长 1 周），且须以追踪到安装为前提，与 GP 口径不同。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail highlight-normal">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>Adjust 统计卸载的前提：已追踪到该设备的安装（首次打开）；GP 基于下载</li>
+              <li>Adjust 通过每日静默推送判断卸载，延迟最长 1 周；同一设备多次卸载只统计一次</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认双方卸载统计前提是否一致</li>
+              <li><span class="check-num">2</span>告知客户 Adjust 卸载数据有延迟（最长 1 周），属正常</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /section 3 -->
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 4 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="4">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">四</div>
+    <div class="section-title">SKAdNetwork (SKAN) vs Adjust</div>
+    <div class="section-count">1 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="skan ios normal">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">iOS SKAN</div>
+          <div class="platform-metric">转化值 / 安装数</div>
+          <div class="card-tags"><span class="tag tag-ios">iOS 14.5+</span><span class="tag tag-normal">隐私限制</span></div>
+        </div>
+        <div class="card-summary">SKAN 是 Apple 隐私框架，数据有延迟（≥24h）、隐私阈值（&gt;100安装/天/campaign）、仅聚合报表，与 Adjust 实时归因本质不同。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail highlight-normal">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li><strong>数据延迟：</strong>SKAN 回传至少延迟 24 小时</li>
+              <li><strong>隐私阈值：</strong>单个 campaign 每天安装 &lt;100 时，Apple 不返回数据</li>
+              <li><strong>数据聚合：</strong>SKAN 只有聚合报表，无法下钻到设备级别</li>
+              <li><strong>转化值配置：</strong>后台转化值未正确配置会导致转化值丢失</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认渠道账户关联完成且未过期（FB/Google/Twitter）</li>
+              <li><span class="check-num">2</span>后台指标选择"Total Installs(SKAN)"</li>
+              <li><span class="check-num">3</span>确认 App 已接入 StoreKit.framework</li>
+              <li><span class="check-num">4</span>后台已验证 App ID</li>
+              <li><span class="check-num">5</span>检查后台转化值配置</li>
+              <li><span class="check-num">6</span>确认流量满足隐私阈值（单 campaign/天 &gt;100 安装）</li>
+              <li><span class="check-num">7</span>告知客户 SKAN 数据有延迟，不能与实时数据直接对比</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">📌</span>
+            <span><strong>SKAN vs 可交付（Adjust）核心对比：</strong><br>
+              归因来源：SKAN = Apple 归因；可交付 = Adjust 归因<br>
+              数据延迟：SKAN ≥ 24h；可交付 = 实时<br>
+              数据精度：SKAN = 聚合（无设备级）；可交付 = 设备级<br>
+              用户识别：SKAN 无；可交付用 adid 排重
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 5 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="5">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">五</div>
+    <div class="section-title">Adjust 后台数据异常（内部问题排查）</div>
+    <div class="section-count">4 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Adjust 后台</div>
+          <div class="platform-metric">安装数为 0 / 异常偏低</div>
+          <div class="card-tags"><span class="tag tag-config">配置排查</span></div>
+        </div>
+        <div class="card-summary">最常见原因：误用 Sandbox 环境。确认环境是第一步。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>筛选条件错误：环境选了 Sandbox 而非 Production</li>
+              <li>App 版本未集成 Adjust SDK</li>
+              <li>SDK 初始化失败</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>首先确认后台环境筛选为"生产环境(Production)"而非 Sandbox</li>
+              <li><span class="check-num">2</span>确认时间范围和时区筛选正确</li>
+              <li><span class="check-num">3</span>确认 App Store 版本已集成 Adjust SDK</li>
+              <li><span class="check-num">4</span>输出 Verbose log 确认 SDK 初始化成功</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Adjust 后台</div>
+          <div class="platform-metric">事件数异常</div>
+          <div class="card-tags"><span class="tag tag-config">配置排查</span></div>
+        </div>
+        <div class="card-summary">确认埋点、上报、拦截规则三个方向。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>事件未正确埋点（SDK 未触发）</li>
+              <li>S2S 服务器上报异常</li>
+              <li>被转化规则/事件规则拦截</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认环境/时间筛选正确</li>
+              <li><span class="check-num">2</span>确认事件埋点逻辑正确</li>
+              <li><span class="check-num">3</span>检查转化规则和事件规则</li>
+              <li><span class="check-num">4</span>输出 Verbose log 查看事件上报日志</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Adjust 后台</div>
+          <div class="platform-metric">订阅事件/收入异常</div>
+          <div class="card-tags"><span class="tag tag-config">需主动配置</span></div>
+        </div>
+        <div class="card-summary">订阅监测不是默认开启的，需额外配置。未配置则后台不会有订阅数据。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>SDK 未集成订阅监测模块</li>
+              <li>未关联 App Store Connect 凭证或 Google 服务账户</li>
+              <li>未设置商店通知</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认 SDK 已集成订阅监测</li>
+              <li><span class="check-num">2</span>在后台关联 App Store Connect 凭证(iOS) / Google 服务账户(Android)</li>
+              <li><span class="check-num">3</span>配置 App Store 或 Google Play 的商店通知</li>
+              <li><span class="check-num">4</span>确认环境/时间筛选正确</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">Adjust 后台</div>
+          <div class="platform-metric">点击/展示数异常</div>
+          <div class="card-tags"><span class="tag tag-config">配置排查</span></div>
+        </div>
+        <div class="card-summary">确认数据源筛选和渠道账户关联状态。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>数据源筛选错误（渠道/归因来源未正确选择）</li>
+              <li>渠道账户关联未完成或已过期</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认数据源筛选（渠道/归因来源）</li>
+              <li><span class="check-num">2</span>检查渠道账户关联状态，确认账户未过期</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 6 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="6">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">六</div>
+    <div class="section-title">原始数据回调（Raw Data Postback）异常</div>
+    <div class="section-count">1 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">原始数据回调</div>
+          <div class="platform-metric">安装/事件/收入回调</div>
+          <div class="card-tags"><span class="tag tag-config">配置排查</span></div>
+        </div>
+        <div class="card-summary">先确认 Adjust 后台是否有数据，再检查回传配置和 IP 白名单。聚合广告收入不支持原始回调。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>Adjust 后台本身无数据（回调自然为空）</li>
+              <li>服务器回传/云储存配置错误</li>
+              <li>客户服务器 IP 白名单未放行 Adjust IP</li>
+              <li>聚合广告收入不支持广告收入回调（产品限制）</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>先确认 Adjust 后台是否有对应数据<br><small style="color:#999">→ 有数据：检查回传 URL 和服务器配置<br>→ 无数据：先排查数据本身</small></li>
+              <li><span class="check-num">2</span>确认 Adjust IP 已加入白名单</li>
+              <li><span class="check-num">3</span>确认服务器回传/云储存配置正确</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">⚠️</span>
+            <span><strong>注意：</strong>聚合广告收入（如 AdMob 等广告变现）不支持原始回调，这是产品限制，非配置问题。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 7 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="7">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">七</div>
+    <div class="section-title">广告聚合平台 vs Adjust（广告收入）</div>
+    <div class="section-count">1 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">广告聚合平台</div>
+          <div class="platform-metric">广告收入</div>
+          <div class="card-tags"><span class="tag tag-config">需单独对接</span></div>
+        </div>
+        <div class="card-summary">广告变现收入需单独对接（SDK/API），与事件收入不同，需确认对接方式是否成功。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>根本原因</h4>
+            <ul class="cause-list">
+              <li>Ad Revenue SDK/API 未正确集成</li>
+              <li>后台广告收入来源筛选器设置不正确</li>
+              <li>统计日期和时区不一致</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>排查清单</h4>
+            <ul class="check-list">
+              <li><span class="check-num">1</span>确认 Ad Revenue 已通过 SDK 或 API 正确对接</li>
+              <li><span class="check-num">2</span>检查 Adjust 后台数据配置项中的广告收入来源筛选器</li>
+              <li><span class="check-num">3</span>确认对比日期和时区一致</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 8 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="section" data-section="8">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-num">八</div>
+    <div class="section-title">概念补充说明（供客户参考）</div>
+    <div class="section-count">2 项</div>
+    <svg class="chevron open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div class="section-body">
+
+    <div class="card" data-tags="bi media adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">再归因</div>
+          <div class="platform-metric">Reattribution</div>
+          <div class="card-tags"><span class="tag tag-config">概念说明</span></div>
+        </div>
+        <div class="card-summary">非活跃用户（超过设定天数未打开）通过新广告来源重新打开 App，与卸载无关。会影响渠道数据分布。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box full">
+            <h4 class="cause"><span class="dot dot-cause"></span>概念说明</h4>
+            <ul class="cause-list">
+              <li><strong>定义：</strong>非活跃用户（超过设定的非活跃天数阈值，默认 10 天未打开）通过新的广告来源重新打开 App = 产生一次再归因</li>
+              <li><strong>注意：</strong>与卸载无关，无需卸载重装</li>
+              <li><strong>示例：</strong>用户从渠道 A 安装，10 天后未打开（变为非活跃），点击渠道 B 广告进来 → 产生渠道 B 的再归因，后续事件计入渠道 B</li>
+              <li><strong>配置入口：</strong>后台 &gt; 所有设置 &gt; 归因 &gt; 再归因（可设置非活跃用户定义天数 + 再归因归因窗口）</li>
+            </ul>
+          </div>
+          <div class="note-box full">
+            <span class="note-icon">💡</span>
+            <span>再归因会影响渠道数据分布。若某渠道事件数异常增加，需检查是否有大量再归因发生。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-tags="bi media adjust">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-platform">
+          <div class="platform-name">归因来源</div>
+          <div class="platform-metric">动态 vs 第一</div>
+          <div class="card-tags"><span class="tag tag-config">概念说明</span></div>
+        </div>
+        <div class="card-summary">两种模式口径不同，不要混用后对比数据：第一=初始安装来源；动态=当前归因来源（含再归因）。</div>
+        <svg class="card-expand-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="card-detail">
+        <div class="detail-grid">
+          <div class="detail-box">
+            <h4 class="cause"><span class="dot dot-cause"></span>概念说明</h4>
+            <ul class="cause-list">
+              <li><strong>第一 (First)：</strong>用户首次安装时的归因渠道，查看用户最初从哪里来</li>
+              <li><strong>动态 (Dynamic)：</strong>用户当前的归因来源，含安装+再归因，用于分析召回广告效果</li>
+              <li><strong>动态模式：</strong>0d 同期群大小 = 安装数 + 再归因数（Organic 不含再归因）</li>
+              <li><strong>第一模式：</strong>每个渠道下（含 Organic）都可能有再归因</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <h4 class="checklist"><span class="dot dot-check"></span>使用建议</h4>
+            <ul class="check-list">
+              <li><span class="check-num">✓</span>分析新用户获取效果 → 用"第一"</li>
+              <li><span class="check-num">✓</span>分析召回/再营销效果 → 用"动态"</li>
+              <li><span class="check-num">!</span>两种模式口径不同，不要混用后对比数据</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /section 8 -->
+
+<div class="no-results" id="noResults">
+  <div style="font-size: 48px; margin-bottom: 12px;">🔍</div>
+  <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">未找到匹配结果</div>
+  <div>尝试其他关键词或切换筛选条件</div>
+</div>
+
+</div><!-- /main -->
+
+<footer class="footer">
+  Adjust 数据差异排查总表 · 整合自 checklist、CTS 模板及媒体平台差异说明
+</footer>
+
+<script>
+// ── Section toggle ──
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  body.classList.toggle('collapsed');
+  chevron.classList.toggle('open');
+}
+
+// ── Card toggle ──
+function toggleCard(header) {
+  const detail = header.nextElementSibling;
+  const icon = header.querySelector('.card-expand-icon');
+  const isOpen = detail.classList.contains('open');
+  detail.classList.toggle('open', !isOpen);
+  icon.classList.toggle('open', !isOpen);
+}
+
+// ── Toggle all ──
+let allOpen = true;
+document.getElementById('toggleAll').addEventListener('click', function() {
+  allOpen = !allOpen;
+  document.querySelectorAll('.section-body').forEach(b => b.classList.toggle('collapsed', !allOpen));
+  document.querySelectorAll('.chevron').forEach(c => c.classList.toggle('open', allOpen));
+  this.textContent = allOpen ? '全部折叠' : '全部展开';
+});
+
+// ── Filter chips ──
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+    applyFilters();
+  });
+});
+
+// ── Search ──
+document.getElementById('search').addEventListener('input', applyFilters);
+
+function applyFilters() {
+  const query = document.getElementById('search').value.toLowerCase().trim();
+  const activeChip = document.querySelector('.chip.active');
+  const filter = activeChip ? activeChip.dataset.filter : 'all';
+
+  let anyVisible = false;
+
+  document.querySelectorAll('.card').forEach(card => {
+    const tags = (card.dataset.tags || '').split(' ');
+    const text = card.textContent.toLowerCase();
+
+    const tagMatch = filter === 'all' || tags.includes(filter);
+    const textMatch = !query || text.includes(query);
+
+    const show = tagMatch && textMatch;
+    card.classList.toggle('hidden', !show);
+    if (show) anyVisible = true;
+
+    // highlight search terms
+    if (query && show) {
+      highlightText(card, query);
+    } else {
+      removeHighlights(card);
+    }
+  });
+
+  // Show/hide sections with no visible cards
+  document.querySelectorAll('.section').forEach(section => {
+    const visibleCards = section.querySelectorAll('.card:not(.hidden)');
+    section.classList.toggle('hidden', visibleCards.length === 0);
+  });
+
+  document.getElementById('noResults').classList.toggle('show', !anyVisible);
+}
+
+function highlightText(el, query) {
+  removeHighlights(el);
+  if (!query) return;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const idx = node.textContent.toLowerCase().indexOf(query);
+    if (idx >= 0 && node.parentElement.tagName !== 'MARK') {
+      const span = document.createElement('span');
+      span.innerHTML = node.textContent.replace(new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<mark>${m}</mark>`);
+      node.parentNode.replaceChild(span, node);
+    }
+  });
+}
+
+function removeHighlights(el) {
+  el.querySelectorAll('mark').forEach(m => {
+    const text = document.createTextNode(m.textContent);
+    m.parentNode.replaceChild(text, m);
+  });
+  // normalize text nodes
+  el.normalize();
+}
+</script>
+</body>
+</html>

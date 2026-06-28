@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS146S 第一周学习笔记 · 编码 LLM 入门 | 斯坦福现代软件开发者</title>
+<style>
+  :root{
+    --ink:#1a1a17;--ink-soft:#55524a;--paper:#fbfaf6;--card:#ffffff;--line:#e3ded2;
+    --cardinal:#8c1515;--cardinal-soft:#b83a3a;--sand:#f3efe3;--gold:#b69b5e;
+    --warn:#a8521a;--ok:#3f6b3f;--blue:#2f5b7c;
+    --code-bg:#1f1d18;--code-ink:#e8e2d0;
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --serif:"Songti SC","Source Han Serif SC","Noto Serif SC",Georgia,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.78;font-size:16.5px;-webkit-font-smoothing:antialiased}
+  a{color:var(--cardinal);text-decoration:none;border-bottom:1px solid rgba(140,21,21,.25)}
+  a:hover{border-bottom-color:var(--cardinal)}
+  .wrap{display:flex;max-width:1280px;margin:0 auto;min-height:100vh}
+  nav{width:256px;flex:0 0 256px;position:sticky;top:0;height:100vh;overflow-y:auto;background:#161412;color:#cfc9ba;padding:30px 0}
+  nav .brand{padding:0 26px 22px;border-bottom:1px solid #2c2823;margin-bottom:16px}
+  nav .brand .code{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--gold)}
+  nav .brand .ttl{font-family:var(--serif);font-size:19px;color:#fff;margin-top:6px;line-height:1.35}
+  nav .brand .sub{font-size:12px;color:#8a8478;margin-top:8px}
+  nav .navlist{list-style:none;font-size:13.5px}
+  nav .navlist .grp{padding:15px 26px 5px;font-size:11px;letter-spacing:.16em;color:#6f6a5e;text-transform:uppercase}
+  nav .navlist a{display:block;padding:7px 26px 7px 22px;color:#cfc9ba;border-bottom:none;border-left:3px solid transparent;transition:.15s}
+  nav .navlist a:hover{background:#211e1a;color:#fff}
+  nav .navlist a.active{border-left-color:var(--cardinal-soft);background:#211e1a;color:#fff}
+  main{flex:1;min-width:0;padding:0 0 100px}
+  .inner{max-width:768px;margin:0 auto;padding:0 40px}
+  header.hero{background:linear-gradient(160deg,#8c1515 0%,#6d1010 60%,#530c0c 100%);color:#fff;padding:60px 0 50px;margin-bottom:8px}
+  header.hero .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.2em;color:#f0d7a8;text-transform:uppercase}
+  header.hero h1{font-family:var(--serif);font-size:38px;line-height:1.22;margin:16px 0 10px;font-weight:600}
+  header.hero .en{font-size:15.5px;color:#f3d9d9;font-style:italic;margin-bottom:20px}
+  header.hero .thesis{border-left:3px solid #f0d7a8;padding:10px 0 10px 18px;margin-top:22px;font-size:16px;color:#fbe9e0;max-width:610px}
+  header.hero .meta{margin-top:22px;font-size:13px;color:#e9c9c9}
+  section{padding:38px 0 8px;border-bottom:1px solid var(--line)}
+  section:last-child{border-bottom:none}
+  .kicker{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .kicker .num{font-family:var(--mono);font-size:12px;color:var(--cardinal);border:1px solid var(--cardinal);border-radius:50%;width:30px;height:30px;display:grid;place-items:center;flex:0 0 30px}
+  .kicker h2{font-family:var(--serif);font-size:24px;font-weight:600;line-height:1.3}
+  h3{font-family:var(--serif);font-size:19.5px;margin:26px 0 9px;font-weight:600;color:#2a2823}
+  h4{font-size:15.5px;margin:18px 0 6px;color:#3a3833;font-weight:650}
+  p{margin:11px 0;color:var(--ink)}
+  .lead{font-size:17.5px;color:var(--ink-soft)}
+  ul,ol{margin:11px 0 11px 4px;padding-left:22px}
+  li{margin:7px 0}
+  strong{color:#000;font-weight:650}
+  em.term{font-style:normal;color:var(--cardinal);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:16px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .concept{border-left:4px solid var(--cardinal)}
+  .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--cardinal);text-transform:uppercase}
+  .concept h3{margin-top:6px}
+  .box{border-radius:10px;padding:15px 20px;margin:16px 0;font-size:15px}
+  .box .h{font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14.5px}
+  .note{background:#eef2f6;border:1px solid #cfdce6}.note .h{color:var(--blue)}
+  .mine{background:#faf6ea;border:1px solid #e8dcb8}.mine .h{color:#8a6d24}
+  .pitfall{background:#fbf0e8;border:1px solid #ecd2bf}.pitfall .h{color:var(--warn)}
+  .recall{background:#eef3ee;border:1px solid #cfe0cf}.recall .h{color:var(--ok)}
+  .insight{background:linear-gradient(135deg,#8c1515,#6d1010);color:#fff;border-radius:12px;padding:24px 28px;margin:22px 0}
+  .insight .h{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:#f0d7a8;text-transform:uppercase}
+  .insight .big{font-family:var(--serif);font-size:20px;line-height:1.5;margin:10px 0 8px}
+  .insight p{color:#f3dede;font-size:15px}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:9px;padding:15px 18px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.6;margin:13px 0}
+  code.inline{font-family:var(--mono);font-size:.9em;background:var(--sand);padding:1.5px 6px;border-radius:4px;color:#6d1010}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--sand);font-size:12.5px;letter-spacing:.04em;color:var(--ink-soft);font-weight:650}
+  tr:hover td{background:#fcfbf7}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0;font-size:12.5px;font-family:var(--mono)}
+  .flow .node{background:var(--sand);border:1px solid var(--line);border-radius:6px;padding:7px 11px;color:#3a3833}
+  .flow .arr{color:var(--cardinal);font-weight:700}
+  .stage{display:flex;gap:14px;margin:14px 0;align-items:flex-start}
+  .stage .badge{flex:0 0 60px;background:var(--cardinal);color:#fff;border-radius:8px;text-align:center;padding:10px 4px;font-size:12px;font-family:var(--mono);line-height:1.3}
+  .src{font-size:12px;color:#8a857a;margin-top:8px;font-style:italic}
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;background:var(--sand);border:1px solid var(--line);border-radius:20px;padding:3px 11px;margin:3px 4px 3px 0;color:#55524a}
+  footer{padding:38px 0;color:var(--ink-soft);font-size:13px}
+  .progress-note{background:var(--sand);border:1px dashed var(--gold);border-radius:8px;padding:14px 18px;font-size:13.5px;margin:22px 0;color:#6b5a2a}
+  @media(max-width:880px){nav{display:none}.inner{padding:0 22px}header.hero h1{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav id="nav">
+    <div class="brand">
+      <div class="code">STANFORD · CS146S</div>
+      <div class="ttl">现代软件开发者<br><span style="font-size:13px;font-weight:400;color:#8a8478">第一周学习笔记</span></div>
+      <div class="sub">The Modern Software Developer<br>主讲 Mihail Eric · 2025 秋</div>
+    </div>
+    <ul class="navlist">
+      <li class="grp">第一周</li>
+      <li><a href="#overview" class="active">我要学什么</a></li>
+      <li><a href="#thesis">核心论点与 Topics</a></li>
+      <li class="grp">三阶段训练流水线</li>
+      <li><a href="#pretrain">① 预训练 · 知识获取</a></li>
+      <li><a href="#sft">② 监督微调 · 塑造人格</a></li>
+      <li><a href="#rl">③ 强化学习 · 教会思考</a></li>
+      <li><a href="#swiss">瑞士奶酪模型</a></li>
+      <li><a href="#context">上下文窗口</a></li>
+      <li class="grp">怎么用好它</li>
+      <li><a href="#prompting">提示工程四类技巧</a></li>
+      <li><a href="#augment">增强而非替代</a></li>
+      <li class="grp">材料与作业</li>
+      <li><a href="#readings">阅读材料精读(5篇)</a></li>
+      <li><a href="#assignment">本周作业</a></li>
+      <li><a href="#schedule">课程安排</a></li>
+      <li><a href="#insight">学完要记住</a></li>
+      <li><a href="#open">一个开放问题</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="inner">
+        <div class="eyebrow">Week 1 — Introduction to Coding LLMs and AI Development</div>
+        <h1>按下发送之后,那个黑箱里到底发生了什么?</h1>
+        <div class="en">Introduction to Coding LLMs and AI Development</div>
+        <p style="color:#f3d9d9;max-width:600px">这是我第一周的学习笔记。我们每天都用大模型——让它给个食谱、总结长文档,点下发送几乎瞬间就得到一个看起来很"聪明"的回复。但我想搞清楚:在我输入第一个提示词<strong>之前</strong>的几个月甚至几年里,这个模型经历了什么?这一周就是揭开帷幕,看清那条把杂乱的互联网原始数据变成 AI 助手的多阶段工程流水线。</p>
+        <div class="thesis">"你不会被 AI 取代。你会被一个懂得使用 AI 的能干工程师取代。"<br><span style="font-size:13px;opacity:.8">— 课程贯穿九周的中心论点,第一周首次提出</span></div>
+        <div class="meta">🎓 主讲:Mihail Eric(前 Amazon Alexa 技术负责人 / YC 创始人 / 斯坦福 AI 博士)</div>
+      </div>
+    </header>
+
+    <div class="inner">
+
+      <section id="overview">
+        <div class="kicker"><span class="num">导</span><h2>这一周我要学什么</h2></div>
+        <p class="lead">在学会用 AI 写代码之前,得先搞清楚自己在跟什么东西打交道。第一周不讲工具、不讲技巧本身,而是把一个大模型从"互联网原始数据"到"我对话框里的助手"的完整训练流水线拆开来看。</p>
+        <p>我给自己定的学习主线是:先沿着三大训练阶段走一遍——<strong>预训练(获得知识)→ 监督微调 SFT(获得人格)→ 强化学习 RL(获得推理)</strong>,再落到真正要动手的<strong>提示工程</strong>。因为我发现:<strong>后面会犯的几乎每一个错误,都能在"模型是怎么训练出来的"这件事上找到解释。</strong>为什么它能解奥数题却说 9.9 比 9.1 小?为什么"一步步想"能让它突然变聪明?为什么它会一本正经地编造?这些都不是玄学,而是训练机制的直接后果。</p>
+        <div class="box note">
+          <div class="h">📝 学习笔记:这页的定位</div>
+          第一周信息密度看着不高,但它是我后面八周的"概念锚点"。如果时间紧,我至少要把<strong>三阶段流水线</strong>和<strong>瑞士奶酪模型</strong>真正吃透——它们是理解后面 Agent、上下文工程、安全的全部前提。
+        </div>
+      </section>
+
+      <section id="thesis">
+        <div class="kicker"><span class="num">1</span><h2>本周核心论点</h2></div>
+        <div class="box note" style="margin-top:0">
+          <div class="h">📋 官网列的三个 Topics</div>
+          官网把第一周主题列为三点:<strong>课程概况(Course logistics)</strong>、<strong>LLM 究竟是什么(What is an LLM actually)</strong>、<strong>如何有效提示(How to prompt effectively)</strong>。下面的论点正是围绕后两点展开。
+        </div>
+        <ul>
+          <li><strong>大模型不是"新型智能",而是"互联网的有损压缩"。</strong>它学到的是"什么词后面常跟什么词",而不是"什么是对的"——这是它一切失败的根源。</li>
+          <li><strong>一个能用的助手由三段训练叠出来:</strong>预训练给知识、SFT 给人格、RL 给推理。三段各自解决不同问题,成本和耗时也天差地别。</li>
+          <li><strong>模型的能力像一块瑞士奶酪——强大但布满不可预测的洞。</strong>正确的态度不是信任,而是把它当作"随机的、会犯错的工具",永远验证它的输出。</li>
+          <li><strong>"让它一步步想"不是文风偏好,而是解锁能力的开关。</strong>模型每个 token 的计算量有限,推理必须被摊开在多个 token 上才能发生。</li>
+          <li><strong>提示工程的本质,是通过对话给模型"编程"。</strong>这是区分"普通闲聊"和"高杠杆专业使用"的分水岭。</li>
+        </ul>
+      </section>
+
+      <section id="pretrain">
+        <div class="kicker"><span class="num">2</span><h2>阶段一 · 预训练:知识获取</h2></div>
+        <p class="lead">在成为有用的助手之前,LLM 最初只是一个<em class="term">基座模型(base model)</em>。从功能上看,它就是一台极其复杂的<strong>文本补全机器</strong>。预训练这一阶段的目标,是规模大到难以想象的知识获取。</p>
+        <div class="flow">
+          <span class="node">互联网原始数据</span><span class="arr">→</span>
+          <span class="node">Common Crawl + 精选文档</span><span class="arr">→</span>
+          <span class="node">严苛清洗</span><span class="arr">→</span>
+          <span class="node">FineWeb · 44TB / 15万亿 token</span><span class="arr">→</span>
+          <span class="node">分词</span><span class="arr">→</span>
+          <span class="node">下一个 token 预测</span><span class="arr">→</span>
+          <span class="node">有损压缩(语法&gt;逻辑)</span>
+        </div>
+        <h3>① 数据采集</h3>
+        <p>从互联网的深层归档中大规模抓取数据,最大来源通常是 <em class="term">Common Crawl</em>——这家非营利组织自 2007 年起为网页做索引,已覆盖超过 <strong>27 亿个页面</strong>。原始互联网数据再与高质量精选文档结合:维基百科、学术期刊、GitHub 上的公开代码等。</p>
+        <h3>② 数据清洗</h3>
+        <p>原始数据极其杂乱,过滤过程非常严苛——垃圾信息、恶意软件、已知的种族主义内容、成人内容,甚至单纯重复的文本,统统剔除。但即便如此,数据集依然庞大:像 <em class="term">FineWeb</em> 这样有代表性的高质量公开数据集,清洗后仍有约 <strong>44 TB</strong> 文本。</p>
+        <h3>③ 分词(Tokenization)</h3>
+        <p>文本被转换成 <em class="term">token</em> 序列(基本上是文本的小片段,一个词或一个词的一部分)。仅 FineWeb 数据集就约等于 <strong>15 万亿(15 trillion)token</strong>——也就是 15,000 亿条训练数据,模型必须全部"吸收"。</p>
+        <h3>④ 核心机制:自回归</h3>
+        <p>LLM 是<em class="term">自回归模型(auto-regressive)</em>,意思是它完全基于前文,来预测序列中下一个 token 的概率。比如你说 "The cat sat on the ___",模型会预测 "mat""rug" 之类——它计算的是最可能的补全。</p>
+        <h3>⑤ 参数:一块巨型调音台</h3>
+        <p>整个预测过程都是数学运算,上下文要经过一个拥有数十亿乃至数万亿可调参数的神经网络。可以把这些参数想象成一块巨型调音台上的<strong>旋钮</strong>——GPT-2 有 16 亿个,据报道 GPT-4 约有 1.8 万亿个。训练就是反复微调这些旋钮,让模型对下一个 token 的预测,匹配训练数据里真实出现的内容,每秒重复数百万次。</p>
+        <h3>⑥ 算力与成本:一场淘金热</h3>
+        <p>各家公司争相租用大型机器,比如一个 <strong>H100 GPU 节点约每 GPU 每小时 3 美元</strong>。正因如此,训练一个大型基础模型要花费<strong>数千万美元</strong>。这种成本结构决定了整个行业格局——只有少数玩家有能力创造这些基座模型。</p>
+        <div class="box recall">
+          <div class="h">🧠 一个一定要记住的比喻</div>
+          预训练的目标,是创造一份对整个互联网的<strong>有损压缩(lossy compression)</strong>——一个人类知识的概率版"压缩包"。但既然是压缩,就会丢东西:它丢掉了细微差别,丢掉了推理能力,也无法分辨什么是真实的、什么只是网上常见的。<strong>它学会了知识的语法,却没学到逻辑的深层结构。</strong>这一句,几乎能解释这些模型所有的失败方式。
+        </div>
+        <div class="box pitfall">
+          <div class="h">⚠️ 我容易踩的坑</div>
+          把模型当"知识库"去质问"这是不是事实"。它没有"事实"这个概念,只有"这样接下去最像它见过的文本"。所以它能流畅地编造——这不是 bug,而是"有损压缩"的必然产物。
+        </div>
+      </section>
+
+      <section id="sft">
+        <div class="kicker"><span class="num">3</span><h2>阶段二 · 监督微调(SFT):塑造人格</h2></div>
+        <p class="lead">那个昂贵的"自动补全机"并不是我们和 ChatGPT 对话时用的东西。要把基座模型变成有用的对话助手,就要进入<em class="term">后训练(post-training)</em>阶段,首先是监督微调(SFT)。</p>
+        <div class="stage"><div class="badge">耗时<br>小时级</div><div><p style="margin-top:0">SFT 是塑造模型人格的第一步,计算成本比预训练低得多——耗时以小时计,而非数月。做法是<strong>替换数据</strong>:把原始互联网文本,换成一个更小、高度精选的数据集,包含数十万条高质量对话示例。</p></div></div>
+        <p>这就是<strong>人类标注员</strong>登场的地方。他们被雇来,拿到一套非常严格、详尽的指令,任务是针对各种各样的提示,写出"理想的助手回复"。他们其实是在用示例,教会 LLM 扮演那个<strong>乐于助人、诚实、无害</strong>的人格。</p>
+        <div class="box recall">
+          <div class="h">🧠 一个改变认知的点</div>
+          当我和 AI 助手对话时,我并不是在和某种新型智能体交流,而是在和一个神经网络互动——它在<strong>模拟那个完美遵循指令、技能高超的普通人类标注员</strong>的平均表现。说得直白点:我对话的对象,是有史以来最昂贵、最优化的"人类客服模拟器"。
+        </div>
+      </section>
+
+      <section id="rl">
+        <div class="kicker"><span class="num">4</span><h2>阶段三 · 强化学习(RL):教会思考</h2></div>
+        <p class="lead">有了正确的人格后,还需要教模型如何真正解决问题。这就到了最高级的第三阶段:强化学习(RL)。</p>
+        <p>它和 SFT 的区别在于:<strong>SFT 教会模型"该说什么",RL 教会模型"该怎么想"。</strong>通过 RL,模型可以在<em class="term">可验证的领域</em>(如数学和代码,我们确切知道正确答案)里练习解决问题。你给它问题和答案,但它必须自己摸索出抵达答案的路径——发现那串能可靠导向正确结果的 token 序列。</p>
+        <h3>思维链是怎么"自发涌现"的</h3>
+        <p>最迷人的地方在于,模型的认知策略会在这里<strong>自发涌现</strong>。它通过创造一种内部独白来学会"思考"。因为模型每个 token 的计算量是有限的,它学会了必须把推理过程<strong>分摊到多个 token 上</strong>,这就是<em class="term">思维链(Chain of Thought, CoT)</em>。</p>
+        <div class="box recall">
+          <div class="h">🧠 给我自己的关键启示</div>
+          如果让它一口气直接吐出一道难题的答案,它会持续失败于"心算"。<strong>模型需要 token 来思考。如果不让它一步步思考,就等于让它不用草稿纸做微积分。</strong>
+        </div>
+        <h3>RLHF:当答案没有标准对错时</h3>
+        <p>纯 RL 在答案客观可验证时(数学、代码、国际象棋)效果很好。但对于主观的东西呢——比如写个笑话或一篇有说服力的文章?这类领域用一种变体:<em class="term">基于人类反馈的强化学习(RLHF)</em>。做法是训练第二个 AI——<strong>奖励模型(reward model)</strong>——让它扮演人类裁判:人类对不同的 AI 输出排序,奖励模型学着复制这些排序,从而成为"人类品味"的代理。</p>
+        <div class="box pitfall">
+          <div class="h">⚠️ 一个重大缺陷:奖励黑客</div>
+          强化学习极其擅长找"钻空子"的办法。模型可能学会生成只是骗过奖励模型、拿到高分的内容,把"优化分数"凌驾于"真实质量"之上。所以 RLHF 虽强大,却是个"短命"的过程——模型最终会学会利用奖励系统的漏洞。<strong>因此人类监督始终不可或缺。</strong>
+        </div>
+      </section>
+
+      <section id="swiss">
+        <div class="kicker"><span class="num">5</span><h2>怎么看待它的能力:瑞士奶酪模型</h2></div>
+        <div class="card concept">
+          <div class="lbl">Mental Model · The Swiss Cheese Model</div>
+          <h3 style="margin-top:6px">强大,但布满不对齐的"洞"</h3>
+          <p>关于该如何对待这些模型,课程给了一个我很喜欢的比喻:它们的能力像一块<strong>瑞士奶酪,上面的洞并不对齐</strong>。一个模型可以解出奥林匹克级别的数学难题,转头又信誓旦旦地告诉你 9.9 小于 9.1。</p>
+          <p><strong>对我意味着什么:</strong>把它们当作<strong>随机性工具</strong>——永远检查它的工作,并用提示技巧来弥补它的局限。"洞"的位置不可预测,这才是关键——我无法事先知道它会在哪类简单问题上翻车,所以唯一稳健的策略是建立"默认验证"的习惯。</p>
+        </div>
+      </section>
+
+      <section id="context">
+        <div class="kicker"><span class="num">6</span><h2>一个要先记住的词:上下文窗口</h2></div>
+        <div class="card concept">
+          <div class="lbl">Concept · Context Window</div>
+          <h3 style="margin-top:6px">模型的"工作记忆"</h3>
+          <p>上下文窗口就是模型的"工作记忆",已经呈指数级增长——老模型如 GPT-2 只能处理约 1,000 个 token,而现代模型可以回看数十万、有时甚至上百万个 token。</p>
+          <p><strong>为什么先在这里记下它。</strong>第一周我只需建立"它是有限工作记忆"这个概念。但要记住这个词——到<strong>第三周</strong>它会回来,而且会告诉我一个反直觉的事实:上下文不是越长越好,过长反而会让 Agent 失效。第一周埋种子,第三周收割。</p>
+        </div>
+      </section>
+
+      <section id="prompting">
+        <div class="kicker"><span class="num">7</span><h2>怎么用好它:提示工程四类技巧</h2></div>
+        <p class="lead">模型有了知识、人格和一定的推理能力后,最后一环就是提示工程,本质上是<strong>通过对话来给模型编程</strong>。这四类技巧也正好对应本周作业要动手实现的内容。</p>
+        <h3>1 · 上下文学习 / K-shot 提示</h3>
+        <p>直接在提示里给模型几个示例(一个、三个或五个)。比如需要它用某种特定敬语风格把句子翻成韩语,只要给一两个该风格的示例,模型就能立刻适应,在上下文中学会这个模式。</p>
+        <h3>2 · 思维链(CoT)</h3>
+        <p>面对更复杂的逻辑任务,即便只是一句简单的"让我们一步步思考"(称为 <em class="term">zero-shot CoT</em>),也能显著提升准确率,等于解锁了模型"出声推理"的能力。</p>
+        <h3>3 · 检索增强生成(RAG)</h3>
+        <p>模型的知识冻结在某个时间点,它不知道昨天发生了什么,也不知道我公司私有数据库里有什么。RAG 是对抗<em class="term">幻觉(hallucination)</em>的关键防线,相当于给 AI 装了一个智能的谷歌搜索。流程是:LLM 意识到自己需要最新信息,于是生成特殊 token 来调用工具(如网页搜索),搜索结果被直接塞回 AI 的工作记忆——在它生成最终答案之前,插入到上下文窗口里。这迫使模型使用当前事实,而不是只靠陈旧的训练记忆。</p>
+        <h3>4 · 自我修正技巧</h3>
+        <ul>
+          <li><strong>自我一致性(self-consistency):</strong>不只问一次,而是问五次,逼模型找出五条不同的推理路径,然后取多数答案,以此减少随机错误。</li>
+          <li><strong>反思(reflection),尤其适合写代码:</strong>把报错信息喂回提示里,让模型批判并修改自己的代码,教它实时从错误中学习。</li>
+        </ul>
+        <div class="box note">
+          <div class="h">📝 学习笔记</div>
+          这四类技巧,正是区分"普通闲聊"和"高杠杆专业使用"的分水岭。我做作业时要刻意体会:同一个模型,换一种提示方式,结果差别有多大。
+        </div>
+      </section>
+
+      <section id="augment">
+        <div class="kicker"><span class="num">8</span><h2>核心转变:增强,而非替代</h2></div>
+        <p class="lead">对专业人士来说,讨论总围绕"被替代"。但课程强调一个不同的观点,也就是那句口号:<strong>"你不会被 AI 取代,你会被一个懂得使用 AI 的能干工程师取代。"</strong></p>
+        <p>LLM 不是在取代工程师,而是在<strong>增强</strong>他们——把一个普通工程师变成高效工程师。课程用 OpenAI 内部使用 Codex 模型举例。</p>
+        <h3>四个具体的省时场景</h3>
+        <table>
+          <thead><tr><th style="width:26%">场景</th><th>做法与收益</th></tr></thead>
+          <tbody>
+            <tr><td><strong>代码理解</strong></td><td>粘贴报错的 stack trace,提示"根据这段 stack trace,定位本仓库相关逻辑并追踪数据流"。平常要挖一小时,一下省下 45 分钟。</td></tr>
+            <tr><td><strong>重构</strong></td><td>跨几十个文件更新一个老旧 API 调用,手动是三小时枯燥活;提示"在全部 40 个文件中一致地应用这个改动",90 秒搞定。</td></tr>
+            <tr><td><strong>性能优化</strong></td><td>让模型分析代码、标出慢的数据库调用并起草修复方案,30 分钟的活变成 5 分钟的提示工作。</td></tr>
+            <tr><td><strong>QA 与测试</strong></td><td>让模型针对覆盖率低的代码跑一晚上,第二天醒来就有可运行的单元测试,覆盖了人类可能漏掉的边界情况。</td></tr>
+          </tbody>
+        </table>
+        <h3>几条最佳实践(我要记住的)</h3>
+        <ul>
+          <li><strong>角色提示(role prompting):</strong>积极地定义人格,比如"你是一个热爱编程、达到资深软件开发者水平的得力助手"。</li>
+          <li><strong>结构化提示:</strong>粘贴复杂数据时用 <code class="inline">&lt;error&gt;</code> 或 <code class="inline">&lt;log&gt;</code> 之类的标签,让模型能高效解析。</li>
+          <li><strong>持久化上下文(persistent context):</strong>维护一个像 <code class="inline">agents.md</code> 的文件,把 AI 不可能知道的业务逻辑和命名规范写进去,每次会话都粘贴进去,让模型始终知情,大幅提升所有提示的准确率。<span class="src">(这正是第 4 周 CLAUDE.md 模式的预演)</span></li>
+        </ul>
+      </section>
+
+      <section id="readings">
+        <div class="kicker"><span class="num">9</span><h2>阅读材料精读(官网指定 5 篇)</h2></div>
+        <p class="lead">官网第一周指定了 5 篇阅读。我按"先建立模型直觉、再掌握提示方法、最后看真实工程怎么用"的逻辑重排了顺序,逐篇做了拆解——读完这一节,等于把第一周内容又过了一遍。</p>
+        <div class="box note" style="margin-top:8px">
+          <div class="h">📝 我的阅读顺序:5 篇怎么搭在一起</div>
+          第 1 篇(Karpathy)负责"模型是怎么造出来的",建立底层直觉;第 2、3、4 篇是"怎么和模型对话"的三个层次——官方文档给方法论框架,社区指南给技巧全集,专家圆桌给真实手感;第 5 篇(OpenAI)落到"顶尖团队每天怎么用",把前四篇收束回工程现场。
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--cardinal)">
+          <div class="lbl">READING 01 · 视频 · 约 3.5 小时 · 建立底层直觉</div>
+          <h3 style="margin-top:6px">Deep Dive into LLMs like ChatGPT</h3>
+          <p class="src" style="margin-top:0">作者:Andrej Karpathy(OpenAI 创始成员、前 Tesla AI 总监)· <a href="https://www.youtube.com/watch?v=7xTGNNLPyMI" target="_blank">YouTube 原视频 →</a></p>
+          <p><strong>这是什么。</strong>一场面向普通观众、却毫不稀释技术的完整讲解,把 LLM 的"全训练栈"从头到尾铺开。它正是我这一周笔记的母本——上面三阶段流水线的细节大多来自这里。</p>
+          <p><strong>我记下的核心脉络:</strong></p>
+          <ul>
+            <li><strong>预训练 = 数据处理 + 下一个 token 预测。</strong>Common Crawl → 去重、过滤垃圾与隐私(PII)→ FineWeb(约 44TB、15 万亿 token);文本经 BPE(字节对编码)切成 token,GPT-4 词表约 10 万。训练目标只有一个:预测下一个 token。</li>
+            <li><strong>"随机性"既是创造力也是幻觉的根源。</strong>模型从下一个 token 的概率分布中采样,这让它能产出多样输出,也让它会一本正经地编造。</li>
+            <li><strong>成本剧变。</strong>2019 年 GPT-2(16 亿参数、1024 token 上下文、约 1000 亿 token 训练)当年训练要 4 万美元;如今用优化管线在 8×H100 上约 24 小时、672 美元即可复现——这解释了为什么本周作业能在自己电脑上跑开源模型。</li>
+            <li><strong>SFT 把"补全机"变"助手"</strong>(详见上面阶段二)。</li>
+            <li><strong>RL 与"顿悟时刻"。</strong>用 DeepSeek-R1 论文举例:随训练推进,模型学会用越来越多 token 推理,出现并非被显式教过的 "aha moment"。</li>
+            <li><strong>那个著名失败例子。</strong>"9.11 和 9.9 哪个大"会答错——内部发现与"9.11"相关的神经元和"圣经章节(9.11 排在 9.9 之后)"高度相关,绝佳地证明它按统计相关而非数值逻辑工作。</li>
+          </ul>
+          <div class="box recall" style="margin:14px 0 0">
+            <div class="h">🧠 为什么我把它排第一</div>
+            后面四篇都在教"怎么用",只有这篇告诉我"它为什么会这样被用"。理解了"有损压缩 + 概率采样",我就能自己推导出后面所有提示技巧为什么有效——这比记住技巧本身重要得多。
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--cardinal)">
+          <div class="lbl">READING 02 · 官方文档 · 方法论框架</div>
+          <h3 style="margin-top:6px">Prompt Engineering Overview</h3>
+          <p class="src" style="margin-top:0">来源:Anthropic 官方文档(Claude Docs)· <a href="https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview" target="_blank">阅读原文 →</a></p>
+          <p><strong>这是什么。</strong>Anthropic 给开发者的提示工程总纲。它不堆技巧,而是先回答更上位的问题:<strong>什么时候该用提示工程,而不是微调?</strong></p>
+          <p><strong>提示工程 vs 微调——四条理由:</strong></p>
+          <ul>
+            <li><strong>资源高效:</strong>微调要高端 GPU 和大显存,提示工程只需文本输入。</li>
+            <li><strong>成本更低:</strong>云端微调开销大,提示工程直接用基座模型,通常更便宜。</li>
+            <li><strong>不丢通用能力:</strong>微调有"灾难性遗忘"风险,提示工程保留模型的广博能力。</li>
+            <li><strong>透明可调试:</strong>提示是人类可读的,能清楚看到模型收到了什么。</li>
+          </ul>
+          <p><strong>关键工作流:</strong>动手写提示之前,先定义<strong>成功标准</strong>和一套<strong>测试用例(eval)</strong>。文档把技巧按"普适→专门"排序,建议照顺序试。它也诚实提醒:不是所有问题都该靠提示解决——比如延迟和成本,换个模型有时更有效。</p>
+          <div class="box note" style="margin:14px 0 0">
+            <div class="h">📝 学习笔记</div>
+            这篇最该带走的不是某个技巧,而是"<strong>先定义成功标准 + 测试用例,再写提示</strong>"这个习惯。正好呼应本周作业——作业用测试脚本判定通过,本质就是让我在"有 eval"的前提下迭代提示。
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--cardinal)">
+          <div class="lbl">READING 03 · 社区指南 · 技巧全集</div>
+          <h3 style="margin-top:6px">Prompt Engineering Guide</h3>
+          <p class="src" style="margin-top:0">来源:DAIR.AI(promptingguide.ai),开源社区维护 · <a href="https://www.promptingguide.ai/" target="_blank">阅读原文 →</a></p>
+          <p><strong>这是什么。</strong>目前覆盖最全的提示技巧百科,汇集大量论文与可复制示例。第 2 篇给"框架",这篇给"工具箱"——本周作业要实现的技巧这里几乎都有独立词条和范例。</p>
+          <table>
+            <thead><tr><th style="width:38%">技巧</th><th>一句话要义</th></tr></thead>
+            <tbody>
+              <tr><td>Few-shot(少样本)</td><td>在提示里塞几个范例,模型照格式学。</td></tr>
+              <tr><td>Chain-of-Thought(思维链)</td><td>"一步步想",把推理摊开到多个 token。</td></tr>
+              <tr><td>Self-Consistency(自洽性)</td><td>多次采样取多数答案,对冲随机性。</td></tr>
+              <tr><td>RAG(检索增强)</td><td>注入外部文档,让回答锚定真实事实。</td></tr>
+              <tr><td>ReAct / Reflexion(反思)</td><td>把报错回灌,让模型迭代自我纠错。</td></tr>
+              <tr><td>Tool use(工具调用)</td><td>让模型调用外部函数完成它不擅长的事。</td></tr>
+            </tbody>
+          </table>
+          <p>此外还覆盖 Zero-shot、Tree of Thoughts、Meta Prompting、Prompt Chaining 乃至上下文工程等进阶主题,可作为后续几周的长期参考书。</p>
+          <div class="box note" style="margin:14px 0 0">
+            <div class="h">📝 我打算怎么用这篇</div>
+            别通读,当字典用:做作业碰到哪个技巧就翻到对应词条看标准定义和示例,再回代码改 <code class="inline">TODO</code>。第 2 篇负责"思路",这篇负责"查法"。
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--cardinal)">
+          <div class="lbl">READING 04 · 专家圆桌视频 · 约 1.5 小时 · 真实手感</div>
+          <h3 style="margin-top:6px">AI Prompt Engineering: A Deep Dive</h3>
+          <p class="src" style="margin-top:0">来源:Anthropic 圆桌,Amanda Askell、Alex Albert、David Hershey、Zack Witten 对谈 · <a href="https://www.youtube.com/watch?v=T9aRN5JkmL8" target="_blank">阅读原文 →</a></p>
+          <p><strong>这是什么。</strong>四位 Anthropic 提示工程专家的圆桌,从研究、消费者、企业三个视角聊提示。它补的是文档教不了的东西:<strong>高手做这件事时脑子里在想什么。</strong></p>
+          <ul>
+            <li><strong>本质是"把想清楚的事说清楚"。</strong>难点往往不在措辞,而在你自己是否真想明白了要什么。表达的清晰度,等于思考的清晰度。</li>
+            <li><strong>怎么变强?读提示、读模型输出。</strong>看到好提示就逐句拆"它在做什么、为什么",再自己实验、大量和模型对话——刻意练习,而非背模板。</li>
+            <li><strong>别过度设计。</strong>写清楚任务描述就好,不要急着搭复杂抽象结构。</li>
+            <li><strong>企业 vs 研究提示。</strong>用心程度一样,但研究更追求多样性和覆盖边界,企业更追求稳定可复现;差异主要在"最后一公里"。</li>
+            <li><strong>把模型当能干的协作者,而非需要哄的工具。</strong>与其把话说得过分简单,不如把真实情境、约束、意图讲透。</li>
+          </ul>
+          <div class="box recall" style="margin:14px 0 0">
+            <div class="h">🧠 难点拆解</div>
+            这篇和第 2 篇看似重复其实互补:文档讲"应该怎么做",圆桌讲"为什么这么做、边界情况怎么取舍"。注意他们对 few-shot 的微妙态度——不轻易"把话塞进模型嘴里",更偏好示例说明而非僵硬模板。
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--cardinal)">
+          <div class="lbl">READING 05 · 工程实践 · 收束回现场</div>
+          <h3 style="margin-top:6px">How OpenAI Uses Codex</h3>
+          <p class="src" style="margin-top:0">来源:OpenAI 官方,内部工程工作流实录 · <a href="https://openai.com/business/guides-and-resources/how-openai-uses-codex/" target="_blank">阅读原文 →</a></p>
+          <p><strong>这是什么。</strong>OpenAI 公开了自家工程师每天怎么用 Codex,带真实 prompt 示例和工程师原话。它把前四篇的"原理与技巧"落到一个具体问题上:<strong>当 AI 真的进入日常开发,它在哪些环节产生价值?</strong>(具体四个省时场景见上面第 8 节。)</p>
+          <p><strong>五类真实用法:</strong>理解代码(读懂陌生代码库、事故响应时追踪故障传播)、跨文件重构(几十个文件一致改动)、性能优化与代码健康(找慢调用、降技术债)、加速开发周期两端(开头生成脚手架、收尾补最后一公里)、后台并行干活——一句工程师原话很传神:开了一整天会,仍合并了 4 个 PR,因为 Codex 在后台一直工作。这正是第 3 周"异步 Agent"的现实预演。</p>
+          <div class="box note" style="margin:14px 0 0">
+            <div class="h">📝 读这篇我会注意什么</div>
+            别只看"它能干什么",看那些<strong>具体 prompt 怎么写的</strong>——"优化并解释为什么更快""找出重复的昂贵操作并建议缓存",每条都是前四篇技巧(清晰指令 + 要求解释 + 限定范围)的真实落地。
+          </div>
+        </div>
+
+        <p class="src">来源:5 篇均为官网第一周指定阅读,标题与官网截图一致;各篇内容基于其公开原文/权威转述及课程讲解整理 / 置信度:高</p>
+      </section>
+
+      <section id="assignment">
+        <div class="kicker"><span class="num">10</span><h2>本周作业:LLM Prompting Playground</h2></div>
+        <p>官网将第一周作业列为 <strong>LLM Prompting Playground</strong>,对应代码在作业仓库 <a href="https://github.com/mihail911/modern-software-dev-assignments/tree/master/week1" target="_blank">week1</a> 目录下,主题是 <strong>Prompting Techniques</strong>:通过为特定任务设计提示,亲手实践多种提示技巧,每个任务说明写在对应源文件开头。</p>
+        <h3>环境配置</h3>
+        <p>本周用 <a href="https://ollama.com/" target="_blank">Ollama</a> 在本地运行多个前沿开源 LLM。先完成顶层 <code class="inline">README.md</code> 的安装,再装 Ollama:</p>
+        <pre># macOS(Homebrew)
+brew install --cask ollama
+ollama serve
+
+# Linux(推荐)
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 验证
+ollama -v
+
+# 拉取本周所需模型(只需一次)
+ollama run mistral-nemo:12b
+ollama run llama3.1:8b</pre>
+        <h3>六个待完成的源文件</h3>
+        <table>
+          <thead><tr><th>技巧</th><th>源文件</th></tr></thead>
+          <tbody>
+            <tr><td>少样本提示 K-shot</td><td><code class="inline">week1/k_shot_prompting.py</code></td></tr>
+            <tr><td>思维链 Chain-of-Thought</td><td><code class="inline">week1/chain_of_thought.py</code></td></tr>
+            <tr><td>工具调用 Tool calling</td><td><code class="inline">week1/tool_calling.py</code></td></tr>
+            <tr><td>自洽性 Self-consistency</td><td><code class="inline">week1/self_consistency_prompting.py</code></td></tr>
+            <tr><td>检索增强 RAG</td><td><code class="inline">week1/rag.py</code></td></tr>
+            <tr><td>反思 Reflexion</td><td><code class="inline">week1/reflexion.py</code></td></tr>
+          </tbody>
+        </table>
+        <h3>交付要求</h3>
+        <ol>
+          <li>阅读每个文件里的任务说明。</li>
+          <li>设计并运行提示——只改代码中标记 <code class="inline">TODO</code> 的地方,<strong>不要改动模型本身</strong>。</li>
+          <li>迭代改进,直到测试脚本通过。</li>
+          <li>为每种技巧保存最终提示与输出。</li>
+          <li>提交包含每个技巧的完整代码,确认所有 <code class="inline">TODO</code> 都已解决。</li>
+        </ol>
+        <h3>评分标准(共 60 分)</h3>
+        <p>六种提示技巧,每个完成的提示 10 分。</p>
+        <p class="src">来源:作业仓库 week1/assignment.md 一手内容 / 置信度:高</p>
+        <div class="box note">
+          <div class="h">📝 做作业时我要提醒自己</div>
+          这份作业<strong>锁死了模型、只让我改提示</strong>。这等于强迫我承认本课的中心命题——"提示就是新的源代码"。同一个模型,提示好坏直接决定测试能否通过。要多体会"为什么这个措辞通过了、那个没通过"。
+        </div>
+      </section>
+
+      <section id="schedule">
+        <div class="kicker"><span class="num">11</span><h2>本周课程安排</h2></div>
+        <p>第一周共两讲,各配一份 Google Slides(链接见官网 <a href="https://themodernsoftware.dev" target="_blank">themodernsoftware.dev</a>):</p>
+        <table>
+          <thead><tr><th style="width:24%">时间</th><th>主题</th></tr></thead>
+          <tbody>
+            <tr><td><strong>周一 9/22</strong></td><td>导论,以及一个 LLM 是如何被造出来的(Introduction and how an LLM is made)</td></tr>
+            <tr><td><strong>周五 9/26</strong></td><td>面向 LLM 的强力提示(Power prompting for LLMs)</td></tr>
+          </tbody>
+        </table>
+        <p class="src">来源:官网第一周页面(用户提供截图)/ 置信度:高</p>
+      </section>
+
+      <section id="insight">
+        <div class="kicker"><span class="num">12</span><h2>学完第一周,我要记住的</h2></div>
+        <div class="insight">
+          <div class="h">Key Takeaway · 本周精要</div>
+          <div class="big">大模型是互联网的有损压缩,不是真理机器。它的强大与缺陷出自同一个机制——所以我的工作不是"信任它",而是"会用它、并验证它"。</div>
+          <p>完整路径:从数万亿条原始互联网 token,经过赋予 AI 人格的人类标注对话,一路到需要思维链的高级推理。记住三段式(预训练给知识、SFT 给人格、RL 给推理)和瑞士奶酪模型,我就拿到了理解后面八周的钥匙。第一周不教任何工具,却决定了我用所有工具的姿态。</p>
+        </div>
+      </section>
+
+      <section id="open">
+        <div class="kicker"><span class="num">★</span><h2>一个值得反复回味的开放问题</h2></div>
+        <p>当 LLM 在答案可验证的问题上用纯强化学习训练时,模型不受人类逻辑的约束。多年前我们就在 <strong>AlphaGo</strong> 身上见过这一幕——它发现了"<strong>第 37 手</strong>",一个绝妙、完全出人意料、没有任何人类会考虑的下法。</p>
+        <p>那么,如果这些"会思考"的模型继续进化,在开放域问题求解中不断发现全新的、更优越的认知策略,甚至发明一种比英语更高效的内部思维语言——<strong>当解决一个复杂商业问题的最优方法,是任何人类都无法构想出来的东西时,这对我们意味着什么?</strong>这就引出了一个关于未来人机协作的重要问题,也是我想带着进入后面几周的思考。</p>
+        <div class="progress-note">
+          ✅ <strong>进度:第一周笔记已完成(完整版,无压缩)。</strong>整合了课程视频的完整中文讲解 + 官网 5 篇阅读精读 + 作业与课程安排。确认这版风格与深度满意后,我可以按同样标准继续做第 2–9 周,每周一个独立页面,最后合并为完整学习网站。
+        </div>
+      </section>
+
+      <footer>
+        <p><strong>资料来源:</strong>课程官网 <a href="https://themodernsoftware.dev" target="_blank">themodernsoftware.dev</a>(第一周页面据用户提供截图核对)· 作业仓库 <a href="https://github.com/mihail911/modern-software-dev-assignments/tree/master/week1" target="_blank">github.com/mihail911/modern-software-dev-assignments</a> · 课程深度讲解记录(用户提供)· 5 篇阅读材料各自公开原文。</p>
+        <p style="margin-top:8px">本页为个人学习整理用途,所有阅读材料均为转述并附原文链接。Stanford CS146S 由 Mihail Eric 于 2025 秋讲授。</p>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const links=[...document.querySelectorAll('.navlist a')];
+const map=links.map(a=>({a,el:document.querySelector(a.getAttribute('href'))})).filter(x=>x.el);
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const hit=map.find(m=>m.el===e.target);
+      if(hit)hit.a.classList.add('active');
+    }
+  });
+},{rootMargin:'-20% 0px -70% 0px'});
+map.forEach(m=>obs.observe(m.el));
+</script>
+</body>
+</html>
