@@ -239,7 +239,7 @@ function SearchPage() {
         </div>
       )}
 
-      {matchedProjects.length > 0 && (
+      {!showLoading && !error && matchedProjects.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
             <FolderGit2 className="h-4 w-4 text-primary" />
