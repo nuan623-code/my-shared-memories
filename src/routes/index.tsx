@@ -104,7 +104,8 @@ function HomePage() {
             {latestArticles.map((article) => (
               <Link
                 key={article.id}
-                to="/articles"
+                to="/articles/$slug"
+                params={{ slug: article.id }}
                 className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 transition-all hover:shadow-md"
               >
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
