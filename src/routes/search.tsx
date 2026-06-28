@@ -82,11 +82,21 @@ function SearchPage() {
   // 本地输入值（用于防抖）
   const [inputValue, setInputValue] = useState(q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const resultRefs = useRef<Array<HTMLAnchorElement | HTMLLIElement | null>>([]);
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef<HTMLDivElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   // 当 URL q 由外部变化（如点击建议）时，同步到输入框
   useEffect(() => {
     setInputValue(q);
   }, [q]);
+
+  const flushSearch = (value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, q: value }) });
+  };
 
   const onInputChange = (value: string) => {
     setInputValue(value);
@@ -133,6 +143,67 @@ function SearchPage() {
   const isPendingDebounce = inputValue !== q;
   const showLoading = loading || isPendingDebounce;
 
+  // 结果变化时重置高亮项与 refs 数组
+  useEffect(() => {
+    resultRefs.current = [];
+    setActiveIndex(-1);
+  }, [q, tags, retryToken, showLoading]);
+
+  // 同步焦点到当前高亮项
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    const el = resultRefs.current[activeIndex];
+    el?.focus();
+  }, [activeIndex]);
+
+  const focusResult = (idx: number) => {
+    if (total === 0) return;
+    const next = (idx + total) % total;
+    setActiveIndex(next);
+  };
+
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      flushSearch(inputValue);
+      if (total > 0) focusResult(0);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (error) {
+        errorRef.current?.focus();
+      } else if (showLoading) {
+        loadingRef.current?.focus();
+      } else {
+        focusResult(0);
+      }
+    }
+  };
+
+  const onResultKeyDown = (e: React.KeyboardEvent, idx: number) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      focusResult(idx + 1);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (idx === 0) {
+        setActiveIndex(-1);
+        inputRef.current?.focus();
+      } else {
+        focusResult(idx - 1);
+      }
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      focusResult(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      focusResult(total - 1);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setActiveIndex(-1);
+      inputRef.current?.focus();
+    }
+  };
+
   const toggleTag = (tag: string) => {
     const next = tags.includes(tag) ? tags.filter((t: string) => t !== tag) : [...tags, tag];
     navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, tags: next }) });
@@ -149,13 +220,20 @@ function SearchPage() {
       <h1 className="font-display text-3xl font-semibold tracking-tight">站内搜索</h1>
       <p className="mt-2 text-muted-foreground">在所有项目与文章中搜索关键词，并按标签筛选。</p>
 
-      <div className="mt-6 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
+      <div
+        className="mt-6 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-primary/30"
+        role="search"
+      >
         <SearchIcon className="h-5 w-5 text-muted-foreground" />
         <input
+          ref={inputRef}
           autoFocus
           value={inputValue}
           onChange={(e) => onInputChange(e.target.value)}
-          placeholder="搜索项目、文章、技术栈..."
+          onKeyDown={onInputKeyDown}
+          placeholder="搜索项目、文章、技术栈…（Enter 立即搜索，↓ 跳到结果）"
+          aria-label="搜索关键词"
+          aria-keyshortcuts="Enter ArrowDown"
           className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
         />
         {showLoading && (
@@ -213,11 +291,27 @@ function SearchPage() {
       </div>
 
       {error && !showLoading && (
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+        <div
+          ref={errorRef}
+          tabIndex={0}
+          role="alert"
+          aria-live="assertive"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              setRetryToken((n) => n + 1);
+            } else if (e.key === "ArrowUp" || e.key === "Escape") {
+              e.preventDefault();
+              inputRef.current?.focus();
+            }
+          }}
+          className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 outline-none focus:ring-2 focus:ring-destructive/40"
+        >
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div className="flex-1">
             <div className="font-medium text-foreground">搜索请求失败</div>
             <div className="mt-1 text-sm text-muted-foreground">{error}</div>
+            <div className="mt-1 text-xs text-muted-foreground">按 Enter 重试，↑ 返回搜索框</div>
           </div>
           <button
             onClick={() => setRetryToken((n) => n + 1)}
@@ -229,7 +323,15 @@ function SearchPage() {
       )}
 
       {showLoading && (
-        <div className="mt-6 space-y-3">
+        <div
+          ref={loadingRef}
+          tabIndex={0}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          aria-label="正在搜索"
+          className="mt-6 space-y-3 rounded-xl outline-none focus:ring-2 focus:ring-primary/30"
+        >
           {[0, 1, 2].map((i) => (
             <div
               key={i}
@@ -245,15 +347,20 @@ function SearchPage() {
             <FolderGit2 className="h-4 w-4 text-primary" />
             项目 ({matchedProjects.length})
           </h2>
-          <ul className="space-y-3">
-            {matchedProjects.map((p) => {
+          <ul className="space-y-3" role="list">
+            {matchedProjects.map((p, i) => {
               const cat = categories.find((c) => c.id === p.category);
+              const idx = i;
               return (
                 <li key={p.id}>
                   <Link
+                    ref={(el) => {
+                      resultRefs.current[idx] = el;
+                    }}
                     to="/projects/$id"
                     params={{ id: p.id }}
-                    className="block rounded-xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-md"
+                    onKeyDown={(e) => onResultKeyDown(e, idx)}
+                    className="block rounded-xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-md focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     <div className="flex items-center gap-2">
                       <span
@@ -294,33 +401,41 @@ function SearchPage() {
             <FileText className="h-4 w-4 text-primary" />
             文章 ({matchedArticles.length})
           </h2>
-          <ul className="space-y-3">
-            {matchedArticles.map((a) => (
-              <li
-                key={a.id}
-                className="rounded-xl border border-border bg-card p-4"
-              >
-                <div className="text-xs text-muted-foreground">
-                  {a.date} · {a.readTime}
-                </div>
-                <div className="mt-2 font-medium">
-                  <Highlight text={a.title} q={q} />
-                </div>
-                <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  <Highlight text={a.description} q={q} />
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {a.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                    >
-                      #<Highlight text={t} q={q} />
-                    </span>
-                  ))}
-                </div>
-              </li>
-            ))}
+          <ul className="space-y-3" role="list">
+            {matchedArticles.map((a, i) => {
+              const idx = matchedProjects.length + i;
+              return (
+                <li
+                  key={a.id}
+                  ref={(el) => {
+                    resultRefs.current[idx] = el;
+                  }}
+                  tabIndex={-1}
+                  onKeyDown={(e) => onResultKeyDown(e, idx)}
+                  className="rounded-xl border border-border bg-card p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
+                >
+                  <div className="text-xs text-muted-foreground">
+                    {a.date} · {a.readTime}
+                  </div>
+                  <div className="mt-2 font-medium">
+                    <Highlight text={a.title} q={q} />
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    <Highlight text={a.description} q={q} />
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {a.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                      >
+                        #<Highlight text={t} q={q} />
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
