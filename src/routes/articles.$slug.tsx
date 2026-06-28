@@ -66,6 +66,23 @@ function ArticleDetailPage() {
   const [tocOpen, setTocOpen] = useState(true);
   const [progress, setProgress] = useState(0);
 
+  // 相关文章：按 tag 重叠度 + 同分类 排序，取前 4
+  const related = useMemo(() => {
+    const tagSet = new Set(article.tags);
+    return articles
+      .filter((a) => a.id !== article.id)
+      .map((a) => {
+        const overlap = a.tags.filter((t) => tagSet.has(t)).length;
+        const sameCat = a.category === article.category ? 1 : 0;
+        return { article: a, score: overlap * 2 + sameCat };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map((x) => x.article);
+  }, [article]);
+
+
   // 解析 iframe 内的 H2/H3，生成目录
   useEffect(() => {
     const iframe = iframeRef.current;
