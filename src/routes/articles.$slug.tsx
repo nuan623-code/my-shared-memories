@@ -144,51 +144,21 @@ function ArticleDetailPage() {
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-4">
-        <div className="flex-1">
-          {article.url ? (
-            <iframe
-              ref={iframeRef}
-              src={article.url}
-              title={article.title ?? ""}
-              className="h-[calc(100vh-8rem)] w-full rounded-lg border border-border bg-white"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-            />
-          ) : (
-            <div className="prose prose-sm max-w-none rounded-lg border border-border bg-card p-8">
-              <h1>{article.title}</h1>
-              <p className="text-muted-foreground">{article.summary}</p>
-              <div className="whitespace-pre-wrap">{article.content}</div>
-            </div>
-          )}
-        </div>
-
-        {toc.length > 0 && (
-          <aside className="hidden w-64 shrink-0 lg:block">
-            <div className="sticky top-4 max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-border bg-card p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                <List className="h-4 w-4 text-primary" />
-                目录
-              </div>
-              <nav className="space-y-1">
-                {toc.map((it) => (
-                  <button
-                    key={it.id}
-                    onClick={() => jumpTo(it.id)}
-                    className={`block w-full truncate text-left text-sm transition ${
-                      it.level === 3 ? "pl-4" : ""
-                    } ${
-                      activeId === it.id
-                        ? "font-medium text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {it.text || "（无标题）"}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </aside>
+      <div className="mx-auto w-full max-w-5xl px-4 py-4">
+        {article.url ? (
+          <iframe
+            ref={iframeRef}
+            src={article.url}
+            title={article.title ?? ""}
+            className="h-[calc(100vh-8rem)] w-full rounded-lg border border-border bg-white"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          />
+        ) : (
+          <div className="prose prose-sm max-w-none rounded-lg border border-border bg-card p-8">
+            <h1>{article.title}</h1>
+            <p className="text-muted-foreground">{article.summary}</p>
+            <div className="whitespace-pre-wrap">{article.content}</div>
+          </div>
         )}
       </div>
 
