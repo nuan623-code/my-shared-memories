@@ -15,16 +15,28 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  // 统计
+  // 按大类聚合标签
+  const tagsByCategory = categories
+    .map((cat) => {
+      const items = [
+        ...articles.filter((a) => (a.category || "article") === cat.id),
+        ...projects.filter((p) => p.category === cat.id),
+      ];
+      const freq = items
+        .flatMap((i) => i.tags)
+        .reduce<Record<string, number>>((acc, t) => {
+          acc[t] = (acc[t] || 0) + 1;
+          return acc;
+        }, {});
+      const tags = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+      return { cat, tags };
+    })
+    .filter((g) => g.tags.length > 0);
+
   const allTags = [
     ...articles.flatMap((a) => a.tags),
     ...projects.flatMap((p) => p.tags),
   ];
-  const tagFreq = allTags.reduce<Record<string, number>>((acc, t) => {
-    acc[t] = (acc[t] || 0) + 1;
-    return acc;
-  }, {});
-  const sortedTags = Object.entries(tagFreq).sort((a, b) => b[1] - a[1]);
   const topicCount = new Set(allTags).size;
   const totalCount = articles.length + projects.length;
 
