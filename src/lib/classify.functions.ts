@@ -62,14 +62,14 @@ ${taxonomy}
 ${data.content.slice(0, 6000)}`;
 
     try {
-      const { experimental_output } = await generateText({
+      const { output } = await generateText({
         model: gateway("google/gemini-3-flash-preview"),
-        experimental_output: Output.object({ schema: ResultSchema }),
+        output: Output.object({ schema: ResultSchema }),
         system,
         prompt,
       });
 
-      const result = experimental_output as ClassifyResult;
+      const result = output as ClassifyResult;
 
       // 兜底校验：若 AI 返回了不在 taxonomy 中的 id，回退到合理默认值
       const cat = categories.find((c) => c.id === result.category);

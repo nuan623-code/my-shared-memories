@@ -1,40 +1,20 @@
 import { Link } from "@tanstack/react-router";
-import { Calendar, ArrowUpRight } from "lucide-react";
-import type { Project } from "@/lib/data";
+import { Calendar, ArrowUpRight, PlayCircle } from "lucide-react";
+import type { Project, CategoryId } from "@/lib/data";
+import { getCategory, getSubcategoryLabel } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const categoryStyles: Record<
-  Project["category"],
+  CategoryId,
   { bg: string; text: string; border: string }
 > = {
-  web: {
-    bg: "bg-cat-web/15",
-    text: "text-cat-web",
-    border: "border-cat-web/30",
-  },
-  game: {
-    bg: "bg-cat-game/15",
-    text: "text-cat-game",
-    border: "border-cat-game/30",
-  },
-  ai: {
-    bg: "bg-cat-ai/15",
-    text: "text-cat-ai",
-    border: "border-cat-ai/30",
-  },
-  homework: {
-    bg: "bg-cat-homework/15",
-    text: "text-cat-homework",
-    border: "border-cat-homework/30",
-  },
-};
-
-const categoryLabels: Record<Project["category"], string> = {
-  web: "Web开发",
-  game: "游戏开发",
-  ai: "AI学习",
-  homework: "课程作业",
+  web: { bg: "bg-cat-web/15", text: "text-cat-web", border: "border-cat-web/30" },
+  game: { bg: "bg-cat-game/15", text: "text-cat-game", border: "border-cat-game/30" },
+  ai: { bg: "bg-cat-ai/15", text: "text-cat-ai", border: "border-cat-ai/30" },
+  homework: { bg: "bg-cat-homework/15", text: "text-cat-homework", border: "border-cat-homework/30" },
+  article: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30" },
+  video: { bg: "bg-accent/20", text: "text-foreground", border: "border-accent/40" },
 };
 
 interface ProjectCardProps {
