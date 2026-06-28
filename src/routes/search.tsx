@@ -319,7 +319,7 @@ function NoResults({
             {suggestedKeywords.map((k) => (
               <button
                 key={k}
-                onClick={() => onSearch(k, false)}
+                onClick={() => onSearch(k, [])}
                 className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary transition hover:bg-primary hover:text-primary-foreground"
               >
                 {k}
@@ -338,34 +338,12 @@ function NoResults({
             {suggestedTags.map((t) => (
               <button
                 key={t}
-                onClick={() => onSearch("", false)}
+                onClick={() => onSearch("", [t])}
                 className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
                 title={`仅用标签 #${t} 搜索`}
               >
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSearch("", false);
-                  }}
-                >
-                  #{t}
-                </span>
+                #{t}
               </button>
-            ))}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {suggestedTags.map((t) => (
-              <button
-                key={`apply-${t}`}
-                onClick={() => {
-                  // 一键：清空关键词，仅按此标签搜索
-                  onSearch("", false);
-                  setTimeout(() => {
-                    // noop — placeholder
-                  }, 0);
-                }}
-                className="hidden"
-              />
             ))}
           </div>
         </div>
