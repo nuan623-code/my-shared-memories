@@ -141,33 +141,6 @@ export interface Article {
 
 export const projects: Project[] = [
   {
-    id: "portfolio-2024",
-    title: "个人作品集网站",
-    description: "使用 React 和 Tailwind CSS 构建的响应式个人作品集，支持深色模式切换。",
-    category: "web",
-    subcategory: "website",
-    tags: ["前端", "React", "设计"],
-    date: "2024-06",
-    image: "",
-    github: "https://github.com",
-    techStack: ["React", "Tailwind CSS", "Vite", "TypeScript"],
-    content:
-      "这个项目是我为自己搭建的个人作品集网站，采用现代化的前端技术栈。主要特性包括：响应式设计适配各种设备、流畅的页面过渡动画、深色/浅色模式自动切换、SEO 优化。",
-  },
-  {
-    id: "wechat-mini",
-    title: "微信小程序工具集",
-    description: "为日常办公开发的一套微信小程序工具，包括数据看板、日程管理等功能。",
-    category: "web",
-    subcategory: "miniprogram",
-    tags: ["小程序", "微信", "工具"],
-    date: "2024-03",
-    image: "",
-    techStack: ["微信小程序", "TypeScript", "云开发"],
-    content:
-      "这是一个面向移动办公场景的微信小程序集合。项目包含数据看板、团队日程管理、文件共享等多个模块。",
-  },
-  {
     id: "platformer-game",
     title: "2D平台跳跃游戏",
     description: "使用 Unity 开发的 2D 横版平台跳跃游戏，包含关卡设计、角色动画和音效系统。",
