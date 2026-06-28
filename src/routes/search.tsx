@@ -238,8 +238,125 @@ function SearchPage() {
       )}
 
       {(q || tags.length > 0) && total === 0 && (
-        <div className="mt-10 rounded-xl border border-dashed border-border bg-card/50 p-10 text-center text-muted-foreground">
-          没有匹配的内容，试试更换关键词或减少标签筛选。
+        <NoResults
+          q={q}
+          tags={tags}
+          allTags={allTags}
+          onSearch={(nextQ: string, nextTags: string[]) =>
+            navigate({ search: { q: nextQ, tags: nextTags } })
+          }
+          onClearTags={() =>
+            navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, tags: [] }) })
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+function NoResults({
+  q,
+  tags,
+  allTags,
+  onSearch,
+  onClearTags,
+}: {
+  q: string;
+  tags: string[];
+  allTags: string[];
+  onSearch: (q: string, tags: string[]) => void;
+  onClearTags: () => void;
+}) {
+  const ql = q.toLowerCase().trim();
+
+  const suggestedTags = useMemo(() => {
+    if (!ql) return allTags.filter((t) => !tags.includes(t)).slice(0, 8);
+    return allTags
+      .filter((t) => !tags.includes(t))
+      .filter((t) => {
+        const tl = t.toLowerCase();
+        if (tl.includes(ql) || ql.includes(tl)) return true;
+        // 共享前缀（适合中英文部分匹配）
+        const n = Math.min(2, ql.length, tl.length);
+        return n > 0 && tl.slice(0, n) === ql.slice(0, n);
+      })
+      .slice(0, 8);
+  }, [ql, tags, allTags]);
+
+  const suggestedKeywords = useMemo(() => {
+    if (!ql) return [];
+    const pool = new Set<string>();
+    [...projects, ...articles].forEach((item) => {
+      const text = `${item.title} ${item.description}`;
+      text
+        .split(/[\s,，。、/|·\-—()（）]+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length >= 2 && w.length <= 12)
+        .forEach((w) => {
+          const wl = w.toLowerCase();
+          if (wl === ql) return;
+          if (wl.includes(ql) || ql.includes(wl)) pool.add(w);
+        });
+    });
+    return Array.from(pool).slice(0, 8);
+  }, [ql]);
+
+  return (
+    <div className="mt-10 rounded-2xl border border-dashed border-border bg-card/50 p-8">
+      <div className="text-center">
+        <div className="font-display text-lg font-semibold text-foreground">没有匹配的内容</div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          试试下方的相近关键词或推荐标签，一键重新搜索。
+        </p>
+      </div>
+
+      {suggestedKeywords.length > 0 && (
+        <div className="mt-6">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            相近关键词
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {suggestedKeywords.map((k) => (
+              <button
+                key={k}
+                onClick={() => onSearch(k, [])}
+                className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary transition hover:bg-primary hover:text-primary-foreground"
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {suggestedTags.length > 0 && (
+        <div className="mt-6">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            推荐标签
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {suggestedTags.map((t) => (
+              <button
+                key={t}
+                onClick={() => onSearch("", [t])}
+                className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+                title={`仅用标签 #${t} 搜索`}
+              >
+                #{t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tags.length > 0 && (
+        <div className="mt-6 text-center">
+          <button
+            onClick={onClearTags}
+            className="rounded-lg border border-border bg-card px-4 py-2 text-sm text-foreground transition hover:border-primary/40"
+          >
+            清除当前标签筛选（{tags.length}）
+          </button>
         </div>
       )}
     </div>
