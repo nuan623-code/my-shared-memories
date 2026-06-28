@@ -176,6 +176,13 @@ function SearchPage() {
       } else {
         focusResult(0);
       }
+    } else if (e.key === "Tab" && total > 0) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        focusResult(total - 1);
+      } else {
+        focusResult(0);
+      }
     }
   };
 
