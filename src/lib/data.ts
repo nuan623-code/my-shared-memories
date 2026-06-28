@@ -25,18 +25,6 @@ export interface Category {
 
 export const categories: Category[] = [
   {
-    id: "web",
-    label: "Web 开发",
-    color: "oklch(0.869 0.1066 150.22)",
-    description: "网站、小程序与前端实验",
-    subcategories: [
-      { id: "website", label: "网站项目" },
-      { id: "miniprogram", label: "小程序" },
-      { id: "frontend-lab", label: "前端实验" },
-      { id: "tool", label: "工具" },
-    ],
-  },
-  {
     id: "game",
     label: "游戏开发",
     color: "oklch(0.815 0.1044 295.79)",
