@@ -1,222 +1,119 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, FileText, Tag as TagIcon, Layers, BookOpen } from "lucide-react";
-import { articles, projects, categories, getCategory, type CategoryId } from "@/lib/data";
+import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { ArrowRight, Library } from "lucide-react";
+import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType } from "@/lib/resources";
+import { ResourceMasonry } from "@/components/ResourceMasonry";
+
+const resourcesQO = queryOptions({
+  queryKey: ["resources", "home"],
+  queryFn: () => fetchResources({ limit: 60 }),
+});
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Mingyu Yang — 个人创作空间" },
-      { name: "description", content: "Mingyu Yang 的个人项目记录与分享网站，涵盖游戏开发、AI 学习、课程作业与公众号文章。" },
-      { property: "og:title", content: "Mingyu Yang — 个人创作空间" },
-      { property: "og:description", content: "Mingyu Yang 的个人项目记录与分享网站" },
+      { title: "Mingyu's Library — 个人资源库" },
+      { name: "description", content: "Mingyu 的个人资源库：文章、视频、外链、文件与碎片笔记。" },
+      { property: "og:title", content: "Mingyu's Library" },
+      { property: "og:description", content: "Mingyu 想分享的任何东西" },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(resourcesQO),
   component: HomePage,
+  errorComponent: ({ error }) => (
+    <div className="mx-auto max-w-2xl p-8 text-center text-sm text-muted-foreground">
+      加载资源失败：{error.message}
+    </div>
+  ),
 });
 
+const TYPE_FILTERS: { id: ResourceType | "all"; label: string }[] = [
+  { id: "all", label: "全部" },
+  { id: "article", label: RESOURCE_TYPE_LABELS.article },
+  { id: "video", label: RESOURCE_TYPE_LABELS.video },
+  { id: "link", label: RESOURCE_TYPE_LABELS.link },
+  { id: "file", label: RESOURCE_TYPE_LABELS.file },
+  { id: "note", label: RESOURCE_TYPE_LABELS.note },
+];
+
 function HomePage() {
-  // 按大类聚合标签
-  const tagsByCategory = categories
-    .map((cat) => {
-      const items = [
-        ...articles.filter((a) => (a.category || "article") === cat.id),
-        ...projects.filter((p) => p.category === cat.id),
-      ];
-      const freq = items
-        .flatMap((i) => i.tags)
-        .reduce<Record<string, number>>((acc, t) => {
-          acc[t] = (acc[t] || 0) + 1;
-          return acc;
-        }, {});
-      const tags = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-      return { cat, tags };
-    })
-    .filter((g) => g.tags.length > 0);
+  const { data: resources } = useSuspenseQuery(resourcesQO);
+  const [filter, setFilter] = useState<ResourceType | "all">("all");
 
-  const allTags = [
-    ...articles.flatMap((a) => a.tags),
-    ...projects.flatMap((p) => p.tags),
-  ];
-  const topicCount = new Set(allTags).size;
-  const totalCount = articles.length + projects.length;
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: resources.length };
+    for (const r of resources) c[r.type] = (c[r.type] || 0) + 1;
+    return c;
+  }, [resources]);
 
-  // 按大类聚合 articles
-  const articlesByCategory = articles.reduce<Record<string, typeof articles>>(
-    (acc, a) => {
-      const key = a.category || "article";
-      (acc[key] ||= []).push(a);
-      return acc;
-    },
-    {}
+  const filtered = useMemo(
+    () => (filter === "all" ? resources : resources.filter((r) => r.type === filter)),
+    [resources, filter],
   );
-
-  const stats = [
-    { label: "文章 / 笔记", value: articles.length, icon: FileText },
-    { label: "项目 / 视频", value: projects.length, icon: Layers },
-    { label: "覆盖主题", value: topicCount, icon: TagIcon },
-    { label: "内容总数", value: totalCount, icon: BookOpen },
-  ];
 
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="relative overflow-hidden px-4 py-20 sm:py-28">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-secondary/20" />
-        <div className="relative mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            Mingyu Yang
+      <section className="relative overflow-hidden border-b border-border/50 px-4 py-14 sm:py-20">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/15" />
+        <div className="relative mx-auto max-w-4xl">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+            <Library className="h-3.5 w-3.5 text-primary" />
+            Mingyu's Library — 个人资源库
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
+            我想记录、分享的<br className="hidden sm:block" />
+            <span className="text-primary">任何东西</span>
           </h1>
-          <p className="mt-4 text-lg text-muted-foreground">
-            广告技术解决方案负责人，拥有 10 余年移动互联网行业经验，关注 AI、软件开发、数据分析与产品实践。
+          <p className="mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            文章笔记、教学视频、好用的工具、值得保存的文件、突然冒出来的想法 ——
+            统一放在这里，随时翻阅。
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              to="/articles"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg"
-            >
-              浏览文章
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/about"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-muted"
-            >
-              了解更多
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="px-4">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-4 sm:gap-4 sm:p-6">
-            {stats.map((s) => {
-              const Icon = s.icon;
-              return (
-                <div key={s.label} className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-semibold text-foreground">{s.value}</div>
-                    <div className="text-xs text-muted-foreground">{s.label}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Type filter chips */}
+      <section className="sticky top-[57px] z-30 border-b border-border/50 bg-background/80 px-4 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto py-3">
+          {TYPE_FILTERS.map((t) => {
+            const active = filter === t.id;
+            const n = counts[t.id] ?? 0;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setFilter(t.id)}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-foreground hover:border-primary/40"
+                }`}
+              >
+                {t.label}
+                <span
+                  className={`rounded-full px-1.5 text-[10px] ${
+                    active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {n}
+                </span>
+              </button>
+            );
+          })}
+          <Link
+            to="/resources"
+            className="ml-auto hidden shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline sm:inline-flex"
+          >
+            进入完整资源库
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
       </section>
 
-      {/* Tag Cloud */}
-      <section className="px-4 py-12">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-foreground">主题地图</h2>
-            <Link
-              to="/search"
-              className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              进入搜索
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
-            {tagsByCategory.map(({ cat, tags }) => (
-              <div key={cat.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
-                <div className="flex shrink-0 items-center gap-2 sm:w-32 sm:pt-1">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: cat.color }}
-                  />
-                  <span className="text-sm font-medium text-foreground">{cat.label}</span>
-                </div>
-                <div className="flex flex-1 flex-wrap gap-1.5">
-                  {tags.map(([tag, count]) => (
-                    <Link
-                      key={tag}
-                      to="/search"
-                      search={{ q: "", tags: [tag] }}
-                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground/80 transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-                    >
-                      {tag}
-                      <span className="text-[10px] text-muted-foreground">{count}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Timeline by Category */}
-      <section className="px-4 pb-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-foreground">内容时间线</h2>
-            <Link
-              to="/articles"
-              className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              查看全部
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="relative">
-            {/* 竖线 */}
-            <div className="absolute left-3 top-2 bottom-2 w-px bg-gradient-to-b from-primary/40 via-border to-transparent sm:left-4" />
-
-            <div className="space-y-10">
-              {categories.map((cat) => {
-                const items = articlesByCategory[cat.id] || [];
-                if (items.length === 0) return null;
-                return (
-                  <div key={cat.id} className="relative pl-10 sm:pl-14">
-                    {/* 节点 */}
-                    <div
-                      className="absolute left-0 top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background sm:left-1 sm:h-7 sm:w-7"
-                      style={{ backgroundColor: cat.color }}
-                    >
-                      <div className="h-2 w-2 rounded-full bg-white/90" />
-                    </div>
-
-                    <div className="mb-3 flex items-baseline gap-2">
-                      <h3 className="text-lg font-semibold text-foreground">{cat.label}</h3>
-                      <span className="text-xs text-muted-foreground">{items.length} 篇 · {cat.description}</span>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {items.map((article) => (
-                        <Link
-                          key={article.id}
-                          to="/articles/$slug"
-                          params={{ slug: article.id }}
-                          className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
-                        >
-                          <h4 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
-                            {article.title}
-                          </h4>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {article.tags.slice(0, 3).map((t) => (
-                              <span
-                                key={t}
-                                className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      {/* Masonry feed */}
+      <section className="px-4 py-6">
+        <div className="mx-auto max-w-7xl">
+          <ResourceMasonry resources={filtered} />
         </div>
       </section>
     </div>
