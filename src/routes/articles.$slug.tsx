@@ -2,7 +2,8 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { useEffect, useRef, useState } from "react";
-import { fetchResourceBySlug } from "@/lib/resources";
+import { useQueryClient } from "@tanstack/react-query";
+import { fetchResourceBySlug, fetchResources } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
 
 export const Route = createFileRoute("/articles/$slug")({
@@ -46,10 +47,18 @@ type TocItem = { id: string; text: string; level: number };
 
 function ArticleDetailPage() {
   const { article } = Route.useLoaderData();
+  const queryClient = useQueryClient();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [progress, setProgress] = useState(0);
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ["resources", "all"],
+      queryFn: () => fetchResources({}),
+    });
+  }, [queryClient]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
