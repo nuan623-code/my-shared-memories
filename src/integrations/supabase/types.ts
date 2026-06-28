@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       comments: {
         Row: {
+          anchor_id: string | null
+          anchor_kind: string
+          anchor_text: string | null
           content: string
           created_at: string
           id: string
@@ -25,6 +28,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          anchor_id?: string | null
+          anchor_kind?: string
+          anchor_text?: string | null
           content: string
           created_at?: string
           id?: string
@@ -34,6 +40,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          anchor_id?: string | null
+          anchor_kind?: string
+          anchor_text?: string | null
           content?: string
           created_at?: string
           id?: string

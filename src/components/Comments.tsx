@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
 type Profile = { display_name: string; title: string };
-type CommentRow = {
+export type CommentRow = {
   id: string;
   resource_id: string;
   user_id: string;
@@ -15,16 +15,25 @@ type CommentRow = {
   content: string;
   created_at: string;
   updated_at: string;
+  anchor_id: string | null;
+  anchor_kind: string | null;
   profiles: Profile | null;
 };
 type TreeNode = CommentRow & { children: TreeNode[] };
 
-async function fetchComments(resourceId: string): Promise<CommentRow[]> {
-  const { data, error } = await supabase
+async function fetchComments(
+  resourceId: string,
+  anchorId: string | null,
+): Promise<CommentRow[]> {
+  let q = supabase
     .from("comments")
-    .select("id, resource_id, user_id, parent_id, content, created_at, updated_at, profiles(display_name, title)")
+    .select(
+      "id, resource_id, user_id, parent_id, content, created_at, updated_at, anchor_id, anchor_kind, profiles(display_name, title)",
+    )
     .eq("resource_id", resourceId)
     .order("created_at", { ascending: true });
+  q = anchorId ? q.eq("anchor_id", anchorId) : q.is("anchor_id", null);
+  const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as unknown as CommentRow[];
 }
@@ -48,19 +57,32 @@ function formatTime(iso: string) {
   return d.toLocaleString("zh-CN", { dateStyle: "short", timeStyle: "short" });
 }
 
-export function Comments({ resourceId }: { resourceId: string }) {
+export function Comments({
+  resourceId,
+  anchorId = null,
+  anchorText = null,
+  title = "评论与批注",
+  compact = false,
+}: {
+  resourceId: string;
+  anchorId?: string | null;
+  anchorText?: string | null;
+  title?: string;
+  compact?: boolean;
+}) {
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const [hideForNavigation, setHideForNavigation] = useState(false);
   const { data: rows, isLoading } = useQuery({
-    queryKey: ["comments", resourceId],
-    queryFn: () => fetchComments(resourceId),
+    queryKey: ["comments", resourceId, anchorId ?? "article"],
+    queryFn: () => fetchComments(resourceId, anchorId),
   });
 
   const tree = useMemo(() => buildTree(rows ?? []), [rows]);
 
   useEffect(() => {
+    if (anchorId) return; // only the article-level comments need this guard
     const hideCommentsImmediately = () => {
       document.querySelectorAll<HTMLElement>("[data-article-comments]").forEach((el) => {
         el.style.display = "none";
@@ -82,7 +104,12 @@ export function Comments({ resourceId }: { resourceId: string }) {
 
     document.addEventListener("pointerdown", hideWhenLeavingArticle, true);
     return () => document.removeEventListener("pointerdown", hideWhenLeavingArticle, true);
-  }, []);
+  }, [anchorId]);
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["comments", resourceId] });
+    qc.invalidateQueries({ queryKey: ["comment-anchor-counts", resourceId] });
+  };
 
   const create = useMutation({
     mutationFn: async ({ content, parentId }: { content: string; parentId: string | null }) => {
@@ -92,10 +119,13 @@ export function Comments({ resourceId }: { resourceId: string }) {
         user_id: user.id,
         parent_id: parentId,
         content,
+        anchor_id: anchorId,
+        anchor_text: anchorText,
+        anchor_kind: anchorId ? "paragraph" : "article",
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", resourceId] }),
+    onSuccess: invalidateAll,
   });
 
   const update = useMutation({
@@ -106,7 +136,7 @@ export function Comments({ resourceId }: { resourceId: string }) {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", resourceId] }),
+    onSuccess: invalidateAll,
   });
 
   const remove = useMutation({
@@ -114,22 +144,36 @@ export function Comments({ resourceId }: { resourceId: string }) {
       const { error } = await supabase.from("comments").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", resourceId] }),
+    onSuccess: invalidateAll,
   });
 
   if (hideForNavigation) return null;
 
-  return (
-    <section data-article-comments className="mt-6 rounded-lg border border-border bg-card p-6">
-      <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-        <MessageSquare className="h-4 w-4 text-primary" />
-        评论与批注
-        <span className="text-xs font-normal text-muted-foreground">({rows?.length ?? 0})</span>
-      </h2>
+  const wrapClass = compact
+    ? "space-y-4"
+    : "mt-6 rounded-lg border border-border bg-card p-6";
+
+  const inner = (
+    <>
+      {!compact && (
+        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
+          <MessageSquare className="h-4 w-4 text-primary" />
+          {title}
+          <span className="text-xs font-normal text-muted-foreground">
+            ({rows?.length ?? 0})
+          </span>
+        </h2>
+      )}
+
+      {anchorText && (
+        <div className="mb-3 rounded-md border-l-2 border-primary/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <span className="line-clamp-2">{anchorText}</span>
+        </div>
+      )}
 
       {user ? (
         <CommentForm
-          placeholder="留下你的批注或想法..."
+          placeholder={anchorId ? "对这个段落说点什么..." : "留下你的批注或想法..."}
           submitting={create.isPending}
           onSubmit={(content) => create.mutateAsync({ content, parentId: null })}
         />
@@ -146,7 +190,9 @@ export function Comments({ resourceId }: { resourceId: string }) {
         {isLoading ? (
           <div className="text-sm text-muted-foreground">加载评论中...</div>
         ) : tree.length === 0 ? (
-          <div className="text-sm text-muted-foreground">还没有评论，来做第一个吧。</div>
+          <div className="text-sm text-muted-foreground">
+            {anchorId ? "这个段落还没有批注。" : "还没有评论，来做第一个吧。"}
+          </div>
         ) : (
           tree.map((node) => (
             <CommentNode
@@ -164,6 +210,15 @@ export function Comments({ resourceId }: { resourceId: string }) {
           ))
         )}
       </div>
+    </>
+  );
+
+  if (compact) {
+    return <div className={wrapClass}>{inner}</div>;
+  }
+  return (
+    <section data-article-comments className={wrapClass}>
+      {inner}
     </section>
   );
 }

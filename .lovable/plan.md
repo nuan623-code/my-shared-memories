@@ -1,87 +1,89 @@
-## 网站新定位：Mingyu's Library
+## 一、段落评论（核心新功能）
 
-从「个人项目展示」转型为「个人资源库」——一个 Mingyu 想放什么就放什么的内容仓库。瀑布流卡片墙 + 最新资源流 + 多类型统一聚合。
+### 体验设计
+- 文章正文每个段落（`<p>` / `<li>` / `<blockquote>`）右侧 gutter 显示一个小气泡：仅一个数字（评论数）。无评论时默认隐藏，鼠标悬停段落才出现「+」按钮。
+- 点击数字 → 右侧滑出抽屉（Sheet），展示该段落的评论线程，支持回复、编辑、删除（沿用现有权限规则）。
+- 顶部操作栏增加「显示/隐藏段落标注」开关，状态存 `localStorage`，默认开启。
+- 未登录用户：可看数字、看评论；点「添加」时引导登录。
 
----
+### 数据层
+扩展现有 `comments` 表，新增字段：
+- `anchor_id text null` — 段落锚点 ID（如 `p-7`，按文档顺序生成的稳定哈希）
+- `anchor_text text null` — 段落前 80 字快照，用于内容变动后兜底显示
+- `anchor_kind text null` — `paragraph` / `article`（旧的整篇评论 = `article`）
 
-### 一、内容类型统一为 Resource
+索引：`(resource_id, anchor_id)`。RLS 策略沿用现有规则，无需新增表，旧评论自动归入「文章评论」Tab。
 
-把现有 `articles` / `projects` 数据模型合并成统一的 `Resource`，新类型一次性建好：
+### 渲染层（关键技术点）
+文章 HTML 在 `iframe` 中渲染（同源 `/public`），所以可以：
+1. iframe `load` 后遍历正文段落节点，按 DOM 顺序生成稳定 `data-anchor-id`（基于段落文本的短哈希，内容微调也能命中）。
+2. 计算每个段落相对父容器的 `getBoundingClientRect()`，把 gutter 气泡作为**外层 React 组件**绝对定位渲染在 iframe 旁的覆盖层上（避免修改 iframe 内 DOM 的样式系统）。
+3. 监听 iframe `scroll` / `resize` 重新计算位置（已有 scroll 监听，复用即可）。
+4. 评论数据按 `resource_id` 一次拉取后用 `groupBy(anchor_id)` 分发。
 
-| type | 说明 | 示例 |
-|---|---|---|
-| `article` | 文章/笔记/文档（保留现有 10 篇） | AI 学习笔记 |
-| `video` | 视频/音频（带封面、时长、播放链接） | 之后录的教程 |
-| `link` | 外链资源卡片（自动抓标题/favicon/描述） | 收藏的工具、文章 |
-| `file` | 可下载文件（PDF、PPT、资料包） | 课件、模板 |
-| `note` | 简短想法/碎片笔记（纯文本，无详情页） | 一句话灵感 |
-
-统一字段：`id, type, title, summary, cover?, tags[], category?, date, url?, fileUrl?, fileSize?, content?`
-
----
-
-### 二、页面结构调整
-
-```
-/                  瀑布流最新资源流（混合所有类型）+ 顶部统计 + 标签云
-/resources         同上但带筛选侧栏（类型/标签/时间）
-/resources/$slug   文章/视频/文件详情页（按 type 分发渲染）
-/notes             碎片笔记时间流（纯瀑布流，无详情）
-/admin             新增资源（外链抓取 / 文件上传 / 写笔记） *需登录
-/about             保留
-/search            保留，扩展支持按类型过滤
-```
-
-删除现有 `/projects` 和 `/projects/$id` 路由（资源化后不再需要"项目"专属页）。
+### 文件改动
+- `supabase` 迁移：`ALTER TABLE comments ADD COLUMN anchor_id / anchor_text / anchor_kind`。
+- `src/components/Comments.tsx`：拆为 `<ArticleComments>`（整篇，现状）+ `<ParagraphCommentThread>`（抽屉内复用列表/表单子组件）。
+- 新增 `src/components/ParagraphCommentLayer.tsx`：负责扫描 iframe、渲染 gutter 气泡、控制抽屉。
+- `src/routes/articles.$slug.tsx`：挂载 `ParagraphCommentLayer`，新增「显示标注」开关。
 
 ---
 
-### 三、瀑布流卡片墙
+## 二、页面完善计划
 
-- 用 CSS `columns-1 sm:columns-2 lg:columns-3 xl:columns-4` 实现真正的 Pinterest 风瀑布流，卡片高度自适应内容
-- 每种 type 视觉差异化：
-  - `article`：白底 + 摘要文字
-  - `video`：黑底 + 封面 + 播放图标 + 时长徽章
-  - `link`：网站截图/favicon + 域名小字
-  - `file`：文件类型图标 + 文件大小
-  - `note`：纯文本卡片 + 彩色背景（蓝/淡蓝/浅紫渐变随机）
-- 顶部：类型快速筛选 chips（全部 / 文章 / 视频 / 链接 / 文件 / 笔记）
+1. **文章页**
+   - 移动端（<lg）增加可折叠的顶部目录抽屉（当前完全隐藏）。
+   - iframe 高度自适应内容（同源时读取 `scrollHeight`），消除内部双滚动条。
+   - 顶部操作栏加「复制链接」「上一篇/下一篇（同分类）」。
 
----
+2. **资源库 `/resources`**
+   - 标签筛选支持多选 + URL 同步（便于分享）。
+   - 卡片增加评论数 / 收藏数小角标。
+   - 空状态文案与「清空筛选」按钮。
 
-### 四、新能力实现
+3. **首页**
+   - 顶部加「最近更新」横向滚动条。
+   - 统计栏数字接真实 count（目前部分为静态）。
 
-#### 1. 外链资源卡片（需开启 Lovable Cloud）
-- 后端 `createServerFn` 拉取 URL 的 OG 标签（`og:title`, `og:image`, `og:description`），存进数据库
-- 失败时降级到 favicon + 域名
+4. **账号 `/account`**
+   - 「我的评论」Tab：展示我发的评论 + 一键跳回原文段落。
+   - 头衔（title）可编辑。
 
-#### 2. 文件上传与下载（需开启 Lovable Cloud + Storage）
-- 创建 public bucket `resources`
-- `/admin` 提供拖拽上传，存储 URL 写进数据库
-- 卡片直接提供下载链接，显示大小/类型
-
-#### 3. 简短想法/碎片笔记（需 Lovable Cloud）
-- `/admin` 一个 textarea 即发即存
-- 主页与 `/notes` 都展示
-
-#### 4. 权限
-- 用 Cloud 的邮箱登录，只有 Mingyu 自己登录后能看到 `/admin` 入口和发布按钮
-- 访客只读浏览
+5. **全站**
+   - 404 页与全局 errorComponent 视觉对齐主题。
+   - Header 在小屏的导航汉堡菜单。
+   - 暗色模式开关（之前讨论过，留作可选项）。
 
 ---
 
-### 五、需要确认/启用的事项
+## 三、测试计划
 
-1. **启用 Lovable Cloud**：上面 3 个新能力都依赖它（数据库 + 存储 + 登录）。如果只想要瀑布流改版、不要发布后台，可以先跳过。
-2. **现有数据迁移**：把 10 篇 GitHub 文章作为 seed 数据导入 Cloud 数据库；HTML 文件继续放 `public/` 目录通过 iframe 加载。
-3. **删除 `/projects`**：确认可以删（目前是占位假数据）。
+### 自动化（Playwright，放 `/tmp/browser/` 跑）
+- **冒烟用例**：首页 → 资源库 → 打开文章 → 返回；验证 URL、关键元素、无 console error。
+- **段落评论**：
+  - 登录 → 点段落气泡 → 发评论 → 数字 +1 → 刷新仍在。
+  - 非作者不能编辑/删除；管理员可以。
+  - 关闭「显示标注」后 gutter 消失，整篇评论区不受影响。
+- **导航回归**：从文章评论区点「返回资源库」不出现旧评论残留（之前已修，纳入回归）。
+- **下载**：HTML / Markdown / PDF 三种格式各跑一次，校验文件名与非空。
+
+### 手工核对清单（交付前过一遍）
+- 移动端 375 / 平板 768 / 桌面 1280 三档截图。
+- 未登录 vs 登录 vs 管理员三种身份各看一篇文章。
+- Lighthouse：性能 / SEO / 可访问性 ≥ 90。
+
+### 数据/安全
+- 运行 `supabase--linter` 检查新字段后的 RLS。
+- 手动验证：A 用户不能以 B 用户身份发段落评论（直接调 supabase-js 试）。
 
 ---
 
-### 六、技术要点（你可以跳过）
+## 四、建议执行顺序
+1. 段落评论：迁移 → 数据层 → gutter 层 → 抽屉 UI → 权限 → Playwright 用例。
+2. 文章页移动端目录 + iframe 自适应高度。
+3. 资源库筛选 + 卡片角标。
+4. 账号「我的评论」。
+5. 首页与零散完善。
+6. 全量回归 + 截图核对 + Lighthouse。
 
-- 数据层：`resources` 表 + `notes` 表（PostgreSQL via Cloud），公开 SELECT 给 anon，写入需 authenticated + admin role
-- OG 抓取：服务端 fetch + cheerio/regex 解析
-- 上传：Cloud Storage public bucket，前端用 supabase-js 上传
-- 瀑布流：纯 CSS columns（无需第三方库，SSR 友好）
-- 主题：保留现有深海军蓝
+完成第 1 步即可单独发布一次，后续按节奏推进。
