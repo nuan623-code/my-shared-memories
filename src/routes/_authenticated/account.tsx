@@ -50,6 +50,8 @@ function AccountPage() {
         </div>
       </header>
 
+      <ProfileEditor />
+
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
           <Bookmark className="h-4 w-4 text-primary" />
