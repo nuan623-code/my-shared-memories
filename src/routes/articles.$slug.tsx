@@ -261,6 +261,43 @@ function ArticleDetailPage() {
           </aside>
         )}
       </div>
+
+      {/* 相关文章 */}
+      {related.length > 0 && (
+        <section className="border-t border-border bg-card/40 px-4 py-10">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-5 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">相关文章</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {related.map((a) => (
+                <Link
+                  key={a.id}
+                  to="/articles/$slug"
+                  params={{ slug: a.id }}
+                  className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+                >
+                  <h3 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
+                    {a.title}
+                  </h3>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {a.tags.slice(0, 3).map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
+
