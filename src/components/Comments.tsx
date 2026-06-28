@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Reply, Trash2, Send } from "lucide-react";
+import { MessageSquare, Reply, Trash2, Send, Pencil, X, Check, ShieldCheck } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 
 type Profile = { display_name: string; title: string };
 type CommentRow = {
@@ -13,6 +14,7 @@ type CommentRow = {
   parent_id: string | null;
   content: string;
   created_at: string;
+  updated_at: string;
   profiles: Profile | null;
 };
 type TreeNode = CommentRow & { children: TreeNode[] };
@@ -20,7 +22,7 @@ type TreeNode = CommentRow & { children: TreeNode[] };
 async function fetchComments(resourceId: string): Promise<CommentRow[]> {
   const { data, error } = await supabase
     .from("comments")
-    .select("id, resource_id, user_id, parent_id, content, created_at, profiles(display_name, title)")
+    .select("id, resource_id, user_id, parent_id, content, created_at, updated_at, profiles(display_name, title)")
     .eq("resource_id", resourceId)
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -48,6 +50,7 @@ function formatTime(iso: string) {
 
 export function Comments({ resourceId }: { resourceId: string }) {
   const { user } = useAuth();
+  const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const { data: rows, isLoading } = useQuery({
     queryKey: ["comments", resourceId],
@@ -65,6 +68,17 @@ export function Comments({ resourceId }: { resourceId: string }) {
         parent_id: parentId,
         content,
       });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", resourceId] }),
+  });
+
+  const update = useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { error } = await supabase
+        .from("comments")
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", resourceId] }),
@@ -112,10 +126,13 @@ export function Comments({ resourceId }: { resourceId: string }) {
               key={node.id}
               node={node}
               currentUserId={user?.id}
+              isAdmin={isAdmin}
               depth={0}
               onReply={(content, parentId) => create.mutateAsync({ content, parentId })}
+              onEdit={(id, content) => update.mutateAsync({ id, content })}
               onDelete={(id) => remove.mutateAsync(id)}
               replying={create.isPending}
+              editing={update.isPending}
             />
           ))
         )}
@@ -127,22 +144,34 @@ export function Comments({ resourceId }: { resourceId: string }) {
 function CommentNode({
   node,
   currentUserId,
+  isAdmin,
   depth,
   onReply,
+  onEdit,
   onDelete,
   replying,
+  editing,
 }: {
   node: TreeNode;
   currentUserId?: string;
+  isAdmin: boolean;
   depth: number;
   onReply: (content: string, parentId: string) => Promise<void>;
+  onEdit: (id: string, content: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   replying: boolean;
+  editing: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [draft, setDraft] = useState(node.content);
+  const [err, setErr] = useState<string | null>(null);
+
   const name = node.profiles?.display_name ?? "匿名读者";
   const title = node.profiles?.title ?? "读者";
   const isMine = currentUserId === node.user_id;
+  const canModify = isMine || isAdmin;
+  const wasEdited = node.updated_at && node.updated_at !== node.created_at;
 
   return (
     <div className={depth > 0 ? "ml-6 border-l-2 border-border/60 pl-4" : ""}>
@@ -157,36 +186,102 @@ function CommentNode({
               {title}
             </span>
             <span className="text-xs text-muted-foreground">{formatTime(node.created_at)}</span>
+            {wasEdited && <span className="text-xs text-muted-foreground">（已编辑）</span>}
           </div>
-          <div className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground/90">
-            {node.content}
-          </div>
-          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-            {currentUserId && depth < 3 && (
-              <button
-                onClick={() => setOpen((v) => !v)}
-                className="inline-flex items-center gap-1 hover:text-foreground"
-              >
-                <Reply className="h-3 w-3" /> 回复
-              </button>
-            )}
-            {isMine && (
-              <button
-                onClick={() => onDelete(node.id)}
-                className="inline-flex items-center gap-1 hover:text-destructive"
-              >
-                <Trash2 className="h-3 w-3" /> 删除
-              </button>
-            )}
-          </div>
-          {open && (
+
+          {editOpen ? (
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    const trimmed = draft.trim();
+                    if (!trimmed || trimmed === node.content) {
+                      setEditOpen(false);
+                      return;
+                    }
+                    try {
+                      setErr(null);
+                      await onEdit(node.id, trimmed);
+                      setEditOpen(false);
+                    } catch (e: any) {
+                      setErr(e?.message ?? "保存失败");
+                    }
+                  }}
+                  disabled={editing || !draft.trim()}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <Check className="h-3 w-3" /> {editing ? "保存中..." : "保存"}
+                </button>
+                <button
+                  onClick={() => {
+                    setDraft(node.content);
+                    setEditOpen(false);
+                    setErr(null);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" /> 取消
+                </button>
+                {err && <span className="text-xs text-destructive">{err}</span>}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground/90">
+              {node.content}
+            </div>
+          )}
+
+          {!editOpen && (
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              {currentUserId && depth < 3 && (
+                <button
+                  onClick={() => setReplyOpen((v) => !v)}
+                  className="inline-flex items-center gap-1 hover:text-foreground"
+                >
+                  <Reply className="h-3 w-3" /> 回复
+                </button>
+              )}
+              {canModify && (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="inline-flex items-center gap-1 hover:text-foreground"
+                >
+                  <Pencil className="h-3 w-3" /> 编辑
+                </button>
+              )}
+              {canModify && (
+                <button
+                  onClick={() => {
+                    if (window.confirm("确定删除这条评论吗？")) onDelete(node.id);
+                  }}
+                  className="inline-flex items-center gap-1 hover:text-destructive"
+                >
+                  <Trash2 className="h-3 w-3" /> 删除
+                </button>
+              )}
+              {!isMine && isAdmin && canModify && (
+                <span className="inline-flex items-center gap-1 text-primary">
+                  <ShieldCheck className="h-3 w-3" /> 管理员操作
+                </span>
+              )}
+            </div>
+          )}
+
+          {replyOpen && (
             <div className="mt-3">
               <CommentForm
                 placeholder={`回复 ${name}...`}
                 submitting={replying}
                 onSubmit={async (content) => {
                   await onReply(content, node.id);
-                  setOpen(false);
+                  setReplyOpen(false);
                 }}
               />
             </div>
@@ -198,10 +293,13 @@ function CommentNode({
                   key={child.id}
                   node={child}
                   currentUserId={currentUserId}
+                  isAdmin={isAdmin}
                   depth={depth + 1}
                   onReply={onReply}
+                  onEdit={onEdit}
                   onDelete={onDelete}
                   replying={replying}
+                  editing={editing}
                 />
               ))}
             </div>
