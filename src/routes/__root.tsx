@@ -1,7 +1,9 @@
+import "@fontsource-variable/outfit/wght.css";
+import "@fontsource-variable/figtree/wght.css";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
-  Link,
   createRootRouteWithContext,
   useRouter,
   HeadContent,
@@ -11,6 +13,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { Header } from "../components/Header";
+import { Footer } from "../components/Footer";
 
 function NotFoundComponent() {
   return (
