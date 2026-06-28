@@ -137,6 +137,8 @@ export interface Article {
   subcategory?: string;
   tags: string[];
   content: string;
+  /** GitHub Pages 等外部链接，iframe 嵌入用 */
+  link?: string;
 }
 
 export const projects: Project[] = [
