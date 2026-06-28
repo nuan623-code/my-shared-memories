@@ -347,15 +347,20 @@ function SearchPage() {
             <FolderGit2 className="h-4 w-4 text-primary" />
             项目 ({matchedProjects.length})
           </h2>
-          <ul className="space-y-3">
-            {matchedProjects.map((p) => {
+          <ul className="space-y-3" role="list">
+            {matchedProjects.map((p, i) => {
               const cat = categories.find((c) => c.id === p.category);
+              const idx = i;
               return (
                 <li key={p.id}>
                   <Link
+                    ref={(el) => {
+                      resultRefs.current[idx] = el;
+                    }}
                     to="/projects/$id"
                     params={{ id: p.id }}
-                    className="block rounded-xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-md"
+                    onKeyDown={(e) => onResultKeyDown(e, idx)}
+                    className="block rounded-xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-md focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     <div className="flex items-center gap-2">
                       <span
@@ -396,33 +401,41 @@ function SearchPage() {
             <FileText className="h-4 w-4 text-primary" />
             文章 ({matchedArticles.length})
           </h2>
-          <ul className="space-y-3">
-            {matchedArticles.map((a) => (
-              <li
-                key={a.id}
-                className="rounded-xl border border-border bg-card p-4"
-              >
-                <div className="text-xs text-muted-foreground">
-                  {a.date} · {a.readTime}
-                </div>
-                <div className="mt-2 font-medium">
-                  <Highlight text={a.title} q={q} />
-                </div>
-                <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  <Highlight text={a.description} q={q} />
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {a.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                    >
-                      #<Highlight text={t} q={q} />
-                    </span>
-                  ))}
-                </div>
-              </li>
-            ))}
+          <ul className="space-y-3" role="list">
+            {matchedArticles.map((a, i) => {
+              const idx = matchedProjects.length + i;
+              return (
+                <li
+                  key={a.id}
+                  ref={(el) => {
+                    resultRefs.current[idx] = el;
+                  }}
+                  tabIndex={-1}
+                  onKeyDown={(e) => onResultKeyDown(e, idx)}
+                  className="rounded-xl border border-border bg-card p-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
+                >
+                  <div className="text-xs text-muted-foreground">
+                    {a.date} · {a.readTime}
+                  </div>
+                  <div className="mt-2 font-medium">
+                    <Highlight text={a.title} q={q} />
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    <Highlight text={a.description} q={q} />
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {a.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                      >
+                        #<Highlight text={t} q={q} />
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
