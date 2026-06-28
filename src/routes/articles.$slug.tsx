@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, List } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { getArticleById } from "@/lib/data";
+import { ArrowLeft, ExternalLink, List, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { articles, getArticleById } from "@/lib/data";
+
 
 export const Route = createFileRoute("/articles/$slug")({
   component: ArticleDetailPage,
