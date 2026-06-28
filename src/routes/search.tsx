@@ -62,8 +62,8 @@ function SearchPage() {
   const total = matchedProjects.length + matchedArticles.length;
 
   const toggleTag = (tag: string) => {
-    const next = tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag];
-    navigate({ search: (prev) => ({ ...prev, tags: next }) });
+    const next = tags.includes(tag) ? tags.filter((t: string) => t !== tag) : [...tags, tag];
+    navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, tags: next }) });
   };
 
   const clearAll = () => navigate({ search: { q: "", tags: [] } });
@@ -79,7 +79,7 @@ function SearchPage() {
           autoFocus
           value={q}
           onChange={(e) =>
-            navigate({ search: (prev) => ({ ...prev, q: e.target.value }) })
+            navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, q: e.target.value }) })
           }
           placeholder="搜索项目、文章、技术栈..."
           className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
