@@ -9,7 +9,7 @@ const categoryStyles: Record<
   CategoryId,
   { bg: string; text: string; border: string }
 > = {
-  web: { bg: "bg-cat-web/15", text: "text-cat-web", border: "border-cat-web/30" },
+  
   game: { bg: "bg-cat-game/15", text: "text-cat-game", border: "border-cat-game/30" },
   ai: { bg: "bg-cat-ai/15", text: "text-cat-ai", border: "border-cat-ai/30" },
   homework: { bg: "bg-cat-homework/15", text: "text-cat-homework", border: "border-cat-homework/30" },

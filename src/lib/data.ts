@@ -4,7 +4,6 @@
 // ============================================================
 
 export type CategoryId =
-  | "web"
   | "game"
   | "ai"
   | "homework"
@@ -25,18 +24,6 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  {
-    id: "web",
-    label: "Web 开发",
-    color: "oklch(0.869 0.1066 150.22)",
-    description: "网站、小程序与前端实验",
-    subcategories: [
-      { id: "website", label: "网站项目" },
-      { id: "miniprogram", label: "小程序" },
-      { id: "frontend-lab", label: "前端实验" },
-      { id: "tool", label: "工具" },
-    ],
-  },
   {
     id: "game",
     label: "游戏开发",
@@ -154,33 +141,6 @@ export interface Article {
 
 export const projects: Project[] = [
   {
-    id: "portfolio-2024",
-    title: "个人作品集网站",
-    description: "使用 React 和 Tailwind CSS 构建的响应式个人作品集，支持深色模式切换。",
-    category: "web",
-    subcategory: "website",
-    tags: ["前端", "React", "设计"],
-    date: "2024-06",
-    image: "",
-    github: "https://github.com",
-    techStack: ["React", "Tailwind CSS", "Vite", "TypeScript"],
-    content:
-      "这个项目是我为自己搭建的个人作品集网站，采用现代化的前端技术栈。主要特性包括：响应式设计适配各种设备、流畅的页面过渡动画、深色/浅色模式自动切换、SEO 优化。",
-  },
-  {
-    id: "wechat-mini",
-    title: "微信小程序工具集",
-    description: "为日常办公开发的一套微信小程序工具，包括数据看板、日程管理等功能。",
-    category: "web",
-    subcategory: "miniprogram",
-    tags: ["小程序", "微信", "工具"],
-    date: "2024-03",
-    image: "",
-    techStack: ["微信小程序", "TypeScript", "云开发"],
-    content:
-      "这是一个面向移动办公场景的微信小程序集合。项目包含数据看板、团队日程管理、文件共享等多个模块。",
-  },
-  {
     id: "platformer-game",
     title: "2D平台跳跃游戏",
     description: "使用 Unity 开发的 2D 横版平台跳跃游戏，包含关卡设计、角色动画和音效系统。",
@@ -231,19 +191,6 @@ export const projects: Project[] = [
     techStack: ["Python", "Transformers", "PEFT", "PyTorch"],
     content:
       "这个项目以学习笔记的形式，记录了我在大语言模型微调方面的实践过程。从最初的理论学习，到使用 LoRA 进行参数高效微调，再到 QLoRA 在消费级显卡上的部署。",
-  },
-  {
-    id: "ecommerce-page",
-    title: "响应式电商页面",
-    description: "纯前端实现的电商产品详情页，包含图片画廊、规格选择、购物车交互等功能。",
-    category: "web",
-    subcategory: "frontend-lab",
-    tags: ["前端", "电商", "交互"],
-    date: "2024-01",
-    image: "",
-    techStack: ["HTML", "CSS", "JavaScript"],
-    content:
-      "一个纯前端技术实现的电商产品详情页面。实现了产品图片放大查看、多规格选择、加入购物车动画等常见电商交互。",
   },
   {
     id: "unity-editor-tool",
