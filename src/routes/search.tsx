@@ -176,10 +176,36 @@ function SearchPage() {
       } else {
         focusResult(0);
       }
+    } else if (e.key === "Tab" && total > 0) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        focusResult(total - 1);
+      } else {
+        focusResult(0);
+      }
     }
   };
 
   const onResultKeyDown = (e: React.KeyboardEvent, idx: number) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      if (e.shiftKey) {
+        if (idx === 0) {
+          setActiveIndex(-1);
+          inputRef.current?.focus();
+        } else {
+          focusResult(idx - 1);
+        }
+      } else {
+        if (idx === total - 1) {
+          setActiveIndex(-1);
+          inputRef.current?.focus();
+        } else {
+          focusResult(idx + 1);
+        }
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       focusResult(idx + 1);
