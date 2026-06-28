@@ -19,7 +19,7 @@ export const Route = createFileRoute("/projects/$id")({
 });
 
 const categoryStyles: Record<CategoryId, { bg: string; text: string }> = {
-  web: { bg: "bg-cat-web/15", text: "text-cat-web" },
+  
   game: { bg: "bg-cat-game/15", text: "text-cat-game" },
   ai: { bg: "bg-cat-ai/15", text: "text-cat-ai" },
   homework: { bg: "bg-cat-homework/15", text: "text-cat-homework" },
