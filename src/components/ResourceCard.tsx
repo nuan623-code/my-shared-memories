@@ -56,8 +56,10 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   );
 
   const favOverlay = (
-    <div className="absolute right-3 top-3 z-10">
-      <FavoriteButton resourceId={r.id} />
+    <div className="pointer-events-none absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      <div className="pointer-events-auto rounded-md bg-card/90 shadow-sm backdrop-blur-sm">
+        <FavoriteButton resourceId={r.id} />
+      </div>
     </div>
   );
 
@@ -65,7 +67,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   if (r.type === "note") {
     return (
       <div
-        className="relative mb-4 break-inside-avoid rounded-2xl border border-border/60 p-5 shadow-sm transition-all hover:shadow-md"
+        className="group relative mb-4 break-inside-avoid rounded-2xl border border-border/60 p-5 shadow-sm transition-all hover:shadow-md"
         style={{ background: noteGradient(r.id) }}
       >
         {favOverlay}
@@ -81,7 +83,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   // LINK — external
   if (r.type === "link") {
     return (
-      <div className="relative mb-4 break-inside-avoid">
+      <div className="group relative mb-4 break-inside-avoid">
         {favOverlay}
         <a
           href={r.url ?? "#"}
@@ -119,7 +121,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   // FILE — download
   if (r.type === "file") {
     return (
-      <div className="relative mb-4 break-inside-avoid">
+      <div className="group relative mb-4 break-inside-avoid">
         {favOverlay}
         <a
           href={r.file_url ?? "#"}
@@ -198,7 +200,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
     );
 
     return (
-      <div className="relative mb-4 break-inside-avoid">
+      <div className="group relative mb-4 break-inside-avoid">
         {favOverlay}
         {r.slug ? (
           <Link
@@ -247,7 +249,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   );
 
   return (
-    <div className="relative mb-4 break-inside-avoid">
+    <div className="group relative mb-4 break-inside-avoid">
       {favOverlay}
       {r.slug ? (
         <Link
