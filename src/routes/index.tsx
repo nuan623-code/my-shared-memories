@@ -130,14 +130,18 @@ function HomePage() {
                 className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 transition-all hover:shadow-md"
               >
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {article.date}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {article.readTime}
-                  </span>
+                  {article.date && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {article.date}
+                    </span>
+                  )}
+                  {article.readTime && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {article.readTime}
+                    </span>
+                  )}
                 </div>
                 <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">
                   {article.title}
