@@ -11,8 +11,8 @@ export const Route = createFileRoute("/articles/$slug")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData.article.title} — Mingyu Yang` },
-      { name: "description", content: loaderData.article.description },
+      { title: `${loaderData?.article.title ?? "文章"} — Mingyu Yang` },
+      { name: "description", content: loaderData?.article.description ?? "" },
     ],
   }),
 });
