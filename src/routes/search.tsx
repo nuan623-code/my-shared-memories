@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useMemo } from "react";
-import { Search as SearchIcon, FileText, FolderGit2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search as SearchIcon, FileText, FolderGit2, X, Loader2, AlertCircle } from "lucide-react";
 import {
   projects,
   articles,
