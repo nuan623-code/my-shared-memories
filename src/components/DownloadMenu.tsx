@@ -50,7 +50,7 @@ export function DownloadMenu({ url, title }: { url: string; title: string }) {
         setProgress(Math.round((received / total) * 100));
       }
     }
-    return new Blob(chunks);
+    return new Blob(chunks as BlobPart[]);
   }
 
   function triggerDownload(blob: Blob, name: string) {
