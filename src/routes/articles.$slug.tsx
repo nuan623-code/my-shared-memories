@@ -1,10 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchResourceBySlug, fetchResources } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
+import { ParagraphCommentLayer } from "@/components/ParagraphCommentLayer";
 
 export const Route = createFileRoute("/articles/$slug")({
   loader: async ({ params }) => {
@@ -52,6 +53,13 @@ function ArticleDetailPage() {
   const [progress, setProgress] = useState(0);
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [annotationsOn, setAnnotationsOn] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("annotationsOn") !== "0";
+  });
+  useEffect(() => {
+    window.localStorage.setItem("annotationsOn", annotationsOn ? "1" : "0");
+  }, [annotationsOn]);
 
   useEffect(() => {
     queryClient.prefetchQuery({
