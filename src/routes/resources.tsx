@@ -69,23 +69,6 @@ function ResourcesPage() {
   const [cat, setCat] = useState<string>("all");
   const [tag, setTag] = useState<string | null>(null);
 
-  if (isLoading) return <ResourcesPendingPage />;
-
-  if (error) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
-        <p className="mt-3 text-sm text-muted-foreground">资源加载失败，请稍后重试。</p>
-        <button
-          onClick={() => refetch()}
-          className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          重新加载
-        </button>
-      </div>
-    );
-  }
-
   const allTags = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of resources) for (const t of r.tags) m.set(t, (m.get(t) || 0) + 1);
@@ -102,6 +85,23 @@ function ResourcesPage() {
       }),
     [resources, type, cat, tag],
   );
+
+  if (isLoading) return <ResourcesPendingPage />;
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
+        <p className="mt-3 text-sm text-muted-foreground">资源加载失败，请稍后重试。</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          重新加载
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-8">
