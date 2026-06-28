@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useMemo } from "react";
-import { Search as SearchIcon, FileText, FolderGit2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search as SearchIcon, FileText, FolderGit2, X, Loader2, AlertCircle } from "lucide-react";
 import {
   projects,
   articles,
@@ -65,6 +65,9 @@ function Highlight({ text, q }: { text: string; q: string }) {
   );
 }
 
+const DEBOUNCE_MS = 300;
+const SEARCH_LATENCY_MS = 250;
+
 function SearchPage() {
   const { q, tags } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -76,22 +79,70 @@ function SearchPage() {
     return Array.from(s).sort();
   }, []);
 
-  const matchedProjects = useMemo(
-    () => projects.filter((p) => projectMatches(p, q, tags)),
-    [q, tags],
-  );
-  const matchedArticles = useMemo(
-    () => articles.filter((a) => articleMatches(a, q, tags)),
-    [q, tags],
-  );
+  // 本地输入值（用于防抖）
+  const [inputValue, setInputValue] = useState(q);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 当 URL q 由外部变化（如点击建议）时，同步到输入框
+  useEffect(() => {
+    setInputValue(q);
+  }, [q]);
+
+  const onInputChange = (value: string) => {
+    setInputValue(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, q: value }) });
+    }, DEBOUNCE_MS);
+  };
+
+  // 搜索请求状态
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<{ projects: Project[]; articles: Article[] }>({
+    projects: [],
+    articles: [],
+  });
+  const [retryToken, setRetryToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      try {
+        const ps = projects.filter((p) => projectMatches(p, q, tags));
+        const as = articles.filter((a) => articleMatches(a, q, tags));
+        setResults({ projects: ps, articles: as });
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "搜索失败，请重试");
+        setLoading(false);
+      }
+    }, SEARCH_LATENCY_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [q, tags, retryToken]);
+
+  const matchedProjects = results.projects;
+  const matchedArticles = results.articles;
   const total = matchedProjects.length + matchedArticles.length;
+  const isPendingDebounce = inputValue !== q;
+  const showLoading = loading || isPendingDebounce;
 
   const toggleTag = (tag: string) => {
     const next = tags.includes(tag) ? tags.filter((t: string) => t !== tag) : [...tags, tag];
     navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, tags: next }) });
   };
 
-  const clearAll = () => navigate({ search: { q: "", tags: [] } });
+  const clearAll = () => {
+    setInputValue("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    navigate({ search: { q: "", tags: [] } });
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -102,14 +153,15 @@ function SearchPage() {
         <SearchIcon className="h-5 w-5 text-muted-foreground" />
         <input
           autoFocus
-          value={q}
-          onChange={(e) =>
-            navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, q: e.target.value }) })
-          }
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
           placeholder="搜索项目、文章、技术栈..."
           className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
         />
-        {(q || tags.length > 0) && (
+        {showLoading && (
+          <Loader2 className="h-4 w-4 animate-spin text-primary" aria-label="加载中" />
+        )}
+        {(inputValue || tags.length > 0) && !showLoading && (
           <button
             onClick={clearAll}
             className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -145,13 +197,49 @@ function SearchPage() {
         </div>
       </div>
 
-      <div className="mt-8 text-sm text-muted-foreground">
-        {q || tags.length > 0
-          ? `共找到 ${total} 个结果`
-          : `输入关键词或选择标签开始搜索`}
+      <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
+        {showLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span>正在搜索…</span>
+          </>
+        ) : error ? (
+          <span className="text-destructive">搜索出错</span>
+        ) : q || tags.length > 0 ? (
+          <span>共找到 {total} 个结果</span>
+        ) : (
+          <span>输入关键词或选择标签开始搜索</span>
+        )}
       </div>
 
-      {matchedProjects.length > 0 && (
+      {error && !showLoading && (
+        <div className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div className="flex-1">
+            <div className="font-medium text-foreground">搜索请求失败</div>
+            <div className="mt-1 text-sm text-muted-foreground">{error}</div>
+          </div>
+          <button
+            onClick={() => setRetryToken((n) => n + 1)}
+            className="rounded-lg border border-destructive/40 bg-card px-3 py-1.5 text-sm text-foreground transition hover:bg-destructive hover:text-destructive-foreground"
+          >
+            重试
+          </button>
+        </div>
+      )}
+
+      {showLoading && (
+        <div className="mt-6 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl border border-border bg-card/60"
+            />
+          ))}
+        </div>
+      )}
+
+      {!showLoading && !error && matchedProjects.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
             <FolderGit2 className="h-4 w-4 text-primary" />
@@ -200,7 +288,7 @@ function SearchPage() {
         </section>
       )}
 
-      {matchedArticles.length > 0 && (
+      {!showLoading && !error && matchedArticles.length > 0 && (
         <section className="mt-8">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
             <FileText className="h-4 w-4 text-primary" />
@@ -237,7 +325,7 @@ function SearchPage() {
         </section>
       )}
 
-      {(q || tags.length > 0) && total === 0 && (
+      {!showLoading && !error && (q || tags.length > 0) && total === 0 && (
         <NoResults
           q={q}
           tags={tags}
