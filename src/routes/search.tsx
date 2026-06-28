@@ -82,11 +82,21 @@ function SearchPage() {
   // 本地输入值（用于防抖）
   const [inputValue, setInputValue] = useState(q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const resultRefs = useRef<Array<HTMLAnchorElement | HTMLLIElement | null>>([]);
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef<HTMLDivElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   // 当 URL q 由外部变化（如点击建议）时，同步到输入框
   useEffect(() => {
     setInputValue(q);
   }, [q]);
+
+  const flushSearch = (value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, q: value }) });
+  };
 
   const onInputChange = (value: string) => {
     setInputValue(value);
@@ -132,6 +142,67 @@ function SearchPage() {
   const total = matchedProjects.length + matchedArticles.length;
   const isPendingDebounce = inputValue !== q;
   const showLoading = loading || isPendingDebounce;
+
+  // 结果变化时重置高亮项与 refs 数组
+  useEffect(() => {
+    resultRefs.current = [];
+    setActiveIndex(-1);
+  }, [q, tags, retryToken, showLoading]);
+
+  // 同步焦点到当前高亮项
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    const el = resultRefs.current[activeIndex];
+    el?.focus();
+  }, [activeIndex]);
+
+  const focusResult = (idx: number) => {
+    if (total === 0) return;
+    const next = (idx + total) % total;
+    setActiveIndex(next);
+  };
+
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      flushSearch(inputValue);
+      if (total > 0) focusResult(0);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (error) {
+        errorRef.current?.focus();
+      } else if (showLoading) {
+        loadingRef.current?.focus();
+      } else {
+        focusResult(0);
+      }
+    }
+  };
+
+  const onResultKeyDown = (e: React.KeyboardEvent, idx: number) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      focusResult(idx + 1);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (idx === 0) {
+        setActiveIndex(-1);
+        inputRef.current?.focus();
+      } else {
+        focusResult(idx - 1);
+      }
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      focusResult(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      focusResult(total - 1);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setActiveIndex(-1);
+      inputRef.current?.focus();
+    }
+  };
 
   const toggleTag = (tag: string) => {
     const next = tags.includes(tag) ? tags.filter((t: string) => t !== tag) : [...tags, tag];
