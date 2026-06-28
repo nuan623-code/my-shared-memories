@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
@@ -19,10 +19,7 @@ export const Route = createFileRoute("/resources")({
       { property: "og:description", content: "浏览所有内容资源" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(allResourcesQO),
   component: ResourcesPage,
-  pendingMs: 0,
-  pendingComponent: ResourcesPendingPage,
   errorComponent: ({ error }) => (
     <div className="p-8 text-center text-sm text-muted-foreground">出错了：{error.message}</div>
   ),
@@ -67,10 +64,27 @@ function ResourcesPendingPage() {
 }
 
 function ResourcesPage() {
-  const { data: resources } = useSuspenseQuery(allResourcesQO);
+  const { data: resources = [], isLoading, error, refetch } = useQuery(allResourcesQO);
   const [type, setType] = useState<ResourceType | "all">("all");
   const [cat, setCat] = useState<string>("all");
   const [tag, setTag] = useState<string | null>(null);
+
+  if (isLoading) return <ResourcesPendingPage />;
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
+        <p className="mt-3 text-sm text-muted-foreground">资源加载失败，请稍后重试。</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          重新加载
+        </button>
+      </div>
+    );
+  }
 
   const allTags = useMemo(() => {
     const m = new Map<string, number>();
