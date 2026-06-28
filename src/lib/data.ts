@@ -236,7 +236,7 @@ export const articles: Article[] = [
     subcategory: "llm",
     tags: ["AI", "大模型", "DeepSeek"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/deepseek-r1-guide.html",
+    link: "/deepseek-r1-guide.html",
   },
   {
     id: "prompt-engineering-roundtable",
@@ -248,7 +248,7 @@ export const articles: Article[] = [
     subcategory: "notes",
     tags: ["AI", "Prompt Engineering", "Claude"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/prompt-engineering-roundtable.html",
+    link: "/prompt-engineering-roundtable.html",
   },
   {
     id: "ai-notes-cs146s-week1",
@@ -260,7 +260,7 @@ export const articles: Article[] = [
     subcategory: "notes",
     tags: ["AI", "课程", "LLM应用"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/ai-notes/cs146s-week1.html",
+    link: "/ai-notes/cs146s-week1.html",
   },
   {
     id: "ai-notes-llm-guide",
@@ -272,7 +272,7 @@ export const articles: Article[] = [
     subcategory: "llm",
     tags: ["AI", "大模型", "指南"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/ai-notes/llm-guide.html",
+    link: "/ai-notes/llm-guide.html",
   },
   {
     id: "ai-notes-llm-deep-dive",
@@ -284,7 +284,7 @@ export const articles: Article[] = [
     subcategory: "llm",
     tags: ["AI", "大模型", "架构"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/ai-notes/llm-deep-dive.html",
+    link: "/ai-notes/llm-deep-dive.html",
   },
   {
     id: "ai-notes-claude-dev-handbook",
@@ -296,7 +296,7 @@ export const articles: Article[] = [
     subcategory: "practice",
     tags: ["AI", "Claude", "API"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/ai-notes/claude-dev-handbook.html",
+    link: "/ai-notes/claude-dev-handbook.html",
   },
   {
     id: "ai-notes-claude-arch",
@@ -308,7 +308,7 @@ export const articles: Article[] = [
     subcategory: "practice",
     tags: ["AI", "Claude", "产品架构"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/ai-notes/claude-arch.html",
+    link: "/ai-notes/claude-arch.html",
   },
   {
     id: "overseas-oddl-training",
@@ -320,7 +320,7 @@ export const articles: Article[] = [
     subcategory: "industry",
     tags: ["移动广告", "ODDL", "归因"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/overseas/oddl-training.html",
+    link: "/overseas/oddl-training.html",
   },
   {
     id: "overseas-adjust-data-discrepancy",
@@ -332,7 +332,7 @@ export const articles: Article[] = [
     subcategory: "industry",
     tags: ["移动广告", "Adjust", "数据排查"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/overseas/adjust-data-discrepancy.html",
+    link: "/overseas/adjust-data-discrepancy.html",
   },
   {
     id: "overseas-adjust-oddl",
@@ -344,7 +344,7 @@ export const articles: Article[] = [
     subcategory: "industry",
     tags: ["移动广告", "Adjust", "ODDL"],
     content: "",
-    link: "https://nuan623-code.github.io/personal-site/overseas/adjust-oddl.html",
+    link: "/overseas/adjust-oddl.html",
   },
 ];
 
