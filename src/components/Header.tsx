@@ -33,13 +33,22 @@ export function Header() {
           ))}
         </nav>
 
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="rounded-md p-2 text-muted-foreground hover:bg-muted md:hidden"
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <Link
+            to="/search"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="搜索"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="rounded-md p-2 text-muted-foreground hover:bg-muted md:hidden"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
