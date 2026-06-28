@@ -10,12 +10,49 @@ export const Route = createFileRoute("/articles/$slug")({
     if (!article) throw notFound();
     return { article };
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: `${loaderData?.article.title ?? "文章"} — Mingyu Yang` },
-      { name: "description", content: loaderData?.article.description ?? "" },
-    ],
-  }),
+  head: ({ loaderData, params }) => {
+    const article = loaderData?.article;
+    const title = `${article?.title ?? "文章"} — Mingyu Yang`;
+    const description =
+      article?.description ||
+      `${article?.title ?? ""} - Mingyu Yang 的文章与笔记`;
+    const url = `/articles/${params.slug}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { name: "author", content: "Mingyu Yang" },
+        ...(article?.tags?.length
+          ? [{ name: "keywords", content: article.tags.join(", ") }]
+          : []),
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "article" },
+        { property: "og:url", content: url },
+        { property: "og:site_name", content: "Mingyu Yang" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: article?.title,
+            description,
+            author: { "@type": "Person", name: "Mingyu Yang" },
+            keywords: article?.tags?.join(", "),
+            datePublished: article?.date || undefined,
+            mainEntityOfPage: url,
+          }),
+        },
+      ],
+    };
+  },
+
 });
 
 type TocItem = { id: string; text: string; level: 2 | 3 };
