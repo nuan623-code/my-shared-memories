@@ -220,13 +220,20 @@ function SearchPage() {
       <h1 className="font-display text-3xl font-semibold tracking-tight">站内搜索</h1>
       <p className="mt-2 text-muted-foreground">在所有项目与文章中搜索关键词，并按标签筛选。</p>
 
-      <div className="mt-6 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
+      <div
+        className="mt-6 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-primary/30"
+        role="search"
+      >
         <SearchIcon className="h-5 w-5 text-muted-foreground" />
         <input
+          ref={inputRef}
           autoFocus
           value={inputValue}
           onChange={(e) => onInputChange(e.target.value)}
-          placeholder="搜索项目、文章、技术栈..."
+          onKeyDown={onInputKeyDown}
+          placeholder="搜索项目、文章、技术栈…（Enter 立即搜索，↓ 跳到结果）"
+          aria-label="搜索关键词"
+          aria-keyshortcuts="Enter ArrowDown"
           className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
         />
         {showLoading && (
