@@ -197,11 +197,47 @@ function SearchPage() {
         </div>
       </div>
 
-      <div className="mt-8 text-sm text-muted-foreground">
-        {q || tags.length > 0
-          ? `共找到 ${total} 个结果`
-          : `输入关键词或选择标签开始搜索`}
+      <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
+        {showLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span>正在搜索…</span>
+          </>
+        ) : error ? (
+          <span className="text-destructive">搜索出错</span>
+        ) : q || tags.length > 0 ? (
+          <span>共找到 {total} 个结果</span>
+        ) : (
+          <span>输入关键词或选择标签开始搜索</span>
+        )}
       </div>
+
+      {error && !showLoading && (
+        <div className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div className="flex-1">
+            <div className="font-medium text-foreground">搜索请求失败</div>
+            <div className="mt-1 text-sm text-muted-foreground">{error}</div>
+          </div>
+          <button
+            onClick={() => setRetryToken((n) => n + 1)}
+            className="rounded-lg border border-destructive/40 bg-card px-3 py-1.5 text-sm text-foreground transition hover:bg-destructive hover:text-destructive-foreground"
+          >
+            重试
+          </button>
+        </div>
+      )}
+
+      {showLoading && (
+        <div className="mt-6 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl border border-border bg-card/60"
+            />
+          ))}
+        </div>
+      )}
 
       {matchedProjects.length > 0 && (
         <section className="mt-6">
