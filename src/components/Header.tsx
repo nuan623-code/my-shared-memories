@@ -59,14 +59,14 @@ export function Header() {
               >
                 <Plus className="h-3.5 w-3.5" /> 发布
               </Link>
-              <button
-                onClick={signOut}
+              <Link
+                to="/account"
                 className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="退出"
-                title="退出登录"
+                aria-label="我的账号"
+                title="我的账号"
               >
-                <LogOut className="h-4 w-4" />
-              </button>
+                <UserIcon className="h-4 w-4" />
+              </Link>
             </>
           ) : (
             <Link
