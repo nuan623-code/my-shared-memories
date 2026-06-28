@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, List } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { useEffect, useRef, useState } from "react";
 import { fetchResourceBySlug } from "@/lib/resources";
@@ -42,73 +42,36 @@ export const Route = createFileRoute("/articles/$slug")({
   ),
 });
 
-type TocItem = { id: string; text: string; level: 2 | 3 };
-
 function ArticleDetailPage() {
   const { article } = Route.useLoaderData();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [toc, setToc] = useState<TocItem[]>([]);
-  const [activeId, setActiveId] = useState("");
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe || !article.url) return;
-    const build = () => {
+    const onLoad = () => {
       try {
         const doc = iframe.contentDocument;
-        if (!doc) return;
-        const items: TocItem[] = Array.from(doc.querySelectorAll("h2, h3")).map((el, i) => {
-          let id = el.id;
-          if (!id) {
-            id = `h-${i}`;
-            el.id = id;
-          }
-          return { id, text: (el.textContent ?? "").trim(), level: el.tagName === "H2" ? 2 : 3 };
-        });
-        setToc(items);
-        const win = iframe.contentWindow!;
+        const win = iframe.contentWindow;
+        if (!doc || !win) return;
         const onScroll = () => {
           const docEl = doc.documentElement;
           const top = docEl.scrollTop || doc.body.scrollTop;
           const h = (docEl.scrollHeight || doc.body.scrollHeight) - win.innerHeight;
           setProgress(h > 0 ? Math.min(100, Math.max(0, (top / h) * 100)) : 0);
-          let cur = "";
-          for (const it of items) {
-            const el = doc.getElementById(it.id);
-            if (!el) continue;
-            if (el.getBoundingClientRect().top <= 80) cur = it.id;
-            else break;
-          }
-          if (cur) setActiveId(cur);
         };
         win.addEventListener("scroll", onScroll, { passive: true });
         onScroll();
         return () => win.removeEventListener("scroll", onScroll);
       } catch {
-        setToc([]);
+        // ignore
       }
-    };
-    let cleanup: (() => void) | undefined;
-    const onLoad = () => {
-      cleanup?.();
-      cleanup = build();
     };
     iframe.addEventListener("load", onLoad);
     if (iframe.contentDocument?.readyState === "complete") onLoad();
-    return () => {
-      iframe.removeEventListener("load", onLoad);
-      cleanup?.();
-    };
+    return () => iframe.removeEventListener("load", onLoad);
   }, [article.url]);
-
-  const jumpTo = (id: string) => {
-    const el = iframeRef.current?.contentDocument?.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveId(id);
-    }
-  };
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
@@ -144,51 +107,21 @@ function ArticleDetailPage() {
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-4">
-        <div className="flex-1">
-          {article.url ? (
-            <iframe
-              ref={iframeRef}
-              src={article.url}
-              title={article.title ?? ""}
-              className="h-[calc(100vh-8rem)] w-full rounded-lg border border-border bg-white"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-            />
-          ) : (
-            <div className="prose prose-sm max-w-none rounded-lg border border-border bg-card p-8">
-              <h1>{article.title}</h1>
-              <p className="text-muted-foreground">{article.summary}</p>
-              <div className="whitespace-pre-wrap">{article.content}</div>
-            </div>
-          )}
-        </div>
-
-        {toc.length > 0 && (
-          <aside className="hidden w-64 shrink-0 lg:block">
-            <div className="sticky top-4 max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-border bg-card p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                <List className="h-4 w-4 text-primary" />
-                目录
-              </div>
-              <nav className="space-y-1">
-                {toc.map((it) => (
-                  <button
-                    key={it.id}
-                    onClick={() => jumpTo(it.id)}
-                    className={`block w-full truncate text-left text-sm transition ${
-                      it.level === 3 ? "pl-4" : ""
-                    } ${
-                      activeId === it.id
-                        ? "font-medium text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {it.text || "（无标题）"}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </aside>
+      <div className="mx-auto w-full max-w-5xl px-4 py-4">
+        {article.url ? (
+          <iframe
+            ref={iframeRef}
+            src={article.url}
+            title={article.title ?? ""}
+            className="h-[calc(100vh-8rem)] w-full rounded-lg border border-border bg-white"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          />
+        ) : (
+          <div className="prose prose-sm max-w-none rounded-lg border border-border bg-card p-8">
+            <h1>{article.title}</h1>
+            <p className="text-muted-foreground">{article.summary}</p>
+            <div className="whitespace-pre-wrap">{article.content}</div>
+          </div>
         )}
       </div>
 
