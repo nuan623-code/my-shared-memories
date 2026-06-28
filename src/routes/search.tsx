@@ -264,7 +264,7 @@ function NoResults({
   q: string;
   tags: string[];
   allTags: string[];
-  onSearch: (q: string, keepTags: boolean) => void;
+  onSearch: (q: string, tags: string[]) => void;
   onClearTags: () => void;
 }) {
   const ql = q.toLowerCase().trim();
