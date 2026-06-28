@@ -242,8 +242,8 @@ function SearchPage() {
           q={q}
           tags={tags}
           allTags={allTags}
-          onSearch={(nextQ: string, keepTags: boolean) =>
-            navigate({ search: { q: nextQ, tags: keepTags ? tags : [] } })
+          onSearch={(nextQ: string, nextTags: string[]) =>
+            navigate({ search: { q: nextQ, tags: nextTags } })
           }
           onClearTags={() =>
             navigate({ search: (prev: { q: string; tags: string[] }) => ({ ...prev, tags: [] }) })
