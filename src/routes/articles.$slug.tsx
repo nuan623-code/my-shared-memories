@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, List } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { useEffect, useRef, useState } from "react";
 import { fetchResourceBySlug } from "@/lib/resources";
