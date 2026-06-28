@@ -42,73 +42,36 @@ export const Route = createFileRoute("/articles/$slug")({
   ),
 });
 
-type TocItem = { id: string; text: string; level: 2 | 3 };
-
 function ArticleDetailPage() {
   const { article } = Route.useLoaderData();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [toc, setToc] = useState<TocItem[]>([]);
-  const [activeId, setActiveId] = useState("");
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe || !article.url) return;
-    const build = () => {
+    const onLoad = () => {
       try {
         const doc = iframe.contentDocument;
-        if (!doc) return;
-        const items: TocItem[] = Array.from(doc.querySelectorAll("h2, h3")).map((el, i) => {
-          let id = el.id;
-          if (!id) {
-            id = `h-${i}`;
-            el.id = id;
-          }
-          return { id, text: (el.textContent ?? "").trim(), level: el.tagName === "H2" ? 2 : 3 };
-        });
-        setToc(items);
-        const win = iframe.contentWindow!;
+        const win = iframe.contentWindow;
+        if (!doc || !win) return;
         const onScroll = () => {
           const docEl = doc.documentElement;
           const top = docEl.scrollTop || doc.body.scrollTop;
           const h = (docEl.scrollHeight || doc.body.scrollHeight) - win.innerHeight;
           setProgress(h > 0 ? Math.min(100, Math.max(0, (top / h) * 100)) : 0);
-          let cur = "";
-          for (const it of items) {
-            const el = doc.getElementById(it.id);
-            if (!el) continue;
-            if (el.getBoundingClientRect().top <= 80) cur = it.id;
-            else break;
-          }
-          if (cur) setActiveId(cur);
         };
         win.addEventListener("scroll", onScroll, { passive: true });
         onScroll();
         return () => win.removeEventListener("scroll", onScroll);
       } catch {
-        setToc([]);
+        // ignore
       }
-    };
-    let cleanup: (() => void) | undefined;
-    const onLoad = () => {
-      cleanup?.();
-      cleanup = build();
     };
     iframe.addEventListener("load", onLoad);
     if (iframe.contentDocument?.readyState === "complete") onLoad();
-    return () => {
-      iframe.removeEventListener("load", onLoad);
-      cleanup?.();
-    };
+    return () => iframe.removeEventListener("load", onLoad);
   }, [article.url]);
-
-  const jumpTo = (id: string) => {
-    const el = iframeRef.current?.contentDocument?.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveId(id);
-    }
-  };
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
