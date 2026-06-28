@@ -1,8 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Library, Menu, X, Search, LogOut, Plus, User as UserIcon } from "lucide-react";
+import { Library, Menu, X, Search, Plus, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { to: "/" as const, label: "首页" },
@@ -14,12 +13,7 @@ const navItems = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
