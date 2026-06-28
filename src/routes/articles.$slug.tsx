@@ -187,6 +187,10 @@ function ArticleDetailPage() {
           </aside>
         )}
       </div>
+
+      <div className="mx-auto w-full max-w-7xl px-4 pb-12">
+        <Comments resourceId={article.id} />
+      </div>
     </div>
   );
 }
