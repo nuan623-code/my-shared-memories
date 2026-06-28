@@ -17,6 +17,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
+import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -58,23 +59,30 @@ const ProjectsIdRoute = ProjectsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ProjectsRoute,
 } as any)
+const ArticlesSlugRoute = ArticlesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ArticlesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/articles': typeof ArticlesRoute
+  '/articles': typeof ArticlesRouteWithChildren
   '/classify': typeof ClassifyRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/search': typeof SearchRoute
+  '/articles/$slug': typeof ArticlesSlugRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/': typeof ProjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/articles': typeof ArticlesRoute
+  '/articles': typeof ArticlesRouteWithChildren
   '/classify': typeof ClassifyRoute
   '/search': typeof SearchRoute
+  '/articles/$slug': typeof ArticlesSlugRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects': typeof ProjectsIndexRoute
 }
@@ -82,10 +90,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/articles': typeof ArticlesRoute
+  '/articles': typeof ArticlesRouteWithChildren
   '/classify': typeof ClassifyRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/search': typeof SearchRoute
+  '/articles/$slug': typeof ArticlesSlugRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/': typeof ProjectsIndexRoute
 }
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/classify'
     | '/projects'
     | '/search'
+    | '/articles/$slug'
     | '/projects/$id'
     | '/projects/'
   fileRoutesByTo: FileRoutesByTo
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/articles'
     | '/classify'
     | '/search'
+    | '/articles/$slug'
     | '/projects/$id'
     | '/projects'
   id:
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/classify'
     | '/projects'
     | '/search'
+    | '/articles/$slug'
     | '/projects/$id'
     | '/projects/'
   fileRoutesById: FileRoutesById
@@ -124,7 +136,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  ArticlesRoute: typeof ArticlesRoute
+  ArticlesRoute: typeof ArticlesRouteWithChildren
   ClassifyRoute: typeof ClassifyRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   SearchRoute: typeof SearchRoute
@@ -188,8 +200,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIdRouteImport
       parentRoute: typeof ProjectsRoute
     }
+    '/articles/$slug': {
+      id: '/articles/$slug'
+      path: '/$slug'
+      fullPath: '/articles/$slug'
+      preLoaderRoute: typeof ArticlesSlugRouteImport
+      parentRoute: typeof ArticlesRoute
+    }
   }
 }
+
+interface ArticlesRouteChildren {
+  ArticlesSlugRoute: typeof ArticlesSlugRoute
+}
+
+const ArticlesRouteChildren: ArticlesRouteChildren = {
+  ArticlesSlugRoute: ArticlesSlugRoute,
+}
+
+const ArticlesRouteWithChildren = ArticlesRoute._addFileChildren(
+  ArticlesRouteChildren,
+)
 
 interface ProjectsRouteChildren {
   ProjectsIdRoute: typeof ProjectsIdRoute
@@ -208,7 +239,7 @@ const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  ArticlesRoute: ArticlesRoute,
+  ArticlesRoute: ArticlesRouteWithChildren,
   ClassifyRoute: ClassifyRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   SearchRoute: SearchRoute,

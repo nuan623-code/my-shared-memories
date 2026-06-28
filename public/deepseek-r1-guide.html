@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepSeek-R1:用强化学习激发大模型的推理能力</title>
+<style>
+:root{
+  --bg:#f0f5fb;
+  --card:#ffffff;
+  --ink:#1a2433;
+  --ink-soft:#46556b;
+  --ink-faint:#7184a0;
+  --line:#e1e9f4;
+  --accent:#2563eb;
+  --accent-soft:#3b82f6;
+  --accent-bg:#eef4ff;
+  --hero-a:#0f2557;
+  --hero-b:#1d4ed8;
+  --teal:#0d9488;
+  --teal-bg:#e6f6f4;
+  --indigo:#4f46e5;
+  --indigo-bg:#eef0fe;
+  --gold:#b45309;
+  --gold-bg:#fdf3e3;
+  --warn:#dc2626;
+  --warn-bg:#fdecec;
+  --s1:#2563eb; --s1-bg:#eef4ff;
+  --s2:#0d9488; --s2-bg:#e6f6f4;
+  --s3:#4f46e5; --s3-bg:#eef0fe;
+  --s4:#b45309; --s4-bg:#fdf3e3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px;
+  line-height:1.88;
+  -webkit-font-smoothing:antialiased;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));z-index:999;transition:width .15s ease}
+
+/* ---------- Sidebar TOC ---------- */
+.side-toc{
+  position:fixed;top:50%;left:24px;transform:translateY(-50%);
+  width:230px;max-height:84vh;overflow-y:auto;
+  background:rgba(255,255,255,.72);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:18px;
+  padding:18px 16px;z-index:200;
+  box-shadow:0 8px 30px rgba(20,40,80,.08);
+}
+.st-brand{font-weight:800;font-size:15px;color:var(--ink);letter-spacing:.3px}
+.st-sub{font-size:12px;color:var(--ink-faint);margin-top:2px;margin-bottom:12px;line-height:1.5}
+.st-progress{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:4px}
+.st-progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:99px;transition:width .15s ease}
+.st-pct{font-size:11px;color:var(--ink-faint);text-align:right;margin-bottom:12px}
+.side-toc ul{list-style:none}
+.side-toc li{margin:1px 0}
+.side-toc a{
+  display:flex;gap:8px;align-items:baseline;
+  text-decoration:none;color:var(--ink-soft);
+  font-size:13.5px;padding:6px 9px;border-radius:9px;
+  transition:all .18s ease;line-height:1.45;
+}
+.side-toc a .n{font-size:11px;color:var(--ink-faint);font-weight:700;min-width:16px}
+.side-toc a:hover{background:var(--accent-bg);color:var(--accent)}
+.side-toc a.active{background:var(--accent);color:#fff;font-weight:600}
+.side-toc a.active .n{color:rgba(255,255,255,.8)}
+.toc-toggle{display:none}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
+
+/* ---------- Hero ---------- */
+.hero{
+  background:linear-gradient(135deg,var(--hero-a),var(--hero-b));
+  color:#fff;border-radius:0 0 28px 28px;
+  padding:64px 40px 52px;margin-bottom:42px;
+  position:relative;overflow:hidden;
+}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06)}
+.hero::before{content:"";position:absolute;right:90px;bottom:-90px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.hero .eyebrow{font-size:13px;letter-spacing:2px;text-transform:uppercase;opacity:.78;font-weight:600}
+.hero h1{font-size:33px;line-height:1.3;margin:14px 0 16px;font-weight:800;position:relative;z-index:1}
+.hero p{font-size:16px;opacity:.9;max-width:640px;position:relative;z-index:1}
+.hero .meta{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;position:relative;z-index:1}
+.hero .meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);padding:5px 13px;border-radius:99px;font-size:12.5px}
+
+/* ---------- Sections ---------- */
+section{margin-bottom:46px;scroll-margin-top:24px}
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.sec-num{
+  flex-shrink:0;width:46px;height:46px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:18px;color:#fff;
+}
+.sec-head h2{font-size:24px;font-weight:800;line-height:1.3}
+.sec-lead{color:var(--ink-soft);font-size:15.5px;margin:4px 0 22px;padding-left:60px}
+section.s1 .sec-num{background:var(--s1)} section.s1 .term{background:var(--s1-bg);color:var(--s1)}
+section.s2 .sec-num{background:var(--s2)} section.s2 .term{background:var(--s2-bg);color:var(--s2)}
+section.s3 .sec-num{background:var(--s3)} section.s3 .term{background:var(--s3-bg);color:var(--s3)}
+section.s4 .sec-num{background:var(--s4)} section.s4 .term{background:var(--s4-bg);color:var(--s4)}
+
+p{margin:14px 0;color:var(--ink-soft)}
+p.body{color:var(--ink-soft)}
+strong{color:var(--ink);font-weight:700}
+.term{padding:1px 7px;border-radius:6px;font-weight:600;font-size:.97em;white-space:nowrap}
+h3.sub{font-size:18.5px;margin:30px 0 6px;color:var(--ink);font-weight:700;display:flex;gap:8px;align-items:center}
+
+/* ---------- Definition card (three-part) ---------- */
+.def{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:22px 24px;margin:20px 0;
+  box-shadow:0 3px 14px rgba(20,40,80,.04);
+}
+.def-title{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:14px;display:flex;gap:9px;align-items:center}
+.def-row{display:flex;gap:12px;margin:11px 0;align-items:flex-start}
+.tag{flex-shrink:0;font-size:12px;font-weight:700;padding:3px 10px;border-radius:7px;margin-top:3px;letter-spacing:.5px}
+.tag-what{background:var(--accent-bg);color:var(--accent)}
+.tag-why{background:var(--gold-bg);color:var(--gold)}
+.tag-eg{background:var(--teal-bg);color:var(--teal)}
+.def-row .txt{flex:1;color:var(--ink-soft);font-size:15.5px;line-height:1.8}
+.def-row .txt b{color:var(--ink)}
+
+/* ---------- Stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center;box-shadow:0 3px 12px rgba(20,40,80,.04)}
+.stat .num{font-size:30px;font-weight:800;color:var(--accent);line-height:1.1}
+.stat .lbl{font-size:13px;color:var(--ink-faint);margin-top:6px;line-height:1.4}
+
+/* ---------- Callouts ---------- */
+.callout{border-radius:14px;padding:16px 20px;margin:20px 0;border-left:4px solid;font-size:15.5px;line-height:1.8}
+.callout .ct{font-weight:700;display:block;margin-bottom:3px;font-size:14.5px}
+.key{background:var(--accent-bg);border-color:var(--accent);color:#1e3a8a}
+.key-teal{background:var(--teal-bg);border-color:var(--teal);color:#0f5f57}
+.key-gold{background:var(--gold-bg);border-color:var(--gold);color:#7c4a09}
+.warn{background:var(--warn-bg);border-color:var(--warn);color:#991b1b}
+.quote-box{background:linear-gradient(135deg,#0f2557,#1d4ed8);color:#fff;border:none;border-radius:16px;padding:24px 26px;font-size:17px;line-height:1.85;margin:24px 0}
+.quote-box .ct{color:rgba(255,255,255,.7)}
+
+/* ---------- Cases (comparison) ---------- */
+.cases{display:flex;flex-direction:column;gap:12px;margin:20px 0}
+.case{display:flex;gap:16px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 20px;box-shadow:0 3px 12px rgba(20,40,80,.04)}
+.case .desc{flex:1;font-size:15px;color:var(--ink-soft)}
+.case .desc b{color:var(--ink)}
+.case .res{flex-shrink:0;text-align:right}
+.case .res .big{font-size:24px;font-weight:800;color:var(--teal)}
+.case .res .sm{font-size:12px;color:var(--ink-faint)}
+
+/* ---------- Practice list ---------- */
+.practice{list-style:none;margin:18px 0}
+.practice li{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15.5px;color:var(--ink-soft)}
+.practice li:last-child{border-bottom:none}
+.practice li .ic{flex-shrink:0;font-size:18px}
+.practice li b{color:var(--ink)}
+
+/* ---------- Table ---------- */
+.tbl-wrap{overflow-x:auto;margin:20px 0;border-radius:13px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14px;background:var(--card);min-width:560px}
+th,td{padding:10px 12px;text-align:center;border-bottom:1px solid var(--line)}
+th{background:var(--accent-bg);color:#1e3a8a;font-weight:700;font-size:13px}
+td:first-child,th:first-child{text-align:left;font-weight:600;color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td.hl{color:var(--accent);font-weight:800}
+.tbl-cap{font-size:12.5px;color:var(--ink-faint);margin-top:8px;text-align:center}
+
+/* ---------- Code ---------- */
+pre{background:#0f1b30;color:#dbe7fb;border-radius:13px;padding:18px 20px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:18px 0;font-family:"SF Mono",Menlo,Consolas,monospace}
+pre .tk{color:#7dd3fc}
+code{background:var(--accent-bg);color:var(--accent);padding:1px 6px;border-radius:5px;font-size:.9em;font-family:"SF Mono",Menlo,Consolas,monospace}
+
+/* ---------- Figure / SVG ---------- */
+.figure{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 22px 18px;margin:24px 0;box-shadow:0 3px 14px rgba(20,40,80,.04)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--ink-faint);text-align:center;margin-top:14px;line-height:1.6}
+.svg-box{fill:var(--card)}
+[data-anim]{opacity:0}
+[data-draw]{stroke-dasharray:var(--len,400);stroke-dashoffset:var(--len,400)}
+.figure.in [data-anim]{opacity:1;transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-draw]{stroke-dashoffset:0;transition:stroke-dashoffset 1s ease .25s}
+
+/* ---------- Final ---------- */
+.final{background:linear-gradient(135deg,#0f2557,#1d4ed8);color:#fff;border-radius:22px;padding:38px 34px;margin:46px 0 30px}
+.final h2{font-size:23px;margin-bottom:14px;font-weight:800}
+.final p{color:rgba(255,255,255,.9)}
+.final .hl{color:#93c5fd;font-weight:700}
+
+footer{text-align:center;color:var(--ink-faint);font-size:13px;line-height:1.8;padding:30px 20px 10px;border-top:1px solid var(--line);margin-top:40px}
+
+@media (max-width:1180px){
+  .side-toc{transform:none;top:0;left:0;height:100vh;max-height:100vh;border-radius:0;width:260px;transition:transform .3s ease}
+  .side-toc.closed{transform:translateX(-100%)}
+  .toc-toggle{display:flex;position:fixed;top:14px;left:14px;z-index:300;width:44px;height:44px;border-radius:12px;background:var(--accent);color:#fff;border:none;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(37,99,235,.35);cursor:pointer}
+}
+@media (max-width:760px){
+  body{font-size:16px}
+  .hero{padding:54px 24px 40px}
+  .hero h1{font-size:26px}
+  .sec-head h2{font-size:21px}
+  .sec-lead{padding-left:0}
+  .stats{grid-template-columns:1fr}
+  .case{flex-direction:column;align-items:flex-start;gap:8px}
+  .case .res{text-align:left}
+  .sec-num{width:40px;height:40px;font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+  [data-anim]{opacity:1!important}
+  [data-draw]{stroke-dashoffset:0!important}
+}
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="目录">☰</button>
+
+<nav class="side-toc closed" id="sideToc">
+  <div class="st-brand">DeepSeek-R1</div>
+  <div class="st-sub">用强化学习激发大模型推理能力 · 阅读导航</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ul>
+    <li><a href="#intro"><span class="n">00</span>核心问题与思路</a></li>
+    <li><a href="#zero"><span class="n">01</span>R1-Zero:纯 RL 的自进化</a></li>
+    <li><a href="#aha"><span class="n">02</span>「顿悟时刻」的出现</a></li>
+    <li><a href="#r1"><span class="n">03</span>R1:多阶段训练管线</a></li>
+    <li><a href="#grpo"><span class="n">04</span>GRPO 算法与奖励设计</a></li>
+    <li><a href="#train"><span class="n">05</span>训练超参数全记录</a></li>
+    <li><a href="#results"><span class="n">06</span>各阶段实验结果</a></li>
+    <li><a href="#limits"><span class="n">07</span>局限、安全与未来</a></li>
+    <li><a href="#code"><span class="n">08</span>开源与可复现信息</a></li>
+  </ul>
+</nav>
+
+<header class="hero">
+  <div class="eyebrow">Nature · Vol 645 · 2025-09-18</div>
+  <h1>DeepSeek-R1:用强化学习激发大模型的推理能力</h1>
+  <p>不再依赖人工标注的推理示范,只用一个「答案对不对」的奖励信号,模型就在强化学习中自己「长出」了反思、验证、换思路这些高级推理行为——这篇论文讲的就是这件事是怎么发生的。</p>
+  <div class="meta">
+    <span>📄 DeepSeek-R1 / R1-Zero</span>
+    <span>🧠 纯强化学习(无 SFT 冷启动)</span>
+    <span>🏆 AIME 2024: 15.6% → 77.9%</span>
+    <span>🔓 MIT 开源 · 含蒸馏小模型</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ 00 ============ -->
+<section class="s1" id="intro">
+  <div class="sec-head">
+    <div class="sec-num">00</div>
+    <h2>核心问题:推理能力,非得靠人「喂」吗?</h2>
+  </div>
+  <p class="sec-lead">这一节先说清楚论文要解决的痛点,以及它给出的反直觉答案。</p>
+
+  <p>推理能力是人类智能的基石——从解数学题到逻辑推导再到写程序,都靠它。近年人们发现,<strong>大语言模型(LLM)规模够大时会「涌现」出推理能力</strong>,而 <span class="term">思维链(CoT)提示</span> 又能进一步把这种能力放出来:只要给几个范例,或者加一句「Let's think step by step(让我们一步步思考)」,模型就会先写出中间推理步骤,复杂任务的表现随之大幅提升。</p>
+
+  <p>但这条路有个根本瓶颈。无论是 CoT 提示还是后训练阶段学习「高质量多步推理轨迹」,<strong>都严重依赖人工标注的推理过程</strong>。这带来两个问题:一是人工标注慢、难规模化、还会引入人的认知偏见;二是更要命的——<strong>当你逼着模型去模仿人类的思考方式,它的上限就被人类示范钉死了</strong>,模型再也探索不到那些「不像人、但可能更好」的推理路径。</p>
+
+  <div class="callout key">
+    <span class="ct">🎯 论文的核心主张</span>
+    LLM 的推理能力可以<strong>纯粹通过强化学习(RL)来激发</strong>,完全不需要人工标注的推理轨迹。在这个框架下,自我反思、验证、动态调整策略等高级推理模式会「自发涌现」,最终模型在数学、编程竞赛、STEM 等可验证任务上,反而<strong>超过了用人类示范做监督学习训练出来的同类模型</strong>。
+  </div>
+
+  <div class="def">
+    <div class="def-title">🧩 它的关键设计选择:跳过 SFT,直接上 RL</div>
+    <div class="def-row">
+      <span class="tag tag-what">是什么</span>
+      <div class="txt">论文以 <b>DeepSeek-V3 Base</b> 为底座,用 <b>GRPO</b> 作为强化学习框架。奖励信号<b>只看最终答案对不对</b>(对照标准答案),完全不管推理过程长什么样。最关键的是:他们<b>故意跳过了传统的监督微调(SFT)阶段</b>,直接开始 RL 训练。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-why">为什么</span>
+      <div class="txt">背后的假设是:<b>人类定义的推理模式会限制模型探索</b>。一旦先用 SFT 把模型「教成人的样子」,它就被框住了。而不加约束的 RL,反而更能激发出全新的推理能力。这就是整篇论文最大的赌注——少教,甚至不教,只给对的激励。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-eg">例子</span>
+      <div class="txt">类比下围棋:与其让 AI 背棋谱(模仿人类棋手),不如只告诉它「赢棋得分」,让它自己左右互搏。AlphaGo Zero 就是这么下出了人类从没想过的「神之一手」。R1-Zero 走的是同一条「只给奖励、自己摸索」的路。</div>
+    </div>
+  </div>
+
+  <p>由此训练出的第一个模型叫 <span class="term">DeepSeek-R1-Zero</span>。但它有毛病:可读性差、中英文混着说。于是作者又造了 <span class="term">DeepSeek-R1</span>——在 R1-Zero 的推理能力之上,用多阶段训练把它的行为对齐到人类偏好。此外,团队还<strong>把推理能力蒸馏进了几个更小的模型并开源</strong>,让低算力、低能耗也能用上强推理。</p>
+</section>
+
+<!-- ============ 01 ============ -->
+<section class="s2" id="zero">
+  <div class="sec-head">
+    <div class="sec-num">01</div>
+    <h2>DeepSeek-R1-Zero:纯 RL 下的自我进化</h2>
+  </div>
+  <p class="sec-lead">不教怎么想,只给一个格式模板和一个对错奖励,看模型自己进化成什么样。</p>
+
+  <p>训练 R1-Zero 时,作者只给模型设了一个<strong>极简的格式约束</strong>:先在 <code>&lt;think&gt;</code> 标签里写推理过程,再在 <code>&lt;answer&gt;</code> 标签里给答案。除此之外不加任何「内容上」的引导——目的就是干净地观察模型在 RL 过程中的<strong>自然演化</strong>。下面是实际用的提示模板(翻译大意):</p>
+
+  <pre><span class="tk">&lt;think&gt;</span> 推理过程写在这里 <span class="tk">&lt;/think&gt;</span>
+<span class="tk">&lt;answer&gt;</span> 答案写在这里 <span class="tk">&lt;/answer&gt;</span>
+
+User: {把这里换成具体的推理问题}
+Assistant:</pre>
+
+  <p>就这么简单的设定,结果非常惊人。在 <span class="term">AIME 2024</span>(美国数学邀请赛)这个高难基准上,模型的平均 pass@1 成绩一路飙升;再配合<strong>自一致性解码(self-consistency)</strong>多次采样投票,成绩进一步拔高,<strong>远远超过了 AIME 所有人类参赛者的平均水平</strong>。除了数学,R1-Zero 在编程竞赛和研究生级别的生物、物理、化学问题上同样表现出色。</p>
+
+  <div class="stats">
+    <div class="stat"><div class="num">15.6%</div><div class="lbl">训练初期<br>AIME pass@1</div></div>
+    <div class="stat"><div class="num">77.9%</div><div class="lbl">训练后<br>AIME pass@1</div></div>
+    <div class="stat"><div class="num">86.7%</div><div class="lbl">配合自一致性解码<br>(cons@16)</div></div>
+  </div>
+
+  <div class="def">
+    <div class="def-title">🔄 自进化行为:思考时间自己越变越长</div>
+    <div class="def-row">
+      <span class="tag tag-what">是什么</span>
+      <div class="txt">随着训练推进,R1-Zero <b>每条回答的平均长度稳步增长</b>——从几百 token 涨到上万 token。这完全是模型<b>内在自适应</b>的结果,作者没有写任何规则去要求它「想久一点」。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-why">为什么</span>
+      <div class="txt">因为奖励只看答案对错,而想得更久、多探索几条路、回头验证一遍,客观上能提高答对的概率。于是 RL 自然而然地「奖励」了那些更长、更细致的推理。<b>更长的思考时间,催生出更复杂的行为</b>:反思式推理、系统性地尝试多种备选方案。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-eg">例子</span>
+      <div class="txt">就像一个学生做难题,刚开始草草写两行就交卷,慢慢学会了「先列几种思路、算完回头检查一遍、发现不对再换个方法」。没人教这套流程,但因为这样得分更高,他自己摸索出来了。</div>
+    </div>
+  </div>
+
+  <!-- SVG: 自进化循环 -->
+  <div class="figure" id="figZero">
+    <svg viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--s2)"/>
+        </marker>
+      </defs>
+      <!-- boxes -->
+      <g data-anim style="transform-origin:center">
+        <rect class="svg-box" x="20" y="90" width="150" height="56" rx="12" stroke="var(--s2)" stroke-width="2"/>
+        <text x="95" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">问题 q</text>
+        <text x="95" y="132" text-anchor="middle" font-size="11" fill="var(--ink-faint)">数学/代码/逻辑</text>
+      </g>
+      <g data-anim>
+        <rect class="svg-box" x="235" y="90" width="160" height="56" rx="12" stroke="var(--s2)" stroke-width="2"/>
+        <text x="315" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">生成更长 CoT</text>
+        <text x="315" y="132" text-anchor="middle" font-size="11" fill="var(--ink-faint)">反思·验证·换思路</text>
+      </g>
+      <g data-anim>
+        <rect class="svg-box" x="460" y="90" width="160" height="56" rx="12" stroke="var(--s2)" stroke-width="2"/>
+        <text x="540" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">规则奖励</text>
+        <text x="540" y="132" text-anchor="middle" font-size="11" fill="var(--ink-faint)">答案对不对 + 格式</text>
+      </g>
+      <g data-anim>
+        <rect class="svg-box" x="660" y="90" width="140" height="56" rx="12" stroke="var(--s2)" stroke-width="2" fill="var(--s2-bg)"/>
+        <text x="730" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="var(--s2)">策略更新</text>
+        <text x="730" y="132" text-anchor="middle" font-size="11" fill="#0f5f57">GRPO</text>
+      </g>
+      <!-- arrows -->
+      <path data-draw style="--len:60" d="M172 118 L231 118" stroke="var(--s2)" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+      <path data-draw style="--len:62" d="M397 118 L456 118" stroke="var(--s2)" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+      <path data-draw style="--len:42" d="M622 118 L656 118" stroke="var(--s2)" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+      <!-- feedback loop -->
+      <path data-draw style="--len:740" d="M730 90 L730 40 L95 40 L95 88" stroke="var(--s2)" stroke-width="2" fill="none" stroke-dasharray="6 5" marker-end="url(#ah)"/>
+      <text data-anim x="412" y="30" text-anchor="middle" font-size="12" fill="var(--ink-faint)">反复迭代:更新后的模型回去再答下一批问题 ↺</text>
+    </svg>
+    <div class="fig-cap">R1-Zero 的自进化闭环:奖励只在末端「卡答案」,中间怎么想完全放开,模型于是自己学会了「想得更久、更细」。</div>
+  </div>
+
+  <div class="quote-box">
+    <span class="ct">💡 论文原话的精神</span>
+    强化学习的力量与美正在于此:我们没有教模型如何解题,只是给了它正确的激励,它就自主发展出了高级的解题策略。这提醒我们,RL 有潜力把 LLM 的能力解锁到更高层次。
+  </div>
+</section>
+
+<!-- ============ 02 ============ -->
+<section class="s3" id="aha">
+  <div class="sec-head">
+    <div class="sec-num">02</div>
+    <h2>「顿悟时刻」(Aha Moment)</h2>
+  </div>
+  <p class="sec-lead">训练途中,模型突然学会了「等一下,我好像错了」——这是全文最戏剧性的一幕。</p>
+
+  <p>在训练某个中间版本时,作者观察到一个被称为 <span class="term">「顿悟时刻」(aha moment)</span> 的现象:模型在反思时,<strong>「wait(等等)」这个词的使用频率突然激增</strong>。这标志着推理模式发生了一次明显的转变,清晰地展示了 R1-Zero 的自我进化过程。论文里给了一个实例:模型在解一个含嵌套根号的方程时,算到一半突然冒出来一句——</p>
+
+  <div class="callout key-gold">
+    <span class="ct">🤯 模型自己写下的话(论文 Table 1 实例)</span>
+    「Wait, wait. Wait. That's an aha moment I can flag here.(等等、等等、等等。这里有个顿悟时刻我得标记一下。)Let's reevaluate this step by step…(让我们一步步重新评估……)」<br>
+    模型学会了用一种<strong>拟人化的语气来「重新思考」</strong>。作者说,这对他们自己也是一个顿悟时刻——让人亲眼见证了 RL 的力量与美。
+  </div>
+
+  <div class="def">
+    <div class="def-title">🔍 「反思词频率」说明了什么</div>
+    <div class="def-row">
+      <span class="tag tag-what">是什么</span>
+      <div class="txt">作者请三位人类专家共同确定了一组「反思类词汇」——包括 <b>wait、mistake、however、but、retry、error、verify、wrong、evaluate、check</b>(等等、错误、然而、但是、重试、出错、验证、错的、评估、检查)。然后统计这些词在训练全程中出现的频率。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-why">为什么</span>
+      <div class="txt">这些词是<b>「自我监控」行为的语言指纹</b>。一个会说「等等,这步好像错了,我验证一下」的模型,本质上是在监督自己的推理过程。它们的频率上升,等于客观证据表明<b>反思和自我纠错的能力正在涌现</b>,而不是研究者的主观感觉。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-eg">例子</span>
+      <div class="txt">具体到「wait」一词:训练早期几乎从不出现;在第 4,000~7,000 步之间零星冒头;<b>到第 8,000 步之后频率猛增</b>。这条曲线就像一个孩子从「闷头往下写」到「会停下来怀疑自己」的成长轨迹。</div>
+    </div>
+  </div>
+
+  <div class="callout key-teal">
+    <span class="ct">📌 一个重要细节:能力在 8.2k 步「跳变」</span>
+    训练中作者把单条回答的最大长度从 32,768 token 在第 8.2k 步提到了 65,536 token。<strong>正是在这一步,模型的性能和回答长度都出现了明显跃升</strong>——这和「wait」词频在第 8,000 步后激增的时间点相互印证,说明给够「思考空间」是反思行为爆发的关键条件之一。
+  </div>
+</section>
+
+<!-- ============ 03 ============ -->
+<section class="s1" id="r1">
+  <div class="sec-head">
+    <div class="sec-num">03</div>
+    <h2>DeepSeek-R1:多阶段训练管线</h2>
+  </div>
+  <p class="sec-lead">R1-Zero 很能推理但「不好好说话」。R1 用一条四阶段管线,把推理能力和人类偏好缝合到一起。</p>
+
+  <p>R1-Zero 的问题前面说过:<strong>可读性差、中英文混杂</strong>(因为底座 V3 在中英双语上训练),而且它纯靠规则奖励、只盯着推理任务,所以在写作、开放域问答这些更广的领域表现有限。为解决这些问题,作者设计了 <span class="term">DeepSeek-R1</span> 的多阶段管线,整体经历 Dev1 → Dev2 → Dev3 三个中间检查点,最后到 R1。</p>
+
+  <!-- SVG: pipeline -->
+  <div class="figure" id="figPipe">
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--s1)"/>
+        </marker>
+      </defs>
+      <!-- stage 1 -->
+      <g data-anim>
+        <rect class="svg-box" x="20" y="30" width="170" height="64" rx="12" stroke="var(--s1)" stroke-width="2" fill="var(--s1-bg)"/>
+        <text x="105" y="54" text-anchor="middle" font-size="13" font-weight="800" fill="var(--s1)">① 冷启动 SFT</text>
+        <text x="105" y="73" text-anchor="middle" font-size="11" fill="var(--ink-soft)">数千条人类对齐的</text>
+        <text x="105" y="87" text-anchor="middle" font-size="11" fill="var(--ink-soft)">长思维链数据 → Dev1</text>
+      </g>
+      <!-- stage 2 -->
+      <g data-anim>
+        <rect class="svg-box" x="230" y="30" width="170" height="64" rx="12" stroke="var(--s1)" stroke-width="2"/>
+        <text x="315" y="54" text-anchor="middle" font-size="13" font-weight="800" fill="var(--ink)">② 推理向 RL</text>
+        <text x="315" y="73" text-anchor="middle" font-size="11" fill="var(--ink-soft)">规则奖励 + 语言一致性</text>
+        <text x="315" y="87" text-anchor="middle" font-size="11" fill="var(--ink-soft)">奖励 → Dev2</text>
+      </g>
+      <!-- stage 3 -->
+      <g data-anim>
+        <rect class="svg-box" x="440" y="30" width="170" height="64" rx="12" stroke="var(--s1)" stroke-width="2"/>
+        <text x="525" y="54" text-anchor="middle" font-size="13" font-weight="800" fill="var(--ink)">③ 拒绝采样 + SFT</text>
+        <text x="525" y="73" text-anchor="middle" font-size="11" fill="var(--ink-soft)">混入非推理 / 写作 /</text>
+        <text x="525" y="87" text-anchor="middle" font-size="11" fill="var(--ink-soft)">代码工程数据 → Dev3</text>
+      </g>
+      <!-- stage 4 -->
+      <g data-anim>
+        <rect class="svg-box" x="650" y="30" width="150" height="64" rx="12" stroke="var(--s1)" stroke-width="2" fill="var(--s1-bg)"/>
+        <text x="725" y="54" text-anchor="middle" font-size="13" font-weight="800" fill="var(--s1)">④ 全面 RL</text>
+        <text x="725" y="73" text-anchor="middle" font-size="11" fill="var(--ink-soft)">推理+通用混合,</text>
+        <text x="725" y="87" text-anchor="middle" font-size="11" fill="var(--ink-soft)">对齐偏好 → R1</text>
+      </g>
+      <!-- arrows -->
+      <path data-draw style="--len:42" d="M192 62 L226 62" stroke="var(--s1)" stroke-width="2" fill="none" marker-end="url(#ah2)"/>
+      <path data-draw style="--len:42" d="M402 62 L436 62" stroke="var(--s1)" stroke-width="2" fill="none" marker-end="url(#ah2)"/>
+      <path data-draw style="--len:42" d="M612 62 L646 62" stroke="var(--s1)" stroke-width="2" fill="none" marker-end="url(#ah2)"/>
+      <!-- goals row -->
+      <g data-anim>
+        <rect x="20" y="140" width="170" height="50" rx="10" fill="var(--s1-bg)"/>
+        <text x="105" y="162" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">解决可读性 ·</text>
+        <text x="105" y="178" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">指令遵循变强</text>
+      </g>
+      <g data-anim>
+        <rect x="230" y="140" width="170" height="50" rx="10" fill="var(--s1-bg)"/>
+        <text x="315" y="162" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">数学/代码/STEM</text>
+        <text x="315" y="178" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">推理能力大涨</text>
+      </g>
+      <g data-anim>
+        <rect x="440" y="140" width="170" height="50" rx="10" fill="var(--s1-bg)"/>
+        <text x="525" y="162" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">写作 / 通用语言</text>
+        <text x="525" y="178" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">生成能力补齐</text>
+      </g>
+      <g data-anim>
+        <rect x="650" y="140" width="150" height="50" rx="10" fill="var(--s1-bg)"/>
+        <text x="725" y="162" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">有用性+无害性</text>
+        <text x="725" y="178" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">最终对齐</text>
+      </g>
+      <text data-anim x="410" y="225" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink-faint)">每个阶段补一块短板:① 让它好好说话 → ② 强化推理 → ③ 补全通用能力 → ④ 对齐人类偏好</text>
+    </svg>
+    <div class="fig-cap">DeepSeek-R1 的四阶段管线。上排是每个阶段做了什么,下排是对应解决的问题。R1 由此「继承」了 R1-Zero 的推理力,又补上了可读性与通用能力。</div>
+  </div>
+
+  <h3 class="sub">🪜 四个阶段分别在做什么</h3>
+
+  <ul class="practice">
+    <li><span class="ic">①</span><div><b>冷启动 SFT(→ Dev1):</b>先收集数千条具有「对话式、人类对齐的思考过程」的冷启动数据做监督微调。对比 R1-Zero,Dev1 的指令遵循明显变强(IF-Eval、Arena-Hard 提升);但因冷启动数据量有限,推理能力反而<b>略有回退</b>(尤其 AIME 下降)。这是「先学会好好说话」付出的暂时代价。</div></li>
+    <li><span class="ic">②</span><div><b>推理向 RL(→ Dev2):</b>用规则奖励做强化学习,并引入<b>语言一致性奖励</b>压制中英混杂。Dev2 在代码、数学、STEM 等需要硬推理的基准上大幅跃升,而像 AlpacaEval 2.0 这类通用偏好基准只是小幅改善——说明<b>推理向 RL 主要补推理,对用户偏好影响有限</b>。</div></li>
+    <li><span class="ic">③</span><div><b>拒绝采样 + SFT(→ Dev3):</b>把推理和非推理数据(含大规模写作语料、代码工程数据)一起喂进 SFT。Dev3 在 AlpacaEval 2.0 和 Aider-Polyglot 上明显进步,既会推理也会写作。</div></li>
+    <li><span class="ic">④</span><div><b>全面 RL(→ R1):</b>在 Dev3 上用「推理向 + 通用」混合数据做最终 RL。此时数学/代码只小幅提升(因为前面已经强化够了),<b>最大的进步在通用指令遵循和用户偏好上:AlpacaEval 2.0 提升 25%、Arena-Hard 提升 17%</b>。</div></li>
+  </ul>
+
+  <div class="callout key">
+    <span class="ct">🧭 一句话抓住这条管线的逻辑</span>
+    每个阶段都在<strong>有针对性地补一块短板</strong>:先用冷启动让它「说人话」,再用 RL 把推理顶到极限,然后用混合 SFT 补齐写作/通用能力,最后再用一轮全面 RL 把「有用 + 无害」对齐好。R1 因此同时拥有了 R1-Zero 的硬推理和一个助手该有的体面表达。
+  </div>
+</section>
+
+<!-- ============ 04 ============ -->
+<section class="s2" id="grpo">
+  <div class="sec-head">
+    <div class="sec-num">04</div>
+    <h2>GRPO 算法与奖励设计</h2>
+  </div>
+  <p class="sec-lead">支撑整套训练的两块基石:一个更省的 RL 算法,和一套「不容易被钻空子」的奖励。</p>
+
+  <div class="def">
+    <div class="def-title">⚙️ GRPO(组相对策略优化)</div>
+    <div class="def-row">
+      <span class="tag tag-what">是什么</span>
+      <div class="txt">GRPO 是本文用来训练 R1-Zero 和 R1 的 RL 算法。对每个问题 q,它从旧策略采样<b>一组</b>回答 {o₁, o₂, …, o_G},每个回答由奖励模型(可以是学习来的「模型奖励」,也可以是手工规则的「规则奖励」)打一个分,然后<b>用组内的相对得分来估计每个回答的「优势(advantage)」</b>。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-why">为什么</span>
+      <div class="txt">它是为简化 <b>PPO</b>、降低资源消耗而提出的。传统 PPO 需要额外训练一个<b>价值网络(value model)</b>来估计基线,既费算力又复杂。GRPO 的巧思是:<b>干脆不要价值网络</b>,直接拿「这一组回答的平均分」当基线——比平均好的就是正优势,比平均差的就是负优势。同时它仍用 KL 散度约束,不让新策略偏离参考策略太远,保证训练稳定。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-eg">例子</span>
+      <div class="txt">好比老师一次让全班同一道题写 16 种解法,然后说「比班级平均水平好的解法,以后多这么写;差的少这么写」。老师不需要先算出「这题标准应得几分」(那就是价值网络),只用班内横向比较就给出了方向。</div>
+    </div>
+  </div>
+
+  <div class="figure" id="figGrpo">
+    <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--s2)"/>
+        </marker>
+      </defs>
+      <g data-anim>
+        <rect class="svg-box" x="20" y="95" width="120" height="50" rx="11" stroke="var(--s2)" stroke-width="2"/>
+        <text x="80" y="125" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">问题 q</text>
+      </g>
+      <g data-anim>
+        <rect x="185" y="95" width="130" height="50" rx="11" fill="var(--s2-bg)" stroke="var(--s2)" stroke-width="2"/>
+        <text x="250" y="119" text-anchor="middle" font-size="13" font-weight="700" fill="var(--s2)">策略模型</text>
+        <text x="250" y="135" text-anchor="middle" font-size="10.5" fill="#0f5f57">(可训练)</text>
+      </g>
+      <!-- group outputs -->
+      <g data-anim>
+        <rect class="svg-box" x="360" y="40" width="90" height="30" rx="7" stroke="var(--s2)" stroke-width="1.5"/>
+        <text x="405" y="60" text-anchor="middle" font-size="12" fill="var(--ink)">回答 o₁</text>
+        <rect class="svg-box" x="360" y="105" width="90" height="30" rx="7" stroke="var(--s2)" stroke-width="1.5"/>
+        <text x="405" y="125" text-anchor="middle" font-size="12" fill="var(--ink)">回答 o₂</text>
+        <rect class="svg-box" x="360" y="170" width="90" height="30" rx="7" stroke="var(--s2)" stroke-width="1.5"/>
+        <text x="405" y="190" text-anchor="middle" font-size="12" fill="var(--ink)">回答 o_G</text>
+      </g>
+      <!-- rewards -->
+      <g data-anim>
+        <rect x="500" y="40" width="80" height="30" rx="7" fill="#fff" stroke="var(--gold)" stroke-width="1.5"/>
+        <text x="540" y="60" text-anchor="middle" font-size="12" fill="var(--gold)">r₁</text>
+        <rect x="500" y="105" width="80" height="30" rx="7" fill="#fff" stroke="var(--gold)" stroke-width="1.5"/>
+        <text x="540" y="125" text-anchor="middle" font-size="12" fill="var(--gold)">r₂</text>
+        <rect x="500" y="170" width="80" height="30" rx="7" fill="#fff" stroke="var(--gold)" stroke-width="1.5"/>
+        <text x="540" y="190" text-anchor="middle" font-size="12" fill="var(--gold)">r_G</text>
+      </g>
+      <!-- group computation -->
+      <g data-anim>
+        <rect x="625" y="80" width="80" height="80" rx="11" fill="var(--s2-bg)" stroke="var(--s2)" stroke-width="2"/>
+        <text x="665" y="113" text-anchor="middle" font-size="12" font-weight="700" fill="var(--s2)">组内</text>
+        <text x="665" y="130" text-anchor="middle" font-size="12" font-weight="700" fill="var(--s2)">比较</text>
+      </g>
+      <g data-anim>
+        <rect class="svg-box" x="725" y="95" width="75" height="50" rx="11" stroke="var(--s2)" stroke-width="2"/>
+        <text x="762" y="119" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">优势 Aᵢ</text>
+        <text x="762" y="135" text-anchor="middle" font-size="10" fill="var(--ink-faint)">无价值网络</text>
+      </g>
+      <!-- arrows -->
+      <path data-draw style="--len:48" d="M140 120 L181 120" stroke="var(--s2)" stroke-width="2" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:70" d="M315 115 L356 55" stroke="var(--s2)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:48" d="M315 120 L356 120" stroke="var(--s2)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:70" d="M315 125 L356 185" stroke="var(--s2)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:54" d="M450 55 L496 55" stroke="var(--gold)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:54" d="M450 120 L496 120" stroke="var(--gold)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:54" d="M450 185 L496 185" stroke="var(--gold)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:50" d="M580 105 L621 115" stroke="var(--s2)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:50" d="M580 185 L621 140" stroke="var(--s2)" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+      <path data-draw style="--len:30" d="M705 120 L721 120" stroke="var(--s2)" stroke-width="2" fill="none" marker-end="url(#ah3)"/>
+      <text data-anim x="540" y="28" text-anchor="middle" font-size="11.5" fill="var(--ink-faint)">每个回答打一个标量奖励</text>
+    </svg>
+    <div class="fig-cap">GRPO 对比 PPO 的核心区别:一次采一组回答,直接拿「组内相对得分」算优势,省掉了 PPO 那个单独的价值网络。</div>
+  </div>
+
+  <h3 class="sub">🎁 奖励设计:为什么坚持用「规则」而非「神经网络」</h3>
+
+  <p>奖励是训练信号的源头,决定了 RL 优化的方向。R1-Zero 在数学、代码、逻辑这类<strong>有确定答案</strong>的领域只用<span class="term">规则奖励</span>;到了 R1,才对通用数据额外引入<span class="term">模型奖励</span>。规则奖励由两部分组成:</p>
+
+  <div class="cases">
+    <div class="case">
+      <div class="desc"><b>准确性奖励(Accuracy):</b>答案对不对。数学题要求把答案放进指定格式(如方框)里,用规则直接校验;代码题则用<b>编译器跑预设测试用例</b>,客观判对错。</div>
+      <div class="res"><div class="big">对/错</div><div class="sm">确定性验证</div></div>
+    </div>
+    <div class="case">
+      <div class="desc"><b>格式奖励(Format):</b>是否把推理过程规规矩矩地包在 <code>&lt;think&gt;</code> 标签里。这保证了思考过程被清晰地标出来,既好读也便于后续分析。两种奖励<b>等权重相加</b>。</div>
+      <div class="res"><div class="big">规范</div><div class="sm">可解释性</div></div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct">⚠️ 为什么对推理任务坚决不用神经奖励模型</span>
+    作者明确说明:在推理任务上<strong>不采用任何神经网络奖励模型</strong>(无论结果型还是过程型)。原因是——<strong>神经奖励模型在大规模 RL 中容易被「奖励黑客(reward hacking)」</strong>:模型会找到漏洞去骗高分,而不是真把题做对。而且重训这种奖励模型既费算力又让训练管线更复杂。规则奖励虽然「笨」,但<strong>骗不了</strong>。
+  </div>
+
+  <div class="def">
+    <div class="def-title">🌐 R1 的模型奖励:有用性 + 无害性</div>
+    <div class="def-row">
+      <span class="tag tag-what">是什么</span>
+      <div class="txt">对没有确定答案的通用数据(如写作、开放问答),R1 引入两个学习来的奖励模型。<b>有用性</b>奖励只评估最终的回答总结(不干扰中间推理);<b>无害性</b>奖励则评估包括推理过程在内的<b>整个回答</b>,识别潜在风险、偏见或有害内容。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-why">为什么</span>
+      <div class="txt">因为「这篇文章写得好不好」「这个回答有没有用」没法用规则一刀切,只能靠学到人类偏好的模型来判断。但前面说过模型奖励有被钻空子的风险,所以作者很克制:有用性偏好对训练用得很谨慎,而且<b>只在第二阶段 RL 的最后 400 步</b>才引入偏好奖励——发现用太多步反而会触发奖励黑客。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-eg">例子</span>
+      <div class="txt">有用性奖励模型用了 66,000 对偏好数据训练;为避免「位置偏见」,每对让 V3 评判 4 次、随机交换 A/B 位置再取平均;还特意让被选中和被拒绝的回答<b>长度相当</b>,免得模型误以为「越长越好」。安全奖励模型则用 106,000 条标了「安全/不安全」的提示训练。这些细节都是在堵奖励黑客的漏洞。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 训练超参数 ============ -->
+<section class="s3" id="train">
+  <div class="sec-head">
+    <div class="sec-num">05</div>
+    <h2>训练超参数全记录</h2>
+  </div>
+  <p class="sec-lead">这一节把论文 Methods 里的具体训练数字完整收录,方便复现与对照。前面讲「怎么想」,这里讲「具体怎么训」。</p>
+
+  <h3 class="sub">🧪 DeepSeek-R1-Zero 的训练细节</h3>
+  <ul class="practice">
+    <li><span class="ic">🎚️</span><div><b>基础超参:</b>学习率 <code>3×10⁻⁶</code>,KL 系数 <code>0.001</code>,rollout 采样温度 <code>1</code>。</div></li>
+    <li><span class="ic">🔢</span><div><b>采样与长度:</b>每个问题采样 <b>16 个输出</b>;最大长度在第 8.2k 步之前为 <b>32,768 token</b>,之后提升到 <b>65,536 token</b>。正是这次提升,让性能和回答长度在 8.2k 步出现明显跃升。</div></li>
+    <li><span class="ic">📦</span><div><b>批次与步数:</b>每个训练步含 <b>32 个不同问题</b>,训练批大小为 <b>512/步</b>;每 <b>400 步</b>用最新策略模型替换参考模型;共训练 <b>10,400 步</b>,相当于 <b>1.6 个 epoch</b>。</div></li>
+    <li><span class="ic">⚡</span><div><b>加速技巧:</b>每次 rollout 生成 8,192 个输出,随机切成 16 个 minibatch,每个只训练单个内部 epoch。「一个训练步」指一次策略更新操作。</div></li>
+  </ul>
+
+  <h3 class="sub">🥇 第一阶段 RL 的训练细节</h3>
+  <ul class="practice">
+    <li><span class="ic">🎚️</span><div><b>基础超参:</b>学习率 <code>3×10⁻⁶</code>,KL 系数 <code>0.001</code>,GRPO clip 比例 <b>ε=10</b>,采样温度 <code>1</code>;每题采样 16 个输出、最大长度 32,768;每步 32 题(批大小 512),每 400 步替换参考模型,rollout/minibatch 设置同上。</div></li>
+    <li><span class="ic">🈳</span><div><b>语言一致性奖励:</b>为缓解语言混杂,引入该奖励,定义为 <b>CoT 中目标语言词数占总词数的比例</b>(<code>Num(目标语言词) / Num(总词)</code>),直接加到最终奖励上,对推理和非推理数据都适用。</div></li>
+  </ul>
+
+  <div class="callout key-gold">
+    <span class="ct">⚖️ 一个诚实的权衡</span>
+    论文的消融实验显示,加入语言一致性奖励会让模型性能<strong>略有下降</strong>;但因为它更符合人类偏好、可读性更好,作者认为这个代价值得。这是一处「为了好用而主动牺牲一点点分数」的取舍。
+  </div>
+
+  <div class="callout warn">
+    <span class="ct">✂️ clip 比例为什么关键</span>
+    作者强调 clip 比例在训练中起关键作用:<strong>取值过低</strong>会截断大量 token 的梯度,从而损害模型性能;<strong>取值过高</strong>则可能引发训练不稳定。需要在两者间小心平衡。
+  </div>
+
+  <h3 class="sub">🥈 第二阶段 RL 的训练细节</h3>
+  <ul class="practice">
+    <li><span class="ic">🌡️</span><div><b>温度降到 0.7:</b>第二阶段保留第一阶段大部分参数,关键差异是采样温度从 1 降到 <b>0.7</b>——因为作者发现此阶段温度过高会导致生成不连贯。</div></li>
+    <li><span class="ic">🔢</span><div><b>步数安排:</b>共 <b>1,700 个训练步</b>,其中<b>通用指令数据和基于偏好的奖励只在最后 400 步</b>引入。原因是:用更多步数跑模型偏好奖励反而会触发奖励黑客。</div></li>
+    <li><span class="ic">🧮</span><div><b>奖励组合(第二阶段):</b>总奖励 = 推理奖励 + 通用奖励 + 语言奖励;其中推理奖励 = 规则奖励,通用奖励 = 模型奖励 + 格式奖励。推理数据沿用 R1-Zero 的规则奖励,通用数据用奖励模型引导。</div></li>
+  </ul>
+
+  <h3 class="sub">🎁 两个奖励模型的训练参数</h3>
+  <div class="cases">
+    <div class="case">
+      <div class="desc"><b>有用性奖励模型(pairwise 成对损失):</b>用 <b>66,000 对</b>偏好数据;每对让 V3 评判 4 次并随机交换 A/B 位置取平均(消除位置偏见),只保留分差 Δ&gt;1 的对;保证被选/被拒回答长度相当。架构与 R1 一致,加一个预测标量分数的奖励头。</div>
+      <div class="res"><div class="big">66k</div><div class="sm">对 · 成对</div></div>
+    </div>
+    <div class="case">
+      <div class="desc"><b>训练超参:</b>批大小 <b>256</b>,学习率 <code>6×10⁻⁶</code>,在训练集上跑 <b>单个 epoch</b>;训练时最大序列长 <b>8,192 token</b>,推理时不设显式上限。</div>
+      <div class="res"><div class="big">8192</div><div class="sm">最大序列长</div></div>
+    </div>
+    <div class="case">
+      <div class="desc"><b>安全奖励模型(pointwise 逐点损失):</b>用 <b>106,000 条</b>带「安全/不安全」标注的提示训练。与有用性的成对损失不同,它用逐点方法直接区分安全与否。其余超参与有用性模型相同。</div>
+      <div class="res"><div class="big">106k</div><div class="sm">条 · 逐点</div></div>
+    </div>
+  </div>
+
+  <div class="callout key">
+    <span class="ct">🔁 处理无可靠信号的任务</span>
+    对那些拿不到可靠奖励信号的任务,本文的做法是:<strong>用人工标注创建监督数据,且只跑数百步 RL</strong>。作者希望未来能获得更鲁棒的奖励模型来解决这类问题。
+  </div>
+</section>
+
+<!-- ============ 06 ============ -->
+<section class="s3" id="results">
+  <div class="sec-head">
+    <div class="sec-num">06</div>
+    <h2>各发展阶段的实验结果</h2>
+  </div>
+  <p class="sec-lead">把 R1-Zero、Dev1/2/3、最终 R1 放在一起看,能清楚看到每个阶段「补」了什么。</p>
+
+  <p>下面是论文 Table 2 的<strong>完整数据</strong>(全部 21 项基准)。读这张表的诀窍是:<strong>横着看一行,就能看出某项能力是在哪个阶段被拉起来的</strong>。例如代码和数学主要在 Dev2 起飞,而通用偏好类(AlpacaEval、Arena-Hard)则在最终 R1 阶段才完成质变。表中蓝色高亮表示该行最优值。</p>
+
+  <div class="callout key-teal">
+    <span class="ct">📚 评测覆盖的完整基准清单</span>
+    论文在 21 个基准上评测:<strong>英文/通用</strong>——MMLU、MMLU-Redux、MMLU-Pro、DROP、IF-Eval、GPQA Diamond、SimpleQA、FRAMES、AlpacaEval 2.0、Arena-Hard;<strong>代码</strong>——LiveCodeBench(2024-08~2025-01)、Codeforces、SWE-bench Verified、Aider-Polyglot;<strong>数学</strong>——AIME 2024、MATH-500、CNMO 2024;<strong>中文</strong>——CLUEWSC、C-Eval、C-SimpleQA。
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>基准(指标)</th><th>R1-Zero</th><th>Dev1</th><th>Dev2</th><th>Dev3</th><th>R1</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>MMLU (EM)</td><td>88.8</td><td>89.1</td><td class="hl">91.2</td><td>91.0</td><td>90.8</td></tr>
+        <tr><td>MMLU-Redux (EM)</td><td>85.6</td><td>90.0</td><td class="hl">93.0</td><td>93.1</td><td>92.9</td></tr>
+        <tr><td>MMLU-Pro (EM)</td><td>68.9</td><td>74.1</td><td>83.8</td><td>83.1</td><td class="hl">84.0</td></tr>
+        <tr><td>DROP (3-shot F1)</td><td>89.1</td><td>89.8</td><td>91.1</td><td>88.7</td><td class="hl">92.2</td></tr>
+        <tr><td>IF-Eval(Prompt Strict)</td><td>46.6</td><td>71.7</td><td>72.0</td><td>78.1</td><td class="hl">83.3</td></tr>
+        <tr><td>GPQA Diamond (Pass@1)</td><td class="hl">75.8</td><td>66.1</td><td>70.7</td><td>71.2</td><td>71.5</td></tr>
+        <tr><td>SimpleQA (Correct)</td><td class="hl">30.3</td><td>17.8</td><td>28.2</td><td>24.9</td><td>30.1</td></tr>
+        <tr><td>FRAMES (Acc.)</td><td>82.3</td><td>78.5</td><td>81.8</td><td>81.9</td><td class="hl">82.5</td></tr>
+        <tr><td>AlpacaEval 2.0(LC-winrate)</td><td>24.7</td><td>50.1</td><td>55.8</td><td>62.1</td><td class="hl">87.6</td></tr>
+        <tr><td>Arena-Hard(GPT-4-1106)</td><td>53.6</td><td>77.0</td><td>73.2</td><td>75.6</td><td class="hl">92.3</td></tr>
+        <tr><td>LiveCodeBench(Pass@1-COT)</td><td>50.0</td><td>57.5</td><td>63.5</td><td>64.6</td><td class="hl">65.9</td></tr>
+        <tr><td>Codeforces(百分位)</td><td>80.4</td><td>84.5</td><td>90.5</td><td>92.1</td><td class="hl">96.3</td></tr>
+        <tr><td>Codeforces(评分)</td><td>1444</td><td>1534</td><td>1687</td><td>1746</td><td class="hl">2029</td></tr>
+        <tr><td>SWE-bench Verified</td><td>43.2</td><td>39.6</td><td>44.6</td><td>45.6</td><td class="hl">49.2</td></tr>
+        <tr><td>Aider-Polyglot (Acc.)</td><td>12.2</td><td>6.7</td><td>25.6</td><td>44.8</td><td class="hl">53.3</td></tr>
+        <tr><td>AIME 2024 (Pass@1)</td><td>77.9</td><td>59.0</td><td>74.0</td><td>78.1</td><td class="hl">79.8</td></tr>
+        <tr><td>MATH-500 (Pass@1)</td><td>95.9</td><td>94.2</td><td>95.9</td><td>95.4</td><td class="hl">97.3</td></tr>
+        <tr><td>CNMO 2024 (Pass@1)</td><td class="hl">88.1</td><td>58.0</td><td>73.9</td><td>77.3</td><td>78.8</td></tr>
+        <tr><td>CLUEWSC (EM)</td><td class="hl">93.1</td><td>92.8</td><td>92.6</td><td>91.6</td><td>92.8</td></tr>
+        <tr><td>C-Eval (EM)</td><td class="hl">92.8</td><td>85.7</td><td>91.9</td><td>86.4</td><td>91.8</td></tr>
+        <tr><td>C-SimpleQA (Correct)</td><td>66.4</td><td>58.8</td><td>64.2</td><td class="hl">66.9</td><td>63.7</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tbl-cap">论文 Table 2 完整数据。注意 Dev1 在 AIME/CNMO 上的回退,以及 R1 在 AlpacaEval/Arena-Hard 上的飞跃。原论文中加粗值表示统计显著(t 检验 P&lt;0.01)。</div>
+
+  <ul class="practice">
+    <li><span class="ic">📉</span><div><b>Dev1 的「回退」是预期内的:</b>冷启动 SFT 让指令遵循变强,但因数据量小,AIME 从 77.9 掉到 59.0、CNMO 从 88.1 掉到 58.0。这说明「先学好好说话」会暂时牺牲一点纯推理。</div></li>
+    <li><span class="ic">🚀</span><div><b>Dev2 是推理的引爆点:</b>推理向 RL 之后,代码、数学、STEM 全线回升并超越 Dev1,而通用偏好基准只小幅动——印证了「推理向 RL 主要补推理」。</div></li>
+    <li><span class="ic">🎨</span><div><b>Dev3 补通用能力:</b>混入非推理语料后,Aider-Polyglot 从 25.6 跳到 44.8,AlpacaEval 也明显上升。</div></li>
+    <li><span class="ic">🏆</span><div><b>R1 的临门一脚在「偏好」上:</b>最终 RL 后数学/代码只微涨(前面已榨干),但 AlpacaEval 2.0 提升 25%、Arena-Hard 提升 17%,Codeforces 评分冲到 2029。</div></li>
+  </ul>
+
+  <div class="callout key-teal">
+    <span class="ct">🧬 还有一招:把强推理「蒸馏」给小模型</span>
+    论文还做了一件事——<strong>用大模型涌现出的推理模式,去引导和增强更小模型的推理能力</strong>。蒸馏出的小模型表现超过它们原本的指令微调版本。意义在于:让强推理能以<strong>更低的算力和能耗</strong>被更广泛地使用,也给研究社区提供了理解长 CoT 推理机制的宝贵资源。
+  </div>
+</section>
+
+<!-- ============ 06 ============ -->
+<section class="s4" id="limits">
+  <div class="sec-head">
+    <div class="sec-num">07</div>
+    <h2>局限、安全声明与未来</h2>
+  </div>
+  <p class="sec-lead">论文很诚实地列出了 R1 还做不好的地方,以及纯 RL 方法本身的天花板。</p>
+
+  <div class="callout warn">
+    <span class="ct">🛡️ 伦理与安全声明</span>
+    作者明确承认风险:R1 可能被<strong>越狱攻击(jailbreak)</strong>,而增强的推理能力会让它生成的危险内容(如爆炸物制造方案)更具可操作性;公开模型也可能被进一步微调而破坏内置的安全保护。综合评估结论是:R1 自身的安全水平与其他 SOTA 模型相当,处于<strong>中等水平(可比 GPT-4o)</strong>;一旦配合外部风控系统,安全等级可提升到更高标准。
+  </div>
+
+  <h3 class="sub">🚧 具体能力局限</h3>
+  <ul class="practice">
+    <li><span class="ic">🔧</span><div><b>结构化输出与工具使用:</b>R1 的结构化输出能力仍逊于现有模型,而且<b>不能调用搜索引擎、计算器等工具</b>来辅助。不过作者认为为「结构化输出 + 工具使用」搭一个 RL 环境并不难,下个版本会解决。</div></li>
+    <li><span class="ic">🎚️</span><div><b>Token 效率(过度思考):</b>不同于多数投票或蒙特卡洛树搜索(MCTS),R1 会<b>按问题难度动态分配算力</b>——简单题少花 token,难题多花。但简单问题上仍会出现「想太多(overthinking)」,效率还有优化空间。</div></li>
+    <li><span class="ic">🌍</span><div><b>语言混杂:</b>R1 目前为中英文优化,处理其他语言的查询时可能出现语言混杂(比如查询是别的语言,它却用英文推理和回答)。这可能源自底座 V3 Base 主要用中英文训练。</div></li>
+    <li><span class="ic">📝</span><div><b>对提示敏感:</b>评估发现 R1 对提示很敏感,<b>少样本(few-shot)提示反而会持续拉低它的表现</b>。作者建议用户直接描述问题、用零样本(zero-shot)设定、并明确指定输出格式,效果最好。</div></li>
+    <li><span class="ic">💻</span><div><b>软件工程任务:</b>因评估耗时长、拖慢 RL 效率,大规模 RL 还没充分用在软工任务上,所以 R1 在软工基准上相比 V3 提升不大。未来会用拒绝采样或异步评估来改善。</div></li>
+  </ul>
+
+  <div class="def">
+    <div class="def-title">⚠️ 纯 RL 方法的根本挑战:奖励黑客</div>
+    <div class="def-row">
+      <span class="tag tag-what">是什么</span>
+      <div class="txt">纯 RL 的成败<b>取决于奖励信号是否可靠</b>。本文靠「推理领域的规则奖励」保证了可靠性,但对写作这类任务,可靠的奖励模型很难构造。一旦奖励由模型(而非预设规则)给出,随训练推进就<b>越来越容易被策略模型钻空子</b>——找到捷径去「黑」掉奖励模型。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-why">为什么</span>
+      <div class="txt">这意味着:对于<b>无法被可靠奖励模型评估的复杂任务,纯 RL 的扩展仍是一个开放难题</b>。本文的折中办法是——对拿不到可靠信号的任务,改用人工标注做监督数据,RL 只跑几百步。作者期望未来能造出更鲁棒的奖励模型来根治这个问题。</div>
+    </div>
+    <div class="def-row">
+      <span class="tag tag-eg">例子</span>
+      <div class="txt">就像考试如果改成「老师凭感觉打分」,聪明的学生会去研究老师的喜好(字写漂亮、堆专业词)来骗分,而不是真把知识学扎实。规则评分(选择题机器判卷)就没这个空子可钻——这正是论文坚持规则奖励的原因。</div>
+    </div>
+  </div>
+
+  <div class="final">
+    <h2>🌅 结论与展望</h2>
+    <p>论文的核心结论是:<span class="hl">预训练好的检查点本身就蕴含着巨大的复杂推理潜力</span>,而解锁它的钥匙不在于大规模人工标注,而在于——<span class="hl">提供足够难的推理问题、一个可靠的验证器、以及充足的算力来做 RL</span>。自我验证、反思这些复杂推理行为,会在 RL 过程中「有机地」自发涌现。</p>
+    <p>展望未来:对于<strong>任何能被验证器有效评估的任务</strong>,无论它对人类有多难,具备这种 RL 技术的机器都有望<strong>通过试错迭代地优化、最终超越人类</strong>。真正的难点留给了那些「难以构造可靠奖励」的任务。此外,把<strong>工具(编译器、搜索引擎,甚至真实世界的化学/生物试剂)融入推理过程</strong>,被认为是极具前景的下一步。</p>
+  </div>
+</section>
+
+<!-- ============ 08 开源信息 ============ -->
+<section class="s1" id="code">
+  <div class="sec-head">
+    <div class="sec-num">08</div>
+    <h2>开源与可复现信息</h2>
+  </div>
+  <p class="sec-lead">论文同时公开了模型权重、数据样本与技术栈,这一节把这些信息完整收录。</p>
+
+  <ul class="practice">
+    <li><span class="ic">⚖️</span><div><b>模型权重:</b>DeepSeek-R1-Zero 和 DeepSeek-R1 的训练权重以 <b>MIT 许可证</b>在 GitHub(deepseek-ai/DeepSeek-R1)发布,并归档到 Zenodo。</div></li>
+    <li><span class="ic">📂</span><div><b>数据样本:</b>用于拒绝采样和 RL 提示的数据样本同样在该 GitHub 仓库提供;完整的数据生成方法学统计见补充材料 2.3。</div></li>
+    <li><span class="ic">🧰</span><div><b>推理脚本:</b>在 deepseek-ai/DeepSeek-V3 仓库发布。</div></li>
+    <li><span class="ic">🔬</span><div><b>技术栈:</b>神经网络用 <b>PyTorch</b> 开发,分布式框架基于内部框架 <b>HAI-LLM</b>,推理框架基于 <b>vLLM</b>。数据分析用 Python 3.8、NumPy 1.23.1、Matplotlib 3.5.2、TensorBoard 2.9.1。</div></li>
+    <li><span class="ic">👥</span><div><b>作者与利益声明:</b>作者来自 DeepSeek-AI 团队(杭州),通讯作者梁文锋(Wenfeng Liang)。作者声明无竞争利益,且不会就本文内容申请专利。</div></li>
+  </ul>
+
+  <div class="callout key">
+    <span class="ct">🌍 开源的意义</span>
+    作者特别指出:开源这些指令微调版本能为研究社区<strong>理解长 CoT 推理模型的内在机制</strong>提供宝贵资源,并推动更强推理模型的发展。蒸馏出的小模型则让强推理能以更低能耗被更广泛使用。
+  </div>
+</section>
+  整理自 Nature 论文《DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning》(Vol 645, 2025-09-18,DeepSeek-AI 团队)<br>
+  处理方式:逐字整理 + 概念展开(是什么/为什么/例子)与可视化 · 原文事实与数据全部保留,补充解释为该领域公认常识或对原文逻辑的合理延伸<br>
+  DOI: 10.1038/s41586-025-09422-z · 权重 MIT 开源
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section[id]'));
+  var links = Array.prototype.slice.call(document.querySelectorAll('.side-toc a'));
+  var stBar = document.getElementById('stBar');
+  var stPct = document.getElementById('stPct');
+  var topBar = document.getElementById('topProgress');
+
+  function onScroll(){
+    var st = window.scrollY || document.documentElement.scrollTop;
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var pct = h > 0 ? Math.min(100, Math.max(0, (st / h) * 100)) : 0;
+    stBar.style.width = pct + '%';
+    topBar.style.width = pct + '%';
+    stPct.textContent = Math.round(pct) + '%';
+
+    var cur = sections[0] ? sections[0].id : null;
+    var mid = st + window.innerHeight * 0.32;
+    for (var i=0;i<sections.length;i++){
+      if (sections[i].offsetTop <= mid) cur = sections[i].id;
+    }
+    links.forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // mobile toggle
+  var toggle = document.getElementById('tocToggle');
+  var toc = document.getElementById('sideToc');
+  function isNarrow(){ return window.matchMedia('(max-width:1180px)').matches; }
+  if (!isNarrow()) toc.classList.remove('closed');
+  window.addEventListener('resize', function(){ if(!isNarrow()) toc.classList.remove('closed'); });
+  if (toggle){
+    toggle.addEventListener('click', function(){ toc.classList.toggle('closed'); });
+  }
+  links.forEach(function(a){
+    a.addEventListener('click', function(){ if(isNarrow()) toc.classList.add('closed'); });
+  });
+
+  // figure entrance animation
+  var figs = document.querySelectorAll('.figure');
+  // set dash lengths
+  document.querySelectorAll('[data-draw]').forEach(function(p){
+    try{
+      var len = p.getTotalLength ? p.getTotalLength() : 400;
+      p.style.setProperty('--len', Math.ceil(len));
+      p.style.strokeDasharray = Math.ceil(len);
+      p.style.strokeDashoffset = Math.ceil(len);
+    }catch(e){}
+  });
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting){
+          var fig = en.target;
+          fig.classList.add('in');
+          var anims = fig.querySelectorAll('[data-anim]');
+          anims.forEach(function(el,i){
+            el.style.transform='translateY(10px)';
+            setTimeout(function(){
+              el.style.opacity='1';
+              el.style.transform='translateY(0)';
+            }, 80*i);
+          });
+          var draws = fig.querySelectorAll('[data-draw]');
+          draws.forEach(function(el){ el.style.strokeDashoffset='0'; });
+          io.unobserve(fig);
+        }
+      });
+    }, {threshold:0.25});
+    figs.forEach(function(f){ io.observe(f); });
+  } else {
+    figs.forEach(function(f){
+      f.classList.add('in');
+      f.querySelectorAll('[data-anim]').forEach(function(el){el.style.opacity='1';});
+      f.querySelectorAll('[data-draw]').forEach(function(el){el.style.strokeDashoffset='0';});
+    });
+  }
+})();
+</script>
+</body>
+</html>

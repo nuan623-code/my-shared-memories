@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ODDL 内部培训 — Optimized Deferred Deep Linking</title>
+  <style>
+    :root {
+      --brand: #0066ff;
+      --brand-light: #e8f0ff;
+      --brand-dark: #0047cc;
+      --green: #00b87a;
+      --green-light: #e6f9f3;
+      --orange: #ff6b2b;
+      --orange-light: #fff0ea;
+      --red: #dc2626;
+      --red-light: #fff5f5;
+      --purple: #7c3aed;
+      --purple-light: #f5f3ff;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --surface: #f8fafc;
+      --white: #ffffff;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Nav ── */
+    .toc {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .toc a {
+      display: block;
+      padding: 14px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .toc a:hover { color: var(--brand); border-color: var(--brand); }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0047cc 0%, #0066ff 60%, #338bff 100%);
+      color: white;
+      padding: 56px 40px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -60px; top: -60px;
+      width: 320px; height: 320px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .hero h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .hero h1 span { color: #aacdff; }
+    .hero-sub { font-size: 16px; opacity: .85; max-width: 580px; margin-bottom: 32px; }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-value { font-size: 32px; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 12px; opacity: .75; margin-top: 4px; }
+
+    /* ── Layout ── */
+    .container { max-width: 920px; margin: 0 auto; padding: 44px 24px; }
+
+    /* ── Section ── */
+    .section { margin-bottom: 48px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 16px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      border: 1px solid var(--border);
+    }
+    .card h2 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .card p { color: #374151; font-size: 14px; line-height: 1.7; }
+
+    /* ── Benefits grid ── */
+    .benefits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .benefit {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+    .benefit-icon { font-size: 28px; margin-bottom: 10px; }
+    .benefit h3 { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .benefit p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ── Use cases ── */
+    .usecases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .usecase {
+      background: var(--brand-light);
+      border: 1px solid #c7d9ff;
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .usecase-icon { font-size: 22px; margin-bottom: 8px; }
+    .usecase h3 { font-size: 13px; font-weight: 700; color: var(--brand-dark); margin-bottom: 4px; }
+    .usecase p { font-size: 12px; color: #374151; }
+
+    /* ── Problem / Solution ── */
+    .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ps-card { border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+    .ps-card.problem { background: #fff5f5; border-color: #fecaca; }
+    .ps-card.solution { background: var(--green-light); border-color: #6ee7b7; }
+    .ps-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+    .ps-card.problem .ps-label { color: var(--red); }
+    .ps-card.solution .ps-label { color: var(--green); }
+    .ps-card p { font-size: 14px; color: #374151; line-height: 1.6; }
+    .time-badge { display: inline-block; font-size: 22px; font-weight: 800; margin: 8px 0 4px; }
+    .ps-card.problem .time-badge { color: var(--red); }
+    .ps-card.solution .time-badge { color: var(--green); }
+
+    /* ── Flow ── */
+    .flow { display: flex; align-items: center; overflow-x: auto; padding: 8px 0; flex-wrap: nowrap; }
+    .flow-item { flex: 0 0 auto; text-align: center; min-width: 110px; }
+    .flow-box {
+      background: var(--brand-light);
+      border: 1.5px solid var(--brand);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--brand-dark);
+      line-height: 1.3;
+    }
+    .flow-box.highlight { background: var(--brand); color: white; border-color: var(--brand-dark); }
+    .flow-arrow { flex: 0 0 24px; text-align: center; font-size: 18px; color: var(--muted); }
+    .flow-label { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+    /* ── Paths ── */
+    .path-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .path-card { border-radius: var(--radius); padding: 22px; border: 1.5px solid; }
+    .path-card.fast { background: var(--green-light); border-color: var(--green); }
+    .path-card.fallback { background: var(--orange-light); border-color: var(--orange); }
+    .path-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .path-card.fast .path-title { color: #065f46; }
+    .path-card.fallback .path-title { color: #9a3412; }
+    .path-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    .path-card.fast .path-badge { background: var(--green); color: white; }
+    .path-card.fallback .path-badge { background: var(--orange); color: white; }
+    .path-card p { font-size: 13px; color: #374151; line-height: 1.6; }
+    .path-card ul { margin: 10px 0 0 16px; font-size: 13px; color: #374151; }
+    .path-card li { margin-bottom: 4px; }
+
+    /* ── Limitations ── */
+    .limitations { display: flex; flex-direction: column; gap: 12px; }
+    .limit-item {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-left: 4px solid #fbbf24;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .limit-icon { font-size: 20px; flex: 0 0 auto; }
+    .limit-item h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .limit-item p { font-size: 13px; color: #374151; line-height: 1.6; }
+
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { display: flex; gap: 16px; align-items: flex-start; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .step-num { flex: 0 0 36px; height: 36px; border-radius: 50%; background: var(--brand); color: white; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+    .step-body h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .step-body p { font-size: 13px; color: var(--muted); }
+    .step-body code { display: inline-block; background: #f3f4f6; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-family: "SF Mono", "Fira Code", monospace; color: var(--brand-dark); margin: 4px 2px 0; }
+    .step-note { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 6px; }
+
+    /* ── Testing ── */
+    .test-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .test-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .test-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .test-steps { counter-reset: test-counter; list-style: none; }
+    .test-steps li {
+      counter-increment: test-counter;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: #374151;
+    }
+    .test-steps li:last-child { border-bottom: none; }
+    .test-steps li::before {
+      content: counter(test-counter);
+      flex: 0 0 22px;
+      height: 22px;
+      background: var(--brand-light);
+      color: var(--brand-dark);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* ── Packages ── */
+    .pkg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .pkg { display: flex; align-items: center; gap: 12px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .pkg-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--brand-light); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .pkg-name { font-weight: 600; font-size: 14px; }
+    .pkg-tier { font-size: 11px; color: var(--muted); }
+
+    /* ── Quotes ── */
+    .quotes { display: flex; flex-direction: column; gap: 16px; }
+    .quote { background: var(--white); border: 1px solid var(--border); border-left: 4px solid var(--brand); border-radius: var(--radius); padding: 22px 24px; }
+    .quote-text { font-size: 14px; color: #374151; font-style: italic; margin-bottom: 10px; line-height: 1.7; }
+    .quote-meta { font-size: 12px; font-weight: 700; color: var(--brand-dark); }
+    .quote-win { display: inline-block; font-size: 11px; background: #fef3c7; color: #92400e; border-radius: 6px; padding: 2px 8px; font-weight: 600; margin-left: 8px; }
+
+    /* ── CTA ── */
+    .cta { background: linear-gradient(135deg, var(--brand-dark), var(--brand)); border-radius: var(--radius); padding: 32px 28px; color: white; text-align: center; }
+    .cta h2 { font-size: 22px; margin-bottom: 10px; }
+    .cta p { opacity: .85; font-size: 14px; margin-bottom: 20px; }
+    .cta a { display: inline-block; background: white; color: var(--brand-dark); text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 8px; }
+
+    /* ── Credits ── */
+    .credits { margin-top: 12px; text-align: center; font-size: 12px; color: var(--muted); padding: 20px; }
+    .credits strong { color: var(--text); }
+
+    @media (max-width: 640px) {
+      .hero { padding: 40px 20px; }
+      .hero h1 { font-size: 26px; }
+      .toc { padding: 0 16px; }
+      .ps-grid, .path-grid, .pkg-grid, .test-grid, .benefits-grid, .usecases { grid-template-columns: 1fr; }
+      .hero-stats { gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">🚀 General Availability — 正式发布</div>
+  <h1>Optimized Deferred<br/><span>Deep Linking</span></h1>
+  <p class="hero-sub">将 Deep Link 交付与归因处理彻底解耦。用户点击即达，无需等待完整归因瀑布流。</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-value">&lt; 1s</div><div class="stat-label">新的 P90 响应时间</div></div>
+    <div class="stat"><div class="stat-value">6–8s</div><div class="stat-label">原 P90 响应时间</div></div>
+    <div class="stat"><div class="stat-value">300+</div><div class="stat-label">早期接入 App</div></div>
+    <div class="stat"><div class="stat-value">15 min</div><div class="stat-label">快速通道窗口</div></div>
+  </div>
+</div>
+
+<!-- Nav -->
+<nav class="toc">
+  <a href="#what">是什么</a>
+  <a href="#benefits">核心优势</a>
+  <a href="#usecases">应用场景</a>
+  <a href="#how">工作原理</a>
+  <a href="#limitations">已知限制</a>
+  <a href="#enable">如何开启</a>
+  <a href="#testing">测试流程</a>
+  <a href="#packaging">套餐覆盖</a>
+  <a href="#quotes">客户反馈</a>
+</nav>
+
+<div class="container">
+
+  <!-- What -->
+  <div class="section" id="what">
+    <div class="section-title">是什么</div>
+    <div class="card">
+      <h2>Optimized Deferred Deep Linking（ODDL）</h2>
+      <p>
+        ODDL 通过将延迟深度链接的<strong>交付</strong>与<strong>归因处理</strong>彻底解耦，优化了用户从点击深度链接 → 安装/重装 App → 进入目标内容的完整旅程。
+        Deep link 通过<strong>更快的 session 响应通道</strong>立即下发，而不是等待归因响应完成后再交付。
+        系统始终基于距离安装/重装<strong>最近的点击</strong>来确定链接目标，确保路由准确性。
+      </p>
+    </div>
+  </div>
+
+  <!-- Benefits -->
+  <div class="section" id="benefits">
+    <div class="section-title">核心优势</div>
+    <div class="benefits-grid">
+      <div class="benefit">
+        <div class="benefit-icon">⚡</div>
+        <h3>更快的深度链接交付</h3>
+        <p>从 6–8 秒降至 &lt;1 秒，用户不再看到空白加载屏</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">🎯</div>
+        <h3>更准确的路由</h3>
+        <p>基于用户最近一次 Adjust 链接点击，路由到正确的 App 内容页</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">🔓</div>
+        <h3>解除归因时序依赖</h3>
+        <p>深度链接交付不再受 SAN API 等归因瀑布流时序影响</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Use Cases -->
+  <div class="section" id="usecases">
+    <div class="section-title">典型应用场景</div>
+    <div class="usecases">
+      <div class="usecase">
+        <div class="usecase-icon">🎬</div>
+        <h3>媒体 / 流媒体</h3>
+        <p>将用户直接跳转至指定节目、剧集或直播页面</p>
+      </div>
+      <div class="usecase">
+        <div class="usecase-icon">🛍️</div>
+        <h3>电商</h3>
+        <p>安装后直接落地商品详情页，减少转化漏斗流失</p>
+      </div>
+      <div class="usecase">
+        <div class="usecase-icon">🎟️</div>
+        <h3>票务 / 活动</h3>
+        <p>点击活动链接 → 安装 → 直接进入对应活动或场馆页</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="section" id="how">
+    <div class="section-title">工作原理</div>
+
+    <!-- Before / After -->
+    <div class="ps-grid" style="margin-bottom:16px;">
+      <div class="ps-card problem">
+        <div class="ps-label">❌ 旧方案（Before）</div>
+        <div class="time-badge">6–8 秒</div>
+        <p>Deep link 交付被归因流程阻塞。必须等待完整归因瀑布（包括 SAN API 响应）后才能下发链接，用户落地时只看到加载屏幕。</p>
+      </div>
+      <div class="ps-card solution">
+        <div class="ps-label">✅ ODDL（After）</div>
+        <div class="time-badge">&lt; 1 秒</div>
+        <p>15 分钟内有 Adjust 链接点击时，Deep link 随 <code>/session</code> 响应立即返回，完全绕过归因流程，归因在后台异步继续执行。</p>
+      </div>
+    </div>
+
+    <!-- Flow -->
+    <div class="card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:20px; font-size:15px; color:var(--muted);">整体请求流程</h2>
+      <div class="flow">
+        <div class="flow-item"><div class="flow-box">用户点击<br/>Adjust 链接</div><div class="flow-label">Click</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-item"><div class="flow-box highlight">安装 / 重装 App</div><div class="flow-label">Install</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-item"><div class="flow-box highlight">SDK 发起<br/>/session</div><div class="flow-label">SDK Init</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-item"><div class="flow-box highlight">15 min 内<br/>有点击？</div><div class="flow-label">ODDL Check</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-item"><div class="flow-box">立即下发<br/>Deep Link</div><div class="flow-label">Instant Deliver</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-item"><div class="flow-box">归因异步<br/>继续进行</div><div class="flow-label">Async Attribution</div></div>
+      </div>
+    </div>
+
+    <!-- Two paths -->
+    <div class="path-grid">
+      <div class="path-card fast">
+        <div class="path-title">⚡ 快速通道 <span class="path-badge">Fast Path (ODDL)</span></div>
+        <p>用户在 <strong>15 分钟内</strong>点击过 Adjust 链接时触发。</p>
+        <ul>
+          <li>Deep link 随 <code>/session</code> 响应立即返回</li>
+          <li>归因在后台异步继续，不阻塞用户体验</li>
+          <li>响应时间通常 <strong>&lt; 1 秒</strong></li>
+          <li>基于距安装最近的点击确定目标内容</li>
+        </ul>
+      </div>
+      <div class="path-card fallback">
+        <div class="path-title">🔄 兜底路径 <span class="path-badge">Legacy Fallback</span></div>
+        <p>15 分钟窗口外，或无符合条件点击时触发。</p>
+        <ul>
+          <li>回退至原有归因依赖路径</li>
+          <li>等待完整归因响应后再交付 deep link</li>
+          <li>行为与旧方案一致，无额外风险</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Known Limitations -->
+  <div class="section" id="limitations">
+    <div class="section-title">已知限制</div>
+    <div class="limitations">
+      <div class="limit-item">
+        <div class="limit-icon">⏱️</div>
+        <div>
+          <h3>15 分钟点击窗口</h3>
+          <p>仅当用户在安装/重装前 <strong>15 分钟内</strong>点击过 Adjust 链接时，才会触发 Fast Path。超出此窗口则自动回退至 Legacy 路径。</p>
+        </div>
+      </div>
+      <div class="limit-item">
+        <div class="limit-icon">⚠️</div>
+        <div>
+          <h3>自归因网络（SAN）不受 Fast Path 覆盖</h3>
+          <p>Google、Meta、Apple Search Ads 等 SAN 通过独立的 API / Pipeline 进行归因，Adjust 无法实时获取其点击数据。等待 SAN API 响应会与 ODDL 的设计目标相悖，因此 SAN 流量仍走 Legacy 归因路径。</p>
+        </div>
+      </div>
+      <div class="limit-item">
+        <div class="limit-icon">🔧</div>
+        <div>
+          <h3>需开启概率匹配（Probabilistic Modeling）</h3>
+          <p>当设备标识符不可用时，系统需依赖概率匹配来识别点击与安装的关联关系。必须在 App 的归因设置中提前启用此选项，否则 ODDL 无法正常工作。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to enable -->
+  <div class="section" id="enable">
+    <div class="section-title">如何开启（客户自助）</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>升级 Adjust SDK</h3>
+          <p>需升级至以下版本或更高：</p>
+          <code>iOS 5.4.4+</code>
+          <code>Android 5.4.3+</code>
+          <code>Unity 5.4.3+</code>
+          <code>React Native 5.4.3+</code>
+          <code>Flutter 5.4.3+</code>
+          <code>Cordova 5.4.3+</code>
+          <div class="step-note">✅ 仅需客户端升级，Adjust 后端无需工程改动</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>开启概率匹配（Probabilistic Matching）</h3>
+          <p>在 App 的<strong>归因设置</strong>中启用概率匹配。设备标识符不可用时，系统将依赖此能力识别点击。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>使用现有 Adjust 深度链接</h3>
+          <p>无需修改或新建链接，沿用客户现有的 Adjust Deep Link 即可。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>开启 ODDL 开关</h3>
+          <p>进入 <strong>AppView → Advanced Settings → Optimized Deferred Deep Linking</strong>，将开关设为 <strong>ON</strong>（默认关闭）。</p>
+          <div class="step-note">🎉 开启即生效，无需联系 Adjust 工程师</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Testing -->
+  <div class="section" id="testing">
+    <div class="section-title">测试流程</div>
+    <div class="test-grid">
+      <div class="test-card">
+        <h3>📲 安装测试（Install Test）</h3>
+        <ol class="test-steps">
+          <li>安装 App</li>
+          <li>从日志中获取设备的 ADID</li>
+          <li>卸载 App</li>
+          <li>在 Testing Console 中确认设备状态</li>
+          <li>在 Console 中 Forget（遗忘）该设备</li>
+          <li>点击 Adjust 深度链接</li>
+          <li>通过本地构建包重新安装 App</li>
+          <li>打开 App，确认目标深度链接内容正常显示</li>
+        </ol>
+      </div>
+      <div class="test-card">
+        <h3>🔄 重装测试（Reinstall Test）</h3>
+        <ol class="test-steps">
+          <li>卸载 App</li>
+          <li>等待 30 分钟</li>
+          <li>点击 Adjust 深度链接</li>
+          <li>通过本地构建包重新安装 App</li>
+          <li>打开 App，确认目标深度链接内容正常显示</li>
+        </ol>
+        <div style="background:var(--brand-light);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:var(--brand-dark);">
+          💡 <strong>注意：</strong>重装测试中等待 30 分钟是为了确保系统将其识别为重装（而非新安装），与 ODDL 15 分钟窗口不冲突——点击发生在重装之前。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Packaging -->
+  <div class="section" id="packaging">
+    <div class="section-title">套餐覆盖</div>
+    <div class="pkg-grid">
+      <div class="pkg" style="opacity:.5;border-style:dashed;">
+        <div class="pkg-icon" style="background:#f3f4f6;">❌</div>
+        <div>
+          <div class="pkg-name" style="text-decoration:line-through;color:var(--muted);">TrueLink Base</div>
+          <div class="pkg-tier">基础版 — 不覆盖</div>
+        </div>
+      </div>
+      <div class="pkg">
+        <div class="pkg-icon">✅</div>
+        <div>
+          <div class="pkg-name">TrueLink Core Starter</div>
+          <div class="pkg-tier">核心入门版</div>
+        </div>
+      </div>
+      <div class="pkg">
+        <div class="pkg-icon">✅</div>
+        <div>
+          <div class="pkg-name">TrueLink Core Standard</div>
+          <div class="pkg-tier">核心标准版</div>
+        </div>
+      </div>
+      <div class="pkg">
+        <div class="pkg-icon">✅</div>
+        <div>
+          <div class="pkg-name">TrueLink Enterprise</div>
+          <div class="pkg-tier">企业版</div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px;">
+      ODDL 进一步强化 TrueLink 高级套餐价值，可用于推动客户从 Base 升级。
+    </p>
+  </div>
+
+  <!-- Customer Quotes -->
+  <div class="section" id="quotes">
+    <div class="section-title">客户反馈</div>
+    <div class="quotes">
+      <div class="quote">
+        <div class="quote-text">"The deferred deep link retrieval took virtually no time. That's now perfect. It looks as good as we want it to be."</div>
+        <div class="quote-meta">Tiqets</div>
+      </div>
+      <div class="quote">
+        <div class="quote-text">"Around 1s (max 1.2s) for Android — way faster than waiting for the attribution callback, which could be 6–8s."</div>
+        <div class="quote-meta">Huasheng Short Drama <span class="quote-win">🏆 从 AppsFlyer 赢回，ODDL 是决定性因素</span></div>
+      </div>
+      <div class="quote">
+        <div class="quote-text">"DDL response was taking 5 to 7 seconds initially. After ODDL it now takes about 1 second — they're very content."</div>
+        <div class="quote-meta">Zeal Network</div>
+      </div>
+      <div class="quote">
+        <div class="quote-text">"Visibly faster deep link delivery. Implementation required no special changes — just upgrading the library version."</div>
+        <div class="quote-meta">Medhopia</div>
+      </div>
+      <div class="quote">
+        <div class="quote-text">完全从 Branch 的 Deep Link 方案迁移至 Adjust，ODDL 是决定性因素——此前已等待这项优化数年。</div>
+        <div class="quote-meta">Inkitt <span class="quote-win">🏆 从 Branch 完整赢回</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h2>📖 查看完整帮助文档</h2>
+    <p>包含详细配置步骤、Testing Console 使用指南与技术说明</p>
+    <a href="https://help.adjust.com/en/article/optimized-deferred-deep-linking-oddl" target="_blank">访问 Help Center →</a>
+  </div>
+
+  <!-- Credits -->
+  <div class="credits">
+    感谢 <strong>BE Team（Ahmed Abouzied）</strong>、<strong>SDK Team</strong> 与 <strong>Dave</strong> 的设计、开发与交付。<br/>
+    也感谢所有参与早期内测、提供反馈并推荐客户的同事们 🙏
+  </div>
+
+</div>
+</body>
+</html>

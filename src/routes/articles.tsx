@@ -27,22 +27,28 @@ function ArticlesPage() {
 
         <div className="flex flex-col gap-6">
           {articles.map((article) => (
-            <div
+            <Link
               key={article.id}
+              to="/articles/$slug"
+              params={{ slug: article.id }}
               className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 transition-all hover:shadow-md"
             >
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {article.date}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {article.readTime} 阅读
-                </span>
+                {article.date && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {article.date}
+                  </span>
+                )}
+                {article.readTime && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {article.readTime} 阅读
+                  </span>
+                )}
               </div>
 
-              <h2 className="text-xl font-semibold text-foreground">
+              <h2 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
                 {article.title}
               </h2>
 
@@ -65,7 +71,7 @@ function ArticlesPage() {
                 <Newspaper className="h-4 w-4" />
                 公众号文章
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
