@@ -26,6 +26,7 @@ function ArticleDetailPage() {
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [tocOpen, setTocOpen] = useState(true);
+  const [progress, setProgress] = useState(0);
 
   // 解析 iframe 内的 H2/H3，生成目录
   useEffect(() => {
