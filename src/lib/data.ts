@@ -193,19 +193,6 @@ export const projects: Project[] = [
       "这个项目以学习笔记的形式，记录了我在大语言模型微调方面的实践过程。从最初的理论学习，到使用 LoRA 进行参数高效微调，再到 QLoRA 在消费级显卡上的部署。",
   },
   {
-    id: "ecommerce-page",
-    title: "响应式电商页面",
-    description: "纯前端实现的电商产品详情页，包含图片画廊、规格选择、购物车交互等功能。",
-    category: "web",
-    subcategory: "frontend-lab",
-    tags: ["前端", "电商", "交互"],
-    date: "2024-01",
-    image: "",
-    techStack: ["HTML", "CSS", "JavaScript"],
-    content:
-      "一个纯前端技术实现的电商产品详情页面。实现了产品图片放大查看、多规格选择、加入购物车动画等常见电商交互。",
-  },
-  {
     id: "unity-editor-tool",
     title: "Unity场景编辑器插件",
     description: "为 Unity 开发的自定义编辑器工具，简化关卡设计流程，提升开发效率。",
