@@ -191,44 +191,6 @@ function ArticleDetailPage() {
 
       {/* Main layout: left TOC + right content */}
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6">
-        {/* Left sidebar TOC */}
-        <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div className="mb-3">
-              <h2 className="text-sm font-semibold text-foreground">{article.title}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">阅读导航</p>
-            </div>
-            <div className="h-1 w-full rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-[width]"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="mt-1 text-right text-[10px] text-muted-foreground">
-              {Math.round(progress)}%
-            </p>
-            {toc.length > 0 ? (
-              <nav className="mt-3 space-y-1">
-                {toc.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => jumpTo(item.id)}
-                    className={`block w-full text-left text-xs leading-relaxed transition-colors ${
-                      activeId === item.id
-                        ? "font-medium text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    } ${item.level === 3 ? "pl-3" : ""}`}
-                  >
-                    {item.text}
-                  </button>
-                ))}
-              </nav>
-            ) : (
-              <p className="mt-3 text-xs text-muted-foreground">暂无目录</p>
-            )}
-          </div>
-        </aside>
-
         {/* Right content */}
         <div className="min-w-0 flex-1">
           {article.url ? (
