@@ -41,6 +41,9 @@ die()  { printf "\n\033[1;31m✘ %s\033[0m\n" "$*" >&2; exit 1; }
 [ -f "$TOKEN_FILE" ] || die "找不到 $TOKEN_FILE(Cloudflare API token)"
 
 # --- 0. 干净工作区检查 -------------------------------------------------------
+# routeTree.gen.ts 是 TanStack 构建时自动生成的(本机构建会追加一段 Register 声明),
+# 属于环境噪声、不入库,先还原它再做干净检查,避免切分支/合并被它挡住。
+git checkout -- src/routeTree.gen.ts 2>/dev/null || true
 if [ -n "$(git status --porcelain)" ]; then
   die "工作区有未提交改动,先 commit 或 stash 再跑(避免和合并混在一起)。"
 fi
