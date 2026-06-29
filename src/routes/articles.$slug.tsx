@@ -193,22 +193,33 @@ function ArticleDetailPage() {
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6">
         {/* Right content */}
         <div className="min-w-0 flex-1">
-          {article.url ? (
-            <div className="relative">
-              <iframe
-                ref={iframeRef}
-                src={article.url}
-                title={article.title ?? ""}
-                className="h-[calc(100vh-10rem)] w-full rounded-lg border border-border bg-white"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              />
-              <ParagraphCommentLayer
-                resourceId={article.id}
-                iframeRef={iframeRef}
-                enabled={annotationsOn}
-              />
-            </div>
-          ) : (
+          {(() => {
+            const isExternal = !!article.url && /^https?:\/\//i.test(article.url);
+            const useSrcDoc = isExternal && !!article.content;
+            const useLocalSrc = !!article.url && !isExternal;
+            if (useSrcDoc || useLocalSrc) {
+              return (
+                <div className="relative">
+                  <iframe
+                    ref={iframeRef}
+                    {...(useSrcDoc
+                      ? { srcDoc: article.content as string }
+                      : { src: article.url as string })}
+                    title={article.title ?? ""}
+                    referrerPolicy="no-referrer"
+                    className="h-[calc(100vh-10rem)] w-full rounded-lg border border-border bg-white"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  />
+                  <ParagraphCommentLayer
+                    resourceId={article.id}
+                    iframeRef={iframeRef}
+                    enabled={annotationsOn}
+                  />
+                </div>
+              );
+            }
+            return null;
+          })() || (
             <div className="prose prose-sm max-w-none rounded-lg border border-border bg-card p-8">
               <h1>{article.title}</h1>
               <p className="text-muted-foreground">{article.summary}</p>
