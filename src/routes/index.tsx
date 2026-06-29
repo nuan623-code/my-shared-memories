@@ -14,6 +14,7 @@ import {
   Clock,
   Tag,
   Compass,
+  Mail,
 } from "lucide-react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType, type Resource } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
