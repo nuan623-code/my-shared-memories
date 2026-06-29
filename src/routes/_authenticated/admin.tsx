@@ -294,80 +294,198 @@ function slugifyExternal(s: string): string {
   return slugify(s);
 }
 
+type ImportRowStatus = "pending" | "running" | "success" | "duplicate" | "error";
+type ImportRow = { url: string; status: ImportRowStatus; message?: string; slug?: string };
+
 function WechatImporter() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const runImport = useServerFn(importWechatArticle);
-  const [url, setUrl] = useState("");
+  const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [rows, setRows] = useState<ImportRow[]>([]);
+
+  const parseUrls = (raw: string): string[] => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    raw
+      .split(/[\s,;]+/)
+      .map((s) => s.trim())
+      .filter((s) => /^https?:\/\//i.test(s))
+      .forEach((u) => {
+        if (!seen.has(u)) {
+          seen.add(u);
+          out.push(u);
+        }
+      });
+    return out;
+  };
+
+  const updateRow = (i: number, patch: Partial<ImportRow>) => {
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  };
 
   const handleImport = async () => {
-    const u = url.trim();
-    if (!u) return;
+    const urls = parseUrls(text);
+    if (urls.length === 0) {
+      toast.error("请粘贴至少一个 http(s):// 链接");
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      toast.error("未登录");
+      return;
+    }
+
     setBusy(true);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      if (!uid) throw new Error("未登录");
+    setRows(urls.map((u) => ({ url: u, status: "pending" as ImportRowStatus })));
 
-      toast.info("正在抓取文章…");
-      const article = await runImport({ data: { url: u } });
+    let okCount = 0;
+    let dupCount = 0;
+    let errCount = 0;
+    let lastSlug: string | null = null;
 
-      const slug = slugifyExternal(article.title || `wechat-${Date.now()}`);
-      const { error } = await supabase.from("resources").insert({
-        type: "article",
-        slug,
-        title: article.title,
-        summary: article.summary || null,
-        content: article.html,
-        url: article.sourceUrl,
-        cover_url: article.coverUrl,
-        tags: ["公众号"],
-        category: null,
-        subcategory: null,
-        owner_id: uid,
-        published_at: article.publishedAt,
-      });
-      if (error) throw error;
-      toast.success("导入成功");
-      qc.invalidateQueries({ queryKey: ["resources"] });
-      setUrl("");
-      navigate({ to: "/articles/$slug", params: { slug } });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "导入失败");
-    } finally {
-      setBusy(false);
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      updateRow(i, { status: "running" });
+      try {
+        const article = await runImport({ data: { url: u } });
+        const slug = slugifyExternal(article.title || `wechat-${Date.now()}-${i}`);
+
+        const { data: existing } = await supabase
+          .from("resources")
+          .select("slug")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (existing) {
+          dupCount++;
+          updateRow(i, { status: "duplicate", message: "已存在同名文章，跳过", slug });
+          continue;
+        }
+
+        const { error } = await supabase.from("resources").insert({
+          type: "article",
+          slug,
+          title: article.title,
+          summary: article.summary || null,
+          content: article.html,
+          url: article.sourceUrl,
+          cover_url: article.coverUrl,
+          tags: ["公众号"],
+          category: null,
+          subcategory: null,
+          owner_id: uid,
+          published_at: article.publishedAt,
+        });
+        if (error) throw error;
+
+        okCount++;
+        lastSlug = slug;
+        updateRow(i, { status: "success", message: article.title, slug });
+      } catch (err) {
+        errCount++;
+        updateRow(i, {
+          status: "error",
+          message: err instanceof Error ? err.message : "导入失败",
+        });
+      }
+    }
+
+    setBusy(false);
+    qc.invalidateQueries({ queryKey: ["resources"] });
+
+    if (okCount > 0) {
+      toast.success(
+        `导入完成：成功 ${okCount}${dupCount ? `、跳过 ${dupCount}` : ""}${errCount ? `、失败 ${errCount}` : ""}`,
+      );
+      setText("");
+      if (urls.length === 1 && lastSlug) {
+        navigate({ to: "/articles/$slug", params: { slug: lastSlug } });
+      }
+    } else {
+      toast.error(`未导入任何文章（跳过 ${dupCount}、失败 ${errCount}）`);
     }
   };
+
+  const statusBadge = (s: ImportRowStatus) => {
+    const map: Record<ImportRowStatus, { label: string; cls: string }> = {
+      pending: { label: "等待", cls: "bg-muted text-muted-foreground" },
+      running: { label: "抓取中", cls: "bg-primary/10 text-primary" },
+      success: { label: "成功", cls: "bg-emerald-100 text-emerald-700" },
+      duplicate: { label: "跳过", cls: "bg-amber-100 text-amber-700" },
+      error: { label: "失败", cls: "bg-rose-100 text-rose-700" },
+    };
+    const { label, cls } = map[s];
+    return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${cls}`}>{label}</span>;
+  };
+
+  const urlCount = parseUrls(text).length;
 
   return (
     <div className="mb-6 rounded-2xl border border-border bg-card p-5">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
         <Download className="h-4 w-4 text-primary" />
-        从公众号 / 网页链接一键导入
+        从公众号 / 网页链接批量导入
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
-        粘贴微信公众号文章（mp.weixin.qq.com）或任意网页链接，自动抓取标题、封面、正文和发布时间。
+        每行粘贴一个链接（mp.weixin.qq.com 或任意网页），可一次粘贴多条。系统按顺序抓取并自动跳过重复文章。
       </p>
-      <div className="flex gap-2">
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://mp.weixin.qq.com/s/..."
-          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-          disabled={busy}
-        />
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={"https://mp.weixin.qq.com/s/xxxx\nhttps://mp.weixin.qq.com/s/yyyy"}
+        rows={5}
+        className="mb-2 w-full resize-y rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus:border-primary focus:outline-none"
+        disabled={busy}
+      />
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">已识别 {urlCount} 个链接</span>
         <button
           type="button"
           onClick={handleImport}
-          disabled={busy || !url.trim()}
+          disabled={busy || urlCount === 0}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-          {busy ? "抓取中" : "导入"}
+          {busy
+            ? `导入中 (${rows.filter((r) => r.status === "success" || r.status === "duplicate" || r.status === "error").length}/${rows.length})`
+            : `导入 ${urlCount || ""}`}
         </button>
       </div>
+
+      {rows.length > 0 && (
+        <ul className="mt-4 space-y-1.5 text-xs">
+          {rows.map((r, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-2 rounded-md border border-border/60 bg-background/50 px-2 py-1.5"
+            >
+              {statusBadge(r.status)}
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-mono text-[11px] text-muted-foreground">{r.url}</div>
+                {r.message && (
+                  <div className="mt-0.5 truncate text-foreground">
+                    {r.slug && r.status === "success" ? (
+                      <a
+                        href={`/articles/${r.slug}`}
+                        className="text-primary hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {r.message}
+                      </a>
+                    ) : (
+                      r.message
+                    )}
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
