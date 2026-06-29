@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -10,10 +11,12 @@ import {
   StickyNote,
   Upload,
   Loader2,
+  Download,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { categories } from "@/lib/data";
 import type { ResourceType } from "@/lib/resources";
+import { importWechatArticle } from "@/lib/wechat-import.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "发布资源 — Mingyu's Library" }] }),
@@ -121,6 +124,8 @@ function AdminPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">发布资源</h1>
+
+      <WechatImporter />
 
       {/* Type picker */}
       <div className="mb-6 grid grid-cols-5 gap-2">
@@ -284,3 +289,86 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+function slugifyExternal(s: string): string {
+  return slugify(s);
+}
+
+function WechatImporter() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const runImport = useServerFn(importWechatArticle);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const handleImport = async () => {
+    const u = url.trim();
+    if (!u) return;
+    setBusy(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) throw new Error("未登录");
+
+      toast.info("正在抓取文章…");
+      const article = await runImport({ data: { url: u } });
+
+      const slug = slugifyExternal(article.title || `wechat-${Date.now()}`);
+      const { error } = await supabase.from("resources").insert({
+        type: "article",
+        slug,
+        title: article.title,
+        summary: article.summary || null,
+        content: article.html,
+        url: article.sourceUrl,
+        cover_url: article.coverUrl,
+        tags: ["公众号"],
+        category: null,
+        subcategory: null,
+        owner_id: uid,
+        published_at: article.publishedAt,
+      });
+      if (error) throw error;
+      toast.success("导入成功");
+      qc.invalidateQueries({ queryKey: ["resources"] });
+      setUrl("");
+      navigate({ to: "/articles/$slug", params: { slug } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "导入失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-card p-5">
+      <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+        <Download className="h-4 w-4 text-primary" />
+        从公众号 / 网页链接一键导入
+      </div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        粘贴微信公众号文章（mp.weixin.qq.com）或任意网页链接，自动抓取标题、封面、正文和发布时间。
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://mp.weixin.qq.com/s/..."
+          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          disabled={busy}
+        />
+        <button
+          type="button"
+          onClick={handleImport}
+          disabled={busy || !url.trim()}
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {busy ? "抓取中" : "导入"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
