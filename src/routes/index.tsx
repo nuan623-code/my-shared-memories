@@ -14,6 +14,7 @@ import {
   Clock,
   Tag,
   Compass,
+  Mail,
 } from "lucide-react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType, type Resource } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
@@ -148,6 +149,14 @@ function HomePage() {
             >
               <Sparkles className="h-4 w-4 text-primary" />
               搜索一下
+            </Link>
+            <Link
+              to="/about"
+              hash="contact"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur transition hover:border-primary/40"
+            >
+              <Mail className="h-4 w-4 text-primary" />
+              联系我
             </Link>
           </div>
 

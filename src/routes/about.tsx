@@ -100,7 +100,7 @@ function AboutPage() {
         </div>
 
         {/* Contact */}
-        <div className="rounded-2xl border border-border bg-card p-8">
+        <div id="contact" className="rounded-2xl border border-border bg-card p-8">
           <h2 className="mb-4 text-xl font-semibold text-foreground">联系方式</h2>
           <p className="mb-6 text-muted-foreground">
             欢迎就技术话题、行业讨论或合作机会与我联系。
