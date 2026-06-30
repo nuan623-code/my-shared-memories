@@ -20,6 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { categories } from "@/lib/data";
 import type { ResourceType } from "@/lib/resources";
 import { importWechatArticle } from "@/lib/wechat-import.functions";
+import { ArticlesManager } from "@/components/ArticlesManager";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "发布资源 — Mingyu's Library" }] }),
