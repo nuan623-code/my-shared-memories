@@ -107,13 +107,15 @@ export function Header() {
                 >
                   我的账号
                 </Link>
-                <Link
-                  to="/admin"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-sm font-medium text-primary"
-                >
-                  发布资源
-                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium text-primary"
+                  >
+                    发布资源
+                  </Link>
+                )}
               </>
             ) : (
               <Link
