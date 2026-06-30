@@ -243,6 +243,14 @@ function ArticleDetailPage() {
             if (useSrcDoc || useLocalSrc) {
               return (
                 <div className="relative">
+                  {annotationsOn && (
+                    <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                      <MessageSquarePlus className="h-3.5 w-3.5 text-primary" />
+                      <span>
+                        在正文右侧点击 <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">+</span> 给段落添加公开批注；或选中任意文字弹出"高亮 / 评论"工具条。
+                      </span>
+                    </div>
+                  )}
                   <iframe
                     ref={iframeRef}
                     {...(useSrcDoc
