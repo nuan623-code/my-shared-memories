@@ -140,6 +140,10 @@ function AdminPage() {
 
       <WechatImporter />
 
+      <ArticlesManager />
+
+
+
       {/* Type picker */}
       <div className="mb-6 grid grid-cols-5 gap-2">
         {TYPE_OPTIONS.map(({ id, label, Icon }) => (
