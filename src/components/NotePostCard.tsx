@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { MessageSquare, Trash2, ShieldCheck } from "lucide-react";
+import { MessageSquare, Trash2, ShieldCheck, Pin, PinOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -10,6 +10,8 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { Comments } from "@/components/Comments";
 import { UserAvatar } from "@/components/UserAvatar";
 import { deleteNotePost, type NotePost } from "@/lib/notes";
+import { supabase } from "@/integrations/supabase/client";
+
 
 function timeAgo(iso: string, now: number): string {
   const d = (now - new Date(iso).getTime()) / 1000;
