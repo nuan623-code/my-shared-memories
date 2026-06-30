@@ -30,9 +30,29 @@ export function ProfileEditor() {
     e.preventDefault();
     setSaving(true);
     setErr(null);
+
+    const trimmed = name.trim() || "匿名读者";
+    const { data: existing, error: checkErr } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("display_name", trimmed)
+      .neq("id", user.id)
+      .maybeSingle();
+
+    if (checkErr) {
+      setSaving(false);
+      setErr(checkErr.message);
+      return;
+    }
+    if (existing) {
+      setSaving(false);
+      setErr("该用户名已被使用，请换一个");
+      return;
+    }
+
     const { error } = await supabase.from("profiles").upsert({
       id: user.id,
-      display_name: name.trim() || "匿名读者",
+      display_name: trimmed,
       title: title.trim() || "读者",
     });
     setSaving(false);
