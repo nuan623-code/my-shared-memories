@@ -49,12 +49,14 @@ export function Header() {
           </Link>
           {user ? (
             <>
-              <Link
-                to="/admin"
-                className="hidden items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 md:inline-flex"
-              >
-                <Plus className="h-3.5 w-3.5" /> 发布
-              </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="hidden items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 md:inline-flex"
+                >
+                  <Plus className="h-3.5 w-3.5" /> 发布
+                </Link>
+              )}
               <Link
                 to="/account"
                 className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
