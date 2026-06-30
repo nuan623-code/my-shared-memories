@@ -257,11 +257,46 @@ function ArticleDetailPage() {
             </div>
           )}
 
+          {(adjacent.prev || adjacent.next) && (
+            <nav className="mt-8 grid gap-3 sm:grid-cols-2">
+              {adjacent.prev ? (
+                <Link to="/articles/$slug" params={{ slug: adjacent.prev.slug! }}
+                  className="group rounded-lg border border-border bg-card p-4 transition hover:border-primary/40 hover:bg-muted/50">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><ChevronLeft className="h-3 w-3" /> 上一篇</div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{adjacent.prev.title}</div>
+                </Link>
+              ) : <div />}
+              {adjacent.next ? (
+                <Link to="/articles/$slug" params={{ slug: adjacent.next.slug! }}
+                  className="group rounded-lg border border-border bg-card p-4 text-right transition hover:border-primary/40 hover:bg-muted/50">
+                  <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">下一篇 <ChevronRight className="h-3 w-3" /></div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{adjacent.next.title}</div>
+                </Link>
+              ) : <div />}
+            </nav>
+          )}
+
+          {related.length > 0 && (
+            <section className="mt-8 rounded-lg border border-border bg-card p-5">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">相关推荐</h3>
+              <div className="grid gap-2">
+                {related.map((r) => (
+                  <Link key={r.id} to="/articles/$slug" params={{ slug: r.slug! }}
+                    className="flex items-start gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
+                    <span className="line-clamp-1 flex-1">{r.title}</span>
+                    {r.tags?.[0] && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{r.tags[0]}</span>}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="mt-8">
             <Comments resourceId={article.id} />
           </div>
         </div>
       </div>
+
     </div>
   );
 }
