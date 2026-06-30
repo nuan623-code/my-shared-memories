@@ -38,7 +38,6 @@ export function NotePostCard({ post }: { post: NotePost }) {
 
   const author = post.author?.display_name ?? "匿名读者";
   const authorTitle = post.author?.title ?? "读者";
-  const initial = author.slice(0, 1).toUpperCase();
 
   return (
     <article className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md">
