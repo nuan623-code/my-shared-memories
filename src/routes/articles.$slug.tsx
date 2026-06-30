@@ -172,14 +172,21 @@ function ArticleDetailPage() {
 
       {/* Top action bar */}
       <div className="border-b border-border bg-card/50 px-4 py-3">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link
-            to="/resources"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回资源库
-          </Link>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              to="/resources"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              返回
+            </Link>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" /> 约 {mins} 分钟
+            </span>
+            <LikeButton resourceId={article.id} />
+          </div>
+
           <div className="flex items-center gap-3">
             <button
               type="button"
