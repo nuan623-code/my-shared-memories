@@ -274,6 +274,10 @@ function HomePage() {
         </section>
       )}
 
+      {/* Top viewed + subscribe */}
+      <TopViewedAndSubscribe allResources={resources} />
+
+
       {/* Type filter chips */}
       <section className="sticky top-[57px] z-30 border-b border-border/50 bg-background/85 px-4 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto py-3">
