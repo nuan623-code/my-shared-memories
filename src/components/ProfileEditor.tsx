@@ -58,6 +58,7 @@ export function ProfileEditor() {
       id: user.id,
       display_name: trimmed,
       title: title.trim() || "读者",
+      avatar_preset: avatarPreset,
     });
     setSaving(false);
     if (error) setErr(error.message);
@@ -94,6 +95,9 @@ export function ProfileEditor() {
             placeholder="例如：产品经理、AI 研究者"
           />
         </label>
+      </div>
+      <div className="mt-4">
+        <AvatarPresetPicker value={avatarPreset} onChange={setAvatarPreset} name={name || "M"} />
       </div>
       <div className="mt-4 flex items-center gap-3">
         <button
