@@ -147,20 +147,20 @@ export function ParagraphCommentLayer({
               type="button"
               onClick={() => setActive(a)}
               style={{ top: `${y}px` }}
-              className={`pointer-events-auto absolute right-2 -translate-y-1/2 inline-flex items-center justify-center rounded-full border text-[11px] font-medium transition-all ${
+              className={`pointer-events-auto absolute right-3 -translate-y-1/2 inline-flex items-center justify-center rounded-full border text-xs font-semibold shadow-md transition-all hover:scale-110 ${
                 count > 0
-                  ? "h-6 min-w-6 bg-primary text-primary-foreground border-primary shadow-sm px-1.5"
-                  : "h-6 w-6 bg-background/90 text-muted-foreground border-border shadow-sm opacity-60 hover:opacity-100 hover:text-primary hover:border-primary focus:opacity-100"
+                  ? "h-7 min-w-7 bg-primary text-primary-foreground border-primary px-2"
+                  : "h-7 w-7 bg-primary/90 text-primary-foreground border-primary/80 hover:bg-primary"
               }`}
-              title={count > 0 ? `${count} 条批注` : "添加段落批注"}
+              title={count > 0 ? `${count} 条批注` : "点击给这一段添加批注"}
             >
               {count > 0 ? (
                 <span className="inline-flex items-center gap-0.5">
-                  <MessageSquare className="h-3 w-3" />
+                  <MessageSquare className="h-3.5 w-3.5" />
                   {count}
                 </span>
               ) : (
-                <Plus className="h-3 w-3" />
+                <Plus className="h-4 w-4" />
               )}
             </button>
           );
