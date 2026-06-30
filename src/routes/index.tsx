@@ -418,15 +418,23 @@ function TopViewedAndSubscribe({ allResources }: { allResources: Resource[] }) {
               {topItems.map((t, i) => {
                 const r = t.resource!;
                 const href = resourceHref(r);
+                const isExternal = href.startsWith("http");
                 return (
                   <li key={t.resource_id} className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-4 py-3 transition hover:border-primary/40 hover:bg-muted/30">
                     <span className="text-lg font-semibold text-primary/70 tabular-nums">{String(i + 1).padStart(2, "0")}</span>
-                    <Link to={href} className="line-clamp-1 flex-1 text-sm font-medium text-foreground hover:text-primary">
-                      {r.title || "未命名资源"}
-                    </Link>
+                    {isExternal ? (
+                      <a href={href} target="_blank" rel="noreferrer" className="line-clamp-1 flex-1 text-sm font-medium text-foreground hover:text-primary">
+                        {r.title || "未命名资源"}
+                      </a>
+                    ) : (
+                      <Link to={href} className="line-clamp-1 flex-1 text-sm font-medium text-foreground hover:text-primary">
+                        {r.title || "未命名资源"}
+                      </Link>
+                    )}
                     <span className="text-xs text-muted-foreground">{t.views} 次</span>
                   </li>
                 );
+
               })}
             </ol>
           )}
