@@ -26,6 +26,11 @@ export function NotePostCard({ post }: { post: NotePost }) {
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const [showComments, setShowComments] = useState(false);
+  const [now, setNow] = useState<number>(() => new Date(post.published_at).getTime());
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
+
 
   const canDelete = !!user && (user.id === post.owner_id || isAdmin);
   const del = useMutation({
