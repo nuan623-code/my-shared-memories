@@ -29,6 +29,7 @@
 - **托管**:Worker `nuan623-code-my-shared-memories`,绑定 `mingyuyang.com`。
 - **登录**:用户自己的 Google OAuth(Google Cloud 项目 `labubuvision`),回调到 Supabase。
 - **部署**:`~/.cf_token` 存 Cloudflare API token。本地用 **npm**(非 bun);`npm run dev` → http://localhost:8080。
+- **`.env` 陷阱(必读)**:Supabase URL/key 在**构建时**从 `.env` 内联进产物,缺了线上连不上库。但 Lovable 在 `main` 上**跟踪着它自己的 `.env`**(指向 Lovable 的 Supabase),`git checkout main` 会覆盖本地 `.env`、切回 `prod` 又删掉它。所以**真实 `.env` 的主备份存在仓库外 `~/.my-shared-memories.env`**,`publish.sh` 构建前会从这里还原。手动构建/部署前务必先 `cp ~/.my-shared-memories.env .env`。key 变了就更新这个备份。
 
 ## 我的地图:只有这些文件是「我写的」(去 Lovable 叠加层)
 **这张表之外的一切都属于 Lovable —— 只读、别翻、别改。** 要动表外文件先停下问。

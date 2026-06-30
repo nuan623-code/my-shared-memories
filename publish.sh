@@ -20,6 +20,7 @@ cd "$(dirname "$0")"
 
 SITE="https://mingyuyang.com"
 TOKEN_FILE="$HOME/.cf_token"
+ENV_BACKUP="$HOME/.my-shared-memories.env"   # 仓库外的 .env 主备份(用户自己的 Supabase key)
 DEPLOY_ONLY=0
 SCHEMA_OK=0
 
@@ -39,6 +40,8 @@ warn() { printf "\n\033[1;33m⚠ %s\033[0m\n" "$*"; }
 die()  { printf "\n\033[1;31m✘ %s\033[0m\n" "$*" >&2; exit 1; }
 
 [ -f "$TOKEN_FILE" ] || die "找不到 $TOKEN_FILE(Cloudflare API token)"
+[ -f "$ENV_BACKUP" ] || die "找不到 $ENV_BACKUP(.env 主备份)。这是你自己 Supabase 的 key,
+    构建时必须内联进产物,否则线上连不上数据库。先把 .env 内容存到该文件(chmod 600)。"
 
 # --- 0. 干净工作区检查 -------------------------------------------------------
 # routeTree.gen.ts 是 TanStack 构建时自动生成的(本机构建会追加一段 Register 声明),
@@ -83,6 +86,14 @@ if [ "$DEPLOY_ONLY" -eq 0 ]; then
 fi
 
 # --- 4. 依赖 + 构建 ----------------------------------------------------------
+# 关键:Lovable 在 main 上跟踪着它自己的 .env(指向 Lovable 的 Supabase)。
+# `git checkout main` 会用它覆盖本地 .env,切回 prod 时又把文件删掉 —— 于是构建
+# 在缺 .env 下进行、把空的 Supabase 配置内联进产物,线上就连不上库。
+# 所以构建前一律从仓库外主备份还原 .env(用户自己的 key)。
+say "还原 .env(用户自己的 Supabase 配置)"
+cp "$ENV_BACKUP" .env
+grep -q "mrkcesmmlmuhycdisgsy" .env || warn ".env 里不含预期的 project ref,确认 $ENV_BACKUP 是否正确。"
+
 say "安装依赖(npm install)"
 npm install --no-audit --no-fund
 
