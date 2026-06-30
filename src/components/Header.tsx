@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Library, Menu, X, Search, Plus, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useAdminStatus } from "@/hooks/use-is-admin";
 
 const navItems = [
   { to: "/" as const, label: "首页" },
