@@ -90,6 +90,15 @@ function AccountPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {profile?.display_name && (
+            <Link
+              to="/u/$username"
+              params={{ username: profile.display_name }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              查看公开主页
+            </Link>
+          )}
           {isAdmin && (
             <Link
               to="/admin"
@@ -98,6 +107,7 @@ function AccountPage() {
               <Settings className="h-3.5 w-3.5" /> 管理后台
             </Link>
           )}
+
           <button
             onClick={signOut}
             className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
