@@ -2,6 +2,9 @@
 
 个人资源库网站。本文档帮助 Claude Code / Cursor / 任何后续 AI 协作者快速接手维护。
 
+> [!IMPORTANT]
+> **唯一真理源是 `AGENTS.md`,不是本文件。** 本文档是早期交接稿,保留它是为了目录结构(§二)、常见维护任务(§七)、路由规则这些 AGENTS.md 没重复的参考。栈 / 后端 / 环境变量 / 数据模型 / 本地启动一律**以 AGENTS.md 为准**——下面相关段落已按现状修正,若与 AGENTS.md 冲突,信 AGENTS.md。
+
 ---
 
 ## 一、技术栈
@@ -12,8 +15,8 @@
 | 样式 | **Tailwind CSS v4**（通过 `src/styles.css` 配置，使用原生 `@import` 和 `@theme`） |
 | UI 组件 | shadcn/ui + Radix + Lucide 图标（**禁止使用 emoji**） |
 | 状态/数据 | TanStack Query（在 loader 中 `ensureQueryData`，组件用 `useSuspenseQuery`） |
-| 后端 | **Lovable Cloud**（托管 Supabase：Postgres + Storage + Auth） |
-| 部署 | Cloudflare Workers（边缘运行时） |
+| 后端 | **你自己的 Supabase**（project ref `mrkcesmmlmuhycdisgsy`：Postgres + Storage + Auth；只用 publishable/anon key + RLS。已脱离 Lovable Cloud） |
+| 部署 | Cloudflare Workers（边缘运行时），Worker `nuan623-code-my-shared-memories` 绑定 `mingyuyang.com` |
 | 字体 | `@fontsource-variable/figtree`（正文）+ `@fontsource-variable/outfit`（标题） |
 
 ---
@@ -73,17 +76,20 @@ public/                     # 静态资源（含已下载的 HTML 文章）
 
 ---
 
-## 四、数据模型（Lovable Cloud / Supabase）
+## 四、数据模型（你自己的 Supabase）
 
-### `resources` 表
+> **真理源是 `supabase/schema.sql`(幂等 bootstrap,10 张表全启用 RLS、34 条 policy)。** 下面只给最常用的 `resources` 实际列名,写查询前若拿不准就直接看 schema.sql,别凭记忆。
+
+### `resources` 表（实际列名，已和线上数据核对）
 统一资源容器，支持 5 种 `type`：`article` | `video` | `link` | `file` | `note`
 ```
-id uuid, slug text, type text, title text, description text,
-content text, url text, file_path text, video_url text,
-category text, subcategory text, tags text[],
-cover_image text, created_at timestamptz, updated_at timestamptz,
-user_id uuid
+id uuid, slug text, type text, title text, summary text,
+content text, url text, file_url text, file_size, file_type,
+category text, subcategory text, tags text[], duration,
+cover_url text, owner_id uuid,
+published_at timestamptz, created_at timestamptz, updated_at timestamptz
 ```
+> 注意:列名是 `summary`(非 `description`)、`file_url`(非 `file_path`)、`cover_url`(非 `cover_image`)、`owner_id`(非 `user_id`);**没有 `video_url` 列**(视频也走 `url`)。
 
 ### `favorites` 表
 ```
@@ -91,21 +97,22 @@ id uuid, user_id uuid, resource_id uuid, created_at timestamptz
 unique(user_id, resource_id)
 ```
 
-**所有表都启用了 RLS** 并 `GRANT` 给 `authenticated` / `service_role`。
-详见 `supabase/migrations/`。
+**所有表都启用了 RLS。** 完整表结构、policy、storage bucket、admin 角色见 `supabase/schema.sql`;Lovable 后续新增的迁移在 `supabase/migrations/`。
 
 ---
 
 ## 五、环境变量
 
-`.env`（GitHub 同步会带过去）：
+> **`.env` 有陷阱,详见 AGENTS.md 的「`.env` 陷阱」一节,这里只摘要。** 真实 `.env` 的**主备份在仓库外** `~/.my-shared-memories.env`(因为 `main` 分支上 Lovable 跟踪着它自己指向 Lovable Supabase 的 `.env`,切分支会覆盖)。手动构建/部署前先 `cp ~/.my-shared-memories.env .env`;`publish.sh` 会自动还原。
+
+`.env` 需要的变量(指向**你自己的** Supabase,带与不带 `VITE_` 前缀各一份)：
 ```
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_PUBLISHABLE_KEY=...
-VITE_SUPABASE_PROJECT_ID=...
+SUPABASE_URL / VITE_SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY / VITE_SUPABASE_PUBLISHABLE_KEY   # 只用 publishable/anon key
+SUPABASE_PROJECT_ID / VITE_SUPABASE_PROJECT_ID
 ```
 
-只要这三个变量在，本地就能直连现有的 Lovable Cloud 后端，数据/登录用户/已上传文件全部可用。
+这些变量在**构建时**内联进产物,缺了线上连不上库。**service_role / secret key 永不进 `.env` 或 git**,靠 RLS 保护。可选 key(缺了只影响 /admin 对应按钮):`FIRECRAWL_API_KEY`(微信导入)、`ANTHROPIC_API_KEY`(自动分类)。
 
 ---
 
@@ -114,12 +121,13 @@ VITE_SUPABASE_PROJECT_ID=...
 ```bash
 git clone https://github.com/nuan623-code/my-shared-memories.git
 cd my-shared-memories
-bun install
-bun run dev          # http://localhost:8080
+cp ~/.my-shared-memories.env .env   # 先还原真实 .env(见 §五)
+npm install                          # 用 npm,不是 bun(AGENTS.md 钉死)
+npm run dev                          # http://localhost:8080
 ```
 
-构建检查：`bun run build`
-类型检查：`bunx tsgo --noEmit`（**不要用 tsc**）
+构建检查：`npm run build`。类型/构建是否通过以 AGENTS.md「测试深度」一节为准。
+> 仓库里 `bun.lock` 是 Lovable 旧时代遗留,实际依赖以 `package-lock.json` + npm 为准。
 
 ---
 
