@@ -23,8 +23,9 @@ export const Route = createFileRoute("/articles/$slug")({
   head: ({ loaderData, params }) => {
     const a = loaderData?.article;
     const title = `${a?.title ?? "文章"} — Mingyu's Library`;
-    const description = a?.summary || a?.title || "Mingyu 的文章与笔记";
+    const description = (a?.summary || a?.title || "Mingyu 的文章与笔记").slice(0, 200);
     const url = `/articles/${params.slug}`;
+    const ogImage = `/api/og/articles/${params.slug}`;
     return {
       meta: [
         { title },
@@ -35,9 +36,19 @@ export const Route = createFileRoute("/articles/$slug")({
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
+        { property: "og:image", content: ogImage },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "og:image:alt", content: a?.title ?? "Mingyu's Library" },
+        { property: "og:site_name", content: "Mingyu's Library" },
+        ...(a?.published_at ? [{ property: "article:published_time", content: new Date(a.published_at).toISOString() }] : []),
+        ...(a?.updated_at ? [{ property: "article:modified_time", content: new Date(a.updated_at).toISOString() }] : []),
+        ...(a?.category ? [{ property: "article:section", content: a.category }] : []),
+        ...((a?.tags ?? []).map((t) => ({ property: "article:tag", content: t }))),
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        { name: "twitter:image", content: ogImage },
       ],
       links: [{ rel: "canonical", href: url }],
     };
