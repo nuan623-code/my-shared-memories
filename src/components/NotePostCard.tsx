@@ -48,9 +48,15 @@ export function NotePostCard({ post }: { post: NotePost }) {
   const authorTitle = post.author?.title ?? "读者";
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md">
+    <article className={`rounded-2xl border bg-card p-5 shadow-sm transition hover:shadow-md ${post.pinned ? "border-primary/40 ring-1 ring-primary/20" : "border-border"}`}>
+      {post.pinned && (
+        <div className="-mt-1 mb-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+          <Pin className="h-3 w-3" /> 置顶
+        </div>
+      )}
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
+
           <UserAvatar preset={post.author?.avatar_preset} name={author} size="md" />
           <div>
             <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
