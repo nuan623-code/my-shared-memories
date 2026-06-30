@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { UserCog, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { AvatarPresetPicker } from "./AvatarPresetPicker";
+import type { AvatarPresetId } from "@/lib/avatar-presets";
 
 export function ProfileEditor() {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
+  const [avatarPreset, setAvatarPreset] = useState<AvatarPresetId | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -15,12 +18,13 @@ export function ProfileEditor() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("display_name, title")
+      .select("display_name, title, avatar_preset")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         setName(data?.display_name ?? "");
         setTitle(data?.title ?? "");
+        setAvatarPreset((data?.avatar_preset as AvatarPresetId) ?? null);
       });
   }, [user?.id]);
 
@@ -54,6 +58,7 @@ export function ProfileEditor() {
       id: user.id,
       display_name: trimmed,
       title: title.trim() || "读者",
+      avatar_preset: avatarPreset,
     });
     setSaving(false);
     if (error) setErr(error.message);
@@ -90,6 +95,9 @@ export function ProfileEditor() {
             placeholder="例如：产品经理、AI 研究者"
           />
         </label>
+      </div>
+      <div className="mt-4">
+        <AvatarPresetPicker value={avatarPreset} onChange={setAvatarPreset} name={name || "M"} />
       </div>
       <div className="mt-4 flex items-center gap-3">
         <button

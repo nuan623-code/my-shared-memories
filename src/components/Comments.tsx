@@ -5,8 +5,9 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { UserAvatar } from "@/components/UserAvatar";
 
-type Profile = { display_name: string; title: string };
+type Profile = { display_name: string; title: string; avatar_preset?: string | null };
 export type CommentRow = {
   id: string;
   resource_id: string;
@@ -25,10 +26,10 @@ async function fetchComments(
   resourceId: string,
   anchorId: string | null,
 ): Promise<CommentRow[]> {
-  let q = supabase
+    let q = supabase
     .from("comments")
     .select(
-      "id, resource_id, user_id, parent_id, content, created_at, updated_at, anchor_id, anchor_kind, profiles(display_name, title)",
+      "id, resource_id, user_id, parent_id, content, created_at, updated_at, anchor_id, anchor_kind, profiles(display_name, title, avatar_preset)",
     )
     .eq("resource_id", resourceId)
     .order("created_at", { ascending: true });
@@ -258,9 +259,7 @@ function CommentNode({
   return (
     <div className={depth > 0 ? "ml-6 border-l-2 border-border/60 pl-4" : ""}>
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-sm font-medium text-primary-foreground">
-          {name.slice(0, 1)}
-        </div>
+        <UserAvatar preset={node.profiles?.avatar_preset} name={name} size="md" />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-baseline gap-2">
             <span className="text-sm font-medium">{name}</span>

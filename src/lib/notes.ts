@@ -9,7 +9,7 @@ export interface NotePost {
   owner_id: string | null;
   published_at: string;
   created_at: string;
-  author?: { display_name: string; title: string } | null;
+  author?: { display_name: string; title: string; avatar_preset?: string | null } | null;
   comment_count?: number;
   favorite_count?: number;
 }
@@ -30,15 +30,15 @@ export async function fetchNotePosts(): Promise<NotePost[]> {
 
   const [profilesRes, commentsRes, favsRes] = await Promise.all([
     ownerIds.length
-      ? supabase.from("profiles").select("id, display_name, title").in("id", ownerIds)
+      ? supabase.from("profiles").select("id, display_name, title, avatar_preset").in("id", ownerIds)
       : Promise.resolve({ data: [], error: null } as const),
     supabase.from("comments").select("resource_id").in("resource_id", ids),
     supabase.from("favorites").select("resource_id").in("resource_id", ids),
   ]);
 
-  const profileMap = new Map<string, { display_name: string; title: string }>();
+  const profileMap = new Map<string, { display_name: string; title: string; avatar_preset?: string | null }>();
   (profilesRes.data ?? []).forEach((p: any) =>
-    profileMap.set(p.id, { display_name: p.display_name, title: p.title }),
+    profileMap.set(p.id, { display_name: p.display_name, title: p.title, avatar_preset: p.avatar_preset }),
   );
   const commentCount = new Map<string, number>();
   (commentsRes.data ?? []).forEach((c: any) =>
