@@ -1,88 +1,78 @@
-# 全站整理与升级计划
+## 目标
 
-分三阶段推进：先修已知 Bug → 全站回归验证 → 提出并落地新功能。每阶段结束都汇报给你确认，再进入下一阶段。
+阅读文章时用鼠标选中任意一段文字，弹出浮动工具条，选择：
+- **高亮**：仅自己可见，存到个人笔记（私密）
+- **添加评论**：公开评论，所有人能看到并回复（公共讨论）
 
----
+已有的"段落右侧 + 按钮"保留作为整段评论入口，二者并存。
 
-## 阶段一：Bug 修复（必做，优先级最高）
+## 用户体验
 
-### 1.1 文章页 SSR 水合错误（已在控制台复现）
-- **现象**：`/articles/$slug` 页面顶部"显示/隐藏批注"按钮在服务端渲染与客户端不一致，触发 React Hydration Mismatch，整棵子树重渲。
-- **根因**：按钮的 `title`、`className`、图标（`MessageSquarePlus` vs `MessageSquareOff`）依赖 `localStorage` 中的用户偏好，服务端默认值与客户端读取后值不一致。
-- **修复**：用 `useState(false)` + `useEffect` 延迟读取 localStorage；或用 `<ClientOnly>` 包裹该按钮；SSR 阶段统一渲染默认态。
+1. 在文章正文里拖动鼠标选中一段文字（最少 4 个字）。
+2. 选区附近弹出浮动小工具条：`高亮` / `评论` / `取消`。
+3. 点"高亮"：选区立即套上淡黄色背景；再次悬停可删除。
+4. 点"评论"：右侧抽屉打开，显示被引用的原文 + 评论输入框；提交后所有人可见，可回复。
+5. 重新打开文章时，自己的高亮 + 所有人的划词评论会自动重新定位高亮在原文上。
 
-### 1.2 巡检其他潜在水合点
-- 检查 `Header` 中根据登录态/管理员态切换的菜单项是否同样有水合差异。
-- 检查首页 Hero 中的时间/统计数据是否使用 `Date.now()` 或 `Math.random()`。
-- 检查 `UserAvatar` 是否在 SSR 阶段就读取 `profiles` 数据导致不一致。
+## 数据库
 
-### 1.3 路由与跳转回归
-- 复测 `/articles` 列表 → 详情页跳转是否仍正常。
-- 复测移动端 Header 菜单、`/auth` 登录后角色分流（管理员 → `/admin`，普通用户 → `/account`）。
+新增一张 `highlights` 表（私密笔记）：
 
----
+| 列 | 说明 |
+| --- | --- |
+| `id` | uuid 主键 |
+| `resource_id` | 关联文章 |
+| `user_id` | 拥有者，RLS 仅本人可见 |
+| `quote` | 选中的原文（最多 500 字） |
+| `anchor_id` | 所在段落的稳定 hash（沿用现有 ParagraphCommentLayer 的算法） |
+| `text_offset` | 选区在该段落内的起始字符偏移，便于精准还原 |
+| `text_length` | 选区长度 |
+| `color` | 可选高亮色（默认黄色） |
+| `note` | 可选私人备注（后续可加） |
+| `created_at` | 时间戳 |
 
-## 阶段二：全站验证测试（Playwright 脚本驱动）
+RLS：`select/insert/update/delete` 全部 `using (auth.uid() = user_id)`，外人完全看不到别人的高亮。
 
-在 `/tmp/browser/` 下写脚本，按以下用例自动跑一遍并截图存档：
+`comments` 表已经有 `anchor_id`、`anchor_text` 字段，扩展两列：
+- `text_offset int` 
+- `text_length int`
 
-| 模块 | 测试项 |
-|---|---|
-| 首页 | 渲染、统计数据、时间线、CTA 跳转 |
-| 文章列表 | 分类筛选、搜索、卡片跳转 |
-| 文章详情 | iframe 加载、进度条、批注开关、下载菜单（HTML/MD/PDF）、评论提交 |
-| 碎片广场 | 发帖（含图片）、评论、回复 |
-| 资源 | 卡片墙、收藏按钮、签名 URL |
-| 账号 | 头像预设切换、用户名修改去重校验、邮箱/注册时间展示、角色标签 |
-| 管理后台 | 非管理员访问被拒、公众号批量导入串行执行 |
-| 认证 | 邮箱注册/登录、Google OAuth、登出 |
+新值用于划词评论（旧的"整段评论"两列留空仍兼容）。`select` 策略保持公开（任何人可读），保证讨论是公共的。
 
-每个用例失败 → 回到阶段一补修。
+## 前端实现
 
----
+新增组件 `SelectionToolbar`（套在 iframe 外层）：
 
-## 阶段三：新功能建议（待你勾选后落地）
+1. 在 iframe 加载完成后，向其 document 监听 `mouseup`/`selectionchange`。
+2. 拿到 `window.getSelection()`：
+   - 用 `Range.startContainer` 向上找最近的 `p/li/blockquote/h2/h3`，复用现有 `hashAnchor(text, index)` 算 `anchor_id`。
+   - 用 `range.startOffset` + 段落内文本拼接得到 `text_offset`、`text_length`、`quote`。
+3. 把选区的 `getBoundingClientRect()` 转换成相对 iframe 的坐标，在 iframe 外的 overlay 上绝对定位浮动工具条（避免被 iframe sandbox 限制）。
+4. 点"高亮"→ `supabase.from('highlights').insert(...)`；点"评论"→ 打开右侧抽屉，复用现有 `<Comments resourceId anchorId anchorText compact />`，新增传 `textOffset/textLength` 字段。
 
-以下按价值由高到低排序，**先不动手**，等你选哪些做：
+新增组件 `HighlightLayer`：
+- 加载本人在该文章下的 `highlights`，每条根据 `anchor_id` 找到段落，按 `text_offset/length` 用 `Range.surroundContents` 把对应文字包裹进 `<mark data-highlight-id>`。
+- iframe 滚动 / resize 时不需要重算（DOM 内联了），但点击 `<mark>` 显示"删除高亮"小气泡。
 
-1. **首页内容聚合升级**
-   - "最近更新"动态拉取最新 5 篇文章 + 3 条广场碎片。
-   - 增加"本月阅读量 TOP"卡片（需要新增 `article_views` 表 + 浏览埋点）。
+`ParagraphCommentLayer` 现有的右侧 + 按钮保留，给整段评论用。划词评论的小气泡用不同图标，挂在段落同一行旁边，点击打开抽屉看该选区的评论。
 
-2. **文章体验**
-   - 阅读时长估算（按字数）显示在标题下方。
-   - 文章末尾"上一篇 / 下一篇 / 相关推荐"（按标签相似度）。
-   - 点赞功能（与收藏区分，匿名也可点）。
+## 实施步骤
 
-3. **碎片广场**
-   - 话题标签 `#tag`，点击进入聚合页。
-   - 置顶 / 精选机制（管理员操作）。
+1. **数据库迁移**：新建 `highlights` 表 + RLS + GRANT；给 `comments` 加两列。
+2. **新增 `src/lib/highlights.ts`**：CRUD + 选区计算工具。
+3. **新增 `src/components/SelectionToolbar.tsx`**：iframe 选区监听 + 浮动按钮。
+4. **新增 `src/components/HighlightLayer.tsx`**：渲染本人高亮 + 删除交互。
+5. **改 `src/routes/articles.$slug.tsx`**：在 iframe 容器内挂载 `SelectionToolbar` 和 `HighlightLayer`，沿用现有的 `annotationsOn` 开关同步控制显隐；未登录时浮动条只显示"登录后高亮/评论"提示。
+6. **改 `src/components/Comments.tsx`**：在划词评论顶部用引用样式展示 `anchor_text`，回复嵌套不变。
+7. **Playwright 验证**：登录后选中一段 → 高亮 → 刷新仍在；选中另一段 → 评论 → 退出登录后用其他账号能看到该评论但看不到高亮。
 
-4. **搜索升级**
-   - 接入 Postgres 全文检索（`tsvector`），覆盖文章正文、碎片、资源。
-   - 搜索结果按类型分组展示。
+## 注意事项
 
-5. **个人主页 Public Profile**
-   - `/u/$username` 展示用户头像、简介、其发布的碎片与评论。
-   - 与现有 `/account` 区分（一个对外、一个对内）。
-
-6. **订阅与通知**
-   - 邮件订阅：新文章发布时给订阅者发邮件（用 Lovable Cloud 邮件能力）。
-   - 站内通知：评论被回复时通知作者。
-
-7. **后台增强**
-   - 文章管理表格（重命名、改标签、删除、置顶）。
-   - 公众号导入历史记录与失败重试。
-
-8. **SEO & 分享**
-   - 每篇文章生成动态 OG 图（含标题 + 你的头像）。
-   - 增加 `sitemap.xml` 与 `robots.txt`。
+- iframe 是同源（`srcDoc` 或本地 `public/` HTML），可以直接读 `contentDocument`，已经在用。
+- `Range.surroundContents` 在选区跨越元素时会抛错，遇到这种情况退化为只高亮第一个文本节点段，避免破坏 DOM。
+- 公众号原文里图片很多，若选区只覆盖图片不弹工具条（要求至少 4 个字符）。
+- 暂不实现"高亮颜色选择"和"私人备注"，先把核心闭环跑通；后续可在抽屉里加。
 
 ---
 
-## 交付节奏
-
-1. 我先做阶段一（Bug 修复） → 跑阶段二验证 → 出测试报告截图。
-2. 你看完报告后，从阶段三里勾选要做的功能，我再分批实现。
-
-确认这个节奏后我就开工。如果你想直接跳过阶段二自动化测试只做修复 + 新功能，也告诉我。
+确认就开做。

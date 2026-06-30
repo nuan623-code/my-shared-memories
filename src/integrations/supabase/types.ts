@@ -85,6 +85,8 @@ export type Database = {
           id: string
           parent_id: string | null
           resource_id: string
+          text_length: number | null
+          text_offset: number | null
           updated_at: string
           user_id: string
         }
@@ -97,6 +99,8 @@ export type Database = {
           id?: string
           parent_id?: string | null
           resource_id: string
+          text_length?: number | null
+          text_offset?: number | null
           updated_at?: string
           user_id: string
         }
@@ -109,6 +113,8 @@ export type Database = {
           id?: string
           parent_id?: string | null
           resource_id?: string
+          text_length?: number | null
+          text_offset?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -151,6 +157,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "favorites_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highlights: {
+        Row: {
+          anchor_id: string
+          color: string
+          created_at: string
+          id: string
+          note: string | null
+          quote: string
+          resource_id: string
+          text_length: number
+          text_offset: number
+          user_id: string
+        }
+        Insert: {
+          anchor_id: string
+          color?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quote: string
+          resource_id: string
+          text_length?: number
+          text_offset?: number
+          user_id: string
+        }
+        Update: {
+          anchor_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quote?: string
+          resource_id?: string
+          text_length?: number
+          text_offset?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "resources"
