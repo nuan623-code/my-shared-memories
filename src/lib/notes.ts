@@ -9,6 +9,7 @@ export interface NotePost {
   owner_id: string | null;
   published_at: string;
   created_at: string;
+  pinned?: boolean;
   author?: { display_name: string; title: string; avatar_preset?: string | null } | null;
   comment_count?: number;
   favorite_count?: number;
@@ -17,13 +18,15 @@ export interface NotePost {
 export async function fetchNotePosts(): Promise<NotePost[]> {
   const { data, error } = await supabase
     .from("resources")
-    .select("id, title, content, cover_url, tags, owner_id, published_at, created_at")
+    .select("id, title, content, cover_url, tags, owner_id, published_at, created_at, pinned")
     .eq("type", "note")
+    .order("pinned", { ascending: false })
     .order("published_at", { ascending: false })
     .limit(200);
   if (error) throw error;
   const posts = (data ?? []) as NotePost[];
   if (posts.length === 0) return posts;
+
 
   const ownerIds = Array.from(new Set(posts.map((p) => p.owner_id).filter(Boolean))) as string[];
   const ids = posts.map((p) => p.id);
