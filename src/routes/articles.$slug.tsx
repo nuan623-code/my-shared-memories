@@ -53,13 +53,18 @@ function ArticleDetailPage() {
   const [progress, setProgress] = useState(0);
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [annotationsOn, setAnnotationsOn] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return window.localStorage.getItem("annotationsOn") !== "0";
-  });
+  const [annotationsOn, setAnnotationsOn] = useState<boolean>(true);
+  const [annotationsHydrated, setAnnotationsHydrated] = useState(false);
   useEffect(() => {
+    const stored = window.localStorage.getItem("annotationsOn");
+    if (stored !== null) setAnnotationsOn(stored !== "0");
+    setAnnotationsHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!annotationsHydrated) return;
     window.localStorage.setItem("annotationsOn", annotationsOn ? "1" : "0");
-  }, [annotationsOn]);
+  }, [annotationsOn, annotationsHydrated]);
+
 
   useEffect(() => {
     queryClient.prefetchQuery({
