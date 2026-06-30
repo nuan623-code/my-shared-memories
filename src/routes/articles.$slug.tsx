@@ -55,6 +55,7 @@ type TocItem = { id: string; text: string; level: number };
 
 function ArticleDetailPage() {
   const { article } = Route.useLoaderData();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [progress, setProgress] = useState(0);
@@ -62,6 +63,9 @@ function ArticleDetailPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [annotationsOn, setAnnotationsOn] = useState<boolean>(true);
   const [annotationsHydrated, setAnnotationsHydrated] = useState(false);
+  const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({ prev: null, next: null });
+  const [related, setRelated] = useState<Resource[]>([]);
+  const mins = readingMinutes(article.content || article.summary || article.title || "");
   useEffect(() => {
     const stored = window.localStorage.getItem("annotationsOn");
     if (stored !== null) setAnnotationsOn(stored !== "0");
@@ -71,6 +75,13 @@ function ArticleDetailPage() {
     if (!annotationsHydrated) return;
     window.localStorage.setItem("annotationsOn", annotationsOn ? "1" : "0");
   }, [annotationsOn, annotationsHydrated]);
+  useEffect(() => {
+    trackView(article.id, user?.id ?? null).catch(() => {});
+    fetchAdjacentArticles(article).then(setAdjacent).catch(() => {});
+    fetchRelatedArticles(article).then(setRelated).catch(() => {});
+  }, [article, user?.id]);
+
+
 
 
   useEffect(() => {
