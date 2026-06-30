@@ -113,6 +113,13 @@ until [ "$n" -ge 3 ]; do
 done
 [ "$n" -lt 3 ] || die "部署连续失败 3 次,请检查网络/proxy。"
 
+# --- 5.5 同步静态文档到资料库(Supabase resources)---------------------------
+# 把 public/ 下的静态 HTML 自动 upsert 进 resources 表(只新增、不覆盖),
+# 这样新文档不用手动跑 SQL 就出现在资料库列表里。需要 ~/.ms-supabase-admin
+# (service_role key);没有就自动跳过、不阻断部署。
+say "同步静态文档到资料库(Supabase)"
+node scripts/sync-static-resources.mjs || warn "文章同步出错(部署本身已成功),看上面的报错。"
+
 # --- 6. 线上验证 -------------------------------------------------------------
 say "验证线上"
 for path in "/" "/auth" "/articles/deepseek-r1-guide"; do
