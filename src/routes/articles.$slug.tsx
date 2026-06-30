@@ -12,6 +12,8 @@ import { readingMinutes } from "@/lib/article-utils";
 import type { Resource } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
 import { ParagraphCommentLayer } from "@/components/ParagraphCommentLayer";
+import { SelectionToolbar } from "@/components/SelectionToolbar";
+import { HighlightLayer } from "@/components/HighlightLayer";
 
 
 export const Route = createFileRoute("/articles/$slug")({
@@ -252,6 +254,16 @@ function ArticleDetailPage() {
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   />
                   <ParagraphCommentLayer
+                    resourceId={article.id}
+                    iframeRef={iframeRef}
+                    enabled={annotationsOn}
+                  />
+                  <HighlightLayer
+                    resourceId={article.id}
+                    iframeRef={iframeRef}
+                    enabled={annotationsOn}
+                  />
+                  <SelectionToolbar
                     resourceId={article.id}
                     iframeRef={iframeRef}
                     enabled={annotationsOn}
