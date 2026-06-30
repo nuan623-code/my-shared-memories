@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coding Agents 101:把事情真正做完的艺术</title>
+<style>
+:root{
+  --bg:#f3f7fc; --paper:#ffffff; --ink:#1b2733; --ink-soft:#475467;
+  --line:#e2eaf3; --accent:#2563eb; --accent-deep:#1e3a8a; --accent-soft:#dbeafe;
+  --teal:#0d9488; --teal-soft:#ccfbf1; --indigo:#4f46e5; --indigo-soft:#e0e7ff;
+  --gold:#b45309; --gold-soft:#fef3c7; --rose:#be123c; --rose-soft:#ffe4e6;
+  --hero1:#1e3a8a; --hero2:#2563eb; --code-bg:#0f172a; --code-ink:#e2e8f0;
+  --shadow:0 1px 3px rgba(16,42,82,.06),0 8px 24px rgba(16,42,82,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px;line-height:1.88;-webkit-font-smoothing:antialiased}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:200;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .1s}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
+
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;
+  border-radius:0 0 28px 28px;padding:64px 30px 48px;margin-bottom:36px;
+  box-shadow:0 18px 50px rgba(30,58,138,.28)}
+.hero-inner{max-width:880px;margin:0 auto}
+.hero .eyebrow{font-size:13px;letter-spacing:.16em;text-transform:uppercase;opacity:.82;font-weight:600;margin-bottom:14px}
+.hero h1{font-size:33px;line-height:1.32;margin:0 0 18px;font-weight:800}
+.hero p{font-size:17px;opacity:.94;margin:0;max-width:640px}
+.hero .meta{margin-top:22px;font-size:13.5px;opacity:.8;display:flex;gap:18px;flex-wrap:wrap}
+.hero .meta span{display:inline-flex;align-items:center;gap:6px}
+.hero .badges{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap}
+.hero .badges b{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);
+  padding:4px 13px;border-radius:20px;font-size:12.5px;font-weight:600}
+
+.side-toc{position:fixed;top:0;left:max(12px,calc(50% - 680px));height:100vh;width:236px;
+  padding:26px 16px;overflow-y:auto;z-index:90;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border-right:1px solid var(--line)}
+.st-brand{font-weight:800;font-size:15px;color:var(--accent-deep)}
+.st-sub{font-size:12px;color:var(--ink-soft);margin:2px 0 16px}
+.st-progress{font-size:12px;color:var(--ink-soft);margin-bottom:6px}
+.st-bar{height:6px;border-radius:5px;background:var(--line);overflow:hidden;margin-bottom:18px}
+.st-bar > i{display:block;height:100%;width:0;border-radius:5px;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .15s}
+.side-toc .grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);font-weight:700;margin:14px 0 4px;padding-left:9px;opacity:.7}
+.side-toc ol{list-style:none;margin:0;padding:0;counter-reset:t}
+.side-toc li{counter-increment:t;margin:1px 0}
+.side-toc a{display:flex;gap:9px;align-items:baseline;text-decoration:none;
+  color:var(--ink-soft);font-size:13px;padding:5px 9px;border-radius:8px;line-height:1.4}
+.side-toc a:before{content:counter(t,decimal-leading-zero);font-size:11px;
+  color:var(--accent);font-weight:700;opacity:.55;min-width:18px}
+.side-toc a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc a.active{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.side-toc a.active:before{opacity:1}
+.toc-toggle{display:none}
+
+@media(max-width:1179px){
+  .side-toc{transform:translateX(-110%);transition:transform .25s;width:255px;left:0;box-shadow:var(--shadow)}
+  .side-toc.open{transform:translateX(0)}
+  .toc-toggle{display:flex;position:fixed;top:14px;left:14px;z-index:95;width:42px;height:42px;
+    border-radius:11px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:19px;
+    align-items:center;justify-content:center;box-shadow:var(--shadow)}
+}
+
+section{background:var(--paper);border:1px solid var(--line);border-radius:18px;
+  padding:30px 30px 34px;margin:22px 0;box-shadow:var(--shadow)}
+section > h2{font-size:24px;margin:0 0 6px;line-height:1.35;display:flex;gap:11px;align-items:baseline}
+.sec-kicker{font-size:12.5px;letter-spacing:.06em;color:var(--accent);font-weight:700;
+  text-transform:uppercase;margin-bottom:14px;display:block}
+section h3{font-size:18.5px;margin:28px 0 8px;color:var(--accent-deep)}
+section h4{font-size:15.5px;margin:14px 0 4px;color:var(--teal);font-weight:700}
+p{margin:13px 0}
+strong{color:var(--ink);font-weight:700}
+em{color:var(--accent-deep);font-style:normal;font-weight:600}
+.term{background:linear-gradient(transparent 62%,var(--accent-soft) 62%);padding:0 2px;font-weight:600;color:var(--accent-deep)}
+a.ref{color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)}
+
+.def{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;
+  padding:18px 20px;margin:18px 0;background:#fbfdff}
+.def h4{margin:0 0 10px;font-size:16.5px;color:var(--accent-deep)}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+  padding:2px 10px;border-radius:20px;margin-right:8px}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--teal-soft);color:#0f766e}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .row{margin:10px 0}
+.def .row p{margin:6px 0 0;display:block}
+
+.eg{border-left:3px solid var(--gold);background:var(--gold-soft);border-radius:0 10px 10px 0;
+  padding:11px 16px;margin:12px 0;font-size:15.5px;color:#7c4a06}
+.eg b{color:var(--gold)}
+
+.analogy{border-radius:12px;padding:18px 20px 18px 22px;margin:18px 0;
+  background:var(--indigo-soft);border-left:5px solid var(--indigo)}
+.analogy .lbl{font-size:13px;font-weight:800;color:var(--indigo);letter-spacing:.04em;margin-bottom:6px}
+.analogy p{margin:6px 0;color:#312e81}
+
+.callout{border-radius:12px;padding:16px 20px;margin:18px 0;border:1px solid}
+.key{background:var(--accent-soft);border-color:#bfdbfe;color:var(--accent-deep)}
+.key-teal{background:var(--teal-soft);border-color:#99f6e4;color:#0f766e}
+.key-gold{background:var(--gold-soft);border-color:#fde68a;color:#92400e}
+.warn{background:var(--rose-soft);border-color:#fecdd3;color:#9f1239}
+.callout .lbl{font-weight:800;font-size:13.5px;margin-bottom:5px;display:block}
+.callout p{margin:4px 0}
+
+.cards{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0}
+.card{border:1px solid var(--line);border-radius:13px;padding:17px 19px;background:#fff;
+  border-top:3px solid var(--accent)}
+.card h4{margin:0 0 6px;font-size:16px;color:var(--accent-deep)}
+.card p{margin:6px 0;font-size:15.5px}
+
+.steps{margin:18px 0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:4px 0 20px 50px;
+  border-left:2px solid var(--accent-soft);margin-left:16px}
+.steps li:last-child{border-left-color:transparent;padding-bottom:4px}
+.steps li:before{content:counter(s);position:absolute;left:-16px;top:0;width:32px;height:32px;
+  border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--paper)}
+.steps h5{margin:2px 0 4px;font-size:16px;color:var(--accent-deep)}
+.steps p{margin:2px 0;font-size:15.5px;color:var(--ink-soft)}
+
+details.rephrase{margin:16px 0;border:1px dashed #bcd2ee;border-radius:11px;background:#fbfdff;overflow:hidden}
+details.rephrase summary{cursor:pointer;padding:12px 18px;font-weight:700;font-size:14.5px;
+  color:var(--accent);list-style:none;user-select:none}
+details.rephrase summary::-webkit-details-marker{display:none}
+details.rephrase summary:before{content:"▸ ";color:var(--accent)}
+details.rephrase[open] summary:before{content:"▾ "}
+details.rephrase .body{padding:2px 18px 16px;color:var(--ink-soft);font-size:15.5px}
+
+.practice{list-style:none;padding:0;margin:14px 0}
+.practice li{position:relative;padding:7px 0 7px 30px;border-bottom:1px dashed var(--line)}
+.practice li:last-child{border-bottom:none}
+.practice li:before{content:"▹";position:absolute;left:6px;top:7px;color:var(--accent);font-weight:800}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px 18px;
+  overflow-x:auto;font-size:13.5px;line-height:1.7;margin:14px 0;
+  font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+pre .c{color:#7dd3fc}
+code.inl{background:#eef4fc;color:var(--accent-deep);padding:1px 7px;border-radius:6px;
+  font-size:14.5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+
+.tbl-wrap{overflow-x:auto;margin:18px 0}
+table.cmp{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:11px 13px;text-align:left;vertical-align:top}
+table.cmp thead th{background:var(--accent-deep);color:#fff;font-weight:700}
+table.cmp tbody th{background:#f0f6fd;color:var(--accent-deep);font-weight:700;white-space:nowrap}
+
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0;
+  padding:14px 16px;background:#f0f6fd;border-radius:12px;justify-content:center}
+.flow .node{background:#fff;border:1.5px solid var(--accent);color:var(--accent-deep);
+  border-radius:9px;padding:7px 13px;font-size:14px;font-weight:600}
+.flow .arr{color:var(--accent);font-weight:800;font-size:16px}
+
+.figure{margin:24px 0;padding:22px 18px 10px;border:1px solid var(--line);border-radius:14px;
+  background:#fbfdff;text-align:center;opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+.figure.in{opacity:1;transform:none}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:13.5px;color:var(--ink-soft);margin-top:10px;text-align:center}
+[data-anim]{opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}
+.figure.in [data-anim]{opacity:1;transform:none}
+[data-draw]{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1s ease}
+.figure.in [data-draw]{stroke-dashoffset:0}
+
+.final{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff;border-radius:18px;padding:34px 30px;margin:26px 0}
+.final h2{color:#fff;margin-top:0}
+.final p{opacity:.93}
+.final .term{color:#bfdbfe;background:none}
+
+footer{text-align:center;color:var(--ink-soft);font-size:13px;margin-top:40px;padding-top:22px;border-top:1px solid var(--line)}
+.foot-note{font-size:13.5px;color:var(--ink-soft);background:#f6f9fd;border-left:3px solid var(--line);
+  padding:8px 14px;margin:12px 0;border-radius:0 8px 8px 0}
+
+@media(max-width:640px){
+  body{font-size:16px}
+  .hero{padding:74px 22px 40px;border-radius:0 0 22px 22px}
+  .hero h1{font-size:25px}
+  section{padding:24px 20px 28px}
+  section > h2{font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .figure,[data-anim]{opacity:1!important;transform:none!important}
+  [data-draw]{stroke-dashoffset:0!important}
+}
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topProg"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">Coding Agents 101</div>
+  <div class="st-sub">把事情真正做完的艺术</div>
+  <div class="st-progress">阅读进度 <span id="pctTxt">0%</span></div>
+  <div class="st-bar"><i id="pctBar"></i></div>
+  <ol>
+    <div class="grp">引言</div>
+    <li><a href="#intro">智能体的演进与定位</a></li>
+    <div class="grp">入门</div>
+    <li><a href="#basics">提示基础(五条)</a></li>
+    <li><a href="#workflow">把智能体融入日常</a></li>
+    <div class="grp">进阶</div>
+    <li><a href="#larger">委派更大的工单</a></li>
+    <div class="grp">高级</div>
+    <li><a href="#automate">自动化工作流</a></li>
+    <li><a href="#custom">定制与提升表现</a></li>
+    <div class="grp">现实考量</div>
+    <li><a href="#limits">智能体的局限</a></li>
+    <li><a href="#time">管理时间、止损</a></li>
+    <li><a href="#security">安全与权限</a></li>
+    <div class="grp">结语</div>
+    <li><a href="#transformation">即将到来的巨变</a></li>
+  </ol>
+</nav>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Cognition 团队 · 实战指南</div>
+    <h1>Coding Agents 101:把事情真正做完的艺术</h1>
+    <p>2025 年。编程智能体不是魔法,但它已经是我们手上最接近魔法的东西了。这里汇集了来自客户和我们自己实践的顶级经验。</p>
+    <div class="badges">
+      <b>🛠️ 产品无关</b><b>🎯 可落地</b><b>👨‍💻 面向工程师</b>
+    </div>
+    <div class="meta">
+      <span>✍️ Cognition Team</span>
+      <span>📅 2025 年 6 月</span>
+      <span>⏱️ 约 15 分钟阅读</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- 1 引言 -->
+<section id="intro">
+  <span class="sec-kicker">Introduction</span>
+  <h2>🚀 智能体的演进与定位</h2>
+  <p>时值 2025 年。<strong>编程智能体不是魔法,但它们差不多是我们手头最接近魔法的东西。</strong> 我们注意到:有些工程师——尤其是资深到 Staff 级别的——比其他人更快地用出了成效。这里分享一些来自客户与我们自身经验的顶级心得。</p>
+
+  <h4>关于本指南的三个定位</h4>
+  <div class="cards">
+    <div class="card"><h4>🛠️ 产品无关(Product-agnostic)</h4><p>讨论的技巧能帮你在<strong>任何</strong>编程智能体上取得成功。</p></div>
+    <div class="card"><h4>🎯 战术性(Tactical)</h4><p>给出我们最喜欢的、可直接行动的建议。</p></div>
+    <div class="card"><h4>⚙️ 技术性(Technical)</h4><p>编程智能体对很多人有价值,但本指南是<strong>面向工程师</strong>写的。</p></div>
+  </div>
+
+  <h3>开发者工具的快速演进</h3>
+  <p>开发者工具一直在飞速进化。把这条时间线拉开看:</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 780 220" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <line data-draw style="--len:680" x1="50" y1="40" x2="730" y2="40" stroke="var(--accent-soft)" stroke-width="3"/>
+      <g>
+        <circle data-anim cx="90" cy="40" r="7" fill="var(--accent)"/>
+        <text data-anim x="90" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">10 年前</text>
+        <text data-anim x="90" y="64" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">自动补全</text>
+        <text data-anim x="90" y="80" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">IntelliSense</text>
+      </g>
+      <g>
+        <circle data-anim cx="290" cy="40" r="7" fill="var(--accent)"/>
+        <text data-anim x="290" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">4 年前</text>
+        <text data-anim x="290" y="64" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">Copilot</text>
+        <text data-anim x="290" y="80" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">Tab 补全(下几行)</text>
+      </g>
+      <g>
+        <circle data-anim cx="500" cy="40" r="7" fill="var(--accent)"/>
+        <text data-anim x="500" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">2 年前</text>
+        <text data-anim x="500" y="64" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">生成式聊天机器人</text>
+        <text data-anim x="500" y="80" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">生成整个文件</text>
+      </g>
+      <g>
+        <circle data-anim cx="700" cy="40" r="9" fill="var(--teal)"/>
+        <text data-anim x="700" y="20" text-anchor="middle" font-size="12.5" font-weight="800" fill="#0f766e">今天</text>
+        <text data-anim x="700" y="64" text-anchor="middle" font-size="11.5" fill="#0f766e">自主智能体</text>
+        <text data-anim x="700" y="80" text-anchor="middle" font-size="11.5" fill="#0f766e">从描述到 PR</text>
+      </g>
+      <text data-anim x="390" y="150" text-anchor="middle" font-size="13" fill="var(--accent-deep)" font-weight="600">能力边界:从「补几个字」一路推进到「端到端交付一个 Pull Request」</text>
+    </svg>
+    <div class="fig-cap">开发者工具四个阶段的演进——每一代都把「人需要亲手做的部分」往后推了一大截。</div>
+  </div>
+
+  <p>十年前,是自动补全和 IntelliSense,能建议方法名、执行程序化重构。四年前,是 copilot 和 tab 补全,能替你写出接下来的几行代码。两年前,是生成式聊天机器人,能协助开发、替你生成整个文件。今天,是<span class="term">自主智能体(autonomous agents)</span>,能把最初的描述,在几乎无需人工干预的情况下,变成最终的 Pull Request。</p>
+  <p>过去两年里,我们一直专注于通过构建 Devin 来实现这一愿景。如今,人们对自主智能体的兴趣正达到新高,尤其是随着一批类似产品的近期发布。</p>
+  <div class="foot-note">📎 注 [1]:除 Devin 外,近期发布的还包括 OpenAI 的 Codex 和 Google 的 Jules。一些本地智能体(如 Cursor、Claude Code)可以在并行工作区里运行,复现类似效果。这些智能体可以以多种形态出现:网页应用、移动应用,以及在 Slack、GitHub、Linear、Jira 等流行工具内的集成。</div>
+
+  <div class="callout key">
+    <span class="lbl">🔑 核心转变:每个工程师都变成了工程经理</span>
+    <p>虽然「人 + AI 助手」的组合能比任何单独的 AI 做得更多,但自主智能体<strong>端到端处理任务</strong>的能力,带来了一种新层级的多任务并行——把每一位工程师都变成了一名工程经理(turning every engineer into an engineering manager)。</p>
+  </div>
+
+  <p>适应与这些新的「AI 同事」高效协作,需要一些时间。有意思的是,我们观察到:<strong>资深到 Staff 级别的工程师,往往最快上手并精通这些工具</strong>。最终,这些工具会在所有工程层级里变得普遍。基于我们的经验和客户反馈,我们想分享一些关键洞见和教训,帮助每个人把这些工具成功融入自己的工作流。</p>
+</section>
+
+<!-- 2 提示基础 -->
+<section id="basics">
+  <span class="sec-kicker">Getting Started · Prompting Basics</span>
+  <h2>📝 提示基础(五条)</h2>
+  <p>下面这些基本准则,能帮你在 2025 年有效地和编程智能体打交道。如果别的都不记,<strong>至少记住这几条</strong>。</p>
+
+  <h3>① 说清楚你想<em>怎么</em>做,而不只是<em>做什么</em></h3>
+  <p>把智能体想象成一个<strong>初级编程搭档</strong>,它的判断力不太可靠。简单任务可以直接描述;但对更复杂的任务,要从一开始就清楚地勾勒出你偏好的实现路径。把整体架构和逻辑预先交给智能体,不仅提高它成功的概率,也减少你 review 代码的时间——因为你已经熟悉了预期的方法。</p>
+  <div class="eg"><b>例:</b> 不要只说「加单元测试」,而要指明:要测哪些功能、列出重要的边界情况、说清要 mock 什么(如果有的话)。</div>
+
+  <h3>② 告诉智能体从哪里开始</h3>
+  <p>想想如果是你自己来做,会从哪儿入手。即便你不知道具体的文件名或函数名,也要提及相关的仓库、相关文档、和涉及的关键组件。明确指出这些要素,能把无谓的试错和困惑降到最低。</p>
+  <div class="eg"><b>例:</b>「请给我们的代码加上对 Google 模型的支持。你应该看一下<u>这里</u>的最新文档,并在 model groups 目录里创建一个新的实现文件。」</div>
+
+  <h3>③ 练习「防御式提示」(Defensive Prompting)</h3>
+  <p>想象把同一条提示交给一个<strong>新来的实习生</strong>。哪里最可能产生困惑或出错?预判这些点,主动澄清你的指令,避免歧义。</p>
+  <div class="eg"><b>例:</b>「请修复我们搜索模块的 C++ 绑定,让它通过新的单元测试。注意,你每次改完代码、测试之前,很可能需要重新编译这些绑定。」</div>
+
+  <h3>④ 给它访问 CI、测试、类型和 linter 的权限</h3>
+  <p>智能体的很多「魔力」来自它<strong>修正自己错误、对着报错信息迭代</strong>的能力。通过类型检查器、linter、单元测试等工具提供强反馈回路,会极大提升它的表现。</p>
+  <div class="analogy">
+    <div class="lbl">🔗 为什么:反馈回路就是智能体的「眼睛」</div>
+    <p>考虑用带类型的 Python 而不是纯 Python,用 TypeScript 而不是 JavaScript——类型信息让智能体能在运行前就发现错误。教会你的智能体如何运行常见的检查和测试,确保它有所有必需的包和访问权限。如果智能体能操作浏览器,就给它清晰的说明,告诉它怎么运行你的前端开发环境。</p>
+  </div>
+  <div class="eg"><b>例:</b> 我们团队从大多无类型的 Python SDK,转向了完全带类型的 SDK(这件事本身也很适合交给编程智能体来做)。</div>
+
+  <h3>⑤ 善用你的专业能力</h3>
+  <p>当你熟悉自己的代码库时,上面所有事都会变得更容易。即便是简单任务,也能从你「验证逻辑与结果」的能力中获益。</p>
+  <div class="callout warn">
+    <span class="lbl">⚠️ 人的监督依然不可或缺</span>
+    <p>归根结底,<strong>代码最终是否正确,责任在你</strong>。即便这些工具越来越精密,「所有权」与「验证」仍将是人类工程师至关重要的职责。</p>
+  </div>
+</section>
+
+<!-- 3 工作流 -->
+<section id="workflow">
+  <span class="sec-kicker">Getting Started · Workflows</span>
+  <h2>🔄 把智能体融入你的工作流</h2>
+  <p>一旦掌握了和智能体对话的基础,就该把这些 AI 帮手带进日常工作流了。下面是把智能体变成日常一部分的几种实用方式:</p>
+
+  <h3>① 立刻接下新任务</h3>
+  <p>想象一个队友发消息给你:「嘿,我们能不能快速搭一个 X?」或「我们得调一下 Y。」与其让它打断你的心流,不如直接发一条简短提示给自主智能体,让它去调查或做改动。这让你能继续专注主线任务。有个有意思的副项目点子?需要快速做个原型、爬点数据、或复现一篇研究?委派给智能体,稍后再回来看。</p>
+  <div class="eg"><b>例:</b> 很多团队在 Slack 上讨论 bug 修复或小功能更新时,直接 @Devin 就行。</div>
+
+  <h3>② 随时随地写代码</h3>
+  <p>设想你在通勤或旅途中,突然冒出一个紧急 bug,或你意识到代码里可能留了个错误。别担心!自主智能体常常支持移动端访问,让你能即时处理这些问题。无论是通过 Slack 的移动 app,还是专门的移动 app,许多智能体都让你在路上就能解决问题——哪怕你的 wifi 不太稳。</p>
+  <div class="eg"><b>例:</b> 有了这种灵活性,我们自己的团队在坐车、坐飞机时也高产了不少。</div>
+
+  <h3>③ 把杂活甩给它</h3>
+  <p>卡在二分查找老 commit、或给新功能更新文档上?把这些重复性任务交给智能体。你能省下宝贵时间,专注于更有创造性、更有影响力的工作。</p>
+  <div class="eg"><b>例:</b> 在我们团队里,一个工程师 ship 一个改动后,常常让智能体去更新所有相关的文档和面向用户的文案。</div>
+
+  <h3>④ 跳过「分析瘫痪」(Analysis Paralysis)</h3>
+  <p>纠结一次重构到底会不会真的简化代码?在两种架构方案之间选不出来?<strong>让智能体把两个方案都实现出来。</strong> 有了具体的例子可以对比,决策就变得直截了当——而且丢弃一个方案也不会伤到任何人的感情。</p>
+  <div class="eg"><b>例:</b> 在为文本框选 Lexical 还是 Slate 时,我们让智能体各实现了一遍。最终 Slate 因为更好的成品效果胜出。</div>
+
+  <h3>⑤ 搭建预览部署(Preview Deployments)</h3>
+  <p>把你的 CI/CD 流水线设置成:每个新 PR 自动创建一个预览部署,给你一个即时的线上 URL。在 review AI 智能体完成的前端任务时,这尤其顺手。</p>
+  <div class="eg"><b>例:</b> Vercel 是一个让预览部署变得超简单的部署平台。</div>
+</section>
+
+<!-- 4 更大的工单 -->
+<section id="larger">
+  <span class="sec-kicker">Intermediate · Larger Tickets</span>
+  <h2>📦 委派更大的工单</h2>
+  <p>当你的 PR 规模和复杂度超出寥寥几个文件时,想一次性搞定就变得困难。然而,<strong>掌握如何委派中到大型任务(通常是 1–6 小时的工作量),正是自主智能体回报最高(ROI 最高)的地方。</strong> 你省下的不再只是几分钟,而是几小时的生产力。小任务也许毫不费力就能完成,但把智能体的能力拉伸到处理更大任务,才带来最大的回报。</p>
+
+  <h3>① 让它自动产出「初稿」</h3>
+  <p>对于体量较大的任务,用自主智能体先打一个 PR 初稿,能启动进展、大幅削减你的工作量。这里成功的关键,在于<strong>预先清楚地传达你想要的方法</strong>。把自己想象成指导初级开发者的架构师。清晰、详尽的指令能避免在「纠正智能体代码里的根本性误解」上浪费时间。</p>
+
+  <h4>「起草 vs 精修」——三个领域的同构类比</h4>
+  <div class="tbl-wrap">
+  <table class="cmp">
+    <thead><tr><th>领域</th><th>起草(Drafting)</th><th>精修(Refining)</th></tr></thead>
+    <tbody>
+      <tr><th>新闻业</th><td>记者收集初始信息,写出文章初稿。</td><td>编辑审阅初稿、核查事实、润色,最终定稿发表。</td></tr>
+      <tr><th>餐厅</th><td>线厨备料、做出初步的菜品。</td><td>副主厨加调味、调整口味,然后才端给食客。</td></tr>
+      <tr><th>写代码</th><td>自主智能体基于初步计划开工,创建初稿解决方案。</td><td>人类开发者审阅初稿 PR、给反馈、合并前加上人工精修。</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="lbl">🛑 大任务(目前)还不是完全放手的</span>
+    <p>记住,大任务现在还做不到完全免手动。对更有挑战的任务,要预期<strong>多个反馈循环</strong>,也要预料到为了打磨需要一些人工精修。一个现实的目标是<strong>约 80% 的时间节省,而非完全自动化</strong>——你的专业能力在验证和最终质量保证上依然至关重要。</p>
+  </div>
+
+  <h3>② 共同打磨一份 PRD</h3>
+  <p>对于复杂或定义模糊的任务,和你的自主智能体协作、共同创建一份详细计划,会非常有效。一开始你不知道每一个细节或需求,这完全没关系。先让智能体去探索一些发现性问题,比如「我们的认证系统是怎么运作的?」或「哪些服务可能受影响?」你也可以让智能体替你找出具体相关的代码目标,让你早早确认。</p>
+  <div class="callout key-teal">
+    <span class="lbl">🎯 用好「规划模式」和代码库搜索工具</span>
+    <p>某些智能体,如 <strong>Devin 和 Claude Code</strong>,提供专门的<span class="term">规划模式(planning modes)</span>,专注于阅读和探索现有代码,而不是立刻去改它。如果你想在委派任务前做更深的准备,专门的代码库搜索工具(如 <a class="ref" href="http://deepwiki.com" target="_blank">deepwiki.com</a> 和 Devin Search)能快速给出对你代码库的洞察,帮你理顺流程。</p>
+  </div>
+
+  <h3>③ 设立检查点(Checkpoints)</h3>
+  <p>对于多部分的任务,尤其是涉及多个代码库的,沿途设立清晰的检查点:</p>
+  <div class="flow">
+    <span class="node">规划</span><span class="arr">→</span>
+    <span class="node">实现一块</span><span class="arr">→</span>
+    <span class="node">测试</span><span class="arr">→</span>
+    <span class="node">修复</span><span class="arr">→</span>
+    <span class="node">检查点 Review</span><span class="arr">→</span>
+    <span class="node">下一块</span>
+  </div>
+  <p>明确要求在每个重要阶段之后暂停,尤其是跨多层构建的复杂功能(比如数据库、后端、前端)。用这些检查点来确保实现符合你的预期、澄清疑问(例如「解释一下认证流程,并确认它的安全性」)、及早纠偏,避免问题层层叠加。</p>
+  <pre><span class="c">// 一个分阶段委派的真实提示链:</span>
+"我想让你实现这个横跨数据库、后端和多个前端界面的功能。
+ 请先规划需要的数据库 schema 变更,完成后告诉我,以便我应用迁移。"
+ → "现在请实现后端改动,并加上测试确保 XYZ 能工作。完成后告诉我。"
+ → "现在在我们的 web 和 mobile 界面里都实现改动,去调用新的后端端点。"</pre>
+
+  <h3>④ 教它验证自己的工作</h3>
+  <p>给反馈时,别只是指出问题(「这个函数不工作」)。要清楚地说明你的测试流程,让智能体未来能独立验证任务。对于你会频繁重复的测试模式,把它们整合进智能体的<strong>永久知识库</strong>(见<a class="ref" href="#custom">「往智能体知识库里加东西」</a>)。</p>
+  <div class="eg"><b>例:</b> 在 Devin 里,我们会主动提示用户把关键的测试流程保存到智能体的长期记忆中,简化未来的交互。</div>
+
+  <h3>⑤ 在「AI 高频改动区」提高测试覆盖率</h3>
+  <p>目前,智能体还没能力交互式地彻底测试所有场景。在被 AI 大量修改的区域增强测试覆盖率,能让你对智能体的产出更有信心。扎实的测试意味着:看起来正确的代码,可以放心合并、无需担忧。</p>
+  <div class="eg"><b>例:</b> 在让我们的 AI 把实现从 Python 翻译成 C 之前,我们先强化了代码库一个关键区域的单元测试。</div>
+</section>
+
+<!-- 5 自动化 -->
+<section id="automate">
+  <span class="sec-kicker">Advanced · Automation</span>
+  <h2>⚡ 自动化工作流</h2>
+  <p>智能体能比人<strong>更快地响应到来的事件</strong>,而且比人类同行<strong>更愿意做无聊、重复的活</strong>。</p>
+
+  <h3>① 为最重复的工作创建「快捷方式」</h3>
+  <p>工程团队经常遇到重复、例行的任务。这些都是用智能体自动化的完美候选。常见例子包括:</p>
+  <ul class="practice">
+    <li>移除 feature flag(功能开关)</li>
+    <li>依赖升级</li>
+    <li>在新功能 PR 上修复并补充测试</li>
+  </ul>
+  <p>要高效搭建这套机制,通常由一名有经验的工程师创建一个稳健、可复用的<strong>提示模板</strong>,针对这些场景反复运行。</p>
+  <div class="foot-note">📎 注 [2]:在 Devin 里,这些被称为 playbooks(剧本)。</div>
+  <div class="eg"><b>例:</b> 我们的一位客户,每当开发新功能时,就自动触发三个专门写单元测试的智能体。</div>
+
+  <h3>② 智能化的代码审查与规则强制</h3>
+  <p>虽然有专门做快速代码审查的工具,但自主智能体可以是一个有意思的选项,能给出更准确的洞察——尤其当它们已经索引了你仓库的功能时。</p>
+  <div class="foot-note">📎 注 [3]:例如 Greptile 和 CodeRabbit。</div>
+  <div class="eg"><b>例:</b> 在 Cognition,我们喜欢维护一份「工程师最常犯的错误」清单,并把它提交进代码库。然后,我们不写传统的 lint 规则去捕捉它们(这往往做不到),而是让一个智能体在每个新 PR 上运行,检查这些错误。</div>
+
+  <h3>③ 接入事故与告警</h3>
+  <p>你也可以设置自主智能体,让它们针对特定事件自动触发。例如,Devin 提供了一个可访问的 API,其他智能体也能通过 CLI 命令集成进自定义工作流。这类设置和 MCP 配合得尤其好,可以摄入第三方的错误日志。</p>
+  <div class="callout warn">
+    <span class="lbl">⚠️ 生产环境排障:AI 的调试能力还不够强</span>
+    <p>说到在生产服务里分诊问题,AI 的调试技能其实<strong>不太行</strong>。与其让 AI 在问题出现时端到端地去修 bug,更实际的做法往往是:<strong>只让 AI 标记出最可疑的错误、变更等</strong>,把判断交给人。</p>
+  </div>
+</section>
+
+<!-- 6 定制 -->
+<section id="custom">
+  <span class="sec-kicker">Advanced · Customization</span>
+  <h2>🎛️ 定制与提升表现</h2>
+
+  <h3>① 环境搭建(Environment Setup)</h3>
+  <p>没有什么比一个不完整或不匹配的环境更能拖慢智能体了。为了让一切顺畅运行,把智能体的环境配置得<strong>和你团队的完全对齐</strong>。这包括语言版本、包依赖、和自动化检查。</p>
+  <p>例如,pre-commit 应该装在智能体的环境里;环境配置(密钥、语言版本、虚拟环境、浏览器登录)应该用 <code class="inl">.envrc</code> 或自定义的 <code class="inl">.bashrc</code> 配置自动加载。</p>
+  <div class="eg"><b>例:</b> 我们给智能体的浏览器配了预先认证好的登录态,免去手动认证的麻烦,让测试容易多了。</div>
+
+  <h3>② 构建自定义 CLI 工具和 MCP</h3>
+  <p>MCP 已经广泛可用,搭建和试验「把智能体连到外部工具」都很快。但很多人忽略了为智能体搭建简单的 <strong>CLI 脚本</strong>。</p>
+  <div class="foot-note">📎 注 [4]:在 Devin 里,MCP 仍处于 beta,因为我们还在摸索支持它们的最佳方式,需要访问请联系我们。</div>
+  <p>举个简单例子:你可以给智能体一个脚本,根据工单 ID 拉取某个 Linear 工单的信息。你也许还想给智能体一个工具,可靠地执行工作流里的常见环节,比如一个重启本地开发环境的脚本。</p>
+  <div class="eg"><b>例:</b> 我们有一位客户在这方面很成功:他创建了一个 CLI 工具,只暴露测试套件里<strong>第一个失败的测试</strong>。这个 CLI 提示智能体只聚焦那一个测试、并带上详细的错误信息——结果让智能体在长任务上有了更高的成功率和更快的完成速度。</div>
+
+  <h3>③ 往智能体的知识库里加东西</h3>
+  <p>如果你的智能体犯了一些常见错误,这正是把你的反馈<strong>固化进知识库</strong>的好时机。在 Devin 里有专门的知识管理系统;许多产品提供 <code class="inl">.rules</code> 文件、<code class="inl">.md</code> 文件供智能体永久摄入。</p>
+  <div class="callout key">
+    <span class="lbl">🔑 别只告诉它框架,还要告诉它架构</span>
+    <p>不要只给它你所用框架的指引,还要告诉它你项目的<strong>整体架构</strong>。告诉它:不同类型的任务通常做哪种测试、如何运行重要的命令、你推荐用哪些工具。</p>
+  </div>
+  <div class="eg"><b>例:</b> 我们给智能体灌输了「新增一个 service route 时应遵循的具体流程」的知识,信息覆盖了它需要在前端和后端添加样板代码的每一处。结果,这类任务现在能轻松委派给我们的 AI。</div>
+</section>
+
+<!-- 7 局限 -->
+<section id="limits">
+  <span class="sec-kicker">Practical · Limitations</span>
+  <h2>🚧 自主智能体的局限</h2>
+
+  <div class="cards">
+    <div class="card">
+      <h4>🐛 有限的调试能力</h4>
+      <p>Bug 报告可能具有欺骗性的简单。但许多 bug 往往不仅需要访问数据库和日志,还需要一种超出当今大多数 AI 智能体水平的调试能力。如果用 AI 辅助调试,我们建议<strong>让它列出一份可能的根因清单</strong>,而不是让它自己去调试并修复一切。然后由人凭自身经验判断哪个才是真正的根因。但一旦根因明确,智能体在<strong>实现修复</strong>上仍然相当有用。</p>
+    </div>
+    <div class="card">
+      <h4>👁️ 细粒度视觉推理差</h4>
+      <p>总体而言,当今模型在「匹配设计稿截图或 Figma mockup」所需的细节层级上,视觉推理能力并不强。它们在<strong>能用代码层级描述的视觉</strong>上最可靠(例如把 Figma 导出的代码给它)。如果你想让它匹配你的视觉风格,应该使用一个带可复用组件的<strong>良好设计系统</strong>。</p>
+    </div>
+    <div class="card">
+      <h4>📅 知识截止(Knowledge Cutoffs)</h4>
+      <p>每当你想用一个新库时,都应该<strong>明确把它指向最新文档</strong>。否则,由于预训练基座模型的知识截止,大多数智能体会沿用这些库的旧模式。一个好的智能体在你指它看文档后能克服这点,但你必须有意识——记住,<strong>智能体甚至不知道这些库已经有了新版本。</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 管理时间 -->
+<section id="time">
+  <span class="sec-kicker">Practical · Managing Costs</span>
+  <h2>⏳ 管理时间、把损失降到最低</h2>
+  <p>你用智能体的每一次,并不都会成功。在 2025 年,这些智能体的结果存在真实的<strong>方差(variance)</strong>。这份工作的一部分,就是学会以一种「最大化撞上成功结果、同时最小化浪费的时间和 token」的方式来使用智能体。</p>
+
+  <h3>① 愿意更早地止损</h3>
+  <p>新手常犯的一个错误是:即便智能体的工作已经跑偏,仍执意要把这次交互救成功。如果你发现自己在想「它在无视我的指令」或「这玩意儿在原地打转」,那么你应该<strong>能够坦然地中止这次对话、或手动接管</strong>。</p>
+  <div class="callout key-teal">
+    <span class="lbl">🎯 多发消息往往是「任务太难」的信号</span>
+    <p>继续发更多消息,更可能说明:你任务的内在复杂度<strong>高于</strong>智能体的能力——而不是某个可以纠正的简单错误。</p>
+  </div>
+
+  <h3>② 让你的实验多样化</h3>
+  <p>如果你刚开始和智能体打交道,我们建议一开始就<strong>分散下注</strong>。尝试一系列不同的提示和点子。在那些你看到智能体天然表现好的任务类型上加码——在它们做不好的那些上止损。不必非要逼着智能体每次都成功。</p>
+
+  <h3>③ 没进展时,从头开始</h3>
+  <p>和智能体打交道时,「<strong>推倒重来</strong>」是正确答案的频率,远高于和人类打交道时。如果你给了智能体一个任务,而它在处理反馈或纠偏上挣扎,那么用一个新智能体、把所有指令预先一次性给全,重新开始,往往能更快抵达成功。</p>
+  <div class="analogy">
+    <div class="lbl">🔗 为什么重来更划算</div>
+    <p>智能体「修复一个被搞乱的环境」的能力,<strong>远逊于</strong>它「从零吐出全新代码」的能力。所以与其在烂摊子上缝缝补补,不如让它在干净的起点上重新生成。</p>
+  </div>
+</section>
+
+<!-- 9 安全 -->
+<section id="security">
+  <span class="sec-kicker">Practical · Security</span>
+  <h2>🔒 安全与权限</h2>
+
+  <ol class="steps">
+    <li>
+      <h5>为你的智能体创建账户</h5>
+      <p>一个一次性的邮箱有助于安全地测试网站。如果智能体需要访问云资源,为它创建自定义的 IAM 角色。</p>
+    </li>
+    <li>
+      <h5>给它一个开发 / 预发(staging)环境</h5>
+      <p>理想情况下,智能体使用和你团队工程师相同的测试设置。我们建议<strong>完全避免给它访问生产服务</strong>的权限。使用远程智能体时,你可以在智能体的远程机器上跑完全隔离的测试环境。</p>
+    </li>
+    <li>
+      <h5>只读 API key</h5>
+      <p>在可能的情况下,给它<strong>只读</strong>访问权。我们发现,任何与外部服务交互的脚本,仍然由人来手动运行会更稳妥。</p>
+    </li>
+  </ol>
+</section>
+
+<!-- 10 结语 -->
+<section id="transformation" class="final">
+  <span class="sec-kicker" style="color:#93c5fd">Conclusion</span>
+  <h2>🌅 即将到来的巨变</h2>
+  <p>我们坚信:<strong>软件工程师不会消失。</strong> 即便编程智能体变得更聪明、更有能力,深厚的技术专长和对自身代码库的亲密了解,仍然无比宝贵。对你的项目、你的系统、你的代码拥有真正的「所有权」,如今比以往任何时候都更关键。</p>
+  <p>在我们团队今天,工程师被期望<strong>监管多个系统</strong>,同时仍保持深刻的理解与审慎的判断。随着自动化放大你的影响力,「同时处理多个并行任务」的能力不仅会变得可能——它会变得<span class="term">必不可少</span>。</p>
+  <p>我们很高兴分享在为自己的组织准备迎接这场转变时所积累的洞见,好让你和你的团队,也能在不断演进的软件开发世界里茁壮成长。</p>
+</section>
+
+<footer>
+  整理自 Cognition 团队《Coding Agents 101: The Art of Actually Getting Things Done》(devin.ai/agents101,2025 年 6 月,约 15 分钟阅读)。<br>
+  处理方式:逐段中文整理 + 概念展开(三段式/类比/分步/对比表)与时间线、流程图可视化,保留原文全部建议、示例、脚注与限定条件。
+</footer>
+
+</div>
+
+<script>
+(function(){
+  const sections=[...document.querySelectorAll('section[id]')];
+  const links=[...document.querySelectorAll('.side-toc a')];
+  const topProg=document.getElementById('topProg');
+  const pctBar=document.getElementById('pctBar');
+  const pctTxt=document.getElementById('pctTxt');
+  function onScroll(){
+    const h=document.documentElement;
+    const scrolled=h.scrollTop/(h.scrollHeight-h.clientHeight)||0;
+    const pct=Math.round(scrolled*100);
+    topProg.style.width=pct+'%';pctBar.style.width=pct+'%';pctTxt.textContent=pct+'%';
+    let cur=sections[0];
+    for(const s of sections){if(s.getBoundingClientRect().top<=140) cur=s;}
+    links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur.id));
+  }
+  document.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);onScroll();
+  const toggle=document.getElementById('tocToggle');
+  const toc=document.getElementById('sideToc');
+  toggle.addEventListener('click',()=>toc.classList.toggle('open'));
+  links.forEach(a=>a.addEventListener('click',()=>toc.classList.remove('open')));
+  document.querySelectorAll('[data-draw]').forEach(p=>{
+    try{const len=p.getTotalLength();p.style.setProperty('--len',len);}catch(e){}
+  });
+  const io=new IntersectionObserver((es)=>{
+    es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:.25});
+  document.querySelectorAll('[data-fig]').forEach(f=>io.observe(f));
+})();
+</script>
+</body>
+</html>

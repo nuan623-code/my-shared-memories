@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Registry 发布预览 · 学习文档</title>
+<style>
+:root{
+  --bg:#eef4fb; --bg2:#e3ecf7;
+  --ink:#13233b; --ink-soft:#3d5573; --muted:#6b7f99;
+  --card:#ffffff; --line:#dbe6f3;
+  --accent:#2563eb; --accent-soft:#dbeafe; --accent-deep:#1e3a8a;
+  --teal:#0d9488; --teal-soft:#ccfbf1;
+  --indigo:#4f46e5; --indigo-soft:#e0e7ff;
+  --gold:#b45309; --gold-soft:#fef3c7;
+  --hero1:#1e3a8a; --hero2:#2563eb; --hero3:#0e7490;
+  --shadow:0 6px 24px rgba(30,58,138,.08);
+  --shadow-lg:0 12px 40px rgba(30,58,138,.14);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:linear-gradient(180deg,var(--bg),var(--bg2));
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px; line-height:1.88; -webkit-font-smoothing:antialiased;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .1s}
+
+/* ===== layout ===== */
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 90px}
+@media(min-width:1180px){.wrap{margin-left:330px}}
+
+/* ===== side toc ===== */
+.side-toc{position:fixed;top:0;left:0;width:300px;height:100vh;overflow-y:auto;
+  padding:26px 20px;background:rgba(255,255,255,.72);backdrop-filter:blur(14px);
+  border-right:1px solid var(--line);z-index:50;transition:transform .28s}
+.st-brand{font-weight:800;font-size:18px;color:var(--accent-deep);letter-spacing:.2px}
+.st-sub{font-size:12.5px;color:var(--muted);margin:2px 0 16px;line-height:1.5}
+.st-progress{display:flex;align-items:center;gap:8px;margin-bottom:18px;font-size:12px;color:var(--muted)}
+.st-bar{flex:1;height:6px;border-radius:6px;background:var(--accent-soft);overflow:hidden}
+.st-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .15s}
+.side-toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.side-toc li{counter-increment:toc;margin:1px 0}
+.side-toc a{display:flex;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;
+  color:var(--ink-soft);font-size:13.5px;line-height:1.45;transition:.18s}
+.side-toc a:before{content:counter(toc,decimal-leading-zero);color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;flex:none}
+.side-toc a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc a.active{background:var(--accent);color:#fff}
+.side-toc a.active:before{color:#cfe0ff}
+.toc-toggle{display:none}
+
+@media(max-width:1179px){
+  .side-toc{transform:translateX(-100%);box-shadow:var(--shadow-lg)}
+  .side-toc.open{transform:none}
+  .toc-toggle{display:flex;position:fixed;top:14px;left:14px;z-index:55;
+    width:44px;height:44px;border:none;border-radius:12px;cursor:pointer;
+    align-items:center;justify-content:center;font-size:20px;
+    background:var(--accent);color:#fff;box-shadow:var(--shadow)}
+}
+
+/* ===== hero ===== */
+.hero{margin:0 -22px 40px;padding:74px 28px 52px;
+  background:linear-gradient(135deg,var(--hero1),var(--hero2) 55%,var(--hero3));
+  color:#fff;border-radius:0 0 30px 30px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:280px;height:280px;
+  border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%)}
+.hero .eyebrow{font-size:13px;letter-spacing:2px;text-transform:uppercase;opacity:.82;font-weight:600}
+.hero h1{margin:12px 0 14px;font-size:34px;line-height:1.28;font-weight:800;position:relative}
+.hero p{margin:0;font-size:16.5px;opacity:.94;max-width:620px;line-height:1.7}
+.hero .meta{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px;position:relative}
+.hero .chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+  padding:4px 12px;border-radius:20px;font-size:12.5px;backdrop-filter:blur(6px)}
+
+/* ===== sections ===== */
+section{margin:0 0 46px;scroll-margin-top:24px}
+.sec-head{display:flex;align-items:center;gap:12px;margin:0 0 8px}
+.sec-ico{width:42px;height:42px;border-radius:12px;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:21px;background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--line)}
+.sec-head h2{margin:0;font-size:24px;font-weight:800;line-height:1.3}
+.sec-kicker{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.5px;margin:0 0 18px 54px}
+section p{margin:14px 0;color:var(--ink-soft)}
+.lead{font-size:18px;color:var(--ink);font-weight:500}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 7px;border-radius:6px;font-weight:600;font-size:.96em}
+strong{color:var(--ink);font-weight:700}
+a.ext{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+a.ext:hover{border-bottom-color:var(--accent)}
+
+/* ===== cards ===== */
+.def{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:22px 24px;margin:20px 0;box-shadow:var(--shadow)}
+.def h3{margin:0 0 6px;font-size:18px;display:flex;align-items:center;gap:8px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;
+  padding:2px 10px;border-radius:20px;margin:14px 0 4px}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--teal-soft);color:var(--teal)}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .body{margin:4px 0 0;color:var(--ink-soft)}
+
+/* analogy */
+.analogy{position:relative;background:linear-gradient(135deg,#fff,var(--indigo-soft));
+  border:1px solid #c7d2fe;border-radius:16px;padding:20px 22px 20px 26px;margin:20px 0;box-shadow:var(--shadow)}
+.analogy:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:5px;border-radius:5px;background:var(--indigo)}
+.analogy .lab{font-size:13px;font-weight:800;color:var(--indigo);margin-bottom:6px}
+.analogy p{margin:6px 0;color:var(--ink-soft)}
+
+/* rephrase */
+details.rephrase{background:var(--card);border:1px dashed #b9cdeb;border-radius:14px;margin:18px 0;overflow:hidden}
+details.rephrase summary{cursor:pointer;list-style:none;padding:13px 18px;font-weight:700;
+  color:var(--accent-deep);font-size:14.5px;background:var(--accent-soft);user-select:none}
+details.rephrase summary::-webkit-details-marker{display:none}
+details.rephrase summary:after{content:"▾";float:right;transition:.2s}
+details.rephrase[open] summary:after{transform:rotate(180deg)}
+details.rephrase .inner{padding:14px 20px;color:var(--ink-soft);font-size:15.5px}
+
+/* prereq */
+.prereq{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--teal);
+  background:var(--teal-soft);padding:4px 12px;border-radius:8px;margin:6px 0;font-weight:600}
+.prereq a{color:var(--teal);text-decoration:underline}
+
+/* steps */
+.steps{margin:22px 0;position:relative;padding-left:8px}
+.steps .step{position:relative;padding:0 0 22px 44px}
+.steps .step:before{content:attr(data-n);position:absolute;left:0;top:0;width:30px;height:30px;
+  border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px;
+  display:flex;align-items:center;justify-content:center;z-index:2}
+.steps .step:after{content:"";position:absolute;left:14px;top:30px;bottom:0;width:2px;background:var(--line)}
+.steps .step:last-child:after{display:none}
+.steps .step h4{margin:3px 0 4px;font-size:16px}
+.steps .step p{margin:0;font-size:15px;color:var(--ink-soft)}
+
+/* glossary */
+.glossary{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:20px 0;box-shadow:var(--shadow)}
+.glossary .grow{display:grid;grid-template-columns:200px 1fr;border-top:1px solid var(--line)}
+.glossary .grow:first-child{border-top:none}
+.glossary .gt{padding:13px 18px;font-weight:700;color:var(--accent-deep);background:var(--accent-soft);font-size:14.5px}
+.glossary .gd{padding:13px 18px;color:var(--ink-soft);font-size:15px}
+@media(max-width:560px){.glossary .grow{grid-template-columns:1fr}.glossary .gt{border-bottom:1px solid var(--line)}}
+
+/* compare cards */
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px 0}
+@media(max-width:640px){.cases{grid-template-columns:1fr}}
+.case{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.case .ch{font-weight:800;font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.case.pub .ch{color:var(--teal)} .case.priv .ch{color:var(--indigo)}
+.case ul{margin:8px 0 0;padding-left:18px;color:var(--ink-soft);font-size:15px}
+.case li{margin:6px 0}
+
+/* callout */
+.callout{border-radius:14px;padding:16px 20px;margin:20px 0;font-size:15.5px;border:1px solid;display:flex;gap:12px}
+.callout .ci{font-size:20px;flex:none}
+.callout.key{background:var(--accent-soft);border-color:#bfd4f5;color:var(--accent-deep)}
+.callout.warn{background:var(--gold-soft);border-color:#f0d68a;color:#7c4a02}
+.callout.quote-box{background:linear-gradient(135deg,#fff,var(--teal-soft));border-color:#9fe6da;color:var(--ink)}
+
+/* practice list */
+.practice{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 22px;margin:20px 0;box-shadow:var(--shadow)}
+.practice li{list-style:none;margin:10px 0;padding-left:30px;position:relative;color:var(--ink-soft)}
+.practice li:before{content:"✦";position:absolute;left:4px;color:var(--accent);font-weight:700}
+
+/* figure */
+.figure{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 18px 14px;margin:24px 0;box-shadow:var(--shadow);text-align:center}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:13.5px;color:var(--muted);margin-top:12px;line-height:1.6}
+[data-anim]{opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
+[data-anim].in{opacity:1;transform:none}
+[data-draw]{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1s ease}
+[data-draw].in{stroke-dashoffset:0}
+.figure.in{animation:fadeUp .6s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* final */
+.final{margin:48px -22px 0;padding:46px 30px;border-radius:30px;color:#fff;
+  background:linear-gradient(135deg,var(--hero1),var(--hero3));box-shadow:var(--shadow-lg)}
+.final h2{margin:0 0 10px;font-size:24px;color:#fff}
+.final p{color:rgba(255,255,255,.92);margin:10px 0}
+.thanks-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.thanks-grid .tg{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);
+  padding:5px 13px;border-radius:20px;font-size:13px}
+
+footer{margin-top:40px;padding:24px 0 0;border-top:1px solid var(--line);
+  color:var(--muted);font-size:13px;line-height:1.7}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  [data-anim]{opacity:1;transform:none}
+  [data-draw]{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topbar"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">MCP Registry</div>
+  <div class="st-sub">官方注册中心发布预览 · 全文整理</div>
+  <div class="st-progress">
+    <span id="pctText">0%</span>
+    <div class="st-bar"><div class="st-fill" id="stFill"></div></div>
+  </div>
+  <ol>
+    <li><a href="#intro">发布预览:这是什么</a></li>
+    <li><a href="#single">单一可信源</a></li>
+    <li><a href="#subreg">公有与私有子注册中心</a></li>
+    <li><a href="#moderation">社区驱动的审核机制</a></li>
+    <li><a href="#start">如何开始使用</a></li>
+    <li><a href="#caveat">预览阶段的重要提醒</a></li>
+    <li><a href="#thanks">致谢:社区的共同成果</a></li>
+  </ol>
+</nav>
+
+<main class="wrap" id="main-content">
+
+  <header class="hero">
+    <div class="eyebrow">Model Context Protocol · Blog</div>
+    <h1>MCP Registry 发布:面向所有人的开放服务器目录</h1>
+    <p>2025 年 9 月 8 日,MCP 团队以预览(preview)形式推出官方注册中心——一个用于发现「公开可用 MCP 服务器」的开放目录与 API,目标是让服务器更易被发现、被接入。</p>
+    <div class="meta">
+      <span class="chip">📅 2025 年 9 月 8 日</span>
+      <span class="chip">⏱ 约 4 分钟阅读</span>
+      <span class="chip">✍️ 5 位作者(含 Anthropic PM)</span>
+      <span class="chip">🏷️ 公告 · 社区</span>
+    </div>
+  </header>
+
+  <!-- 1 -->
+  <section id="intro">
+    <div class="sec-head">
+      <div class="sec-ico">📣</div>
+      <h2>发布预览:这是什么</h2>
+    </div>
+    <div class="sec-kicker">官方公告与一句话定位</div>
+
+    <p class="lead">今天,MCP 团队正式发布 <span class="term">Model Context Protocol (MCP) Registry</span>——一个面向「公开可用的 MCP 服务器」的<strong>开放目录(catalog)与 API</strong>,用来改善发现性(discoverability)与接入实现(implementation)。</p>
+
+    <p>它的核心逻辑是:<strong>通过标准化「服务器如何被分发、如何被发现」,在扩大服务器触达范围的同时,让客户端(client)更容易完成连接。</strong>这个注册中心目前以<strong>预览(preview)形式</strong>提供。</p>
+
+    <div class="def" id="def-mcp">
+      <h3>🧩 先补个底:MCP / 服务器 / 客户端 是什么关系</h3>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 8px">(此卡为帮助理解的背景增补,非原文内容;原文默认读者已了解 MCP 基本概念。)</p>
+      <span class="tag tag-what">是什么</span>
+      <p class="body"><span class="term">MCP(模型上下文协议)</span>是一套让 AI 应用与外部工具、数据源连接的开放协议。其中<strong>服务器(server)</strong>是「提供能力的一方」(比如能查数据库、调 API、读文件的那个程序);<strong>客户端(client)</strong>是「使用这些能力的一方」(比如某个 AI 助手应用)。</p>
+      <span class="tag tag-why">为什么需要一个注册中心</span>
+      <p class="body">在此之前,客户端要接入一个服务器,往往得各自去找、各自记录服务器在哪、怎么连。服务器作者也缺一个统一的地方对外公布自己。注册中心就是来解决这个「找不到、对不上」的问题——做一个公开的「电话簿」。</p>
+      <span class="tag tag-eg">例子</span>
+      <p class="body">类比应用商店之于 App:开发者把 App 上架到一个中心目录,用户在一个地方就能搜索、发现并安装,而不必满世界找安装包。注册中心想为 MCP 服务器扮演类似的「集中登记 + 可被发现」的角色。</p>
+    </div>
+
+    <p>开始使用的两条入口,在原文里出现了两次(开头与「如何开始」一节),对应两类不同的人:</p>
+    <div class="cases">
+      <div class="case pub">
+        <div class="ch">➕ 添加你的服务器</div>
+        <ul>
+          <li>面向<strong>服务器维护者</strong></li>
+          <li>按官方指南《Adding Servers to the MCP Registry》操作</li>
+        </ul>
+      </div>
+      <div class="case priv">
+        <div class="ch">📥 获取服务器数据</div>
+        <ul>
+          <li>面向<strong>客户端维护者</strong></li>
+          <li>按官方指南《Accessing MCP Registry Data》操作</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="single">
+    <div class="sec-head">
+      <div class="sec-ico">🎯</div>
+      <h2>单一可信源:为整个生态打地基</h2>
+    </div>
+    <div class="sec-kicker">从 3 月的设想,到今天的上线</div>
+
+    <p>这一节交代了项目的来龙去脉与定位。原文给出两个明确的时间点与事实:</p>
+
+    <div class="steps">
+      <div class="step" data-n="①">
+        <h4>2025 年 3 月:公开了设想</h4>
+        <p>团队表示,希望为 MCP 生态构建一个<strong>中心化的注册中心(central registry)</strong>。</p>
+      </div>
+      <div class="step" data-n="②">
+        <h4>今天:正式上线</h4>
+        <p>宣布 <a class="ext" href="https://registry.modelcontextprotocol.io">https://registry.modelcontextprotocol.io</a> 作为<strong>官方 MCP Registry</strong> 上线。</p>
+      </div>
+    </div>
+
+    <p>一个关键设计:<strong>它是开源的。</strong>作为 MCP 项目的一部分,MCP Registry 本身,以及一份<strong>父级 OpenAPI 规范(parent OpenAPI specification)</strong>,都是开源的——<strong>这样任何人都可以基于它构建一个兼容的「子注册中心(sub-registry)」。</strong></p>
+
+    <div class="def" id="def-truth">
+      <h3>🗂️ 核心概念:Single source of truth(单一可信源)</h3>
+      <span class="tag tag-what">是什么</span>
+      <p class="body">原文明确目标:<strong>标准化服务器如何被分发与发现,提供一个「主要的可信源(primary source of truth)」,让各个子注册中心可以在其之上构建。</strong></p>
+      <span class="tag tag-why">为什么这样设计</span>
+      <p class="body">有了一个公认的「源头数据」,下游各方就不必各自维护一份可能互相矛盾的服务器清单。原文指出,这样做的回报是:<strong>扩大服务器的触达范围,并帮助客户端在整个 MCP 生态里更容易地找到服务器。</strong></p>
+      <span class="tag tag-eg">例子</span>
+      <p class="body">就像一个权威的「行业总名录」:各家做的细分黄页都从这本总名录抄录基础信息,再各自加工。源头只有一处,改一次,下游都能跟着同步。</p>
+    </div>
+
+    <div class="figure">
+      <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="官方注册中心作为单一可信源,向下游子注册中心与客户端分发数据">
+        <!-- top: maintainers publish -->
+        <g data-anim>
+          <rect x="280" y="14" width="200" height="46" rx="11" fill="var(--gold-soft)" stroke="var(--gold)"/>
+          <text x="380" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="var(--gold)">服务器维护者</text>
+          <text x="380" y="52" text-anchor="middle" font-size="11.5" fill="#7c4a02">发布并自报信息</text>
+        </g>
+        <path d="M380 60 L380 96" stroke="var(--gold)" stroke-width="2.5" fill="none" marker-end="url(#ar)" data-draw style="--len:40"/>
+        <!-- center: official registry -->
+        <g data-anim>
+          <rect x="250" y="100" width="260" height="60" rx="13" fill="var(--accent)" />
+          <text x="380" y="126" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">官方 MCP Registry</text>
+          <text x="380" y="146" text-anchor="middle" font-size="11.5" fill="#cfe0ff">单一可信源 · 开源 · 有 OpenAPI 规范</text>
+        </g>
+        <!-- arrows down to three -->
+        <path d="M310 160 L170 210" stroke="var(--teal)" stroke-width="2.5" fill="none" marker-end="url(#ar2)" data-draw style="--len:150"/>
+        <path d="M380 160 L380 210" stroke="var(--indigo)" stroke-width="2.5" fill="none" marker-end="url(#ar3)" data-draw style="--len:50"/>
+        <path d="M450 160 L590 210" stroke="var(--accent)" stroke-width="2.5" fill="none" marker-end="url(#ar)" data-draw style="--len:150"/>
+        <!-- three downstream -->
+        <g data-anim>
+          <rect x="70" y="214" width="190" height="56" rx="11" fill="var(--teal-soft)" stroke="var(--teal)"/>
+          <text x="165" y="238" text-anchor="middle" font-size="13" font-weight="700" fill="var(--teal)">公有子注册中心</text>
+          <text x="165" y="256" text-anchor="middle" font-size="11" fill="#0d6e63">客户端的 MCP 市场</text>
+        </g>
+        <g data-anim>
+          <rect x="290" y="214" width="180" height="56" rx="11" fill="var(--indigo-soft)" stroke="var(--indigo)"/>
+          <text x="380" y="238" text-anchor="middle" font-size="13" font-weight="700" fill="var(--indigo)">私有子注册中心</text>
+          <text x="380" y="256" text-anchor="middle" font-size="11" fill="#3730a3">企业内部专用</text>
+        </g>
+        <g data-anim>
+          <rect x="500" y="214" width="190" height="56" rx="11" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="595" y="238" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-deep)">客户端</text>
+          <text x="595" y="256" text-anchor="middle" font-size="11" fill="#1e3a8a">直接读取数据接入</text>
+        </g>
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--accent)"/></marker>
+          <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--teal)"/></marker>
+          <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="var(--indigo)"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">维护者把信息发布到官方注册中心(源头),公有 / 私有子注册中心与客户端在其之上构建——这就是「单一可信源」要表达的上下游关系。</div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="subreg">
+    <div class="sec-head">
+      <div class="sec-ico">🌿</div>
+      <h2>公有与私有子注册中心</h2>
+    </div>
+    <div class="sec-kicker">中心化,但不抢走已有生态的位置</div>
+
+    <p>在构建一个中心注册中心时,团队强调了一个重要立场:<strong>不要削弱社区和公司们已经建好的现有注册中心。</strong>MCP Registry 作为「公开可用 MCP 服务器」的主要可信源,而各组织可以<strong>基于自定义标准创建子注册中心。</strong>原文给了两类例子:</p>
+
+    <div class="cases">
+      <div class="case pub">
+        <div class="ch">🟢 公有子注册中心(Public)</div>
+        <ul>
+          <li>比如与各个 MCP 客户端绑定的、有自己取向的「<strong>MCP 市场(marketplaces)</strong>」。</li>
+          <li>它们可以自由地<strong>增补、增强</strong>从上游 MCP Registry 摄取(ingest)来的数据。</li>
+          <li>原文判断:每一类 MCP 终端用户的需求都不同,由各 MCP 客户端市场以「有取向的方式」恰当地服务自己的终端用户。</li>
+        </ul>
+      </div>
+      <div class="case priv">
+        <div class="ch">🔵 私有子注册中心(Private)</div>
+        <ul>
+          <li>存在于<strong>有严格隐私与安全要求的企业</strong>内部。</li>
+          <li>MCP Registry 为这些企业提供一个<strong>统一的上游数据源</strong>可供构建。</li>
+          <li>原文给的最低目标:<strong>至少共享 API schema</strong>,以便相关 SDK 与工具能在整个生态中复用。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout key">
+      <span class="ci">🧭</span>
+      <div>无论哪种情况,<strong>MCP Registry 都是「起点」</strong>——它是那个中心化的位置:MCP 服务器维护者在此<strong>发布并维护自报信息(self-reported information)</strong>,供下游消费者去加工(massage)并交付给各自的终端用户。</div>
+    </div>
+
+    <div class="analogy">
+      <div class="lab">🔗 类比:总批发市场 与 各家精品店</div>
+      <p>可以把官方 Registry 想成一个<strong>总批发市场</strong>:所有货(服务器信息)先在这里登记上架。<strong>公有子注册中心</strong>像开在各处、风格各异的<strong>精品零售店</strong>——它们从批发市场进货,再按自己客群的口味重新陈列、加上推荐与点评。<strong>私有子注册中心</strong>则像企业自建的<strong>内部仓库</strong>:同样从这个批发市场拿货源,但只在公司围墙内流通,满足严格的隐私与安全要求。货的源头是同一个,加工与交付各不相同。</p>
+    </div>
+
+    <details class="rephrase">
+      <summary>💬 没看懂「自报信息 / 下游去 massage」?点这里换种说法</summary>
+      <div class="inner">原文的严谨表述是:维护者发布「self-reported information」,下游消费者去「massage and deliver」。说白了就是——<strong>服务器作者自己填一份「我是谁、我能干啥、怎么连我」的资料卡</strong>放进总目录(这份资料是作者自己声明的,所以叫「自报」)。下游的各家市场/客户端拿到这份原始资料后,<strong>再揉一揉、改个版、加点自己的判断和补充</strong>(这就是 massage),最后端给自己的用户。<em>(此为帮助理解的转述,非原文原话。)</em></div>
+    </details>
+  </section>
+
+  <!-- 4 -->
+  <section id="moderation">
+    <div class="sec-head">
+      <div class="sec-ico">🛡️</div>
+      <h2>社区驱动的审核机制</h2>
+    </div>
+    <div class="sec-kicker">谁来管、怎么管违规服务器</div>
+
+    <p>原文用一段说明了治理与审核方式。先交代身份与许可:<strong>MCP Registry 是一个官方 MCP 项目,由「注册中心工作组(registry working group)」维护,并采用宽松许可(permissively licensed)。</strong></p>
+
+    <p>审核流程是<strong>社区驱动</strong>的,可以拆成清晰的几步:</p>
+
+    <div class="steps">
+      <div class="step" data-n="①">
+        <h4>社区成员提交 issue 标记</h4>
+        <p>任何社区成员都可以提交 issue,来标记(flag)那些违反 MCP <strong>审核指南(moderation guidelines)</strong>的服务器。</p>
+      </div>
+      <div class="step" data-n="②">
+        <h4>哪些算违规</h4>
+        <p>原文举的例子:含有<strong>垃圾信息(spam)</strong>、<strong>恶意代码(malicious code)</strong>,或<strong>冒充合法服务(impersonating legitimate services)</strong>的条目。</p>
+      </div>
+      <div class="step" data-n="③">
+        <h4>维护者拉黑并回溯移除</h4>
+        <p>注册中心维护者随后可以将这些条目<strong>加入拒绝名单(denylist)</strong>,并<strong>追溯性地(retroactively)</strong>把它们从公开访问中移除。</p>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <span class="ci">⚠️</span>
+      <div>注意原文的措辞分工:<strong>发现与标记靠社区</strong>(人人可提 issue),<strong>拉黑与移除靠维护者</strong>(有处置权)。这是一种「社区举报 + 维护者执行」的协作式审核,而非纯自动或纯中心化。</div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="start">
+    <div class="sec-head">
+      <div class="sec-ico">🚀</div>
+      <h2>如何开始使用</h2>
+    </div>
+    <div class="sec-kicker">两类人,两条入口(原文「Getting started」)</div>
+
+    <p>「如何开始」这一节给出与开头相同的两条入口,按角色区分:</p>
+
+    <div class="glossary">
+      <div class="grow">
+        <div class="gt">➕ 添加你的服务器</div>
+        <div class="gd">面向<strong>服务器维护者</strong>。按指南《Adding Servers to the MCP Registry》操作,把自己的服务器加进注册中心。</div>
+      </div>
+      <div class="grow">
+        <div class="gt">📥 获取服务器数据</div>
+        <div class="gd">面向<strong>客户端维护者</strong>。按指南《Accessing MCP Registry Data》操作,读取注册中心里的服务器数据。</div>
+      </div>
+    </div>
+
+    <p>原文还邀请大家参与:在 MCP 持续开发注册中心的过程中,<strong>鼓励在 <a class="ext" href="https://github.com/modelcontextprotocol/registry">modelcontextprotocol/registry GitHub 仓库</a> 上提供反馈与贡献</strong>——讨论(Discussion)、问题(Issues)、合并请求(Pull Requests)都欢迎。</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="caveat">
+    <div class="sec-head">
+      <div class="sec-ico">📌</div>
+      <h2>预览阶段的重要提醒</h2>
+    </div>
+    <div class="sec-kicker">别忽略原文这段「免责声明」</div>
+
+    <p>这一段是容易被读者略过、但很关键的限定条件,原文说得很明确:</p>
+
+    <div class="callout warn">
+      <span class="ci">🚧</span>
+      <div>这次发布的 MCP Registry <strong>是预览版(preview)</strong>,目的是<strong>在正式可用(general availability,GA)之前帮助团队改进用户体验</strong>。它<strong>不提供数据持久性保证(data durability guarantees)或其他担保(warranties)</strong>。</div>
+    </div>
+
+    <div class="callout key">
+      <span class="ci">👀</span>
+      <div>原文建议:<strong>MCP 采用者应密切关注其开发进展,因为在注册中心正式可用之前,可能会发生破坏性变更(breaking changes)。</strong></div>
+    </div>
+
+    <div class="def">
+      <h3>🔍 为什么这段提醒很重要</h3>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 8px">(以下为帮助理解的解释性增补,基于「预览版软件」的公认常识。)</p>
+      <span class="tag tag-what">是什么</span>
+      <p class="body"><strong>预览版</strong>意味着功能已可试用,但接口和行为尚未定型。「不保证数据持久性」指你今天放进去的数据,不承诺一直稳妥保留;「破坏性变更」指未来某次更新可能让你之前依赖的用法失效。</p>
+      <span class="tag tag-why">为什么要事先说清</span>
+      <p class="body">这是负责任地划定预期:让早期使用者知道这是「可以玩、可以反馈,但先别压上关键生产依赖」的阶段,避免日后接口一变就措手不及。</p>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="thanks">
+    <div class="sec-head">
+      <div class="sec-ico">🙏</div>
+      <h2>致谢:社区的共同成果</h2>
+    </div>
+    <div class="sec-kicker">从草根项目到正式发布的完整脉络</div>
+
+    <p>原文最后用整整一节,详尽地回顾了这个项目「从零到一」的协作历程,并逐一点名致谢。这部分信息密度很高,逐项保留如下。</p>
+
+    <p class="lead">总基调:MCP Registry <strong>从一开始就是一项协作努力</strong>,团队对来自更广泛开发者社区的热情与支持深表感激。</p>
+
+    <div class="def">
+      <h3>🌱 起源:2025 年 2 月的草根项目</h3>
+      <span class="tag tag-what">怎么开始的</span>
+      <p class="body">2025 年 2 月,它作为一个<strong>草根(grassroots)项目</strong>起步:MCP 的创造者 <strong>David Soria Parra</strong> 与 <strong>Justin Spahr-Summers</strong> 邀请 <strong>PulseMCP</strong> 和 <strong>Goose</strong> 团队,帮忙构建一个中心化的社区注册中心。</p>
+      <span class="tag tag-eg">最初的推动者</span>
+      <p class="body">来自 <strong>PulseMCP</strong> 的注册中心维护者 <strong>Tadas Antanavicius</strong> 牵头了最初的工作,并与来自 <strong>Block</strong> 的 <strong>Alex Hancock</strong> 协作。</p>
+    </div>
+
+    <p>随后陆续有人加入这条主线:</p>
+    <div class="steps">
+      <div class="step" data-n="①">
+        <h4>Toby Padilla 加入</h4>
+        <p>注册中心维护者 <strong>Toby Padilla</strong>,<strong>GitHub 的 Head of MCP</strong>,加入团队。</p>
+      </div>
+      <div class="step" data-n="②">
+        <h4>Adam Jones 加入,推动发布</h4>
+        <p>更近期,来自 <strong>Anthropic</strong> 的 <strong>Adam Jones</strong> 作为注册中心维护者加入,<strong>推动项目走向今天的发布。</strong></p>
+      </div>
+    </div>
+
+    <div class="callout quote-box">
+      <span class="ci">📊</span>
+      <div>一个具体数字:MCP Registry 开发的<strong>最初公告(initial announcement)</strong>中,列出了<strong>来自至少 9 家不同公司的 16 位贡献个人。</strong></div>
+    </div>
+
+    <p>原文还专门点名了「许多为让项目落地做出关键贡献」的其他人,逐一保留如下:</p>
+
+    <div class="glossary">
+      <div class="grow"><div class="gt">Radoslav Dimitrov</div><div class="gd">来自 Stacklok</div></div>
+      <div class="grow"><div class="gt">Avinash Sridhar</div><div class="gd">来自 GitHub</div></div>
+      <div class="grow"><div class="gt">Connor Peet</div><div class="gd">来自 VS Code</div></div>
+      <div class="grow"><div class="gt">Joel Verhagen</div><div class="gd">来自 NuGet</div></div>
+      <div class="grow"><div class="gt">Preeti Dewani</div><div class="gd">来自 Last9</div></div>
+      <div class="grow"><div class="gt">Avish Porwal</div><div class="gd">来自 Microsoft</div></div>
+      <div class="grow"><div class="gt">Jonathan Hefner</div><div class="gd">(原文未标注公司)</div></div>
+    </div>
+
+    <p>此外,原文还感谢了<strong>许多提供代码审查与开发支持的 Anthropic 与 GitHub 员工</strong>,以及<strong>注册中心贡献者日志(contributors log)上的每一位</strong>,和所有参与<strong>讨论与 issues</strong> 的人。</p>
+
+    <div class="final">
+      <h2>🏁 结尾原话所传递的态度</h2>
+      <p>团队表示:深深感激每一位投入这项<strong>基础性开源基础设施(foundational open source infrastructure)</strong>的人。原文写道——共同努力,正在帮助全世界的开发者与组织<strong>构建更可靠、更具上下文感知能力的 AI 应用</strong>。</p>
+      <p>并以社区的名义致谢:<strong>「On behalf of the MCP community, thank you.」</strong></p>
+      <div class="thanks-grid">
+        <span class="tg">PulseMCP</span><span class="tg">Goose</span><span class="tg">Block</span>
+        <span class="tg">GitHub</span><span class="tg">Anthropic</span><span class="tg">Stacklok</span>
+        <span class="tg">VS Code</span><span class="tg">NuGet</span><span class="tg">Last9</span><span class="tg">Microsoft</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>内容来源:</strong>Model Context Protocol Blog —《Introducing the MCP Registry》(2025 年 9 月 8 日,作者:David Soria Parra、Adam Jones、Tadas Antanavicius、Toby Padilla、Theodora Chu)。原文链接:blog.modelcontextprotocol.io/posts/2025-09-08-mcp-registry-preview/</p>
+    <p><strong>处理方式:</strong>逐段忠实整理(不删 / 不改 / 不压缩)+ 关键概念展开讲解与可视化。文中标注为「增补 / 帮助理解」的卡片为解释性补充,非原文内容;原文的事实、数字、人名、公司、因果与限定条件均已逐项保留。</p>
+  </footer>
+
+</main>
+
+<script>
+(function(){
+  var fill=document.getElementById('stFill'),
+      top=document.getElementById('topbar'),
+      pct=document.getElementById('pctText'),
+      links=[].slice.call(document.querySelectorAll('.side-toc a')),
+      secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+
+  function onScroll(){
+    var h=document.documentElement,
+        sc=h.scrollTop||document.body.scrollTop,
+        max=(h.scrollHeight-h.clientHeight)||1,
+        p=Math.min(100,Math.max(0,sc/max*100));
+    fill.style.width=p+'%'; top.style.width=p+'%'; pct.textContent=Math.round(p)+'%';
+    var cur=0;
+    secs.forEach(function(s,i){ if(s && s.getBoundingClientRect().top<=120) cur=i; });
+    links.forEach(function(a,i){ a.classList.toggle('active',i===cur); });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll); onScroll();
+
+  // toc toggle (narrow)
+  var tg=document.getElementById('tocToggle'), toc=document.getElementById('sideToc');
+  tg.addEventListener('click',function(){toc.classList.toggle('open');});
+  links.forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open');});});
+
+  // intersection animations
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        var el=e.target;
+        if(el.classList.contains('figure')){
+          el.classList.add('in');
+          el.querySelectorAll('[data-anim]').forEach(function(n,i){setTimeout(function(){n.classList.add('in');},i*110);});
+          el.querySelectorAll('[data-draw]').forEach(function(n,i){setTimeout(function(){n.classList.add('in');},250+i*120);});
+        } else { el.classList.add('in'); }
+        io.unobserve(el);
+      }
+    });
+  },{threshold:.2});
+  document.querySelectorAll('.figure').forEach(function(n){io.observe(n);});
+})();
+</script>
+</body>
+</html>

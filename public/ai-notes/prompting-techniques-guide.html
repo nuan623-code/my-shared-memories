@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>提示工程技术全览 · Prompting Techniques</title>
+<style>
+:root{
+  --bg:#eef4fb; --bg2:#e3edf9;
+  --ink:#1a2b42; --ink-soft:#41597a; --muted:#6b80a0;
+  --card:#ffffff; --card-line:#d8e4f3;
+  --accent:#2563eb; --accent-d:#1d4ed8; --accent-l:#dbeafe;
+  --teal:#0d9488; --teal-l:#ccfbf1;
+  --indigo:#4f46e5; --indigo-l:#e0e7ff;
+  --gold:#b45309; --gold-l:#fef3c7;
+  --rose:#be123c; --rose-l:#ffe4e6;
+  --hero-a:#0b2a5b; --hero-b:#1e40af; --hero-c:#2563eb;
+  --code-bg:#0f1f3a; --code-ink:#d7e3fb;
+  --shadow:0 10px 30px rgba(20,50,100,.08);
+  --shadow-sm:0 4px 14px rgba(20,50,100,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:linear-gradient(180deg,var(--bg),var(--bg2));
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px; line-height:1.88; -webkit-font-smoothing:antialiased;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--teal));z-index:60;transition:width .1s}
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px;}
+.main{max-width:760px;margin:0 auto;}
+@media(min-width:1180px){
+  .wrap{max-width:1180px;display:block}
+  .main{margin-left:300px;max-width:760px}
+}
+/* hero */
+.hero{position:relative;overflow:hidden;border-radius:0 0 28px 28px;
+  background:linear-gradient(135deg,var(--hero-a),var(--hero-b) 55%,var(--hero-c));
+  color:#fff;padding:62px 26px 54px;margin-bottom:40px;box-shadow:var(--shadow)}
+.hero:after{content:"";position:absolute;right:-90px;top:-90px;width:320px;height:320px;
+  background:radial-gradient(circle,rgba(255,255,255,.14),transparent 65%);}
+.hero:before{content:"";position:absolute;left:-60px;bottom:-120px;width:300px;height:300px;
+  background:radial-gradient(circle,rgba(13,148,136,.22),transparent 60%);}
+.hero-in{position:relative;max-width:820px;margin:0 auto}
+.hero .kicker{font-size:13px;letter-spacing:.18em;text-transform:uppercase;opacity:.8;margin-bottom:14px}
+.hero h1{font-size:38px;line-height:1.25;margin:0 0 16px;font-weight:800;letter-spacing:-.01em}
+.hero p{font-size:17.5px;line-height:1.8;margin:0;opacity:.94;max-width:680px}
+.hero .meta{margin-top:24px;display:flex;flex-wrap:wrap;gap:10px}
+.hero .chip{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
+  padding:6px 13px;border-radius:999px;font-size:13.5px;backdrop-filter:blur(4px)}
+/* side toc */
+.side-toc{position:fixed;top:0;left:0;height:100vh;width:288px;padding:26px 18px 26px 24px;
+  overflow-y:auto;background:rgba(255,255,255,.72);backdrop-filter:blur(14px);
+  border-right:1px solid var(--card-line);display:none;z-index:50}
+@media(min-width:1180px){.side-toc{display:block}}
+.st-brand{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
+.st-sub{font-size:12.5px;color:var(--muted);margin:3px 0 16px;line-height:1.5}
+.st-progress{display:flex;align-items:center;gap:9px;margin-bottom:18px;font-size:12px;color:var(--ink-soft)}
+.st-bar{flex:1;height:6px;background:var(--accent-l);border-radius:99px;overflow:hidden}
+.st-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:99px;transition:width .15s}
+.side-toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.side-toc li{counter-increment:toc}
+.side-toc a{display:block;text-decoration:none;color:var(--ink-soft);font-size:13.5px;
+  padding:6px 10px 6px 34px;border-radius:8px;position:relative;line-height:1.45;margin-bottom:1px;transition:.15s}
+.side-toc a:before{content:counter(toc,decimal-leading-zero);position:absolute;left:8px;top:6px;
+  font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
+.side-toc a:hover{background:var(--accent-l);color:var(--accent-d)}
+.side-toc a.active{background:var(--accent);color:#fff}
+.side-toc a.active:before{color:rgba(255,255,255,.75)}
+.toc-group{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  margin:16px 0 6px 8px;font-weight:700}
+/* mobile toc */
+.toc-toggle{position:fixed;top:14px;left:14px;z-index:55;width:44px;height:44px;border-radius:12px;
+  border:1px solid var(--card-line);background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
+  font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);box-shadow:var(--shadow-sm)}
+@media(min-width:1180px){.toc-toggle{display:none}}
+.side-toc.open{display:block}
+.scrim{display:none;position:fixed;inset:0;background:rgba(15,30,55,.4);z-index:49}
+.scrim.show{display:block}
+@media(min-width:1180px){.scrim{display:none!important}}
+/* sections */
+section{margin:0 0 14px;scroll-margin-top:24px}
+.sec-head{display:flex;align-items:flex-start;gap:13px;margin:46px 0 14px}
+.sec-head .ic{font-size:25px;line-height:1.2;flex:none;margin-top:2px}
+.sec-head h2{font-size:25px;margin:0;line-height:1.32;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.sec-head .tag{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em;margin-top:3px}
+.src{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-size:12px;font-weight:600;
+  text-decoration:none;color:var(--accent-d);background:var(--accent-l);
+  padding:3px 10px;border-radius:999px;border:1px solid #c7dbfa;transition:.15s}
+.src:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.src .ar{font-size:11px;opacity:.8}
+.lead{font-size:17.5px;color:var(--ink-soft);margin:0 0 18px}
+p{margin:0 0 16px}
+h3{font-size:19px;margin:30px 0 12px;font-weight:750;color:var(--ink)}
+strong{font-weight:700;color:var(--ink)}
+.term{background:var(--accent-l);color:var(--accent-d);padding:1px 6px;border-radius:5px;font-weight:600;font-size:.95em}
+a.ref{color:var(--accent-d);text-decoration:none;border-bottom:1px dashed var(--accent);font-size:.92em}
+a.ref:hover{background:var(--accent-l)}
+/* cards */
+.def{background:var(--card);border:1px solid var(--card-line);border-radius:16px;
+  padding:20px 22px;margin:18px 0;box-shadow:var(--shadow-sm)}
+.def h4{margin:0 0 6px;font-size:17.5px;font-weight:750;color:var(--ink)}
+.tagline{display:flex;gap:8px;margin:14px 0 5px;align-items:baseline}
+.tagline .t{flex:none;font-size:11.5px;font-weight:800;letter-spacing:.05em;padding:2px 8px;border-radius:6px;text-transform:uppercase}
+.tag-what .t{background:var(--accent-l);color:var(--accent-d)}
+.tag-why .t{background:var(--teal-l);color:var(--teal)}
+.tag-eg .t{background:var(--gold-l);color:var(--gold)}
+.tagline .x{margin:0;font-size:16px;line-height:1.78}
+.analogy{background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--card-line);
+  border-left:5px solid var(--teal);border-radius:0 14px 14px 0;padding:16px 20px;margin:18px 0;box-shadow:var(--shadow-sm)}
+.analogy .lbl{font-size:12px;font-weight:800;color:var(--teal);letter-spacing:.06em;margin-bottom:5px}
+.analogy p{margin:0;font-size:16px}
+/* callouts */
+.callout{border-radius:14px;padding:15px 19px;margin:18px 0;font-size:16px;line-height:1.78;border:1px solid}
+.callout .ti{font-weight:800;display:block;margin-bottom:3px;font-size:14.5px;letter-spacing:.02em}
+.key{background:var(--accent-l);border-color:#bcd3fa;color:#16335f}
+.key .ti{color:var(--accent-d)}
+.key-teal{background:var(--teal-l);border-color:#9beedd;color:#0a4d45}
+.key-teal .ti{color:var(--teal)}
+.key-gold{background:var(--gold-l);border-color:#fadf9a;color:#7a4a09}
+.key-gold .ti{color:var(--gold)}
+.warn{background:var(--rose-l);border-color:#fbb6c4;color:#86103a}
+.warn .ti{color:var(--rose)}
+.quote-box{background:linear-gradient(135deg,var(--hero-a),var(--hero-c));color:#fff;border:none;
+  border-radius:16px;padding:22px 24px;margin:22px 0;box-shadow:var(--shadow)}
+.quote-box .ti{color:rgba(255,255,255,.82)}
+.quote-box strong{color:#bfdbfe}
+.quote-box .term{background:rgba(191,219,254,.18);color:#dbeafe}
+.quote-box a{color:#bfdbfe}
+/* steps */
+.steps{margin:18px 0;padding:0;list-style:none;counter-reset:st}
+.steps li{counter-increment:st;position:relative;padding:0 0 16px 44px;margin:0}
+.steps li:before{content:counter(st);position:absolute;left:0;top:-2px;width:30px;height:30px;border-radius:50%;
+  background:var(--accent);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:2}
+.steps li:after{content:"";position:absolute;left:14.5px;top:28px;bottom:-2px;width:2px;background:var(--card-line)}
+.steps li:last-child:after{display:none}
+.steps b{display:block;font-size:16.5px;color:var(--ink);margin-bottom:1px}
+.steps span{font-size:15.5px;color:var(--ink-soft)}
+/* code */
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px 18px;overflow-x:auto;
+  font-size:13.5px;line-height:1.6;margin:14px 0;
+  font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;box-shadow:var(--shadow-sm)}
+pre .c{color:#7d97c4}
+.io-pair{display:grid;gap:10px;margin:14px 0}
+.io-pair .io{border:1px solid var(--card-line);border-radius:11px;overflow:hidden;background:var(--card)}
+.io-pair .io .hd{font-size:12px;font-weight:800;letter-spacing:.06em;padding:6px 14px;text-transform:uppercase}
+.io.in .hd{background:var(--accent-l);color:var(--accent-d)}
+.io.out .hd{background:var(--teal-l);color:var(--teal)}
+.io pre{margin:0;border-radius:0;box-shadow:none}
+/* glossary / compare table */
+.tbl{width:100%;border-collapse:collapse;margin:18px 0;font-size:15px;background:var(--card);
+  border:1px solid var(--card-line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.tbl th{background:var(--accent);color:#fff;text-align:left;padding:11px 14px;font-size:13.5px;font-weight:700}
+.tbl td{padding:11px 14px;border-top:1px solid var(--card-line);vertical-align:top;color:var(--ink-soft)}
+.tbl td:first-child{font-weight:700;color:var(--ink);white-space:nowrap}
+.tbl tr:nth-child(even) td{background:#f6faff}
+/* figure */
+.figure{background:var(--card);border:1px solid var(--card-line);border-radius:16px;padding:20px;margin:24px 0;
+  box-shadow:var(--shadow-sm);opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{display:block;width:100%;height:auto}
+.fig-cap{font-size:13.5px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.6}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1s ease .25s}
+.figure.in [data-draw]{stroke-dashoffset:0}
+.practice{list-style:none;padding:0;margin:16px 0}
+.practice li{position:relative;padding:5px 0 5px 30px;font-size:16px;color:var(--ink-soft)}
+.practice li:before{content:"▸";position:absolute;left:6px;top:5px;color:var(--accent);font-weight:800}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--card-line),transparent);margin:36px 0 4px}
+footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--card-line);font-size:13.5px;color:var(--muted);line-height:1.7}
+.src-list{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.src-list .sl-title{flex-basis:100%;font-weight:700;color:var(--ink-soft);margin-bottom:4px;font-size:13px}
+.src-list a{font-size:12.5px;text-decoration:none;color:var(--accent-d);background:var(--accent-l);
+  border:1px solid #cfe0fa;padding:3px 10px;border-radius:8px;transition:.15s}
+.src-list a:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+@media(max-width:560px){
+  .hero h1{font-size:29px}.hero{padding:64px 20px 44px}
+  .sec-head h2{font-size:22px}body{font-size:16px}
+  .io-pair{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+  .figure{opacity:1;transform:none}
+  .figure [data-anim]{opacity:1;transform:none}
+  .figure [data-draw]{stroke-dashoffset:0}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProg"></div>
+<button class="toc-toggle" id="tocBtn" aria-label="目录">☰</button>
+<div class="scrim" id="scrim"></div>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">提示工程技术全览</div>
+  <div class="st-sub">Prompting Techniques · DAIR.AI 指南逐条整理</div>
+  <div class="st-progress">
+    <span id="pctTxt">0%</span>
+    <span class="st-bar"><span class="st-fill" id="stFill"></span></span>
+  </div>
+  <ol id="tocList">
+    <div class="toc-group">入门</div>
+    <li><a href="#intro">导言:为什么需要提示技术</a></li>
+    <div class="toc-group">基础上下文学习</div>
+    <li><a href="#zeroshot">零样本提示 Zero-shot</a></li>
+    <li><a href="#fewshot">少样本提示 Few-shot</a></li>
+    <div class="toc-group">推理增强</div>
+    <li><a href="#cot">思维链 CoT</a></li>
+    <li><a href="#meta">元提示 Meta Prompting</a></li>
+    <li><a href="#consistency">自洽性 Self-Consistency</a></li>
+    <li><a href="#knowledge">生成知识提示</a></li>
+    <li><a href="#chaining">提示链 Prompt Chaining</a></li>
+    <li><a href="#tot">思维树 ToT</a></li>
+    <div class="toc-group">外部知识与工具</div>
+    <li><a href="#rag">检索增强生成 RAG</a></li>
+    <li><a href="#art">自动推理与工具使用 ART</a></li>
+    <div class="toc-group">自动化与优化</div>
+    <li><a href="#ape">自动提示工程师 APE</a></li>
+    <li><a href="#activeprompt">主动提示 Active-Prompt</a></li>
+    <li><a href="#dsp">定向刺激提示 DSP</a></li>
+    <div class="toc-group">程序、智能体与多模态</div>
+    <li><a href="#pal">程序辅助语言模型 PAL</a></li>
+    <li><a href="#react">ReAct(推理+行动)</a></li>
+    <li><a href="#reflexion">Reflexion(语言反思)</a></li>
+    <li><a href="#multimodalcot">多模态思维链</a></li>
+    <li><a href="#graph">图提示 GraphPrompt</a></li>
+    <div class="toc-group">收尾</div>
+    <li><a href="#map">技术全景对照表</a></li>
+  </ol>
+</nav>
+
+<header class="hero">
+  <div class="hero-in">
+    <div class="kicker">Prompt Engineering · 技术篇</div>
+    <h1>提示工程技术全览</h1>
+    <p>这份文档把 promptingguide.ai「Prompting Techniques」一章里的 18 种提示技术逐条整理还原:每一种都保留原文的定义、示例、论文出处与结论,并按概念的难度补上机制拆解、类比和流程图,帮你从「零样本」一路读到「智能体级」的提示方法。</p>
+    <div class="meta">
+      <span class="chip">18 种技术</span>
+      <span class="chip">逐条保真整理</span>
+      <span class="chip">含原始 Prompt 示例</span>
+      <span class="chip">配 SVG 流程图</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="main">
+
+<!-- ===== INTRO ===== -->
+<section id="intro">
+  <div class="sec-head"><span class="ic">🧭</span><div>
+    <h2>导言:为什么需要提示技术</h2>
+    <div class="tag">Prompting Techniques · 总览</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques" target="_blank" rel="noopener">📄 promptingguide.ai/techniques <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">提示工程的目标,是<strong>有效地设计与改进提示词,从而在各类任务上从大语言模型(LLM)拿到更好的结果</strong>。</p>
+  <p>前面章节里的基础示例虽然有趣,但只是入门。这一章要讲的是更进阶的提示工程技术——它们让我们能完成<strong>更复杂的任务</strong>,并<strong>提升 LLM 的可靠性与性能</strong>。下面 18 种技术,大致可以按「需要什么能力」来分组阅读:从最朴素的零样本/少样本,到引导模型一步步推理的思维链家族,再到让模型连接外部知识、调用工具、甚至像智能体一样反思与行动的高级范式。</p>
+  <div class="callout key"><span class="ti">📌 怎么读这份文档</span>每一节都对应原指南里的一种技术,标题里给出中英文名与提出它的论文。技术之间常常彼此叠加(例如自洽性建立在思维链之上、ReAct 融合了思维链与工具调用),所以遇到「📎 需先理解」这类提示时,可以点链接回看前置概念。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== ZERO-SHOT ===== -->
+<section id="zeroshot">
+  <div class="sec-head"><span class="ic">0️⃣</span><div>
+    <h2>零样本提示 Zero-shot Prompting</h2>
+    <div class="tag">最基础的用法 · 不给任何示例</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/zeroshot" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">今天的大模型(如 GPT-3.5 Turbo、GPT-4、Claude 3)经过指令微调、在海量数据上训练,因此具备「零样本」完成部分任务的能力。</p>
+
+  <div class="def">
+    <h4>这种技术在做什么</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x"><span class="term">零样本提示</span>指的是:与模型交互的提示里<strong>不包含任何示例或演示</strong>,而是直接指示模型去完成任务,不给它任何范例来「带方向」。</p></div>
+    <div class="tagline tag-why"><span class="t">为什么有效</span><p class="x">它之所以行得通,靠的是大规模训练 + 指令微调。论文(Wei et al. 2022)显示<strong>指令微调能提升零样本学习能力</strong>——即用「以指令形式描述的数据集」去微调模型;此外 <span class="term">RLHF</span>(基于人类反馈的强化学习)被用来扩展指令微调,让模型更贴合人类偏好,这正是 ChatGPT 这类模型背后的方法。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子</span><p class="x">下面的情感分类里,我们没给模型任何「文本→情感」的范例,模型却已经理解了「情感(sentiment)」是什么——这就是零样本能力在起作用。</p></div>
+  </div>
+
+  <div class="io-pair">
+    <div class="io in"><div class="hd">Prompt</div><pre>Classify the text into neutral, negative or positive.
+
+Text: I think the vacation is okay.
+Sentiment:</pre></div>
+    <div class="io out"><div class="hd">Output</div><pre>Neutral</pre></div>
+  </div>
+
+  <div class="callout key-gold"><span class="ti">⚠️ 何时它会失效</span>当零样本不奏效时,原指南建议:<strong>在提示里提供演示或示例</strong>,这就过渡到了下一节的「少样本提示」。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== FEW-SHOT ===== -->
+<section id="fewshot">
+  <div class="sec-head"><span class="ic">🎯</span><div>
+    <h2>少样本提示 Few-shot Prompting</h2>
+    <div class="tag">用几个示例做「上下文学习」</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/fewshot" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">尽管大模型零样本能力惊人,在更复杂的任务上它仍会力不从心。少样本提示通过<strong>在提示中放入演示</strong>来实现「上下文学习(in-context learning)」,引导模型给出更好的表现。</p>
+
+  <div class="def">
+    <h4>核心思路</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x"><span class="term">少样本提示</span>是在提示里放入若干「输入 + 期望输出」的演示(demonstration),这些演示作为<strong>条件(conditioning)</strong>,为随后我们真正想让模型回答的样例「定调」。</p></div>
+    <div class="tagline tag-why"><span class="t">为什么</span><p class="x">据 Touvron et al. 2023 的观察,<strong>少样本能力是在模型规模扩大到足够大时才涌现出来的</strong>(Kaplan et al., 2020)。换句话说,它不是被显式训练出来的功能,而是规模带来的副产品。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子</span><p class="x">经典做法是先给模型几对「文本—标签」示范,再把待分类的新文本接在后面;模型会顺着前面演示的格式与规律,把答案补全。</p></div>
+  </div>
+
+  <div class="callout key-gold"><span class="ti">⚠️ 少样本提示的局限</span>少样本并非万能。原指南指出:对于<strong>需要多步推理的复杂任务</strong>,光靠堆演示往往还不够——模型可能模仿了答案的格式却没学会其中的推理过程。这正是引出「思维链」的动机:与其只给「问题→答案」,不如把<strong>中间推理步骤</strong>也演示出来。</div>
+  <div class="callout key"><span class="ti">📎 承上启下</span>下一节的思维链(CoT)可以看作少样本的升级:在演示里额外写出「怎么一步步想到答案」。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== CoT ===== -->
+<section id="cot">
+  <div class="sec-head"><span class="ic">🧠</span><div>
+    <h2>思维链 Chain-of-Thought (CoT)</h2>
+    <div class="tag">Wei et al. (2022) · 让模型「展示推理过程」</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/cot" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">思维链提示由 Wei et al. (2022) 提出,<strong>通过中间推理步骤,赋予模型复杂推理能力</strong>。它可以与少样本提示结合,在「需要先推理再作答」的复杂任务上拿到更好结果。</p>
+
+  <div class="def">
+    <h4>标准思维链(Few-shot CoT)</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x">在演示里,不只写出最终答案,还把<strong>得出答案的推理链条</strong>一并写出来。模型看到「这样推→所以答案是…」的范例后,会模仿这种「边推理边作答」的方式。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子</span><p class="x">在「判断一组数里的奇数之和是否为偶数」任务中,演示里写明「把所有奇数(9,15,1)加起来得 25,所以答案是 False」。给了这种推理示范后,模型对新题也能算对。原指南还指出:<strong>哪怕只给一个这样的范例,往往也足够了</strong>。</p></div>
+    <div class="tagline tag-why"><span class="t">为什么</span><p class="x">作者强调:这是一种<strong>涌现能力(emergent ability)</strong>,只有在足够大的语言模型上才会出现。小模型即便看了推理演示,也未必能复现这种链式推理。</p></div>
+  </div>
+
+  <h3>零样本思维链(Zero-shot CoT)</h3>
+  <p>Kojima et al. (2022) 提出一个更简单的点子:<strong>在原始提示后面加上一句「Let's think step by step(让我们一步步思考)」</strong>,就能在没有任何范例的情况下触发推理。</p>
+  <div class="io-pair">
+    <div class="io in"><div class="hd">不加引导(答错)</div><pre>I went to the market and bought 10 apples.
+I gave 2 apples to the neighbor and 2 to the
+repairman. I then bought 5 more apples and ate 1.
+How many apples did I remain with?
+<span class="c">→ 输出:11 apples(错误)</span></pre></div>
+    <div class="io out"><div class="hd">加上 "Let's think step by step"(答对)</div><pre>...How many apples did I remain with?
+
+Let's think step by step.
+<span class="c">→ 模型逐步:10 → 给出4个剩6 → 买5个=11
+→ 吃1个 = 10 apples(正确)</span></pre></div>
+  </div>
+  <div class="callout key-teal"><span class="ti">💡 为什么这句话好用</span>当你<strong>手头没多少示例可放进提示</strong>时,这种零样本 CoT 尤其管用——一句通用咒语就能显著改善需要推理的题目。</div>
+
+  <h3>自动思维链(Auto-CoT)</h3>
+  <p>手工编写多样且有效的 CoT 演示很费力,还可能不是最优解。Zhang et al. (2022) 提出 <span class="term">Auto-CoT</span>:用 LLM 配合「Let's think step by step」<strong>自动逐个生成推理链作为演示</strong>。自动生成难免出错,因此关键在于「演示的多样性」来抵消错误的影响。</p>
+  <ol class="steps">
+    <li><b>阶段一:问题聚类</b><span>把数据集里的问题划分成若干个簇(cluster)。</span></li>
+    <li><b>阶段二:演示采样</b><span>从每个簇里挑一个代表性问题,用零样本 CoT + 简单启发式规则生成它的推理链。</span></li>
+  </ol>
+  <p>这里的「简单启发式」可以是问题长度(如约 60 个 token)、推理步骤数(如 5 步),目的是鼓励模型用<strong>简洁而准确</strong>的演示。</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <g data-anim><rect x="20" y="70" width="150" height="60" rx="12" fill="var(--accent-l)" stroke="var(--accent)"/>
+        <text x="95" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-d)">问题 Question</text>
+        <text x="95" y="114" text-anchor="middle" font-size="11" fill="var(--ink-soft)">(复杂、需推理)</text></g>
+      <g data-anim><rect x="335" y="70" width="150" height="60" rx="12" fill="var(--teal-l)" stroke="var(--teal)"/>
+        <text x="410" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="var(--teal)">中间推理步骤</text>
+        <text x="410" y="114" text-anchor="middle" font-size="11" fill="var(--ink-soft)">step by step…</text></g>
+      <g data-anim><rect x="650" y="70" width="150" height="60" rx="12" fill="var(--gold-l)" stroke="var(--gold)"/>
+        <text x="725" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gold)">最终答案</text>
+        <text x="725" y="118" text-anchor="middle" font-size="11" fill="var(--ink-soft)">更可靠</text></g>
+      <path data-draw d="M170 100 L335 100" stroke="var(--accent)" stroke-width="2.5" fill="none" marker-end="url(#ah)" style="--len:165"/>
+      <path data-draw d="M485 100 L650 100" stroke="var(--teal)" stroke-width="2.5" fill="none" marker-end="url(#ah)" style="--len:165"/>
+      <defs><marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 Z" fill="var(--ink-soft)"/></marker></defs>
+    </svg>
+    <div class="fig-cap">思维链的本质:在「问题」和「答案」之间,显式插入一段可见的推理链,把原本的「黑盒跳答」变成「白盒逐步推导」。</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== META ===== -->
+<section id="meta">
+  <div class="sec-head"><span class="ic">🏗️</span><div>
+    <h2>元提示 Meta Prompting</h2>
+    <div class="tag">Zhang et al. (2024) · 关注「结构」而非「内容」</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/meta-prompting" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">元提示是一种进阶技术,它聚焦于任务与问题的<strong>结构和句法层面</strong>,而不是具体的内容细节;目标是构造一种更抽象、更结构化的方式来与 LLM 交互,强调信息的「形式与模式」而非传统的「内容中心」做法。</p>
+
+  <h3>五个关键特征</h3>
+  <ul class="practice">
+    <li><strong>面向结构</strong>:优先关注问题与解答的格式、模式,而非具体内容。</li>
+    <li><strong>句法导向</strong>:把句法当作「期望回答/解法」的模板。</li>
+    <li><strong>抽象示例</strong>:用抽象化的示例作为框架,只展示问题与解法的结构,不纠缠具体细节。</li>
+    <li><strong>通用性强</strong>:可跨多个领域使用,为各类问题提供结构化回应。</li>
+    <li><strong>分类式方法</strong>:借鉴类型论(type theory),强调对提示中各组成部分进行分类与逻辑编排。</li>
+  </ul>
+
+  <h3>相比少样本提示的优势</h3>
+  <p>Zhang et al. (2024) 报告,元提示与少样本提示的根本差别在于:<strong>元提示是结构导向,少样本是内容驱动</strong>。在 MATH 基准的解题示例中,二者形成鲜明对比。元提示的优势包括:</p>
+  <div class="tbl"><table style="width:100%;border-collapse:collapse">
+    <tr><th>优势</th><th>含义</th></tr>
+    <tr><td>Token 效率</td><td>聚焦结构而非细节内容,减少所需 token 数。</td></tr>
+    <tr><td>公平比较</td><td>弱化具体示例的影响,为比较不同解题模型提供更公平的方式。</td></tr>
+    <tr><td>零样本效力</td><td>可视为一种零样本提示——具体示例的影响被降到最低。</td></tr>
+  </table></div>
+  <div class="callout warn"><span class="ti">⚠️ 前提与局限</span>元提示<strong>假设 LLM 对该任务已有内在知识</strong>。由于模型能泛化到未见任务,元提示理论上可用;但和零样本一样,<strong>面对越是独特、新颖的任务,性能可能越下滑</strong>。适用场景包括复杂推理、数学解题、编程挑战、理论性问题等。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== SELF-CONSISTENCY ===== -->
+<section id="consistency">
+  <div class="sec-head"><span class="ic">🗳️</span><div>
+    <h2>自洽性 Self-Consistency</h2>
+    <div class="tag">Wang et al. (2022) · 多路推理后「投票」</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/consistency" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">自洽性是较为进阶的技术之一,旨在<strong>替换思维链里那种朴素的「贪心解码」</strong>。思路是:通过少样本 CoT 采样出<strong>多条不同的推理路径</strong>,再用这些生成结果挑出「最一致的答案」。它能提升 CoT 在算术与常识推理任务上的表现。</p>
+
+  <p class="callout key">📎 需先理解 <a class="ref" href="#cot">思维链 CoT</a>——自洽性是建立在 CoT 之上的「多采样 + 投票」增强。</p>
+
+  <ol class="steps">
+    <li><b>多次采样推理路径</b><span>对同一个问题,用带温度的采样让模型生成多条不同的「推理 + 答案」。比如一道年龄题,模型可能走出几条不同算法。</span></li>
+    <li><b>提取每条路径的最终答案</b><span>从每条推理链末尾取出它给出的答案(如三条分别得 67、67、35)。</span></li>
+    <li><b>多数表决</b><span>统计哪个答案出现得最多,把「多数答案」作为最终结果。原指南示例里 67 出现两次、35 出现一次,于是 67 胜出——而单次贪心解码恰恰可能错答成 35。</span></li>
+  </ol>
+
+  <div class="analogy"><div class="lbl">🔗 类比</div>
+    <p>就像让一群学生<strong>各自独立解同一道题</strong>,然后看大家答案的「众数」。即使个别人算错,只要多数人沿不同思路殊途同归到同一个答案,这个答案就更可信——比只信任「第一个举手的人」稳健得多。</p></div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== KNOWLEDGE ===== -->
+<section id="knowledge">
+  <div class="sec-head"><span class="ic">📚</span><div>
+    <h2>生成知识提示 Generated Knowledge Prompting</h2>
+    <div class="tag">Liu et al. (2022) · 先让模型「自造知识」再作答</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/knowledge" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">一个流行思路是:把知识/信息纳入提示,帮助模型做出更准确的预测。那么——<strong>能不能让模型在作答前先自己生成知识</strong>?这正是 Liu et al. (2022) 尝试的:生成知识,作为提示的一部分,尤其用于常识推理类任务。</p>
+
+  <div class="def">
+    <h4>它解决什么问题</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x">分两步:<strong>① 先用模型针对问题生成若干条相关「知识」;② 再把这些知识拼进提示,让模型据此作答。</strong></p></div>
+    <div class="tagline tag-why"><span class="t">为什么</span><p class="x">原指南举例:直接问「高尔夫的一部分是不是要比别人得更高的分?」模型会错答「Yes」,暴露了它在「需要世界知识」的任务上的局限。先让模型生成关于高尔夫规则的知识(高尔夫是用最少杆数完成、杆数越少越好),再据此作答,模型就能纠正为「No」。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子</span><p class="x">原指南还观察到一个有趣现象:用不同的生成知识去引导,模型给出的两个答案<strong>置信度差异很大</strong>——一条知识让它非常自信地答对,另一条措辞略不同的知识则让它信心明显更低。这说明「喂什么知识」对最终判断影响显著。</p></div>
+  </div>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 820 210" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <g data-anim><rect x="20" y="80" width="150" height="56" rx="12" fill="var(--accent-l)" stroke="var(--accent)"/>
+        <text x="95" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-d)">问题</text>
+        <text x="95" y="122" text-anchor="middle" font-size="11" fill="var(--ink-soft)">可能缺常识</text></g>
+      <g data-anim><rect x="335" y="30" width="150" height="50" rx="12" fill="var(--teal-l)" stroke="var(--teal)"/>
+        <text x="410" y="60" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)">生成知识 1</text></g>
+      <g data-anim><rect x="335" y="135" width="150" height="50" rx="12" fill="var(--teal-l)" stroke="var(--teal)"/>
+        <text x="410" y="165" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)">生成知识 2</text></g>
+      <g data-anim><rect x="650" y="80" width="150" height="56" rx="12" fill="var(--gold-l)" stroke="var(--gold)"/>
+        <text x="725" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gold)">整合+作答</text>
+        <text x="725" y="122" text-anchor="middle" font-size="11" fill="var(--ink-soft)">更准确</text></g>
+      <path data-draw d="M170 100 L330 55" stroke="var(--accent)" stroke-width="2" fill="none" style="--len:170"/>
+      <path data-draw d="M170 116 L330 160" stroke="var(--accent)" stroke-width="2" fill="none" style="--len:170"/>
+      <path data-draw d="M485 55 L645 100" stroke="var(--teal)" stroke-width="2" fill="none" style="--len:170"/>
+      <path data-draw d="M485 160 L645 116" stroke="var(--teal)" stroke-width="2" fill="none" style="--len:170"/>
+    </svg>
+    <div class="fig-cap">生成知识提示:问题先「发散」出多条候选知识,再「收敛」回答案——把模型自己的知识显式调出来辅助判断。</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== PROMPT CHAINING ===== -->
+<section id="chaining">
+  <div class="sec-head"><span class="ic">🔗</span><div>
+    <h2>提示链 Prompt Chaining</h2>
+    <div class="tag">把任务拆成子任务,首尾相接</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/prompt_chaining" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">为提升 LLM 的可靠性与性能,一项重要技术是<strong>把任务拆成子任务</strong>:用一个提示完成一个子任务,把它的输出当作下一个提示的输入,如此串成一条「提示操作链」。</p>
+
+  <div class="def">
+    <h4>为什么要把提示串起来</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x"><span class="term">提示链</span>:一个任务被拆成多个子任务,每一步对上一步的输出做转换或进一步处理,逐步逼近最终目标状态。</p></div>
+    <div class="tagline tag-why"><span class="t">为什么</span><p class="x">面对一个「事无巨细的超长提示」,模型常常处理不好;拆成链后不仅性能更好,还能<strong>提升透明度、可控性和可靠性</strong>——你能更容易地调试问题、定位并改进出问题的那个环节。它在搭建对话助手、提升个性化与用户体验时尤其有用。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子:文档问答</span><p class="x">回答关于长文档的问题时,可设计两个提示:<strong>提示 1</strong> 负责从文档里抽取与问题相关的引文(用 <code>&lt;quotes&gt;</code> 标签输出,若无则回「No relevant quotes found!」);<strong>提示 2</strong> 接收这些引文 + 原文档,据此组织出一个准确、友好、有帮助的回答。</p></div>
+  </div>
+
+  <ol class="steps">
+    <li><b>提示 1:抽取引文</b><span>给定文档与问题,先只做一件事——把相关引文摘出来,用 <code>&lt;quotes&gt;&lt;/quotes&gt;</code> 包裹。</span></li>
+    <li><b>提示 2:据引文作答</b><span>把上一步抽出的引文连同原文档喂进来,让模型基于这些证据写出最终答案。你甚至可以在链中再加一步去清理引文里的引用编号。</span></li>
+  </ol>
+  <div class="callout key-teal"><span class="ti">💡 提示</span>原指南指出,Anthropic 的 Claude 文档里也有更多提示链示例,本例正是受其启发改编而来。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== ToT ===== -->
+<section id="tot">
+  <div class="sec-head"><span class="ic">🌳</span><div>
+    <h2>思维树 Tree of Thoughts (ToT)</h2>
+    <div class="tag">Yao et al. (2023) & Long (2023) · 带探索与回溯的推理</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/tot" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">对于需要<strong>探索或具备策略性前瞻</strong>的复杂任务,传统提示方法力不从心。思维树(ToT)在思维链之上做了推广,<strong>鼓励模型探索「作为中间步骤的思路(thoughts)」</strong>来进行通用问题求解。</p>
+
+  <div class="def">
+    <h4>ToT 是怎么运作的</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x">ToT 维护一棵<span class="term">思路树</span>,其中每个「思路」是一段连贯的语言序列,作为解题的中间步骤。模型能通过「深思熟虑的推理过程」对中间思路<strong>自我评估</strong>进展;再把这种生成 + 评估思路的能力,与搜索算法(如广度优先 BFS、深度优先 DFS)结合,实现<strong>带前瞻与回溯</strong>的系统化探索。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子:24 点游戏</span><p class="x">论文用「Game of 24」做数学推理任务,需把思路拆成 3 步、每步一个中间等式;每一步只保留最优的 b=5 个候选。在 BFS 里,模型被要求把每个候选思路评估为「sure / maybe / impossible(确定能/也许/不可能到达 24)」,据此剪掉「太大/太小」的不可能解,保留有希望的分支(每个思路评估采样 3 次)。</p></div>
+    <div class="tagline tag-why"><span class="t">效果</span><p class="x">论文报告 ToT 在这类任务上<strong>大幅超越其他提示方法</strong>。</p></div>
+  </div>
+
+  <h3>两个版本的差异</h3>
+  <p>Yao et al. (2023) 与 Long (2023) 的核心思想相似——都通过「多轮对话 + 树搜索」增强复杂问题求解。主要区别在于:<strong>Yao 用通用的 DFS/BFS/束搜索</strong>(不针对具体问题做适配);而 <strong>Long 提出一个由强化学习训练的「ToT 控制器」</strong>来决定何时回溯、回溯几层。后者能从新数据或自博弈中学习(类似 AlphaGo vs 暴力搜索),因此即便底层 LLM 固定,这套 RL 驱动的 ToT 系统也能持续进化。</p>
+
+  <h3>把 ToT 当成一句提示用</h3>
+  <p>Hulbert (2023) 提出 <span class="term">Tree-of-Thought Prompting</span>,把 ToT 的核心思想浓缩成一个简单提示,让 LLM 在单个提示里就去评估中间思路。示例提示大意是:</p>
+  <pre>Imagine three different experts are answering this question.
+All experts will write down 1 step of their thinking,
+then share it with the group.
+Then all experts will go on to the next step, etc.
+If any expert realises they're wrong at any point then they leave.
+The question is...</pre>
+  <p>此外 Sun (2023) 对这种提示做了大规模实验,并提出 <span class="term">PanelGPT</span>——让多个 LLM 像「专家组讨论(Panel discussion)」那样来提示。</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <g data-anim><rect x="345" y="14" width="130" height="42" rx="10" fill="var(--accent-l)" stroke="var(--accent)"/>
+        <text x="410" y="40" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-d)">初始问题</text></g>
+      <g data-anim><rect x="150" y="100" width="120" height="40" rx="10" fill="var(--teal-l)" stroke="var(--teal)"/>
+        <text x="210" y="125" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)">思路 A</text></g>
+      <g data-anim><rect x="350" y="100" width="120" height="40" rx="10" fill="var(--teal-l)" stroke="var(--teal)"/>
+        <text x="410" y="125" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)">思路 B</text></g>
+      <g data-anim><rect x="550" y="100" width="120" height="40" rx="10" fill="#f1f5f9" stroke="#cbd5e1" stroke-dasharray="4 3"/>
+        <text x="610" y="119" text-anchor="middle" font-size="11.5" font-weight="700" fill="#94a3b8">思路 C</text>
+        <text x="610" y="134" text-anchor="middle" font-size="10" fill="#94a3b8">✕ 剪枝</text></g>
+      <g data-anim><rect x="120" y="186" width="110" height="40" rx="10" fill="var(--gold-l)" stroke="var(--gold)"/>
+        <text x="175" y="211" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--gold)">A1 ✓</text></g>
+      <g data-anim><rect x="250" y="186" width="110" height="40" rx="10" fill="#f1f5f9" stroke="#cbd5e1" stroke-dasharray="4 3"/>
+        <text x="305" y="208" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">A2 ✕</text></g>
+      <g data-anim><rect x="380" y="186" width="110" height="40" rx="10" fill="var(--gold-l)" stroke="var(--gold)"/>
+        <text x="435" y="211" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--gold)">B1 ✓</text></g>
+      <path data-draw d="M395 56 L230 100" stroke="var(--accent)" stroke-width="2" fill="none" style="--len:175"/>
+      <path data-draw d="M410 56 L410 100" stroke="var(--accent)" stroke-width="2" fill="none" style="--len:44"/>
+      <path data-draw d="M425 56 L600 100" stroke="#cbd5e1" stroke-width="2" fill="none" style="--len:185"/>
+      <path data-draw d="M195 140 L175 186" stroke="var(--teal)" stroke-width="2" fill="none" style="--len:50"/>
+      <path data-draw d="M225 140 L305 186" stroke="#cbd5e1" stroke-width="2" fill="none" style="--len:90"/>
+      <path data-draw d="M410 140 L435 186" stroke="var(--teal)" stroke-width="2" fill="none" style="--len:50"/>
+    </svg>
+    <div class="fig-cap">思维树展开成多分支:模型对每个中间思路自评「sure/maybe/impossible」,剪掉死路(虚线)、沿有希望的分支前瞻与回溯,而非像 CoT 那样只走一条直线。</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== RAG ===== -->
+<section id="rag">
+  <div class="sec-head"><span class="ic">🔍</span><div>
+    <h2>检索增强生成 RAG</h2>
+    <div class="tag">Lewis et al. (2021) · 把外部知识接进来</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/rag" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">通用语言模型经过微调可完成情感分析、命名实体识别等任务,这些通常不需要额外背景知识。但对于<strong>更复杂、知识密集型</strong>的任务,可以构建一个能访问外部知识源的系统——这能提升事实一致性与可靠性,并缓解「幻觉(hallucination)」问题。</p>
+
+  <div class="def">
+    <h4>RAG 是什么、怎么工作</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x">RAG 由 Meta AI 研究者提出,<strong>把「信息检索组件」与「文本生成模型」结合</strong>。它接收输入,从某个来源(如维基百科)检索出一组相关/支撑文档,把这些文档作为上下文与原始提示拼接,再喂给生成器产出最终输出。</p></div>
+    <div class="tagline tag-why"><span class="t">为什么重要</span><p class="x">因为 LLM 的<strong>参数化知识是静态的</strong>。RAG 让模型<strong>无需重新训练就能接入最新信息</strong>:它可被高效微调、其内部知识可被高效修改,从而适应「事实会随时间变化」的场景,通过基于检索的生成产出更可靠的输出。</p></div>
+    <div class="tagline tag-eg"><span class="t">技术细节</span><p class="x">Lewis et al. (2021) 给出通用微调配方:用预训练的 seq2seq 模型作<strong>参数化记忆</strong>,用维基百科的密集向量索引作<strong>非参数化记忆</strong>(由神经预训练检索器访问)。</p></div>
+  </div>
+
+  <p>RAG 在 Natural Questions、WebQuestions、CuratedTrec 等多个基准上表现强劲;在 MS-MARCO 与 Jeopardy 问题上,它生成的回答<strong>更具事实性、更具体、更多样</strong>;在 FEVER 事实核查上也有提升。如今这类「检索器 + LLM(如 ChatGPT)」的组合越来越流行,用于提升能力与事实一致性。</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 820 180" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <g data-anim><rect x="14" y="68" width="120" height="50" rx="11" fill="var(--accent-l)" stroke="var(--accent)"/>
+        <text x="74" y="98" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-d)">用户输入</text></g>
+      <g data-anim><rect x="190" y="68" width="130" height="50" rx="11" fill="var(--indigo-l)" stroke="var(--indigo)"/>
+        <text x="255" y="91" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--indigo)">检索器</text>
+        <text x="255" y="108" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">向量索引</text></g>
+      <g data-anim><rect x="190" y="6" width="130" height="40" rx="11" fill="#eef2f7" stroke="#cbd5e1"/>
+        <text x="255" y="31" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ink-soft)">📖 知识库</text></g>
+      <g data-anim><rect x="378" y="68" width="130" height="50" rx="11" fill="var(--teal-l)" stroke="var(--teal)"/>
+        <text x="443" y="91" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)">拼接上下文</text>
+        <text x="443" y="108" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">文档+提示</text></g>
+      <g data-anim><rect x="566" y="68" width="120" height="50" rx="11" fill="var(--accent-l)" stroke="var(--accent)"/>
+        <text x="626" y="98" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-d)">生成器 LLM</text></g>
+      <g data-anim><rect x="700" y="68" width="106" height="50" rx="11" fill="var(--gold-l)" stroke="var(--gold)"/>
+        <text x="753" y="91" text-anchor="middle" font-size="12" font-weight="700" fill="var(--gold)">输出</text>
+        <text x="753" y="108" text-anchor="middle" font-size="10" fill="var(--ink-soft)">更事实</text></g>
+      <path data-draw d="M134 93 L188 93" stroke="var(--ink-soft)" stroke-width="2" fill="none" style="--len:54"/>
+      <path data-draw d="M255 46 L255 66" stroke="#94a3b8" stroke-width="2" fill="none" style="--len:20"/>
+      <path data-draw d="M320 93 L376 93" stroke="var(--ink-soft)" stroke-width="2" fill="none" style="--len:56"/>
+      <path data-draw d="M508 93 L564 93" stroke="var(--ink-soft)" stroke-width="2" fill="none" style="--len:56"/>
+      <path data-draw d="M686 93 L698 93" stroke="var(--ink-soft)" stroke-width="2" fill="none" style="--len:12"/>
+    </svg>
+    <div class="fig-cap">RAG 的输入-处理-输出管道:用户问题先去知识库检索相关文档,文档与提示拼成上下文后再交给 LLM 生成——让模型「带着资料作答」。</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== ART ===== -->
+<section id="art">
+  <div class="sec-head"><span class="ic">🛠️</span><div>
+    <h2>自动推理与工具使用 ART</h2>
+    <div class="tag">Paranjape et al. (2023) · 自动编排「推理 + 调工具」</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/art" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">把思维链与工具<strong>交错使用</strong>,已被证明是应对许多任务的强大且稳健的方法。但这类做法通常需要手工编写任务专属演示,并精心脚本化「模型生成」与「工具调用」的交错。ART 提出用一个<strong>冻结的 LLM 自动生成中间推理步骤(作为程序)</strong>。</p>
+
+  <div class="def">
+    <h4>ART 怎么运作</h4>
+    <div class="tagline tag-what"><span class="t">工作流程</span><p class="x">① 面对新任务,ART <strong>从任务库里挑选多步推理 + 工具使用的演示</strong>;② 在测试时,每当需要调用外部工具,就<strong>暂停生成</strong>,把工具的输出整合进来,再继续生成。</p></div>
+    <div class="tagline tag-why"><span class="t">为什么好</span><p class="x">ART 鼓励模型从演示中泛化,以<strong>零样本</strong>方式分解新任务、在合适位置调用工具。它还是<strong>可扩展的</strong>:人类可以直接更新任务库与工具库,来修正推理步骤里的错误或添加新工具。</p></div>
+    <div class="tagline tag-eg"><span class="t">效果</span><p class="x">在 BigBench 与 MMLU 基准的未见任务上,ART <strong>显著超越少样本提示与 Auto-CoT</strong>;当引入人类反馈时,性能甚至超过手工编写的 CoT 提示。</p></div>
+  </div>
+  <p class="callout key">📎 相关:ART 与 <a class="ref" href="#react">ReAct</a> 都属于「推理 + 工具/行动」一类,区别在于 ART 更强调<strong>自动从库中检索演示并把推理写成可调用工具的程序</strong>。</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== APE ===== -->
+<section id="ape">
+  <div class="sec-head"><span class="ic">🤖</span><div>
+    <h2>自动提示工程师 APE</h2>
+    <div class="tag">Zhou et al. (2022) · 让模型自己写提示</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/ape" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">APE 是一个<strong>自动生成与筛选指令</strong>的框架。它把「指令生成」这个问题,当作一种自然语言合成问题来处理,并用 LLM 把它当作<strong>黑盒优化问题</strong>来生成并搜索候选解。</p>
+
+  <ol class="steps">
+    <li><b>生成候选指令</b><span>一个充当「推理模型」的大语言模型,在给定输出演示后,生成一批针对该任务的候选指令。</span></li>
+    <li><b>执行并评分</b><span>这些候选指令被「目标模型」执行,再根据计算出的评估分数,选出最合适的那一条。</span></li>
+  </ol>
+
+  <div class="callout key-teal"><span class="ti">💡 一个有名的发现</span>APE 发现了一个<strong>比人类手写的「Let's think step by step」更好的零样本 CoT 提示</strong>:<br>「Let's work this out in a step by step way to be sure we have the right answer.」<br>这句话在 MultiArith 与 GSM8K 基准上提升了表现。</div>
+
+  <h3>延伸:自动优化提示的相关工作</h3>
+  <p>APE 触及了「自动优化提示」这一重要主题。原指南列出了几篇关键论文供深入:</p>
+  <div class="tbl"><table style="width:100%;border-collapse:collapse">
+    <tr><th>方法</th><th>核心思路</th></tr>
+    <tr><td>Prompt-OIRL</td><td>用离线逆强化学习,生成「依赖具体查询」的提示。</td></tr>
+    <tr><td>OPRO</td><td>用 LLM 来优化提示;让模型「Take a deep breath」竟提升了数学题表现。</td></tr>
+    <tr><td>AutoPrompt</td><td>基于梯度引导的搜索,为多种任务自动构造提示。</td></tr>
+    <tr><td>Prefix Tuning</td><td>微调的轻量替代:为 NLG 任务前置一段可训练的连续前缀。</td></tr>
+    <tr><td>Prompt Tuning</td><td>通过反向传播学习「软提示(soft prompts)」。</td></tr>
+  </table></div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== ACTIVE-PROMPT ===== -->
+<section id="activeprompt">
+  <div class="sec-head"><span class="ic">🎚️</span><div>
+    <h2>主动提示 Active-Prompt</h2>
+    <div class="tag">Diao et al. (2023) · 针对任务挑「最该标注」的样例</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/activeprompt" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">思维链方法依赖<strong>一组固定的、人工标注的范例</strong>。问题是:这些范例未必是不同任务下「最有效」的例子。Active-Prompt 应运而生,用于让 LLM <strong>适配到不同任务专属的范例提示</strong>(这些范例带有人工设计的 CoT 推理)。</p>
+
+  <ol class="steps">
+    <li><b>初始查询</b><span>用「带或不带少量 CoT 范例」的方式去查询 LLM,对一组训练问题各生成 <em>k</em> 个可能答案。</span></li>
+    <li><b>计算不确定性</b><span>基于这 <em>k</em> 个答案计算一个不确定性指标(用「分歧度 disagreement」)。</span></li>
+    <li><b>挑最不确定的来标注</b><span>选出<strong>最不确定的那些问题</strong>,交给人类去标注 CoT 推理。</span></li>
+    <li><b>用新范例推理</b><span>把这些新标注的范例,用于推理每一个问题。</span></li>
+  </ol>
+  <div class="analogy"><div class="lbl">🔗 类比</div>
+    <p>就像老师批改作业时,<strong>把精力优先花在「全班答案最五花八门、最拿不准」的那几道题</strong>上——给这些题写出标准解题过程,收益最大。Active-Prompt 让「人工标注」这种稀缺资源,花在模型最迷糊的地方。</p></div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== DSP ===== -->
+<section id="dsp">
+  <div class="sec-head"><span class="ic">🧭</span><div>
+    <h2>定向刺激提示 Directional Stimulus Prompting</h2>
+    <div class="tag">Li et al. (2023) · 用小模型生成「提示/线索」来引导大模型</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/dsp" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">Li et al. (2023) 提出这一技术,目的是<strong>更好地引导 LLM 生成期望的摘要</strong>(及其他输出)。</p>
+
+  <div class="def">
+    <h4>核心机制</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x">训练一个<strong>可调的策略语言模型(policy LM)</strong>,专门用来生成「刺激/线索(stimulus / hint)」。这个策略 LM 可以很小,经优化后去生成<strong>引导黑盒冻结大模型</strong>的提示线索。</p></div>
+    <div class="tagline tag-why"><span class="t">为什么</span><p class="x">和标准提示相比,这是把「越来越多地用强化学习来优化 LLM」的趋势落到实处——不直接改大模型,而是训练一个小的「向导」在它旁边轻声指路。</p></div>
+  </div>
+  <div class="callout key-gold"><span class="ti">📝 原指南备注</span>该节标注「完整示例即将到来(Full example coming soon!)」——目前指南只给出了方法框架与对比图。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== PAL ===== -->
+<section id="pal">
+  <div class="sec-head"><span class="ic">🐍</span><div>
+    <h2>程序辅助语言模型 PAL</h2>
+    <div class="tag">Gao et al. (2022) · 把「算」这一步交给 Python</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/pal" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">PAL 让 LLM <strong>读懂自然语言问题,并把程序作为中间推理步骤生成出来</strong>。它与思维链的关键区别在于:CoT 用自由文本得到解,而 PAL <strong>把求解这一步「卸载」给一个程序运行时(如 Python 解释器)</strong>。</p>
+
+  <div class="def">
+    <h4>它和 CoT 的根本差异</h4>
+    <div class="tagline tag-what"><span class="t">是什么</span><p class="x">模型不再用文字「口算」推理,而是<strong>生成一段可执行代码</strong>;真正的计算由解释器完成,模型只负责把问题翻译成程序。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子:日期推理</span><p class="x">原指南用 LangChain + OpenAI 搭了个能算日期的应用。给模型若干「日期理解」范例后,问:「Today is 27 February 2023. I was born exactly 25 years ago. What is the date I was born in MM/DD/YYYY?」</p></div>
+  </div>
+
+  <div class="io-pair">
+    <div class="io out"><div class="hd">模型生成的不是文字,而是 Python 代码</div><pre><span class="c"># 今天是 2023/2/27,25 年前出生</span>
+today = datetime(2023, 2, 27)
+born = today - relativedelta(years=25)
+<span class="c"># 按 %m/%d/%Y 格式化</span>
+born.strftime('%m/%d/%Y')</pre></div>
+  </div>
+  <p>这段 <code>llm_out</code> 的内容是一段 Python 代码片段,再用 <code>exec</code> 执行它,最终输出:<code>02/27/1998</code>。计算的正确性由解释器保证,而非靠模型「心算」。</p>
+
+  <div class="analogy"><div class="lbl">🔗 类比</div>
+    <p>CoT 像是让模型<strong>口头一步步算</strong>(容易在某一步算错);PAL 则是让模型<strong>列出算式后交给计算器</strong>——分工明确:语言模型擅长理解题意、把问题结构化成程序;解释器擅长精确执行。</p></div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== ReAct ===== -->
+<section id="react">
+  <div class="sec-head"><span class="ic">⚡</span><div>
+    <h2>ReAct(推理 + 行动)</h2>
+    <div class="tag">Yao et al. (2022) · 交错产生「思考」与「行动」</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/react" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">ReAct 让 LLM 以<strong>交错的方式</strong>同时生成<strong>推理轨迹(reasoning traces)</strong>与<strong>任务专属的行动(actions)</strong>。推理轨迹帮助模型归纳、追踪、更新行动计划,甚至处理异常;行动步骤则让模型能与外部源(如知识库或环境)交互、获取信息。</p>
+
+  <p class="callout key">📎 ReAct 融合了 <a class="ref" href="#cot">思维链</a> 与工具调用。原指南指出:最佳做法是把 ReAct 与 CoT 结合,从而<strong>同时利用模型的内部知识与推理中获取的外部信息</strong>。</p>
+
+  <div class="def">
+    <h4>它为何能改善表现</h4>
+    <div class="tagline tag-why"><span class="t">为什么</span><p class="x">纯 CoT 虽能做算术和常识推理,但<strong>无法访问外部世界、也无法更新自身知识</strong>,容易导致事实幻觉与错误传播。ReAct 让系统能动态推理来「创建、维护、调整行动计划」,同时与外部环境(如维基百科)交互、把额外信息纳入推理。一句话:<strong>检索信息支撑推理,推理又指引下一步该检索什么</strong>。</p></div>
+    <div class="tagline tag-eg"><span class="t">例子:问答轨迹</span><p class="x">面对 HotpotQA 这类问题,模型会生成「Thought(思考)→ Act(行动,如 Search/Lookup)→ Obs(从环境得到的观察)」的求解轨迹,循环往复直到 <code>Finish</code> 给出答案。</p></div>
+  </div>
+
+  <pre>Thought 1  我需要搜索「Colorado orogeny」,找出其东段延伸到的区域…
+Act 1      Search[Colorado orogeny]
+Obs 1      Colorado orogeny 是一次造山运动…
+Thought 2  它没提到东段,我需要查「eastern sector」
+Act 2      Lookup[eastern sector]
+Obs 2      东段延伸进 High Plains,称 Central Plains orogeny
+...        (反复 思考→行动→观察)
+Act 5      Finish[1,800 to 7,000 ft]</pre>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 820 180" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <g data-anim><circle cx="130" cy="90" r="52" fill="var(--accent-l)" stroke="var(--accent)"/>
+        <text x="130" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-d)">💭 Thought</text>
+        <text x="130" y="104" text-anchor="middle" font-size="11" fill="var(--ink-soft)">思考</text></g>
+      <g data-anim><circle cx="410" cy="90" r="52" fill="var(--teal-l)" stroke="var(--teal)"/>
+        <text x="410" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="var(--teal)">🎬 Act</text>
+        <text x="410" y="104" text-anchor="middle" font-size="11" fill="var(--ink-soft)">调工具</text></g>
+      <g data-anim><circle cx="690" cy="90" r="52" fill="var(--gold-l)" stroke="var(--gold)"/>
+        <text x="690" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gold)">👁 Obs</text>
+        <text x="690" y="104" text-anchor="middle" font-size="11" fill="var(--ink-soft)">观察结果</text></g>
+      <path data-draw d="M182 90 L356 90" stroke="var(--ink-soft)" stroke-width="2.5" fill="none" marker-end="url(#ah2)" style="--len:174"/>
+      <path data-draw d="M462 90 L636 90" stroke="var(--ink-soft)" stroke-width="2.5" fill="none" marker-end="url(#ah2)" style="--len:174"/>
+      <path data-draw d="M690 142 C690 175, 130 175, 130 144" stroke="var(--indigo)" stroke-width="2.5" fill="none" stroke-dasharray="6 4" marker-end="url(#ah3)" style="--len:600"/>
+      <text x="410" y="172" text-anchor="middle" font-size="11" fill="var(--indigo)">观察反哺下一轮思考 ↺</text>
+      <defs>
+        <marker id="ah2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--ink-soft)"/></marker>
+        <marker id="ah3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--indigo)"/></marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">ReAct 的循环:思考 → 行动(调外部工具)→ 观察,观察结果再喂回下一轮思考,直到收敛到答案。这正是现代「智能体」的雏形。</div>
+  </div>
+
+  <h3>实验结论</h3>
+  <ul class="practice">
+    <li><strong>知识密集任务</strong>(HotpotQA / Fever):ReAct 普遍优于「只行动(Act)」;在 Fever 上超过 CoT,在 HotpotQA 上略逊于 CoT。</li>
+    <li>原因分析:CoT 易出事实幻觉;ReAct 的结构约束降低了推理步骤的灵活性,且<strong>高度依赖检索质量</strong>——无信息量的搜索结果会带偏模型。</li>
+    <li>把 ReAct 与「CoT + 自洽性」结合、并允许在两者间切换的方法,整体表现最好。</li>
+    <li><strong>决策任务</strong>(ALFWorld 文字游戏 / WebShop 购物环境):ReAct 优于 Act——没有「思考」的 Act 无法正确把目标分解为子目标;但当前基于提示的方法离人类专家水平仍有差距。</li>
+  </ul>
+  <p>实践中,LangChain 已内置 ReAct 框架,可把 LLM 与各种工具(如搜索 API、计算器)组合成执行任务的智能体。</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== REFLEXION ===== -->
+<section id="reflexion">
+  <div class="sec-head"><span class="ic">🪞</span><div>
+    <h2>Reflexion(语言化的强化)</h2>
+    <div class="tag">Shinn et al. (2023) · 让智能体「用语言反思错误」</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/reflexion" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">Reflexion 是一个<strong>用语言反馈来强化「基于语言的智能体」</strong>的框架。按 Shinn et al. (2023) 的说法,它是一种「言语(verbal)强化的新范式」,把策略参数化为「智能体记忆编码 + 所选 LLM 参数」。</p>
+
+  <p>高层来看,Reflexion 把来自环境的反馈(自由语言或标量)<strong>转化为语言反馈,即「自我反思(self-reflection)」</strong>,作为下一轮(episode)里 LLM 智能体的上下文。这让智能体能<strong>快速有效地从过去的错误中学习</strong>,在许多高级任务上提升表现。</p>
+
+  <h3>三个组成模型</h3>
+  <div class="def">
+    <div class="tagline tag-what"><span class="t">Actor 行动者</span><p class="x">根据状态观察生成文本与行动,在环境中行动并接收观察,形成一条轨迹(trajectory)。这里用 <a class="ref" href="#cot">CoT</a> 与 <a class="ref" href="#react">ReAct</a> 作为 Actor 模型,并加上记忆组件提供额外上下文。</p></div>
+    <div class="tagline tag-why"><span class="t">Evaluator 评估者</span><p class="x">为 Actor 的输出打分:输入一条生成轨迹(短期记忆),输出一个奖励分数。不同任务用不同奖励函数(决策类任务会用 LLM 与基于规则的启发式)。</p></div>
+    <div class="tagline tag-eg"><span class="t">Self-Reflection 自我反思</span><p class="x">由一个 LLM 担任,生成「言语强化线索」帮助 Actor 自我改进。它结合奖励信号、当前轨迹与持久记忆,产出具体、相关的反馈并存入记忆;这些存于长期记忆的经验被智能体用来快速改进决策。</p></div>
+  </div>
+  <p>简言之,Reflexion 的关键步骤是:<strong>a) 定义任务 → b) 生成轨迹 → c) 评估 → d) 反思 → e) 生成下一条轨迹</strong>。它通过引入自评、自我反思与记忆组件,扩展了 ReAct 框架。</p>
+
+  <h3>效果</h3>
+  <p>实验显示 Reflexion 在多类任务上显著提升:决策类(AlfWorld,ReAct+Reflexion 用自评技术完成 130/134 任务,大幅超过 ReAct)、推理类(HotPotQA)、编程类(Python 的 HumanEval,以及 MBPP、Rust、Leetcode Hard 上多达 SOTA)。</p>
+
+  <h3>什么时候该用 Reflexion</h3>
+  <ul class="practice">
+    <li><strong>需要从试错中学习</strong>:适合决策、推理、编程等可通过反思过往错误来改进的任务。</li>
+    <li><strong>传统 RL 不切实际时</strong>:它<strong>无需微调底层语言模型</strong>,在数据与算力上更高效,是轻量替代。</li>
+    <li><strong>需要细致反馈</strong>:言语反馈比标量奖励更细腻具体,利于做有针对性的改进。</li>
+    <li><strong>看重可解释性与显式记忆</strong>:自我反思被存入记忆,便于分析与理解其学习过程。</li>
+  </ul>
+  <div class="callout warn"><span class="ti">⚠️ 局限</span>① <strong>依赖自评能力</strong>——若模型不能准确评估自身表现,反思就失真(预期随模型能力提升而改善);② <strong>长期记忆受限</strong>——用的是有最大容量的滑动窗口,复杂任务或需向量嵌入/SQL 数据库等更高级结构;③ <strong>代码生成的局限</strong>——测试驱动开发难以指定准确的输入输出映射(如非确定性函数)。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== MULTIMODAL CoT ===== -->
+<section id="multimodalcot">
+  <div class="sec-head"><span class="ic">🖼️</span><div>
+    <h2>多模态思维链 Multimodal CoT</h2>
+    <div class="tag">Zhang et al. (2023) · 把「图像 + 文本」一起推理</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/multimodalcot" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">传统思维链只聚焦语言模态。多模态 CoT 则<strong>把文本与视觉信息纳入一个两阶段框架</strong>。</p>
+  <ol class="steps">
+    <li><b>阶段一:依据多模态信息生成「依据(rationale)」</b><span>结合文本与图像,先产出推理依据。</span></li>
+    <li><b>阶段二:答案推断</b><span>利用上一步生成的、信息丰富的依据,推断出最终答案。</span></li>
+  </ol>
+  <div class="callout key-teal"><span class="ti">💡 一个亮眼结果</span>仅 1B 参数的多模态 CoT 模型,在 <strong>ScienceQA 基准上超越了 GPT-3.5</strong>——说明「让模型在看图后先写推理依据、再答题」这一结构,能用小模型撬动大效果。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== GRAPH ===== -->
+<section id="graph">
+  <div class="sec-head"><span class="ic">🕸️</span><div>
+    <h2>图提示 GraphPrompt</h2>
+    <div class="tag">Liu et al. (2023) · 面向图数据的提示框架</div>
+    <a class="src" href="https://www.promptingguide.ai/techniques/graph" target="_blank" rel="noopener">📄 原文 <span class="ar">↗</span></a>
+  </div></div>
+  <p class="lead">Liu et al. (2023) 引入 <span class="term">GraphPrompt</span>——一个<strong>面向图(graph)的全新提示框架</strong>,用于提升下游任务的表现。</p>
+  <div class="callout key-gold"><span class="ti">📝 原指南备注</span>该节标注「更多内容即将到来(More coming soon!)」。目前指南只点出方法的存在与定位,尚未展开细节,这里如实保留。</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== MAP ===== -->
+<section id="map">
+  <div class="sec-head"><span class="ic">🗺️</span><div>
+    <h2>技术全景对照表</h2>
+    <div class="tag">一张表速查 18 种技术</div>
+  </div></div>
+  <p class="lead">把前面所有技术按「解决什么核心问题」横向对照,便于回看与定位。</p>
+  <div class="tbl"><table>
+    <tr><th>技术</th><th>提出</th><th>核心一句话</th></tr>
+    <tr><td>零样本</td><td>—</td><td>不给示例,直接下指令,靠模型内在能力。</td></tr>
+    <tr><td>少样本</td><td>Brown 等 / Touvron 2023</td><td>放几对演示做上下文学习,规模够大才涌现。</td></tr>
+    <tr><td>思维链 CoT</td><td>Wei 2022</td><td>演示出中间推理步骤,或加「一步步思考」。</td></tr>
+    <tr><td>元提示</td><td>Zhang 2024</td><td>关注问题的结构/句法而非具体内容,省 token。</td></tr>
+    <tr><td>自洽性</td><td>Wang 2022</td><td>对 CoT 多采样多条路径,再投票取众数答案。</td></tr>
+    <tr><td>生成知识</td><td>Liu 2022</td><td>先让模型自造相关知识,再据此作答。</td></tr>
+    <tr><td>提示链</td><td>—</td><td>把任务拆成子任务,前一步输出喂给后一步。</td></tr>
+    <tr><td>思维树 ToT</td><td>Yao / Long 2023</td><td>维护思路树,自评 + 搜索,带前瞻与回溯。</td></tr>
+    <tr><td>RAG</td><td>Lewis 2021</td><td>检索外部文档拼进上下文,缓解幻觉、接最新知识。</td></tr>
+    <tr><td>ART</td><td>Paranjape 2023</td><td>自动从库取演示,把推理写成可调工具的程序。</td></tr>
+    <tr><td>APE</td><td>Zhou 2022</td><td>把写提示当黑盒优化,让模型自动生成并筛选指令。</td></tr>
+    <tr><td>Active-Prompt</td><td>Diao 2023</td><td>按不确定性挑最该标注的样例做 CoT 标注。</td></tr>
+    <tr><td>DSP</td><td>Li 2023</td><td>训练小策略模型生成线索,引导黑盒大模型。</td></tr>
+    <tr><td>PAL</td><td>Gao 2022</td><td>生成可执行程序,把计算交给解释器。</td></tr>
+    <tr><td>ReAct</td><td>Yao 2022</td><td>交错「思考→行动→观察」,边推理边调工具。</td></tr>
+    <tr><td>Reflexion</td><td>Shinn 2023</td><td>把环境反馈转成语言自反思,存入记忆迭代改进。</td></tr>
+    <tr><td>多模态 CoT</td><td>Zhang 2023</td><td>图+文两阶段:先生成依据,再推断答案。</td></tr>
+    <tr><td>GraphPrompt</td><td>Liu 2023</td><td>面向图数据的提示框架(细节待补)。</td></tr>
+  </table></div>
+
+  <div class="callout key"><span class="ti">🧩 一条隐含主线</span>这些技术大致沿一条线演进:<strong>「给不给示例」→「要不要显式推理」→「要不要多路/树形探索」→「要不要接外部知识与工具」→「要不要像智能体一样行动与反思」</strong>。越往后,模型越从「被动答题者」走向「主动求解者」。</div>
+
+  <div class="quote-box"><span class="ti">结语</span>提示工程的进阶,本质是不断回答同一个问题:<strong>如何把模型「能做但默认不会自发去做」的能力,用结构稳定地引导出来</strong>——无论是让它一步步想、多想几遍、查查资料,还是动手调工具、回头反思自己。</div>
+</section>
+
+<footer>
+  内容整理自 <strong><a class="ref" href="https://www.promptingguide.ai/techniques" target="_blank" rel="noopener">promptingguide.ai · Prompting Techniques</a></strong> 一章及其 18 个技术子页面。<br>
+  处理方式:逐条整理 + 概念展开与可视化(保留原文定义、示例、论文出处与结论,按概念难度补充机制拆解、类比与 SVG 流程图)。原指南版权归 © DAIR.AI。本文档为学习用途的结构化整理。
+  <div class="src-list">
+    <span class="sl-title">📚 数据源链接(逐页)</span>
+    <a href="https://www.promptingguide.ai/techniques/zeroshot" target="_blank" rel="noopener">零样本</a>
+    <a href="https://www.promptingguide.ai/techniques/fewshot" target="_blank" rel="noopener">少样本</a>
+    <a href="https://www.promptingguide.ai/techniques/cot" target="_blank" rel="noopener">思维链 CoT</a>
+    <a href="https://www.promptingguide.ai/techniques/meta-prompting" target="_blank" rel="noopener">元提示</a>
+    <a href="https://www.promptingguide.ai/techniques/consistency" target="_blank" rel="noopener">自洽性</a>
+    <a href="https://www.promptingguide.ai/techniques/knowledge" target="_blank" rel="noopener">生成知识</a>
+    <a href="https://www.promptingguide.ai/techniques/prompt_chaining" target="_blank" rel="noopener">提示链</a>
+    <a href="https://www.promptingguide.ai/techniques/tot" target="_blank" rel="noopener">思维树 ToT</a>
+    <a href="https://www.promptingguide.ai/techniques/rag" target="_blank" rel="noopener">RAG</a>
+    <a href="https://www.promptingguide.ai/techniques/art" target="_blank" rel="noopener">ART</a>
+    <a href="https://www.promptingguide.ai/techniques/ape" target="_blank" rel="noopener">APE</a>
+    <a href="https://www.promptingguide.ai/techniques/activeprompt" target="_blank" rel="noopener">Active-Prompt</a>
+    <a href="https://www.promptingguide.ai/techniques/dsp" target="_blank" rel="noopener">DSP</a>
+    <a href="https://www.promptingguide.ai/techniques/pal" target="_blank" rel="noopener">PAL</a>
+    <a href="https://www.promptingguide.ai/techniques/react" target="_blank" rel="noopener">ReAct</a>
+    <a href="https://www.promptingguide.ai/techniques/reflexion" target="_blank" rel="noopener">Reflexion</a>
+    <a href="https://www.promptingguide.ai/techniques/multimodalcot" target="_blank" rel="noopener">多模态 CoT</a>
+    <a href="https://www.promptingguide.ai/techniques/graph" target="_blank" rel="noopener">GraphPrompt</a>
+  </div>
+</footer>
+
+</div><!-- /.main -->
+</div><!-- /.wrap -->
+
+<script>
+(function(){
+  var tocLinks = Array.prototype.slice.call(document.querySelectorAll('#tocList a'));
+  var sections = tocLinks.map(function(a){return document.querySelector(a.getAttribute('href'));}).filter(Boolean);
+  var stFill = document.getElementById('stFill');
+  var pctTxt = document.getElementById('pctTxt');
+  var topProg = document.getElementById('topProg');
+
+  function onScroll(){
+    var st = window.scrollY || document.documentElement.scrollTop;
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var pct = h>0 ? Math.min(100, Math.max(0, (st/h)*100)) : 0;
+    if(stFill) stFill.style.width = pct.toFixed(1)+'%';
+    if(pctTxt) pctTxt.textContent = Math.round(pct)+'%';
+    if(topProg) topProg.style.width = pct.toFixed(1)+'%';
+
+    // active section
+    var idx = 0, mid = st + window.innerHeight*0.32;
+    for(var i=0;i<sections.length;i++){
+      if(sections[i].offsetTop <= mid) idx = i;
+    }
+    tocLinks.forEach(function(a,i){ a.classList.toggle('active', i===idx); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // figure reveal + draw lengths
+  var figs = Array.prototype.slice.call(document.querySelectorAll('.figure'));
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(p){
+      try{ var L = p.getTotalLength(); p.style.setProperty('--len', L); }catch(e){}
+    });
+    // stagger anim children
+    var i=0;
+    f.querySelectorAll('[data-anim]').forEach(function(el){
+      el.style.transitionDelay = (0.08*i)+'s'; i++;
+    });
+  });
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+    },{threshold:0.2});
+    figs.forEach(function(f){ io.observe(f); });
+  } else {
+    figs.forEach(function(f){ f.classList.add('in'); });
+  }
+
+  // mobile toc toggle
+  var btn = document.getElementById('tocBtn');
+  var toc = document.getElementById('sideToc');
+  var scrim = document.getElementById('scrim');
+  function closeToc(){ toc.classList.remove('open'); scrim.classList.remove('show'); }
+  if(btn){
+    btn.addEventListener('click', function(){
+      toc.classList.toggle('open'); scrim.classList.toggle('show');
+    });
+  }
+  if(scrim) scrim.addEventListener('click', closeToc);
+  tocLinks.forEach(function(a){ a.addEventListener('click', closeToc); });
+})();
+</script>
+</body>
+</html>
