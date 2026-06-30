@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Comments } from "@/components/Comments";
+import { UserAvatar } from "@/components/UserAvatar";
 import { deleteNotePost, type NotePost } from "@/lib/notes";
 
 function timeAgo(iso: string): string {
