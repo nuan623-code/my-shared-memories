@@ -17,7 +17,23 @@ export const Route = createFileRoute("/_authenticated/account")({
 
 function AccountPage() {
   const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdminStatus();
   const navigate = useNavigate();
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, title")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: favs, isLoading } = useQuery({
     queryKey: ["favorites", "resources", user?.id ?? null],
     enabled: !!user,
@@ -29,20 +45,53 @@ function AccountPage() {
     navigate({ to: "/" });
   };
 
+  const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "用户";
+  const title = profile?.title ?? "读者";
+  const initial = displayName.charAt(0).toUpperCase();
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">我的账号</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-14 w-14 border-2 border-primary/20 text-base font-semibold">
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {initial}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">{displayName}</h1>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {title}
+              </span>
+              {adminLoading ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  加载中...
+                </span>
+              ) : isAdmin ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  <Shield className="h-3 w-3" />
+                  管理员
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  普通用户
+                </span>
+              )}
+            </div>
+          </div>
         </div>
+
         <div className="flex items-center gap-2">
-          <Link
-            to="/admin"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-3.5 w-3.5" /> 发布资源
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Settings className="h-3.5 w-3.5" /> 管理后台
+            </Link>
+          )}
           <button
             onClick={signOut}
             className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
