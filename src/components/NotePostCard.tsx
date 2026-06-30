@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -11,8 +11,8 @@ import { Comments } from "@/components/Comments";
 import { UserAvatar } from "@/components/UserAvatar";
 import { deleteNotePost, type NotePost } from "@/lib/notes";
 
-function timeAgo(iso: string): string {
-  const d = (Date.now() - new Date(iso).getTime()) / 1000;
+function timeAgo(iso: string, now: number): string {
+  const d = (now - new Date(iso).getTime()) / 1000;
   if (d < 60) return "刚刚";
   if (d < 3600) return `${Math.floor(d / 60)} 分钟前`;
   if (d < 86400) return `${Math.floor(d / 3600)} 小时前`;
@@ -20,11 +20,17 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString("zh-CN");
 }
 
+
 export function NotePostCard({ post }: { post: NotePost }) {
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const [showComments, setShowComments] = useState(false);
+  const [now, setNow] = useState<number>(() => new Date(post.published_at).getTime());
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
+
 
   const canDelete = !!user && (user.id === post.owner_id || isAdmin);
   const del = useMutation({
@@ -52,7 +58,7 @@ export function NotePostCard({ post }: { post: NotePost }) {
               )}
             </div>
             <div className="text-xs text-muted-foreground">
-              {authorTitle} · {timeAgo(post.published_at)}
+              {authorTitle} · {timeAgo(post.published_at, now)}
             </div>
           </div>
         </div>
