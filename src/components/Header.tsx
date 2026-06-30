@@ -49,7 +49,9 @@ export function Header() {
           >
             <Search className="h-4 w-4" />
           </Link>
+          <NotificationBell />
           {user ? (
+
             <>
               {isAdmin && (
                 <Link
