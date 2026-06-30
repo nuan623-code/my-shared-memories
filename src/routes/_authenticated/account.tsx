@@ -53,11 +53,7 @@ function AccountPage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
         <div className="flex items-center gap-4">
-          <Avatar className="h-14 w-14 border-2 border-primary/20 text-base font-semibold">
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {initial}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar preset={profile?.avatar_preset} name={displayName} size="lg" className="border-2 border-primary/20" />
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{displayName}</h1>
             <p className="text-xs text-muted-foreground">{user?.email}</p>
