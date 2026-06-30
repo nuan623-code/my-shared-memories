@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { MessageSquare, Trash2, ShieldCheck } from "lucide-react";
+import { MessageSquare, Trash2, ShieldCheck, Pin, PinOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -10,6 +10,8 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { Comments } from "@/components/Comments";
 import { UserAvatar } from "@/components/UserAvatar";
 import { deleteNotePost, type NotePost } from "@/lib/notes";
+import { supabase } from "@/integrations/supabase/client";
+
 
 function timeAgo(iso: string, now: number): string {
   const d = (now - new Date(iso).getTime()) / 1000;
@@ -46,9 +48,15 @@ export function NotePostCard({ post }: { post: NotePost }) {
   const authorTitle = post.author?.title ?? "读者";
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md">
+    <article className={`rounded-2xl border bg-card p-5 shadow-sm transition hover:shadow-md ${post.pinned ? "border-primary/40 ring-1 ring-primary/20" : "border-border"}`}>
+      {post.pinned && (
+        <div className="-mt-1 mb-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+          <Pin className="h-3 w-3" /> 置顶
+        </div>
+      )}
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
+
           <UserAvatar preset={post.author?.avatar_preset} name={author} size="md" />
           <div>
             <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -62,19 +70,39 @@ export function NotePostCard({ post }: { post: NotePost }) {
             </div>
           </div>
         </div>
-        {canDelete && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("确定删除这条帖子？")) del.mutate();
-            }}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            aria-label="删除"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={async () => {
+                const { error } = await supabase.from("resources").update({ pinned: !post.pinned }).eq("id", post.id);
+                if (error) toast.error(error.message);
+                else {
+                  toast.success(post.pinned ? "已取消置顶" : "已置顶");
+                  qc.invalidateQueries({ queryKey: ["note-posts"] });
+                }
+              }}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+              aria-label={post.pinned ? "取消置顶" : "置顶"}
+            >
+              {post.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("确定删除这条帖子？")) del.mutate();
+              }}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              aria-label="删除"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </header>
+
 
       {post.title && (
         <h2 className="mt-3 text-lg font-semibold tracking-tight text-foreground">

@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -17,14 +19,25 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
+import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as ResourcesSlugRouteImport } from './routes/resources.$slug'
 import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResourcesRoute = ResourcesRouteImport.update({
@@ -61,6 +74,11 @@ const ArticlesIndexRoute = ArticlesIndexRouteImport.update({
   path: '/articles/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UUsernameRoute = UUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResourcesSlugRoute = ResourcesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -88,11 +106,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
+  '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
+  '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -101,11 +122,14 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
+  '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
+  '/u/$username': typeof UUsernameRoute
   '/articles': typeof ArticlesIndexRoute
 }
 export interface FileRoutesById {
@@ -116,11 +140,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
+  '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
+  '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
 }
 export interface FileRouteTypes {
@@ -131,11 +158,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/notes'
     | '/resources'
+    | '/robots.txt'
     | '/search'
+    | '/sitemap.xml'
     | '/account'
     | '/admin'
     | '/articles/$slug'
     | '/resources/$slug'
+    | '/u/$username'
     | '/articles/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -144,11 +174,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/notes'
     | '/resources'
+    | '/robots.txt'
     | '/search'
+    | '/sitemap.xml'
     | '/account'
     | '/admin'
     | '/articles/$slug'
     | '/resources/$slug'
+    | '/u/$username'
     | '/articles'
   id:
     | '__root__'
@@ -158,11 +191,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/notes'
     | '/resources'
+    | '/robots.txt'
     | '/search'
+    | '/sitemap.xml'
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/articles/$slug'
     | '/resources/$slug'
+    | '/u/$username'
     | '/articles/'
   fileRoutesById: FileRoutesById
 }
@@ -173,18 +209,35 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   NotesRoute: typeof NotesRoute
   ResourcesRoute: typeof ResourcesRouteWithChildren
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SearchRoute: typeof SearchRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ArticlesSlugRoute: typeof ArticlesSlugRoute
+  UUsernameRoute: typeof UUsernameRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resources': {
@@ -234,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/articles'
       fullPath: '/articles/'
       preLoaderRoute: typeof ArticlesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$username': {
+      id: '/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof UUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resources/$slug': {
@@ -299,8 +359,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   NotesRoute: NotesRoute,
   ResourcesRoute: ResourcesRouteWithChildren,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SearchRoute: SearchRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ArticlesSlugRoute: ArticlesSlugRoute,
+  UUsernameRoute: UUsernameRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
 }
 export const routeTree = rootRouteImport

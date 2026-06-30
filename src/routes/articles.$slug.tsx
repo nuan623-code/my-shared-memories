@@ -1,11 +1,18 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff } from "lucide-react";
+import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
+import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchResourceBySlug, fetchResources } from "@/lib/resources";
+import { fetchAdjacentArticles, fetchRelatedArticles } from "@/lib/related";
+import { useAuth } from "@/hooks/use-auth";
+import { trackView } from "@/lib/views";
+import { readingMinutes } from "@/lib/article-utils";
+import type { Resource } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
 import { ParagraphCommentLayer } from "@/components/ParagraphCommentLayer";
+
 
 export const Route = createFileRoute("/articles/$slug")({
   loader: async ({ params }) => {
@@ -48,6 +55,7 @@ type TocItem = { id: string; text: string; level: number };
 
 function ArticleDetailPage() {
   const { article } = Route.useLoaderData();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [progress, setProgress] = useState(0);
@@ -55,6 +63,9 @@ function ArticleDetailPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [annotationsOn, setAnnotationsOn] = useState<boolean>(true);
   const [annotationsHydrated, setAnnotationsHydrated] = useState(false);
+  const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({ prev: null, next: null });
+  const [related, setRelated] = useState<Resource[]>([]);
+  const mins = readingMinutes(article.content || article.summary || article.title || "");
   useEffect(() => {
     const stored = window.localStorage.getItem("annotationsOn");
     if (stored !== null) setAnnotationsOn(stored !== "0");
@@ -64,6 +75,13 @@ function ArticleDetailPage() {
     if (!annotationsHydrated) return;
     window.localStorage.setItem("annotationsOn", annotationsOn ? "1" : "0");
   }, [annotationsOn, annotationsHydrated]);
+  useEffect(() => {
+    trackView(article.id, user?.id ?? null).catch(() => {});
+    fetchAdjacentArticles(article).then(setAdjacent).catch(() => {});
+    fetchRelatedArticles(article).then(setRelated).catch(() => {});
+  }, [article, user?.id]);
+
+
 
 
   useEffect(() => {
@@ -154,14 +172,21 @@ function ArticleDetailPage() {
 
       {/* Top action bar */}
       <div className="border-b border-border bg-card/50 px-4 py-3">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link
-            to="/resources"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回资源库
-          </Link>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              to="/resources"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              返回
+            </Link>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" /> 约 {mins} 分钟
+            </span>
+            <LikeButton resourceId={article.id} />
+          </div>
+
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -232,11 +257,46 @@ function ArticleDetailPage() {
             </div>
           )}
 
+          {(adjacent.prev || adjacent.next) && (
+            <nav className="mt-8 grid gap-3 sm:grid-cols-2">
+              {adjacent.prev ? (
+                <Link to="/articles/$slug" params={{ slug: adjacent.prev.slug! }}
+                  className="group rounded-lg border border-border bg-card p-4 transition hover:border-primary/40 hover:bg-muted/50">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><ChevronLeft className="h-3 w-3" /> 上一篇</div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{adjacent.prev.title}</div>
+                </Link>
+              ) : <div />}
+              {adjacent.next ? (
+                <Link to="/articles/$slug" params={{ slug: adjacent.next.slug! }}
+                  className="group rounded-lg border border-border bg-card p-4 text-right transition hover:border-primary/40 hover:bg-muted/50">
+                  <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">下一篇 <ChevronRight className="h-3 w-3" /></div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{adjacent.next.title}</div>
+                </Link>
+              ) : <div />}
+            </nav>
+          )}
+
+          {related.length > 0 && (
+            <section className="mt-8 rounded-lg border border-border bg-card p-5">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">相关推荐</h3>
+              <div className="grid gap-2">
+                {related.map((r) => (
+                  <Link key={r.id} to="/articles/$slug" params={{ slug: r.slug! }}
+                    className="flex items-start gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
+                    <span className="line-clamp-1 flex-1">{r.title}</span>
+                    {r.tags?.[0] && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{r.tags[0]}</span>}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="mt-8">
             <Comments resourceId={article.id} />
           </div>
         </div>
       </div>
+
     </div>
   );
 }

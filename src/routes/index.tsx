@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType, type Resource } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
+import { SubscribeForm } from "@/components/SubscribeForm";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTopViewed } from "@/lib/views";
+
 
 const resourcesQO = queryOptions({
   queryKey: ["resources", "home"],
@@ -270,6 +274,10 @@ function HomePage() {
         </section>
       )}
 
+      {/* Top viewed + subscribe */}
+      <TopViewedAndSubscribe allResources={resources} />
+
+
       {/* Type filter chips */}
       <section className="sticky top-[57px] z-30 border-b border-border/50 bg-background/85 px-4 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto py-3">
@@ -385,3 +393,64 @@ function HomePage() {
     </div>
   );
 }
+
+function TopViewedAndSubscribe({ allResources }: { allResources: Resource[] }) {
+  const { data: top = [] } = useQuery({
+    queryKey: ["top-viewed", 30],
+    queryFn: () => fetchTopViewed(30, 5),
+    staleTime: 5 * 60_000,
+  });
+  const byId = new Map(allResources.map((r) => [r.id, r]));
+  const topItems = top.map((t) => ({ ...t, resource: byId.get(t.resource_id) })).filter((x) => x.resource);
+
+  return (
+    <section className="border-b border-border/50 px-4 py-12">
+      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.4fr_1fr]">
+        <div>
+          <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
+            <Sparkles className="h-3.5 w-3.5" /> 热门
+          </div>
+          <h2 className="mb-5 text-2xl font-semibold text-foreground sm:text-3xl">近 30 天阅读最多</h2>
+          {topItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">暂无阅读数据，快去看几篇文章吧。</p>
+          ) : (
+            <ol className="space-y-2">
+              {topItems.map((t, i) => {
+                const r = t.resource!;
+                const href = resourceHref(r);
+                const isExternal = href.startsWith("http");
+                return (
+                  <li key={t.resource_id} className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-4 py-3 transition hover:border-primary/40 hover:bg-muted/30">
+                    <span className="text-lg font-semibold text-primary/70 tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                    {isExternal ? (
+                      <a href={href} target="_blank" rel="noreferrer" className="line-clamp-1 flex-1 text-sm font-medium text-foreground hover:text-primary">
+                        {r.title || "未命名资源"}
+                      </a>
+                    ) : (
+                      <Link to={href} className="line-clamp-1 flex-1 text-sm font-medium text-foreground hover:text-primary">
+                        {r.title || "未命名资源"}
+                      </Link>
+                    )}
+                    <span className="text-xs text-muted-foreground">{t.views} 次</span>
+                  </li>
+                );
+
+              })}
+            </ol>
+          )}
+        </div>
+        <aside className="rounded-2xl border border-border bg-card p-6">
+          <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
+            <Mail className="h-3.5 w-3.5" /> 订阅
+          </div>
+          <h3 className="text-xl font-semibold text-foreground">每周更新邮件</h3>
+          <p className="mt-1 text-sm text-muted-foreground">留下邮箱，我会把新文章、视频和资源整理后发给你。</p>
+          <div className="mt-4">
+            <SubscribeForm />
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+

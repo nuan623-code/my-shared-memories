@@ -3,6 +3,8 @@ import { Library, Menu, X, Search, Plus, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdminStatus } from "@/hooks/use-is-admin";
+import { NotificationBell } from "@/components/NotificationBell";
+
 
 const navItems = [
   { to: "/" as const, label: "首页" },
@@ -47,7 +49,9 @@ export function Header() {
           >
             <Search className="h-4 w-4" />
           </Link>
+          <NotificationBell />
           {user ? (
+
             <>
               {isAdmin && (
                 <Link
