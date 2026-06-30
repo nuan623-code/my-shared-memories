@@ -47,8 +47,8 @@ function slugify(s: string): string {
 function AdminPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const isAdmin = useIsAdmin();
+  const { user, loading: authLoading, isAdmin } = useAdminStatus();
+
   const [type, setType] = useState<ResourceType>("note");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
