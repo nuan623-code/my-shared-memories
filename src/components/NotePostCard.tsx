@@ -58,7 +58,7 @@ export function NotePostCard({ post }: { post: NotePost }) {
               )}
             </div>
             <div className="text-xs text-muted-foreground">
-              {authorTitle} · {timeAgo(post.published_at)}
+              {authorTitle} · {timeAgo(post.published_at, now)}
             </div>
           </div>
         </div>
