@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Shield, LogOut, Settings } from "lucide-react";
+import { Bookmark, Shield, LogOut, Settings, Mail, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdminStatus } from "@/hooks/use-is-admin";
 import { fetchFavoriteResources } from "@/hooks/use-favorites";
