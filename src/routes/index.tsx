@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType, type Resource } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
+import { SubscribeForm } from "@/components/SubscribeForm";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTopViewed } from "@/lib/views";
+
 
 const resourcesQO = queryOptions({
   queryKey: ["resources", "home"],
