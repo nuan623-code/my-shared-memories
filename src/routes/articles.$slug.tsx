@@ -247,7 +247,7 @@ function ArticleDetailPage() {
                     <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
                       <MessageSquarePlus className="h-3.5 w-3.5 text-primary" />
                       <span>
-                        在正文右侧点击 <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">+</span> 给段落添加公开批注；或选中任意文字弹出"高亮 / 评论"工具条。
+                        选中正文中任意文字,即可弹出「高亮 / 评论」工具条。
                       </span>
                     </div>
                   )}
@@ -261,10 +261,12 @@ function ArticleDetailPage() {
                     className="h-[calc(100vh-10rem)] w-full rounded-lg border border-border bg-white"
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   />
+                  {/* 段落批注 + 按钮暂时隐藏:Lovable 的定位算法有 bug,+ 会全挤在右上角。
+                      等 Lovable 修好后把 enabled 改回 {annotationsOn} 即可恢复。划词高亮/评论不受影响。 */}
                   <ParagraphCommentLayer
                     resourceId={article.id}
                     iframeRef={iframeRef}
-                    enabled={annotationsOn}
+                    enabled={false}
                   />
                   <HighlightLayer
                     resourceId={article.id}

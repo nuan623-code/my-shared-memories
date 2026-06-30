@@ -461,8 +461,16 @@ ALTER TABLE public.comments
   ADD COLUMN IF NOT EXISTS text_length int;
 
 -- ---------------------------------------------------------------------------
+-- storage bucket 'resources'(封面/文件上传用;public 读)
+-- 迁到自己的 Supabase 后这个桶不存在,必须建,否则上传/封面全失败。
+-- Lovable Cloud 当年自动建了;这里幂等补上。
+-- ---------------------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('resources', 'resources', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
 -- storage policies for the public 'resources' bucket
--- (create the bucket in the Storage UI if it does not exist yet)
 -- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Public can read resources bucket" ON storage.objects;
 CREATE POLICY "Public can read resources bucket"
@@ -498,3 +506,15 @@ INSERT INTO public.resources (slug, type, title, summary, category, subcategory,
   ('overseas-adjust-data-discrepancy','article','Adjust数据差异排查指南:从日志到归因','Adjust 数据排查指南','article','industry',ARRAY['移动广告','Adjust','数据排查'],'/overseas/adjust-data-discrepancy.html'),
   ('overseas-adjust-oddl','article','Adjust ODDL:海外广告投放与数据监控','Adjust ODDL 海外投放','article','industry',ARRAY['移动广告','Adjust','ODDL'],'/overseas/adjust-oddl.html')
 ON CONFLICT (slug) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 首个管理员:把站点拥有者设为 admin。
+-- 迁到自己的 Supabase 后没有任何人是 admin(Lovable Cloud 当年自动设了你),
+-- 不设的话 /admin 会一直把你弹到 /account。按登录邮箱授予,幂等。
+-- 换登录邮箱就改下面的 WHERE。
+-- ---------------------------------------------------------------------------
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'::public.app_role
+FROM auth.users
+WHERE email = 'nuan623@gmail.com'
+ON CONFLICT (user_id, role) DO NOTHING;

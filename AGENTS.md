@@ -31,6 +31,13 @@
 - **部署**:`~/.cf_token` 存 Cloudflare API token。本地用 **npm**(非 bun);`npm run dev` → http://localhost:8080。
 - **`.env` 陷阱(必读)**:Supabase URL/key 在**构建时**从 `.env` 内联进产物,缺了线上连不上库。但 Lovable 在 `main` 上**跟踪着它自己的 `.env`**(指向 Lovable 的 Supabase),`git checkout main` 会覆盖本地 `.env`、切回 `prod` 又删掉它。所以**真实 `.env` 的主备份存在仓库外 `~/.my-shared-memories.env`**,`publish.sh` 构建前会从这里还原。手动构建/部署前务必先 `cp ~/.my-shared-memories.env .env`。key 变了就更新这个备份。
 
+## 迁到自己 Supabase 的配置清单(Lovable Cloud 当年自动做了,自己的库要补)
+代码搬过来后,纯读库的功能正常,但**依赖后端配置/初始数据**的功能会坏。`schema.sql` 已幂等覆盖前两项,第 3 项只能后台点:
+1. **首个管理员**:`schema.sql` 末尾按登录邮箱给 `user_roles` 插 `admin`。不设的话 `/admin` 一直把你弹到 `/account`,Google 登录也像"没反应"。换邮箱改那段 WHERE。
+2. **存储桶 `resources`**:`schema.sql` 用 `INSERT INTO storage.buckets` 幂等建。不建的话文件/封面上传全失败。
+3. **邮箱免确认**:Supabase 后台 → Authentication → Providers → **Email → 关掉 Confirm email**(SQL 改不了,只能后台)。否则邮箱注册后没 session,像"注册了登不进"。
+4. **(可选)Cloudflare secret**:自动分类 `ANTHROPIC_API_KEY`、微信导入 `FIRECRAWL_API_KEY`,`wrangler secret put` 设;不设只是对应按钮提示未配置。
+
 ## 我的地图:只有这些文件是「我写的」(去 Lovable 叠加层)
 **这张表之外的一切都属于 Lovable —— 只读、别翻、别改。** 要动表外文件先停下问。
 | 文件 | 我做的事 |
