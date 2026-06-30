@@ -70,19 +70,39 @@ export function NotePostCard({ post }: { post: NotePost }) {
             </div>
           </div>
         </div>
-        {canDelete && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("确定删除这条帖子？")) del.mutate();
-            }}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            aria-label="删除"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={async () => {
+                const { error } = await supabase.from("resources").update({ pinned: !post.pinned }).eq("id", post.id);
+                if (error) toast.error(error.message);
+                else {
+                  toast.success(post.pinned ? "已取消置顶" : "已置顶");
+                  qc.invalidateQueries({ queryKey: ["note-posts"] });
+                }
+              }}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+              aria-label={post.pinned ? "取消置顶" : "置顶"}
+            >
+              {post.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("确定删除这条帖子？")) del.mutate();
+              }}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              aria-label="删除"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </header>
+
 
       {post.title && (
         <h2 className="mt-3 text-lg font-semibold tracking-tight text-foreground">
