@@ -65,16 +65,17 @@ function PublicProfilePage() {
           <p className="text-sm text-muted-foreground">暂无内容</p>
         ) : (
           <div className="grid gap-2">
-            {posts.map((p) => (
+            {posts.map((p: { id: string; slug: string | null; title: string | null; summary: string | null; published_at: string; type: string }) => (
               <Link key={p.id}
                 to={p.type === "article" && p.slug ? "/articles/$slug" : "/notes"}
-                params={p.type === "article" && p.slug ? { slug: p.slug } : undefined as never}
+                params={p.type === "article" && p.slug ? { slug: p.slug } : (undefined as never)}
                 className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-2.5 transition hover:border-primary/40 hover:bg-muted/30">
                 <span className="line-clamp-1 text-sm text-foreground">{p.title || p.summary || "(无标题)"}</span>
                 <span className="text-xs text-muted-foreground">{new Date(p.published_at).toLocaleDateString("zh-CN")}</span>
               </Link>
             ))}
           </div>
+
         )}
       </section>
 
@@ -84,13 +85,14 @@ function PublicProfilePage() {
           <p className="text-sm text-muted-foreground">暂无评论</p>
         ) : (
           <ul className="space-y-2">
-            {comments.map((c) => (
+            {comments.map((c: { id: string; content: string; created_at: string }) => (
               <li key={c.id} className="rounded-md border border-border bg-card px-4 py-2.5">
                 <p className="line-clamp-2 text-sm text-foreground">{c.content}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString("zh-CN")}</p>
               </li>
             ))}
           </ul>
+
         )}
       </section>
     </div>
