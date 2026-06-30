@@ -47,6 +47,8 @@ function slugify(s: string): string {
 function AdminPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user, loading: authLoading } = useAuth();
+  const isAdmin = useIsAdmin();
   const [type, setType] = useState<ResourceType>("note");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -58,6 +60,12 @@ function AdminPage() {
   const [tagsStr, setTagsStr] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+
+  if (!authLoading && user && !isAdmin) {
+    return <Navigate to="/account" />;
+  }
+
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
