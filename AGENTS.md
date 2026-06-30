@@ -50,6 +50,7 @@
 | (已删除) | `src/integrations/lovable/`、`src/lib/lovable-error-reporting.ts` |
 | `.env`(不入 git)/ `.gitignore` / `.env.example` | 用用户自己的 Supabase key |
 | `supabase/schema.sql`、`publish.sh`、`AGENTS.md` | bootstrap / 部署脚本 / 本文件 |
+| `scripts/sync-static-resources.mjs` + `scripts/resources.manifest.json` | 把 `public/` 静态 HTML 自动同步进 `resources` 表(见下) |
 
 ## 日常:拉 Lovable 更新并上线
 ```bash
@@ -62,6 +63,13 @@
 2. **新数据库迁移** —— Lovable 在 `supabase/migrations/` 新增的 `.sql`,**直接在 Supabase SQL Editor 按文件原样跑一遍**(它们是 Lovable 写好的,别重抄进 schema.sql)。跑完用 `--schema-ok` 继续。
 
 > `supabase/schema.sql` 只是**全新数据库的一次性 bootstrap**(幂等,整合了历史迁移)。日常更新走上面第 2 点,不要每次把新迁移再整合进它 —— 那是重复劳动。
+
+## 加静态文档到资料库(已自动化,别再手动跑 SQL)
+资料库列表读 Supabase `resources` 表,不是静态文件。以前每加一篇要手动插一行 SQL;现在 `publish.sh` 部署后会跑 `scripts/sync-static-resources.mjs` 自动同步:
+- **流程**:把 HTML 放进 `public/ai-notes/`(或 `overseas/`、根目录)→ `./publish.sh --deploy-only` → 脚本扫描、按 **`folder-filename`** 约定生成 slug、`upsert`(`ignore-duplicates`,**只新增、绝不覆盖已有行**)。
+- **标题/分类**:默认取文件 `<h1>`→`<title>` + 按目录给默认分类;要精修就在 `scripts/resources.manifest.json` 按 slug 覆盖 `title/summary/category/subcategory/tags`。
+- **写凭证**:service_role key,只存 **仓库外 `~/.ms-supabase-admin`(chmod 600,绝不进 git、绝不打包/内联)**。缺这个文件脚本自动跳过、不阻断部署。**这是唯一能写 `resources` 的凭证**(`.env` 里的 publishable key 对该表只读)。
+- 已废弃:一次性 `supabase/seed-*.sql`(改由脚本统一管理)。
 
 ## 测试深度(默认最轻,省 token)
 - **默认**:构建过 + `tsc --noEmit` 过 + curl `/`、`/auth`、一篇文章 = 200 + REST 探针确认相关表在。
