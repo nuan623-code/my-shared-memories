@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Library, Menu, X, Search, Plus, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useAdminStatus } from "@/hooks/use-is-admin";
 
 const navItems = [
   { to: "/" as const, label: "首页" },
@@ -13,6 +14,7 @@ const navItems = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
+  const { isAdmin } = useAdminStatus();
 
 
   return (
@@ -47,12 +49,14 @@ export function Header() {
           </Link>
           {user ? (
             <>
-              <Link
-                to="/admin"
-                className="hidden items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 md:inline-flex"
-              >
-                <Plus className="h-3.5 w-3.5" /> 发布
-              </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="hidden items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 md:inline-flex"
+                >
+                  <Plus className="h-3.5 w-3.5" /> 发布
+                </Link>
+              )}
               <Link
                 to="/account"
                 className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -103,13 +107,15 @@ export function Header() {
                 >
                   我的账号
                 </Link>
-                <Link
-                  to="/admin"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-sm font-medium text-primary"
-                >
-                  发布资源
-                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium text-primary"
+                  >
+                    发布资源
+                  </Link>
+                )}
               </>
             ) : (
               <Link
