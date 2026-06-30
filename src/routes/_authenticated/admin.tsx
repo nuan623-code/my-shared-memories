@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useIsAdmin } from "@/hooks/use-is-admin";
-import { useAuth } from "@/hooks/use-auth";
+import { useAdminStatus } from "@/hooks/use-is-admin";
+
 
 import { useState } from "react";
 import { toast } from "sonner";
