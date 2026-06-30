@@ -11,14 +11,15 @@ import { Comments } from "@/components/Comments";
 import { UserAvatar } from "@/components/UserAvatar";
 import { deleteNotePost, type NotePost } from "@/lib/notes";
 
-function timeAgo(iso: string): string {
-  const d = (Date.now() - new Date(iso).getTime()) / 1000;
+function timeAgo(iso: string, now: number): string {
+  const d = (now - new Date(iso).getTime()) / 1000;
   if (d < 60) return "刚刚";
   if (d < 3600) return `${Math.floor(d / 60)} 分钟前`;
   if (d < 86400) return `${Math.floor(d / 3600)} 小时前`;
   if (d < 30 * 86400) return `${Math.floor(d / 86400)} 天前`;
   return new Date(iso).toLocaleDateString("zh-CN");
 }
+
 
 export function NotePostCard({ post }: { post: NotePost }) {
   const { user } = useAuth();
