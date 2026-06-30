@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Shield, LogOut, Settings } from "lucide-react";
+import { Bookmark, Shield, LogOut, Settings, Mail, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdminStatus } from "@/hooks/use-is-admin";
 import { fetchFavoriteResources } from "@/hooks/use-favorites";
@@ -26,7 +26,7 @@ function AccountPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, title")
+        .select("display_name, title, created_at")
         .eq("id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -61,10 +61,20 @@ function AccountPage() {
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{displayName}</h1>
             <p className="text-xs text-muted-foreground">{user?.email}</p>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                 {title}
               </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                <Mail className="h-3 w-3" />
+                {user?.email}
+              </span>
+              {user?.created_at && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  注册于 {new Date(user.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })}
+                </span>
+              )}
               {adminLoading ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                   加载中...
