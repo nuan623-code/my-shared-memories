@@ -44,9 +44,7 @@ export function NotePostCard({ post }: { post: NotePost }) {
     <article className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md">
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-            {initial}
-          </div>
+          <UserAvatar preset={post.author?.avatar_preset} name={author} size="md" />
           <div>
             <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
               {author}
