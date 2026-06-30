@@ -1,11 +1,18 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff } from "lucide-react";
+import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
+import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchResourceBySlug, fetchResources } from "@/lib/resources";
+import { fetchAdjacentArticles, fetchRelatedArticles } from "@/lib/related";
+import { useAuth } from "@/hooks/use-auth";
+import { trackView } from "@/lib/views";
+import { readingMinutes } from "@/lib/article-utils";
+import type { Resource } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
 import { ParagraphCommentLayer } from "@/components/ParagraphCommentLayer";
+
 
 export const Route = createFileRoute("/articles/$slug")({
   loader: async ({ params }) => {
