@@ -100,21 +100,21 @@ function AboutPage() {
         </div>
 
         {/* Contact */}
-        <div className="rounded-2xl border border-border bg-card p-8">
+        <div id="contact" className="rounded-2xl border border-border bg-card p-8">
           <h2 className="mb-4 text-xl font-semibold text-foreground">联系方式</h2>
           <p className="mb-6 text-muted-foreground">
             欢迎就技术话题、行业讨论或合作机会与我联系。
           </p>
           <div className="flex flex-wrap gap-3">
             <a
-              href="mailto:hello@example.com"
+              href="mailto:nuan623@gmail.com"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               <Mail className="h-4 w-4" />
               邮箱
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/nuan623-code"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
@@ -123,7 +123,7 @@ function AboutPage() {
               GitHub
             </a>
             <a
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/in/mingyu-yang-7048389b/"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"

@@ -14,6 +14,67 @@ export type Database = {
   }
   public: {
     Tables: {
+      article_likes: {
+        Row: {
+          created_at: string
+          fingerprint: string | null
+          id: string
+          liker_id: string | null
+          resource_id: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          liker_id?: string | null
+          resource_id: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          liker_id?: string | null
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_likes_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      article_views: {
+        Row: {
+          id: string
+          resource_id: string
+          viewed_at: string
+          viewer_id: string | null
+        }
+        Insert: {
+          id?: string
+          resource_id: string
+          viewed_at?: string
+          viewer_id?: string | null
+        }
+        Update: {
+          id?: string
+          resource_id?: string
+          viewed_at?: string
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_views_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           anchor_id: string | null
@@ -24,6 +85,8 @@ export type Database = {
           id: string
           parent_id: string | null
           resource_id: string
+          text_length: number | null
+          text_offset: number | null
           updated_at: string
           user_id: string
         }
@@ -36,6 +99,8 @@ export type Database = {
           id?: string
           parent_id?: string | null
           resource_id: string
+          text_length?: number | null
+          text_offset?: number | null
           updated_at?: string
           user_id: string
         }
@@ -48,6 +113,8 @@ export type Database = {
           id?: string
           parent_id?: string | null
           resource_id?: string
+          text_length?: number | null
+          text_offset?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -97,8 +164,89 @@ export type Database = {
           },
         ]
       }
+      highlights: {
+        Row: {
+          anchor_id: string
+          color: string
+          created_at: string
+          id: string
+          note: string | null
+          quote: string
+          resource_id: string
+          text_length: number
+          text_offset: number
+          user_id: string
+        }
+        Insert: {
+          anchor_id: string
+          color?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quote: string
+          resource_id: string
+          text_length?: number
+          text_offset?: number
+          user_id: string
+        }
+        Update: {
+          anchor_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quote?: string
+          resource_id?: string
+          text_length?: number
+          text_offset?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          type: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          type: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_preset: string | null
           created_at: string
           display_name: string
           id: string
@@ -106,6 +254,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_preset?: string | null
           created_at?: string
           display_name?: string
           id: string
@@ -113,6 +262,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_preset?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -133,7 +283,9 @@ export type Database = {
           file_url: string | null
           id: string
           owner_id: string | null
+          pinned: boolean
           published_at: string
+          search_tsv: unknown
           slug: string | null
           subcategory: string | null
           summary: string | null
@@ -154,7 +306,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           owner_id?: string | null
+          pinned?: boolean
           published_at?: string
+          search_tsv?: unknown
           slug?: string | null
           subcategory?: string | null
           summary?: string | null
@@ -175,7 +329,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           owner_id?: string | null
+          pinned?: boolean
           published_at?: string
+          search_tsv?: unknown
           slug?: string | null
           subcategory?: string | null
           summary?: string | null
@@ -184,6 +340,30 @@ export type Database = {
           type?: string
           updated_at?: string
           url?: string | null
+        }
+        Relationships: []
+      }
+      subscribers: {
+        Row: {
+          confirmed: boolean
+          created_at: string
+          email: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          confirmed?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          confirmed?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

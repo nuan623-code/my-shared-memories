@@ -36,13 +36,15 @@ function buildTaxonomyPrompt() {
 export const classifyContent = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => InputSchema.parse(data))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error("Missing LOVABLE_API_KEY");
+      throw new Error(
+        "未配置 ANTHROPIC_API_KEY（用于 /admin 自动分类）。在 Cloudflare Worker 里设置该 secret 后即可启用。"
+      );
     }
 
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(apiKey);
+    const { createClaudeProvider } = await import("./ai-gateway.server");
+    const claude = createClaudeProvider(apiKey);
 
     const taxonomy = buildTaxonomyPrompt();
     const system = `你是一名内容编辑助理，负责为个人作品集网站的内容自动分类。
@@ -63,7 +65,7 @@ ${data.content.slice(0, 6000)}`;
 
     try {
       const { output } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: claude("claude-haiku-4-5-20251001"),
         output: Output.object({ schema: ResultSchema }),
         system,
         prompt,

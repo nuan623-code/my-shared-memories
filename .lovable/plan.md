@@ -1,85 +1,78 @@
-# 完善与测试计划
+## 目标
 
-分四个阶段推进，每一阶段完成后我会给你一个验收清单，确认无误再进入下一阶段。
+阅读文章时用鼠标选中任意一段文字，弹出浮动工具条，选择：
+- **高亮**：仅自己可见，存到个人笔记（私密）
+- **添加评论**：公开评论，所有人能看到并回复（公共讨论）
 
----
+已有的"段落右侧 + 按钮"保留作为整段评论入口，二者并存。
 
-## 阶段 1：段落评论（核心新功能）
+## 用户体验
 
-**目标**：每个段落右侧出现可隐藏的小气泡，显示评论数；点击弹出抽屉查看/添加评论。
+1. 在文章正文里拖动鼠标选中一段文字（最少 4 个字）。
+2. 选区附近弹出浮动小工具条：`高亮` / `评论` / `取消`。
+3. 点"高亮"：选区立即套上淡黄色背景；再次悬停可删除。
+4. 点"评论"：右侧抽屉打开，显示被引用的原文 + 评论输入框；提交后所有人可见，可回复。
+5. 重新打开文章时，自己的高亮 + 所有人的划词评论会自动重新定位高亮在原文上。
 
-实现要点：
-1. 数据库：`comments` 表新增 `anchor_id`（段落哈希）、`anchor_text`（段落预览前 120 字）、`anchor_kind`（'article' | 'paragraph'）字段及索引。旧评论默认 'article'，原文章底部评论区不受影响。
-2. 锚点策略：扫描 iframe 内 `p / h2 / h3 / li / pre` 节点，用 djb2 hash(前 120 字 + DOM 序号) 生成稳定 ID，内容微调不会丢评论。
-3. UI：
-   - `ParagraphCommentLayer` 组件挂在 iframe 容器右侧 gutter。
-   - 有评论：蓝底气泡显示数字；无评论：悬停段落才显示「+」。
-   - 点击 → 右侧 Sheet 抽屉，复用现有 `Comments` 组件（compact 模式 + anchorId 过滤）。
-4. 全局开关：Header 增加「显示/隐藏批注」按钮，状态存 localStorage。
+## 数据库
 
----
+新增一张 `highlights` 表（私密笔记）：
 
-## 阶段 2：文章页完善
+| 列 | 说明 |
+| --- | --- |
+| `id` | uuid 主键 |
+| `resource_id` | 关联文章 |
+| `user_id` | 拥有者，RLS 仅本人可见 |
+| `quote` | 选中的原文（最多 500 字） |
+| `anchor_id` | 所在段落的稳定 hash（沿用现有 ParagraphCommentLayer 的算法） |
+| `text_offset` | 选区在该段落内的起始字符偏移，便于精准还原 |
+| `text_length` | 选区长度 |
+| `color` | 可选高亮色（默认黄色） |
+| `note` | 可选私人备注（后续可加） |
+| `created_at` | 时间戳 |
 
-- 移动端目录：< md 屏幕收进抽屉，顶部按钮唤起。
-- iframe 自适应高度：监听 contentDocument 高度变化，去掉内部滚动条，整页只有一个滚动。
-- 上一篇/下一篇导航：底部按同一大类展示前后文章。
-- 文章末尾保留原有的整篇评论区（不变）。
+RLS：`select/insert/update/delete` 全部 `using (auth.uid() = user_id)`，外人完全看不到别人的高亮。
 
----
+`comments` 表已经有 `anchor_id`、`anchor_text` 字段，扩展两列：
+- `text_offset int` 
+- `text_length int`
 
-## 阶段 3：资源库 & 账号页完善
+新值用于划词评论（旧的"整段评论"两列留空仍兼容）。`select` 策略保持公开（任何人可读），保证讨论是公共的。
 
-- 资源库：
-  - 标签筛选改为多选 + 「清除」按钮。
-  - 卡片右下角小角标：评论数 / 收藏数。
-  - 空状态文案 + 推荐标签。
-- 账号页新增「我的评论」标签：列出我发过的评论，点击跳转到对应文章 + 段落锚点。
+## 前端实现
 
----
+新增组件 `SelectionToolbar`（套在 iframe 外层）：
 
-## 阶段 4：全局微调
+1. 在 iframe 加载完成后，向其 document 监听 `mouseup`/`selectionchange`。
+2. 拿到 `window.getSelection()`：
+   - 用 `Range.startContainer` 向上找最近的 `p/li/blockquote/h2/h3`，复用现有 `hashAnchor(text, index)` 算 `anchor_id`。
+   - 用 `range.startOffset` + 段落内文本拼接得到 `text_offset`、`text_length`、`quote`。
+3. 把选区的 `getBoundingClientRect()` 转换成相对 iframe 的坐标，在 iframe 外的 overlay 上绝对定位浮动工具条（避免被 iframe sandbox 限制）。
+4. 点"高亮"→ `supabase.from('highlights').insert(...)`；点"评论"→ 打开右侧抽屉，复用现有 `<Comments resourceId anchorId anchorText compact />`，新增传 `textOffset/textLength` 字段。
 
-- 自定义 404 页面。
-- 移动端 Header 汉堡菜单。
-- 深色模式开关（仅前端切换，沿用现有 oklch token）。
+新增组件 `HighlightLayer`：
+- 加载本人在该文章下的 `highlights`，每条根据 `anchor_id` 找到段落，按 `text_offset/length` 用 `Range.surroundContents` 把对应文字包裹进 `<mark data-highlight-id>`。
+- iframe 滚动 / resize 时不需要重算（DOM 内联了），但点击 `<mark>` 显示"删除高亮"小气泡。
 
----
+`ParagraphCommentLayer` 现有的右侧 + 按钮保留，给整段评论用。划词评论的小气泡用不同图标，挂在段落同一行旁边，点击打开抽屉看该选区的评论。
 
-## 测试计划
+## 实施步骤
 
-每个阶段完成后我会用 Playwright 跑一遍以下脚本，并把截图回传给你确认：
+1. **数据库迁移**：新建 `highlights` 表 + RLS + GRANT；给 `comments` 加两列。
+2. **新增 `src/lib/highlights.ts`**：CRUD + 选区计算工具。
+3. **新增 `src/components/SelectionToolbar.tsx`**：iframe 选区监听 + 浮动按钮。
+4. **新增 `src/components/HighlightLayer.tsx`**：渲染本人高亮 + 删除交互。
+5. **改 `src/routes/articles.$slug.tsx`**：在 iframe 容器内挂载 `SelectionToolbar` 和 `HighlightLayer`，沿用现有的 `annotationsOn` 开关同步控制显隐；未登录时浮动条只显示"登录后高亮/评论"提示。
+6. **改 `src/components/Comments.tsx`**：在划词评论顶部用引用样式展示 `anchor_text`，回复嵌套不变。
+7. **Playwright 验证**：登录后选中一段 → 高亮 → 刷新仍在；选中另一段 → 评论 → 退出登录后用其他账号能看到该评论但看不到高亮。
 
-**段落评论**
-1. 打开任一文章 → 截图：右侧 gutter 出现「+」hover 态。
-2. 点击「+」→ 抽屉弹出 → 填写评论 → 提交 → 截图气泡变成「1」。
-3. 切到无痕模式（未登录）→ 点击气泡只能查看不能发。
-4. 关「显示批注」→ 截图气泡全消失；刷新仍保持关闭。
+## 注意事项
 
-**文章页**
-1. 移动视口 (375×812)：截图目录抽屉。
-2. 桌面：iframe 没有内部滚动条；底部出现上一篇/下一篇。
-
-**资源库 & 账号页**
-1. 多选两个标签 → 截图结果。
-2. 账号页「我的评论」点击 → 跳转并滚动到段落，截图。
-
-**全局**
-1. 访问 `/不存在的路径` → 自定义 404 截图。
-2. 暗色模式切换前后对比截图。
-
----
-
-## 技术细节（供参考）
-
-- 数据库迁移已在上一轮执行：`anchor_id text, anchor_text text, anchor_kind text default 'article'` + `idx_comments_anchor` 索引。RLS 策略沿用现有 `comments` 表，无需调整。
-- iframe 同源（来自 `/public`），可直接读取 `contentDocument`，无 CORS 问题。
-- `ParagraphCommentLayer` 已创建草稿，阶段 1 主要是联调 + 样式打磨。
-- 路由不新增，复用 `/articles/$slug`、`/resources`、`/account`。
+- iframe 是同源（`srcDoc` 或本地 `public/` HTML），可以直接读 `contentDocument`，已经在用。
+- `Range.surroundContents` 在选区跨越元素时会抛错，遇到这种情况退化为只高亮第一个文本节点段，避免破坏 DOM。
+- 公众号原文里图片很多，若选区只覆盖图片不弹工具条（要求至少 4 个字符）。
+- 暂不实现"高亮颜色选择"和"私人备注"，先把核心闭环跑通；后续可在抽屉里加。
 
 ---
 
-请确认：
-1. 四个阶段的顺序和范围 OK 吗？
-2. 暗色模式现在做还是先搁置？
-3. 「我的评论」要不要也包含我收到的回复（@提醒）？
+确认就开做。
