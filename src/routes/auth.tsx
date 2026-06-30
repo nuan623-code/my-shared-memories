@@ -15,6 +15,16 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+async function resolveLandingPath(userId: string): Promise<"/admin" | "/account"> {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return data ? "/admin" : "/account";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -23,8 +33,11 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin" });
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) {
+        const to = await resolveLandingPath(data.session.user.id);
+        navigate({ to });
+      }
     });
   }, [navigate]);
 
@@ -45,13 +58,16 @@ function AuthPage() {
         if (error) throw error;
         toast.success("欢迎回来");
       }
-      navigate({ to: "/admin" });
+      const { data } = await supabase.auth.getUser();
+      const to = data.user ? await resolveLandingPath(data.user.id) : "/account";
+      navigate({ to });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "登录失败");
     } finally {
       setBusy(false);
     }
   };
+
 
   const signInGoogle = async () => {
     const res = await lovable.auth.signInWithOAuth("google", {

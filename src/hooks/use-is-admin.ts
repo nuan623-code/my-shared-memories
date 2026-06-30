@@ -20,3 +20,27 @@ export function useIsAdmin() {
   });
   return !!data;
 }
+
+export function useAdminStatus() {
+  const { user, loading: authLoading } = useAuth();
+  const { data, isLoading } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
+  return {
+    isAdmin: !!data,
+    loading: authLoading || (!!user && isLoading),
+    user,
+  };
+}
+
