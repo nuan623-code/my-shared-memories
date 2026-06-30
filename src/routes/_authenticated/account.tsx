@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Plus, LogOut } from "lucide-react";
+import { Bookmark, Shield, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useAdminStatus } from "@/hooks/use-is-admin";
 import { fetchFavoriteResources } from "@/hooks/use-favorites";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import { ProfileEditor } from "@/components/ProfileEditor";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/_authenticated/account")({
   head: () => ({ meta: [{ title: "我的账号 — Mingyu's Library" }] }),
