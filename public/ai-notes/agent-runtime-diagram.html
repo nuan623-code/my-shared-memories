@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 运行时架构图:Reasoning Loop 闭环迭代(矢量图)</title>
+<style>
+:root{--bg:#f3f7fc;--paper:#fff;--ink:#1b2733;--ink-soft:#475467;--line:#e2eaf3;
+  --accent:#2563eb;--accent-deep:#1e3a8a;--teal:#0d9488;--shadow:0 1px 3px rgba(16,42,82,.06),0 10px 30px rgba(16,42,82,.08)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);padding:26px 16px 60px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1080px;margin:0 auto}
+.head{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border-radius:20px;
+  padding:26px 28px;margin-bottom:22px;box-shadow:0 14px 40px rgba(30,58,138,.28)}
+.head .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.82;font-weight:600}
+.head h1{font-size:24px;margin:10px 0 8px;font-weight:800;line-height:1.35}
+.head p{margin:0;font-size:14.5px;opacity:.93;max-width:720px;line-height:1.7}
+.head .tags{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.head .tags b{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);
+  padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:20px;
+  padding:20px 18px;box-shadow:var(--shadow);overflow-x:auto}
+.card svg{display:block;width:100%;height:auto;min-width:760px}
+.note{font-size:13px;color:var(--ink-soft);margin:14px 4px 0;text-align:center}
+footer{text-align:center;color:var(--ink-soft);font-size:13px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="eyebrow">AI Agent · 架构图</div>
+    <h1>Agent 运行时架构:Reasoning Loop 闭环迭代</h1>
+    <p>用户一句自然语言需求,Agent 如何在运行时底座上,通过「思考 → 行动 → 观察 → 调整」的闭环循环、按需调用资源与工具,逐步把任务做完。以下为矢量重绘版,可无限放大不失真。</p>
+    <div class="tags"><b>🔁 闭环迭代</b><b>🧰 资源按需调用</b><b>🧠 模型反复调用</b><b>📦 状态持续累积</b></div>
+  </div>
+
+  <div class="card">
+<svg viewBox="0 0 1040 1400" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="mA" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0L7,3L0,6Z" fill="#2563eb"/></marker>
+    <marker id="mT" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0L7,3L0,6Z" fill="#0d9488"/></marker>
+    <marker id="mI" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0L7,3L0,6Z" fill="#4f46e5"/></marker>
+    <marker id="mG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0L7,3L0,6Z" fill="#b45309"/></marker>
+  </defs>
+  <style>
+    text{fill:#1b2733}
+    .h{font-weight:800} .mut{fill:#64748b} .wht{fill:#fff}
+    .c-blue{fill:#1e3a8a}.c-teal{fill:#0f766e}.c-indigo{fill:#3730a3}.c-gold{fill:#92400e}
+    rect.box{fill:#fff;stroke:#bfdbfe;stroke-width:1}
+  </style>
+
+  <!-- ============ USER ============ -->
+  <text x="520" y="22" text-anchor="middle" class="h c-blue" font-size="15">👤  User</text>
+  <rect x="298" y="34" width="444" height="54" rx="12" fill="#eef4ff" stroke="#bfdbfe"/>
+  <text x="520" y="57" text-anchor="middle" class="h c-blue" font-size="13.5">💬  自然语言需求</text>
+  <text x="520" y="77" text-anchor="middle" class="mut" font-size="11">例如:帮我分析上周的广告投放数据并优化建议</text>
+  <line x1="520" y1="88" x2="520" y2="102" stroke="#2563eb" stroke-width="2" marker-end="url(#mA)"/>
+
+  <!-- ============ RUNTIME (HARNESS) ============ -->
+  <rect x="40" y="102" width="800" height="150" rx="14" fill="#eef4ff" stroke="#bfdbfe"/>
+  <text x="440" y="127" text-anchor="middle" class="h c-blue" font-size="14.5">⚙️  Agent Runtime (Harness) 运行时环境(不负责推理)</text>
+  <!-- 7 components -->
+  <g font-size="11.5">
+    <!-- box template repeated -->
+    <g><rect class="box" x="56" y="140" width="104" height="72" rx="9"/><text x="108" y="163" text-anchor="middle" font-size="16">🗄️</text><text x="108" y="184" text-anchor="middle" class="h c-blue">状态管理</text><text x="108" y="200" text-anchor="middle" class="mut" font-size="9.5">State</text></g>
+    <g><rect class="box" x="166" y="140" width="104" height="72" rx="9"/><text x="218" y="163" text-anchor="middle" font-size="16">🧠</text><text x="218" y="184" text-anchor="middle" class="h c-blue">记忆管理</text><text x="218" y="200" text-anchor="middle" class="mut" font-size="9.5">Memory</text></g>
+    <g><rect class="box" x="276" y="140" width="104" height="72" rx="9"/><text x="328" y="163" text-anchor="middle" font-size="16">🧩</text><text x="328" y="184" text-anchor="middle" class="h c-blue">上下文聚合</text><text x="328" y="200" text-anchor="middle" class="mut" font-size="9.5">Context</text></g>
+    <g><rect class="box" x="386" y="140" width="104" height="72" rx="9"/><text x="438" y="163" text-anchor="middle" font-size="16">📊</text><text x="438" y="184" text-anchor="middle" class="h c-blue">预算管理</text><text x="438" y="200" text-anchor="middle" class="mut" font-size="9.5">Budget</text></g>
+    <g><rect class="box" x="496" y="140" width="104" height="72" rx="9"/><text x="548" y="163" text-anchor="middle" font-size="16">🔄</text><text x="548" y="184" text-anchor="middle" class="h c-blue">循环控制器</text><text x="548" y="200" text-anchor="middle" class="mut" font-size="9.5">Loop Controller</text></g>
+    <g><rect class="box" x="606" y="140" width="104" height="72" rx="9"/><text x="658" y="163" text-anchor="middle" font-size="16">♻️</text><text x="658" y="184" text-anchor="middle" class="h c-blue">重试与恢复</text><text x="658" y="200" text-anchor="middle" class="mut" font-size="9.5">Retry / Recovery</text></g>
+    <g><rect class="box" x="716" y="140" width="104" height="72" rx="9"/><text x="768" y="163" text-anchor="middle" font-size="16">🔧</text><text x="768" y="184" text-anchor="middle" class="h c-blue">工具调度器</text><text x="768" y="200" text-anchor="middle" class="mut" font-size="9.5">Tool Dispatcher</text></g>
+  </g>
+  <text x="440" y="234" text-anchor="middle" fill="#2563eb" font-size="11.5" font-weight="600">负责:状态维护 · 上下文聚合 · 循环控制 · 工具调度 · 错误处理 · 资源管理 · 预算控制</text>
+  <!-- side callout -->
+  <rect x="856" y="150" width="170" height="60" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="941" y="174" text-anchor="middle" class="h" font-size="11" fill="#334155">全局运行环境</text>
+  <text x="941" y="192" text-anchor="middle" class="mut" font-size="10">贯穿整个 Agent 生命周期</text>
+  <line x1="856" y1="180" x2="842" y2="180" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#mA)"/>
+  <line x1="440" y1="252" x2="440" y2="270" stroke="#2563eb" stroke-width="2" marker-end="url(#mA)"/>
+
+  <!-- ============ LEFT RAIL: RUNTIME CONTEXT ============ -->
+  <rect x="10" y="282" width="114" height="700" rx="14" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <text x="67" y="306" text-anchor="middle" class="h c-teal" font-size="12">Runtime</text>
+  <text x="67" y="321" text-anchor="middle" class="h c-teal" font-size="11">Context(状态)</text>
+  <text x="67" y="340" text-anchor="middle" class="mut" font-size="9">贯穿整个循环</text>
+  <text x="67" y="352" text-anchor="middle" class="mut" font-size="9">每轮持续更新</text>
+  <g font-size="10">
+    <g><rect x="18" y="364" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="383" text-anchor="middle" class="c-teal">💬 会话历史</text></g>
+    <g><rect x="18" y="400" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="419" text-anchor="middle" class="c-teal">🗂️ 长期记忆</text></g>
+    <g><rect x="18" y="436" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="455" text-anchor="middle" class="c-teal">👤 用户信息</text></g>
+    <g><rect x="18" y="472" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="491" text-anchor="middle" class="c-teal">📁 文件·数据</text></g>
+    <g><rect x="18" y="508" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="527" text-anchor="middle" class="c-teal">🔧 工具结果</text></g>
+    <g><rect x="18" y="544" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="563" text-anchor="middle" class="c-teal">🔣 变量·状态</text></g>
+    <g><rect x="18" y="580" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="599" text-anchor="middle" class="c-teal">🔎 RAG 检索</text></g>
+    <g><rect x="18" y="616" width="98" height="30" rx="7" fill="#fff" stroke="#a7f3d0"/><text x="67" y="635" text-anchor="middle" class="c-teal">📝 临时草稿</text></g>
+  </g>
+  <text x="67" y="672" text-anchor="middle" class="h c-teal" font-size="10">每轮更新</text>
+  <text x="67" y="686" text-anchor="middle" class="h c-teal" font-size="10">持续累积</text>
+  <!-- data flow arrows into loop -->
+  <line x1="124" y1="500" x2="146" y2="500" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#mT)"/>
+
+  <!-- ============ CENTER: REASONING LOOP CONTAINER ============ -->
+  <rect x="135" y="272" width="695" height="586" rx="16" fill="#f8fbff" stroke="#cfe0f5"/>
+  <text x="482" y="296" text-anchor="middle" class="h c-blue" font-size="14">🔄  Reasoning Loop(核心控制流:闭环迭代)</text>
+  <text x="482" y="315" text-anchor="middle" class="mut" font-size="11">直到任务完成或达成退出条件</text>
+
+  <!-- 4 phase boxes -->
+  <!-- Think -->
+  <rect x="149" y="330" width="156" height="150" rx="11" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="227" y="352" text-anchor="middle" class="h c-blue" font-size="13">🧠 Think(思考)</text>
+  <g font-size="10" class="c-blue"><text x="163" y="376">· 理解问题</text><text x="163" y="394">· 分析现状</text><text x="163" y="412">· 回忆相关信息</text><text x="163" y="430">· 发现关键点</text><text x="163" y="448">· 形成思路</text></g>
+  <!-- Plan -->
+  <rect x="319" y="330" width="156" height="150" rx="11" fill="#fef3c7" stroke="#b45309"/>
+  <text x="397" y="352" text-anchor="middle" class="h c-gold" font-size="12.5">📋(可选)Plan</text>
+  <g font-size="10" class="c-gold"><text x="333" y="376">· 制定计划</text><text x="333" y="394">· 拆解任务</text><text x="333" y="412">· 选择策略</text><text x="333" y="430">· 确定下一步</text></g>
+  <text x="397" y="466" text-anchor="middle" class="mut" font-size="9">部分范式中并入 Think</text>
+  <!-- Act -->
+  <rect x="489" y="330" width="156" height="150" rx="11" fill="#ccfbf1" stroke="#0d9488"/>
+  <text x="567" y="352" text-anchor="middle" class="h c-teal" font-size="13">⚡ Act(行动)</text>
+  <g font-size="10" class="c-teal"><text x="503" y="378">· 选择要使用的</text><text x="513" y="394">资源(Skill /</text><text x="513" y="410">Workflow / Tool)</text><text x="503" y="430">· 执行行动</text></g>
+  <!-- Observe -->
+  <rect x="659" y="330" width="156" height="150" rx="11" fill="#e0e7ff" stroke="#4f46e5"/>
+  <text x="737" y="352" text-anchor="middle" class="h c-indigo" font-size="12.5">👁️ Observe(观察)</text>
+  <g font-size="10" class="c-indigo"><text x="673" y="376">· 接收结果</text><text x="673" y="394">· 分析反馈</text><text x="673" y="412">· 评估进展</text><text x="673" y="430">· 是否完成?</text><text x="673" y="448">· 需要调整吗?</text></g>
+  <!-- arrows -->
+  <line x1="305" y1="400" x2="319" y2="400" stroke="#2563eb" stroke-width="2" marker-end="url(#mA)"/>
+  <line x1="475" y1="400" x2="489" y2="400" stroke="#2563eb" stroke-width="2" marker-end="url(#mA)"/>
+  <line x1="645" y1="400" x2="659" y2="400" stroke="#2563eb" stroke-width="2" marker-end="url(#mA)"/>
+  <!-- loop back arrow -->
+  <path d="M737,330 C737,306 227,306 227,328" stroke="#4f46e5" stroke-width="1.6" fill="none" stroke-dasharray="6 4" marker-end="url(#mI)"/>
+  <text x="482" y="330" text-anchor="middle" class="c-indigo" font-size="9.5" font-weight="700"> </text>
+
+  <text x="567" y="502" text-anchor="middle" class="mut" font-size="10.5">每轮 Act 时按需调用资源  ↓</text>
+
+  <!-- resources container -->
+  <rect x="149" y="512" width="667" height="330" rx="12" fill="#ffffff" stroke="#dbe6f4"/>
+  <text x="482" y="534" text-anchor="middle" class="h c-blue" font-size="12.5">🧰  可调用资源(横向调用,不是顺序流水线)</text>
+
+  <!-- Skills panel -->
+  <rect x="160" y="546" width="207" height="286" rx="10" fill="#f0f6ff" stroke="#bfdbfe"/>
+  <text x="263" y="568" text-anchor="middle" class="h c-blue" font-size="12">🛠️ Skills(能力)</text>
+  <text x="263" y="585" text-anchor="middle" class="mut" font-size="9">高层能力封装 · 直接解决问题</text>
+  <g font-size="10">
+    <g><rect x="176" y="596" width="175" height="24" rx="6" fill="#fff" stroke="#bfdbfe"/><text x="263" y="612" text-anchor="middle" class="c-blue">写代码</text></g>
+    <g><rect x="176" y="624" width="175" height="24" rx="6" fill="#fff" stroke="#bfdbfe"/><text x="263" y="640" text-anchor="middle" class="c-blue">数据分析</text></g>
+    <g><rect x="176" y="652" width="175" height="24" rx="6" fill="#fff" stroke="#bfdbfe"/><text x="263" y="668" text-anchor="middle" class="c-blue">写 PRD</text></g>
+    <g><rect x="176" y="680" width="175" height="24" rx="6" fill="#fff" stroke="#bfdbfe"/><text x="263" y="696" text-anchor="middle" class="c-blue">SEO 优化</text></g>
+    <g><rect x="176" y="708" width="175" height="24" rx="6" fill="#fff" stroke="#bfdbfe"/><text x="263" y="724" text-anchor="middle" class="c-blue">广告优化</text></g>
+    <g><rect x="176" y="736" width="175" height="24" rx="6" fill="#fff" stroke="#bfdbfe"/><text x="263" y="752" text-anchor="middle" class="c-blue">合同审查</text></g>
+  </g>
+  <text x="263" y="778" text-anchor="middle" class="mut" font-size="12">…</text>
+
+  <!-- Workflow panel -->
+  <rect x="379" y="546" width="207" height="286" rx="10" fill="#f0fdf9" stroke="#99f6e4"/>
+  <text x="482" y="568" text-anchor="middle" class="h c-teal" font-size="12">🔀 Workflow(流程)</text>
+  <text x="482" y="585" text-anchor="middle" class="mut" font-size="9">多步骤流程 · 实现复杂任务</text>
+  <g font-size="10">
+    <g><rect x="399" y="594" width="167" height="21" rx="6" fill="#fff" stroke="#99f6e4"/><text x="482" y="609" text-anchor="middle" class="c-teal">读取数据</text></g>
+    <g><rect x="399" y="627" width="167" height="21" rx="6" fill="#fff" stroke="#99f6e4"/><text x="482" y="642" text-anchor="middle" class="c-teal">数据清洗</text></g>
+    <g><rect x="399" y="660" width="167" height="21" rx="6" fill="#fff" stroke="#99f6e4"/><text x="482" y="675" text-anchor="middle" class="c-teal">数据分析</text></g>
+    <g><rect x="399" y="693" width="167" height="21" rx="6" fill="#fff" stroke="#99f6e4"/><text x="482" y="708" text-anchor="middle" class="c-teal">生成图表</text></g>
+    <g><rect x="399" y="726" width="167" height="21" rx="6" fill="#fff" stroke="#99f6e4"/><text x="482" y="741" text-anchor="middle" class="c-teal">生成报告</text></g>
+    <g><rect x="399" y="759" width="167" height="21" rx="6" fill="#fff" stroke="#99f6e4"/><text x="482" y="774" text-anchor="middle" class="c-teal">检查与验证</text></g>
+    <g><rect x="399" y="792" width="167" height="21" rx="6" fill="#fff" stroke="#99f6e4"/><text x="482" y="807" text-anchor="middle" class="c-teal">导出结果</text></g>
+  </g>
+  <g stroke="#0d9488" stroke-width="1.3" marker-end="url(#mT)">
+    <line x1="482" y1="615" x2="482" y2="626"/><line x1="482" y1="648" x2="482" y2="659"/><line x1="482" y1="681" x2="482" y2="692"/>
+    <line x1="482" y1="714" x2="482" y2="725"/><line x1="482" y1="747" x2="482" y2="758"/><line x1="482" y1="780" x2="482" y2="791"/>
+  </g>
+
+  <!-- Tools panel -->
+  <rect x="598" y="546" width="207" height="286" rx="10" fill="#faf5ff" stroke="#ddd6fe"/>
+  <text x="701" y="568" text-anchor="middle" class="h c-indigo" font-size="12">🧰 Tools / MCP(工具)</text>
+  <text x="701" y="585" text-anchor="middle" class="mut" font-size="9">外部工具服务 · API 或 MCP 连接</text>
+  <g font-size="10" class="c-indigo">
+    <text x="614" y="606">🐙  GitHub</text>
+    <text x="614" y="627">💬  Slack</text>
+    <text x="614" y="648">🌐  Browser</text>
+    <text x="614" y="669">🗃️  SQL Database</text>
+    <text x="614" y="690">🎨  Figma</text>
+    <text x="614" y="711">📔  Notion</text>
+    <text x="614" y="732">📂  本地文件系统</text>
+    <text x="614" y="753">📧  Email · Calendar</text>
+    <text x="614" y="776" class="mut">…</text>
+  </g>
+
+  <!-- ============ ASSEMBLE MODEL INPUT ============ -->
+  <line x1="482" y1="858" x2="482" y2="872" stroke="#4f46e5" stroke-width="2" marker-end="url(#mI)"/>
+  <rect x="135" y="872" width="695" height="96" rx="12" fill="#f5f3ff" stroke="#ddd6fe"/>
+  <text x="482" y="894" text-anchor="middle" class="h c-indigo" font-size="12.5">🧩  组装本轮模型输入(动态聚合 Context)</text>
+  <g font-size="8.5">
+    <g><rect x="150" y="904" width="86" height="30" rx="7" fill="#fff" stroke="#c7d2fe"/><text x="193" y="918" text-anchor="middle" class="c-indigo" font-weight="700">System Prompt</text><text x="193" y="929" text-anchor="middle" class="mut">角色设定</text></g>
+    <g><rect x="245" y="904" width="86" height="30" rx="7" fill="#fff" stroke="#c7d2fe"/><text x="288" y="918" text-anchor="middle" class="c-indigo" font-weight="700">Instructions</text><text x="288" y="929" text-anchor="middle" class="mut">任务指令</text></g>
+    <g><rect x="340" y="904" width="86" height="30" rx="7" fill="#fff" stroke="#c7d2fe"/><text x="383" y="918" text-anchor="middle" class="c-indigo" font-weight="700">Memory</text><text x="383" y="929" text-anchor="middle" class="mut">记忆</text></g>
+    <g><rect x="435" y="904" width="86" height="30" rx="7" fill="#fff" stroke="#c7d2fe"/><text x="478" y="918" text-anchor="middle" class="c-indigo" font-weight="700">History</text><text x="478" y="929" text-anchor="middle" class="mut">历史对话</text></g>
+    <g><rect x="530" y="904" width="86" height="30" rx="7" fill="#fff" stroke="#99f6e4"/><text x="573" y="918" text-anchor="middle" class="c-teal" font-weight="700">Tool Schema</text><text x="573" y="929" text-anchor="middle" class="mut">工具描述</text></g>
+    <g><rect x="625" y="904" width="86" height="30" rx="7" fill="#fff" stroke="#99f6e4"/><text x="668" y="918" text-anchor="middle" class="c-teal" font-weight="700">Observations</text><text x="668" y="929" text-anchor="middle" class="mut">工具结果</text></g>
+    <g><rect x="720" y="904" width="96" height="30" rx="7" fill="#fff" stroke="#c7d2fe"/><text x="768" y="918" text-anchor="middle" class="c-indigo" font-weight="700">Retrieved Docs</text><text x="768" y="929" text-anchor="middle" class="mut">RAG 检索</text></g>
+  </g>
+  <g font-size="12" font-weight="800" fill="#a5b4fc" text-anchor="middle"><text x="240" y="922">+</text><text x="335" y="922">+</text><text x="430" y="922">+</text><text x="525" y="922">+</text><text x="620" y="922">+</text><text x="715" y="922">+</text></g>
+  <text x="482" y="956" text-anchor="middle" class="c-indigo" font-size="11" font-weight="700">↓  生成本轮 Model Context(输入)</text>
+
+  <!-- ============ FOUNDATION MODEL ============ -->
+  <line x1="482" y1="968" x2="482" y2="982" stroke="#4f46e5" stroke-width="2" marker-end="url(#mI)"/>
+  <rect x="135" y="982" width="695" height="80" rx="12" fill="#0f172a"/>
+  <text x="300" y="1012" text-anchor="middle" class="wht h" font-size="14">🧠 Foundation Model(基础模型)</text>
+  <text x="300" y="1034" text-anchor="middle" fill="#93c5fd" font-size="12">GPT · Claude · Gemini · Llama …</text>
+  <text x="648" y="1016" text-anchor="middle" fill="#cbd5e1" font-size="10.5">在循环内被反复调用</text>
+  <text x="648" y="1032" text-anchor="middle" fill="#cbd5e1" font-size="10.5">负责理解、推理、规划和生成</text>
+
+  <!-- ============ TWO OUTPUTS ============ -->
+  <line x1="300" y1="1062" x2="300" y2="1078" stroke="#0d9488" stroke-width="2" marker-end="url(#mT)"/>
+  <line x1="665" y1="1062" x2="665" y2="1078" stroke="#b45309" stroke-width="2" marker-end="url(#mG)"/>
+  <rect x="135" y="1078" width="340" height="64" rx="11" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="305" y="1102" text-anchor="middle" class="h c-teal" font-size="12.5">✅ 输出:Final Answer(最终答案)</text>
+  <text x="305" y="1122" text-anchor="middle" fill="#047857" font-size="10.5">任务完成,返回最终结果</text>
+  <rect x="490" y="1078" width="340" height="64" rx="11" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="660" y="1102" text-anchor="middle" class="h c-gold" font-size="12.5">🔧 输出:Tool Call(工具调用)</text>
+  <text x="660" y="1122" text-anchor="middle" fill="#b45309" font-size="10.5">需要调用工具,返回调用指令与参数</text>
+
+  <!-- ============ TOOL CALL FLOW ============ -->
+  <line x1="660" y1="1142" x2="660" y2="1156" stroke="#0d9488" stroke-width="2" marker-end="url(#mT)"/>
+  <rect x="135" y="1156" width="695" height="80" rx="12" fill="#f0fdfa" stroke="#99f6e4"/>
+  <text x="482" y="1178" text-anchor="middle" class="h c-teal" font-size="12.5">🔧  工具调用流程(由 Runtime 执行)</text>
+  <g font-size="10.5">
+    <g><rect x="168" y="1190" width="150" height="34" rx="9" fill="#fff" stroke="#99f6e4"/><text x="243" y="1211" text-anchor="middle" class="c-teal">模型决定调用工具</text></g>
+    <g><rect x="410" y="1190" width="150" height="34" rx="9" fill="#fff" stroke="#99f6e4"/><text x="485" y="1211" text-anchor="middle" class="c-teal">工具调度器执行工具</text></g>
+    <g><rect x="648" y="1190" width="150" height="34" rx="9" fill="#fff" stroke="#99f6e4"/><text x="723" y="1211" text-anchor="middle" class="c-teal">返回结果 Observation</text></g>
+  </g>
+  <line x1="318" y1="1207" x2="408" y2="1207" stroke="#0d9488" stroke-width="1.6" marker-end="url(#mT)"/>
+  <line x1="560" y1="1207" x2="646" y2="1207" stroke="#0d9488" stroke-width="1.6" marker-end="url(#mT)"/>
+
+  <!-- ============ OBSERVATION ============ -->
+  <line x1="482" y1="1236" x2="482" y2="1250" stroke="#b45309" stroke-width="2" marker-end="url(#mG)"/>
+  <rect x="135" y="1250" width="695" height="66" rx="12" fill="#fef3c7" stroke="#fcd34d"/>
+  <text x="482" y="1274" text-anchor="middle" class="h c-gold" font-size="12.5">👁️  Observation(观察 / 反馈)= 上方 Observe 步骤的实现</text>
+  <text x="482" y="1296" text-anchor="middle" fill="#7c4a06" font-size="10.5">将工具结果或其他反馈写回 Runtime Context,更新状态 / 记忆 / 历史,作为下一轮输入</text>
+  <!-- feedback loop back to context (curve to left rail) -->
+  <path d="M135,1283 C60,1283 60,700 122,660" stroke="#b45309" stroke-width="1.5" fill="none" stroke-dasharray="6 4" marker-end="url(#mG)"/>
+
+  <!-- ============ RIGHT SIDEBAR ============ -->
+  <!-- 图例 -->
+  <rect x="848" y="282" width="180" height="88" rx="12" fill="#ffffff" stroke="#e2eaf3"/>
+  <text x="938" y="304" text-anchor="middle" class="h c-blue" font-size="12">图例</text>
+  <line x1="864" y1="326" x2="898" y2="326" stroke="#2563eb" stroke-width="2" marker-end="url(#mA)"/>
+  <text x="906" y="330" font-size="10" fill="#334155">控制流 Control Flow</text>
+  <line x1="864" y1="352" x2="898" y2="352" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#mA)"/>
+  <text x="906" y="356" font-size="10" fill="#334155">数据流 Data Flow</text>
+
+  <!-- 关键概念说明 -->
+  <rect x="848" y="384" width="180" height="368" rx="12" fill="#f8fbff" stroke="#cfe0f5"/>
+  <text x="938" y="406" text-anchor="middle" class="h c-blue" font-size="12">关键概念说明</text>
+  <g font-size="9">
+    <text x="864" y="428" class="h c-blue" font-size="10.5">闭环迭代</text>
+    <text x="864" y="443" fill="#475467">Think→Act→Observe 循环</text>
+    <text x="864" y="456" fill="#475467">不断逼近目标,直到完成</text>
+    <text x="864" y="484" class="h c-teal" font-size="10.5">资源按需调用</text>
+    <text x="864" y="499" fill="#475467">Skills/Workflow/Tools 在每</text>
+    <text x="864" y="512" fill="#475467">轮 Act 阶段按需选择调用</text>
+    <text x="864" y="540" class="h c-indigo" font-size="10.5">Context 贯穿全程</text>
+    <text x="864" y="555" fill="#475467">Runtime Context 持续累积,</text>
+    <text x="864" y="568" fill="#475467">每轮动态聚合为模型输入</text>
+    <text x="864" y="596" class="h c-blue" font-size="10.5">模型在循环内调用</text>
+    <text x="864" y="611" fill="#475467">Foundation Model 每一轮</text>
+    <text x="864" y="624" fill="#475467">被调用,输出驱动下一步</text>
+    <text x="864" y="652" class="h c-gold" font-size="10.5">工具结果回流</text>
+    <text x="864" y="667" fill="#475467">Observation 回流到 Runtime</text>
+    <text x="864" y="680" fill="#475467">Context,驱动下一轮行动</text>
+  </g>
+
+  <!-- 核心原则 -->
+  <rect x="848" y="766" width="180" height="150" rx="12" fill="#fffbeb" stroke="#fde68a"/>
+  <text x="938" y="788" text-anchor="middle" class="h c-gold" font-size="12">核心原则</text>
+  <g font-size="10.5" fill="#92400e">
+    <text x="866" y="814">✓ 资源按需调用</text>
+    <text x="866" y="838">✓ 状态持续累积</text>
+    <text x="866" y="862">✓ 模型反复调用</text>
+    <text x="866" y="886">✓ 形成闭环迭代</text>
+  </g>
+
+  <!-- ============ BOTTOM NOTE ============ -->
+  <rect x="40" y="1338" width="988" height="52" rx="12" fill="#fef9c3" stroke="#fde68a"/>
+  <text x="534" y="1360" text-anchor="middle" class="h c-gold" font-size="11.5">💡 这不是一条从上到下的流水线,而是一个持续迭代的智能循环。</text>
+  <text x="534" y="1378" text-anchor="middle" fill="#7c4a06" font-size="11">Agent 通过不断的思考、行动、观察和调整,逐步完成复杂任务。</text>
+</svg>
+  </div>
+  <p class="note">矢量图 · 可无限放大不失真 · 依据「Agent 运行时架构 / Reasoning Loop 闭环迭代」示意图重绘</p>
+
+  <footer>整理并矢量重绘 · mingyuyang.com</footer>
+</div>
+</body>
+</html>
