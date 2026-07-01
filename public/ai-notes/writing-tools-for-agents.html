@@ -175,6 +175,14 @@ footer{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);font-si
   .figure{opacity:1;transform:none} [data-anim]{opacity:1;transform:none}[data-draw]{stroke-dashoffset:0}
 }
 </style>
+<style id="toc-fix-style">
+/* 目录可隐藏(叠加层):内嵌到网站 iframe 时默认收起,避免盖住正文;可用 ☰ 开合 */
+.toc-toggle{display:flex!important;z-index:130!important}
+.side-toc.__toc-open{transform:translateX(0)!important}
+.side-toc.__toc-closed{transform:translateX(-110%)!important;box-shadow:none!important}
+body.__toc-off{padding-left:0!important}
+body.__toc-off .wrap{margin-left:auto!important;margin-right:auto!important}
+</style>
 </head>
 <body>
 <div class="top-progress" id="topbar"></div>
@@ -573,6 +581,28 @@ footer{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);font-si
     es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
   },{threshold:.25});
   document.querySelectorAll('.figure').forEach(function(f){io.observe(f);});
+})();
+</script>
+<script id="toc-fix-script">
+(function(){
+  var toc=document.querySelector('.side-toc');
+  if(!toc) return;
+  var btn=document.querySelector('.toc-toggle');
+  // 克隆按钮以清掉原有的开合监听,统一由本脚本控制
+  if(btn){var n=btn.cloneNode(true);btn.parentNode.replaceChild(n,btn);btn=n;}
+  else{btn=document.createElement('button');btn.className='toc-toggle';btn.setAttribute('aria-label','目录');btn.textContent='☰';document.body.appendChild(btn);}
+  var embedded=false; try{embedded=window.self!==window.top;}catch(e){embedded=true;}
+  var open=!embedded; // 独立打开时默认展开;内嵌到网站里默认收起
+  function apply(){
+    toc.classList.toggle('__toc-open',open);
+    toc.classList.toggle('__toc-closed',!open);
+    document.body.classList.toggle('__toc-off',!open);
+    btn.setAttribute('aria-expanded',open?'true':'false');
+  }
+  apply();
+  btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();open=!open;apply();});
+  // 点目录里的链接后,内嵌/窄屏时自动收起
+  toc.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(embedded||window.innerWidth<1180){open=false;apply();}});});
 })();
 </script>
 </body>
