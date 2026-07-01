@@ -22,24 +22,26 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <Library className="h-5 w-5 text-primary" />
-          <span className="font-display">Mingyu's Library</span>
-        </Link>
+        <div className="flex items-center gap-8">
+          <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <Library className="h-5 w-5 text-primary" />
+            <span className="font-display">Mingyu's Library</span>
+          </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              activeProps={{ className: "text-primary font-medium" }}
-              activeOptions={{ exact: item.to === "/" }}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+          <nav className="hidden items-center gap-6 md:flex">
+            {navItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                activeProps={{ className: "text-primary font-medium" }}
+                activeOptions={{ exact: item.to === "/" }}
+                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         <div className="flex items-center gap-1">
           <Link
