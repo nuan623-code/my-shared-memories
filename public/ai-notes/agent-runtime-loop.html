@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 运行时架构:Reasoning Loop 的闭环迭代</title>
+<style>
+:root{
+  --bg:#f3f7fc; --paper:#ffffff; --ink:#1b2733; --ink-soft:#475467;
+  --line:#e2eaf3; --accent:#2563eb; --accent-deep:#1e3a8a; --accent-soft:#dbeafe;
+  --teal:#0d9488; --teal-soft:#ccfbf1; --indigo:#4f46e5; --indigo-soft:#e0e7ff;
+  --gold:#b45309; --gold-soft:#fef3c7; --rose:#be123c; --rose-soft:#ffe4e6;
+  --hero1:#1e3a8a; --hero2:#2563eb; --code-bg:#0f172a; --code-ink:#e2e8f0;
+  --shadow:0 1px 3px rgba(16,42,82,.06),0 8px 24px rgba(16,42,82,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px;line-height:1.88;-webkit-font-smoothing:antialiased}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:200;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .1s}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
+
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;
+  border-radius:0 0 28px 28px;padding:64px 30px 48px;margin-bottom:36px;
+  box-shadow:0 18px 50px rgba(30,58,138,.28)}
+.hero-inner{max-width:880px;margin:0 auto}
+.hero .eyebrow{font-size:13px;letter-spacing:.16em;text-transform:uppercase;opacity:.82;font-weight:600;margin-bottom:14px}
+.hero h1{font-size:33px;line-height:1.32;margin:0 0 18px;font-weight:800}
+.hero p{font-size:17px;opacity:.94;margin:0;max-width:660px}
+.hero .meta{margin-top:22px;font-size:13.5px;opacity:.8;display:flex;gap:18px;flex-wrap:wrap}
+.hero .meta span{display:inline-flex;align-items:center;gap:6px}
+.hero .badges{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap}
+.hero .badges b{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);
+  padding:4px 13px;border-radius:20px;font-size:12.5px;font-weight:600}
+
+.side-toc{position:fixed;top:0;left:max(12px,calc(50% - 680px));height:100vh;width:236px;
+  padding:26px 16px;overflow-y:auto;z-index:90;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border-right:1px solid var(--line)}
+.st-brand{font-weight:800;font-size:15px;color:var(--accent-deep)}
+.st-sub{font-size:12px;color:var(--ink-soft);margin:2px 0 16px}
+.st-progress{font-size:12px;color:var(--ink-soft);margin-bottom:6px}
+.st-bar{height:6px;border-radius:5px;background:var(--line);overflow:hidden;margin-bottom:18px}
+.st-bar > i{display:block;height:100%;width:0;border-radius:5px;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .15s}
+.side-toc .grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);font-weight:700;margin:14px 0 4px;padding-left:9px;opacity:.7}
+.side-toc ol{list-style:none;margin:0;padding:0;counter-reset:t}
+.side-toc li{counter-increment:t;margin:1px 0}
+.side-toc a{display:flex;gap:9px;align-items:baseline;text-decoration:none;
+  color:var(--ink-soft);font-size:13px;padding:5px 9px;border-radius:8px;line-height:1.4}
+.side-toc a:before{content:counter(t,decimal-leading-zero);font-size:11px;
+  color:var(--accent);font-weight:700;opacity:.55;min-width:18px}
+.side-toc a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc a.active{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.side-toc a.active:before{opacity:1}
+.toc-toggle{display:none}
+
+@media(max-width:1179px){
+  .side-toc{transform:translateX(-110%);transition:transform .25s;width:255px;left:0;box-shadow:var(--shadow)}
+  .side-toc.open{transform:translateX(0)}
+  .toc-toggle{display:flex;position:fixed;top:14px;left:14px;z-index:95;width:42px;height:42px;
+    border-radius:11px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:19px;
+    align-items:center;justify-content:center;box-shadow:var(--shadow)}
+}
+
+section{background:var(--paper);border:1px solid var(--line);border-radius:18px;
+  padding:30px 30px 34px;margin:22px 0;box-shadow:var(--shadow)}
+section > h2{font-size:24px;margin:0 0 6px;line-height:1.35;display:flex;gap:11px;align-items:baseline}
+.sec-kicker{font-size:12.5px;letter-spacing:.06em;color:var(--accent);font-weight:700;
+  text-transform:uppercase;margin-bottom:14px;display:block}
+section h3{font-size:18.5px;margin:28px 0 8px;color:var(--accent-deep)}
+section h4{font-size:15.5px;margin:14px 0 4px;color:var(--teal);font-weight:700}
+p{margin:13px 0}
+strong{color:var(--ink);font-weight:700}
+em{color:var(--accent-deep);font-style:normal;font-weight:600}
+.term{background:linear-gradient(transparent 62%,var(--accent-soft) 62%);padding:0 2px;font-weight:600;color:var(--accent-deep)}
+a.ref{color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)}
+
+.def{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;
+  padding:18px 20px;margin:18px 0;background:#fbfdff}
+.def h4{margin:0 0 10px;font-size:16.5px;color:var(--accent-deep)}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+  padding:2px 10px;border-radius:20px;margin-right:8px}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--teal-soft);color:#0f766e}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .row{margin:10px 0}
+.def .row p{margin:6px 0 0;display:block}
+
+.eg{border-left:3px solid var(--gold);background:var(--gold-soft);border-radius:0 10px 10px 0;
+  padding:11px 16px;margin:12px 0;font-size:15.5px;color:#7c4a06}
+.eg b{color:var(--gold)}
+
+.analogy{border-radius:12px;padding:18px 20px 18px 22px;margin:18px 0;
+  background:var(--indigo-soft);border-left:5px solid var(--indigo)}
+.analogy .lbl{font-size:13px;font-weight:800;color:var(--indigo);letter-spacing:.04em;margin-bottom:6px}
+.analogy p{margin:6px 0;color:#312e81}
+
+.callout{border-radius:12px;padding:16px 20px;margin:18px 0;border:1px solid}
+.key{background:var(--accent-soft);border-color:#bfdbfe;color:var(--accent-deep)}
+.key-teal{background:var(--teal-soft);border-color:#99f6e4;color:#0f766e}
+.key-gold{background:var(--gold-soft);border-color:#fde68a;color:#92400e}
+.warn{background:var(--rose-soft);border-color:#fecdd3;color:#9f1239}
+.callout .lbl{font-weight:800;font-size:13.5px;margin-bottom:5px;display:block}
+.callout p{margin:4px 0}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.card{border:1px solid var(--line);border-radius:13px;padding:17px 19px;background:#fff;
+  border-top:3px solid var(--accent)}
+.card.t-teal{border-top-color:var(--teal)}
+.card.t-indigo{border-top-color:var(--indigo)}
+.card.t-gold{border-top-color:var(--gold)}
+.card.t-rose{border-top-color:var(--rose)}
+.card h4{margin:0 0 6px;font-size:16px;color:var(--accent-deep)}
+.card p{margin:6px 0;font-size:15px;color:var(--ink-soft)}
+.card .ic{font-size:20px}
+@media(max-width:640px){.cards{grid-template-columns:1fr}}
+
+.steps{margin:18px 0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:4px 0 20px 50px;
+  border-left:2px solid var(--accent-soft);margin-left:16px}
+.steps li:last-child{border-left-color:transparent;padding-bottom:4px}
+.steps li:before{content:counter(s);position:absolute;left:-16px;top:0;width:32px;height:32px;
+  border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--paper)}
+.steps h5{margin:2px 0 4px;font-size:16px;color:var(--accent-deep)}
+.steps p{margin:2px 0;font-size:15.5px;color:var(--ink-soft)}
+
+details.rephrase{margin:16px 0;border:1px dashed #bcd2ee;border-radius:11px;background:#fbfdff;overflow:hidden}
+details.rephrase summary{cursor:pointer;padding:12px 18px;font-weight:700;font-size:14.5px;
+  color:var(--accent);list-style:none;user-select:none}
+details.rephrase summary::-webkit-details-marker{display:none}
+details.rephrase summary:before{content:"▸ ";color:var(--accent)}
+details.rephrase[open] summary:before{content:"▾ "}
+details.rephrase .body{padding:2px 18px 16px;color:var(--ink-soft);font-size:15.5px}
+
+.practice{list-style:none;padding:0;margin:14px 0}
+.practice li{position:relative;padding:7px 0 7px 30px;border-bottom:1px dashed var(--line)}
+.practice li:last-child{border-bottom:none}
+.practice li:before{content:"▹";position:absolute;left:6px;top:7px;color:var(--accent);font-weight:800}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px 18px;
+  overflow-x:auto;font-size:13.5px;line-height:1.7;margin:14px 0;
+  font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+pre .c{color:#7dd3fc}
+code.inl{background:#eef4fc;color:var(--accent-deep);padding:1px 7px;border-radius:6px;
+  font-size:14.5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+
+.tbl-wrap{overflow-x:auto;margin:18px 0}
+table.cmp{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:11px 13px;text-align:left;vertical-align:top}
+table.cmp thead th{background:var(--accent-deep);color:#fff;font-weight:700}
+table.cmp tbody th{background:#f0f6fd;color:var(--accent-deep);font-weight:700;white-space:nowrap}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chips b{background:#f0f6fd;border:1px solid var(--line);color:var(--accent-deep);
+  padding:5px 12px;border-radius:20px;font-size:13.5px;font-weight:600}
+
+.figure{margin:24px 0;padding:22px 18px 10px;border:1px solid var(--line);border-radius:14px;
+  background:#fbfdff;text-align:center;opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+.figure.in{opacity:1;transform:none}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:13.5px;color:var(--ink-soft);margin-top:10px;text-align:center}
+[data-anim]{opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}
+.figure.in [data-anim]{opacity:1;transform:none}
+[data-draw]{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1s ease}
+.figure.in [data-draw]{stroke-dashoffset:0}
+
+.final{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff;border-radius:18px;padding:34px 30px;margin:26px 0}
+.final h2{color:#fff;margin-top:0}
+.final p{opacity:.93}
+.final .term{color:#bfdbfe;background:none}
+
+footer{text-align:center;color:var(--ink-soft);font-size:13px;margin-top:40px;padding-top:22px;border-top:1px solid var(--line)}
+.foot-note{font-size:13.5px;color:var(--ink-soft);background:#f6f9fd;border-left:3px solid var(--line);
+  padding:8px 14px;margin:12px 0;border-radius:0 8px 8px 0}
+
+@media(max-width:640px){
+  body{font-size:16px}
+  .hero{padding:74px 22px 40px;border-radius:0 0 22px 22px}
+  .hero h1{font-size:25px}
+  section{padding:24px 20px 28px}
+  section > h2{font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .figure,[data-anim]{opacity:1!important;transform:none!important}
+  [data-draw]{stroke-dashoffset:0!important}
+}
+</style>
+<style id="toc-fix-style">
+.toc-toggle{display:flex!important;z-index:130!important}
+.side-toc.__toc-open{transform:translateX(0)!important}
+.side-toc.__toc-closed{transform:translateX(-110%)!important;box-shadow:none!important}
+body.__toc-off{padding-left:0!important}
+body.__toc-off .wrap{margin-left:auto!important;margin-right:auto!important}
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topProg"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">Agent 运行时架构</div>
+  <div class="st-sub">Reasoning Loop 的闭环迭代</div>
+  <div class="st-progress">阅读进度 <span id="pctTxt">0%</span></div>
+  <div class="st-bar"><i id="pctBar"></i></div>
+  <ol>
+    <div class="grp">总览</div>
+    <li><a href="#intro">一张图看懂 Agent</a></li>
+    <li><a href="#bigpic">闭环全景图</a></li>
+    <div class="grp">底座</div>
+    <li><a href="#runtime">Agent Runtime(Harness)</a></li>
+    <li><a href="#context">Runtime Context(状态)</a></li>
+    <div class="grp">核心循环</div>
+    <li><a href="#loop">Reasoning Loop:四步</a></li>
+    <li><a href="#resources">可调用资源</a></li>
+    <div class="grp">模型交互</div>
+    <li><a href="#assemble">组装模型输入</a></li>
+    <li><a href="#model">Foundation Model</a></li>
+    <li><a href="#toolflow">工具调用与回流</a></li>
+    <div class="grp">总结</div>
+    <li><a href="#principles">关键概念与核心原则</a></li>
+    <li><a href="#takeaway">一句话记住它</a></li>
+  </ol>
+</nav>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">AI Agent · 架构原理</div>
+    <h1>Agent 运行时架构:Reasoning Loop 的闭环迭代</h1>
+    <p>一个 Agent 拿到「帮我分析上周的广告投放数据并优化建议」这样一句自然语言,是怎么一步步把它做完的?答案不是一条从上到下的流水线,而是一个持续「思考 → 行动 → 观察 → 调整」的智能循环。这篇把整张架构图拆开讲透。</p>
+    <div class="badges">
+      <b>🔁 闭环迭代</b><b>🧰 资源按需调用</b><b>🧠 模型反复调用</b><b>📦 状态持续累积</b>
+    </div>
+    <div class="meta">
+      <span>🗺️ 架构图逐块拆解</span>
+      <span>🎯 面向理解原理</span>
+      <span>⏱️ 约 12 分钟阅读</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- 1 引言 -->
+<section id="intro">
+  <span class="sec-kicker">Overview</span>
+  <h2>🧭 一张图看懂 Agent 在做什么</h2>
+  <p>整张架构图讲的是同一件事:<strong>用户丢来一句自然语言需求,一个 AI Agent 如何自主地把它完成。</strong> 图顶端的例子很典型——<span class="term">「帮我分析上周的广告投放数据并优化建议」</span>。这句话既不给步骤、也不给数据路径,Agent 得自己想清楚要做什么、调什么工具、看结果对不对,直到交出答案。</p>
+  <p>要理解这张图,先记住它最想强调的一句话,它写在整张图的最底部:</p>
+  <div class="callout key-gold">
+    <span class="lbl">💡 整张图的题眼</span>
+    <p>这<strong>不是</strong>一条从上到下的流水线,而是一个<strong>持续迭代的智能循环</strong>。Agent 通过不断的思考、行动、观察和调整,逐步完成复杂任务。</p>
+  </div>
+  <p>换句话说:图里那些框框看起来是自上而下排的,但真正的执行顺序是<strong>绕圈跑</strong>的。理解了这一点,下面每一块才对得上位置。我们按「底座 → 核心循环 → 模型交互 → 总结」的顺序拆:先看托住一切的运行时底座,再看在它上面转的思考循环,最后看循环里模型怎么被调用、结果怎么流回来。</p>
+  <div class="analogy">
+    <div class="lbl">🔗 类比:Agent 像一位边做边想的分析师</div>
+    <p>把 Agent 想成一位刚接到任务的分析师坐在工位上。<strong>运行时(Runtime)</strong>是他的办公室——桌子、文件柜、日程本、报销额度都在这;<strong>思考循环(Reasoning Loop)</strong>是他脑子里「想一下 → 动手做一步 → 看看结果 → 再想」的工作节奏;<strong>可调用资源</strong>是他随手能用的工具(数据库、浏览器、报表模板);<strong>基础模型</strong>就是他这颗会推理的大脑。他不会一口气把整份报告写完,而是查一段、看一眼、调整方向,循环着把活干完。</p>
+  </div>
+</section>
+
+<!-- 2 全景图 -->
+<section id="bigpic">
+  <span class="sec-kicker">The Big Picture</span>
+  <h2>🗺️ 闭环全景:五块拼在一起</h2>
+  <p>在钻进细节前,先建立一张整体地图。整个系统由五块构成,它们的关系不是「谁在谁上面」,而是「谁围着谁转」:</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 820 470" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/>
+        </marker>
+        <marker id="arG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#0d9488"/>
+        </marker>
+      </defs>
+
+      <!-- user -->
+      <g data-anim>
+        <rect x="330" y="12" width="160" height="42" rx="10" fill="#1e3a8a"/>
+        <text x="410" y="38" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">User · 自然语言需求</text>
+      </g>
+      <path d="M410,54 L410,80" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar)" data-draw/>
+
+      <!-- runtime bar -->
+      <g data-anim>
+        <rect x="40" y="82" width="740" height="52" rx="12" fill="#eff5ff" stroke="#bfdbfe"/>
+        <text x="410" y="104" text-anchor="middle" fill="#1e3a8a" font-size="13.5" font-weight="800">Agent Runtime(Harness)运行时底座 · 不负责推理</text>
+        <text x="410" y="123" text-anchor="middle" fill="#475467" font-size="11.5">状态 · 记忆 · 上下文 · 预算 · 循环控制 · 重试 · 工具调度</text>
+      </g>
+
+      <!-- loop ring -->
+      <g data-anim>
+        <circle cx="410" cy="290" r="108" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 5"/>
+        <text x="410" y="196" text-anchor="middle" fill="#1e3a8a" font-size="12.5" font-weight="800">Reasoning Loop</text>
+      </g>
+      <!-- four nodes -->
+      <g data-anim>
+        <rect x="358" y="206" width="104" height="34" rx="9" fill="#dbeafe" stroke="#2563eb"/>
+        <text x="410" y="228" text-anchor="middle" fill="#1e3a8a" font-size="13" font-weight="700">Think 思考</text>
+      </g>
+      <g data-anim>
+        <rect x="470" y="273" width="104" height="34" rx="9" fill="#ccfbf1" stroke="#0d9488"/>
+        <text x="522" y="295" text-anchor="middle" fill="#0f766e" font-size="13" font-weight="700">Act 行动</text>
+      </g>
+      <g data-anim>
+        <rect x="358" y="340" width="104" height="34" rx="9" fill="#e0e7ff" stroke="#4f46e5"/>
+        <text x="410" y="362" text-anchor="middle" fill="#3730a3" font-size="13" font-weight="700">Observe 观察</text>
+      </g>
+      <g data-anim>
+        <rect x="246" y="273" width="104" height="34" rx="9" fill="#fef3c7" stroke="#b45309"/>
+        <text x="298" y="295" text-anchor="middle" fill="#92400e" font-size="13" font-weight="700">(可选)Plan</text>
+      </g>
+      <!-- circular arrows -->
+      <path d="M462,225 Q500,240 518,271" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar)" data-draw/>
+      <path d="M508,307 Q470,345 464,352" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar)" data-draw/>
+      <path d="M356,352 Q315,320 305,307" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar)" data-draw/>
+      <path d="M312,271 Q345,235 356,228" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar)" data-draw/>
+
+      <!-- resources -->
+      <g data-anim>
+        <rect x="628" y="250" width="152" height="80" rx="11" fill="#fff" stroke="#0d9488"/>
+        <text x="704" y="272" text-anchor="middle" fill="#0f766e" font-size="12.5" font-weight="800">可调用资源</text>
+        <text x="704" y="291" text-anchor="middle" fill="#475467" font-size="11">Skills · Workflow</text>
+        <text x="704" y="308" text-anchor="middle" fill="#475467" font-size="11">Tools / MCP</text>
+        <text x="704" y="324" text-anchor="middle" fill="#94a3b8" font-size="10">按需横向调用</text>
+      </g>
+      <path d="M574,290 L626,290" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#arG)" data-draw/>
+
+      <!-- model -->
+      <g data-anim>
+        <rect x="40" y="250" width="152" height="80" rx="11" fill="#0f172a"/>
+        <text x="116" y="278" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="800">Foundation Model</text>
+        <text x="116" y="298" text-anchor="middle" fill="#93c5fd" font-size="11">GPT·Claude·Gemini…</text>
+        <text x="116" y="316" text-anchor="middle" fill="#cbd5e1" font-size="10">在循环内反复调用</text>
+      </g>
+      <path d="M300,290 L194,290" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar)" data-draw/>
+
+      <!-- context bottom -->
+      <g data-anim>
+        <rect x="40" y="414" width="740" height="42" rx="12" fill="#f0fdfa" stroke="#99f6e4"/>
+        <text x="410" y="431" text-anchor="middle" fill="#0f766e" font-size="12.5" font-weight="800">Runtime Context(状态)· 贯穿整个循环,每轮持续累积更新</text>
+        <text x="410" y="448" text-anchor="middle" fill="#475467" font-size="11">会话历史 · 记忆 · 工具结果 · 变量 · RAG 检索 · 草稿 …</text>
+      </g>
+      <path d="M410,398 L410,412" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#arG)" data-draw/>
+    </svg>
+    <div class="fig-cap">全景图:运行时底座托住一切,思考循环在中间绕圈,模型和资源被循环按需调用,状态贯穿整个过程持续累积。蓝色实线=控制流,绿色线=状态/数据回流。</div>
+  </div>
+
+  <p>这五块分别是:<strong>① Agent Runtime(运行时底座)</strong>、<strong>② Reasoning Loop(思考循环)</strong>、<strong>③ 可调用资源</strong>、<strong>④ Foundation Model(基础模型)</strong>、<strong>⑤ Runtime Context(贯穿全程的状态)</strong>。下面逐块拆。</p>
+</section>
+
+<!-- 3 Runtime -->
+<section id="runtime">
+  <span class="sec-kicker">Layer 1 · The Harness</span>
+  <h2>🏗️ Agent Runtime(Harness):托住一切的运行时底座</h2>
+  <div class="def">
+    <h4>Agent Runtime(运行时环境 / Harness)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span>一个<strong>全局运行环境,贯穿整个 Agent 生命周期</strong>。图里特别标注了一句关键限定:它<strong>「不负责推理」</strong>。</div>
+    <div class="row"><span class="tag tag-why">为什么</span>推理(想问题)是基础模型的事;但一个 Agent 光会想还不够,它得有人管住状态、控制循环别跑飞、调度工具、处理报错、盯着预算别烧超。这些「杂活」抽出来交给 Runtime,模型才能专心推理。<strong>分工:模型负责「想」,Runtime 负责「管」。</strong></div>
+    <div class="row"><span class="tag tag-eg">例子</span>就像一场手术里,外科医生(模型)专注决策与操作,而手术室(Runtime)提供无影灯、器械台、监护仪、麻醉与计时——医生不用自己去搬设备。</div>
+  </div>
+
+  <p>Runtime 具体负责这七件事,也就是图里 Harness 那一排的七个组件:</p>
+  <div class="cards">
+    <div class="card"><div class="ic">🗄️</div><h4>状态管理 State</h4><p>维护 Agent 当前所处的状态,记录「进行到哪一步了」。</p></div>
+    <div class="card t-teal"><div class="ic">🧠</div><h4>记忆管理 Memory</h4><p>管理短期与长期记忆,让 Agent 记得住之前发生过什么。</p></div>
+    <div class="card t-indigo"><div class="ic">🧩</div><h4>上下文聚合 Context</h4><p>把散落各处的信息聚合成模型每一轮的输入。</p></div>
+    <div class="card t-gold"><div class="ic">📊</div><h4>预算管理 Budget</h4><p>控制资源消耗(token、调用次数、成本),避免无限烧下去。</p></div>
+    <div class="card"><div class="ic">🔄</div><h4>循环控制器 Loop Controller</h4><p>驱动并管住 Reasoning Loop,决定继续迭代还是退出。</p></div>
+    <div class="card t-rose"><div class="ic">♻️</div><h4>重试与恢复 Retry / Recovery</h4><p>出错时重试或恢复,让流程不至于一崩到底。</p></div>
+    <div class="card t-teal"><div class="ic">🔧</div><h4>工具调度器 Tool Dispatcher</h4><p>接住模型的工具调用指令,实际去执行工具并取回结果。</p></div>
+  </div>
+  <div class="callout key">
+    <span class="lbl">📌 一句话概括 Runtime 的职责</span>
+    <p>状态维护、上下文聚合、循环控制、工具调度、错误处理、资源管理、预算控制。<strong>它是贯穿整个 Agent 生命周期的全局运行环境,但自己不做推理。</strong></p>
+  </div>
+</section>
+
+<!-- 4 Context -->
+<section id="context">
+  <span class="sec-kicker">Layer 1b · The State</span>
+  <h2>📦 Runtime Context:贯穿始终、持续累积的「状态」</h2>
+  <p>如果说 Runtime 是办公室,那 <span class="term">Runtime Context</span> 就是这间办公室里那张越堆越满的工作台。它是 Agent 的<strong>状态</strong>,图里明确写着它「<strong>贯穿整个循环,每轮持续更新</strong>」——每转一圈,新信息就往里加,越积越多。</p>
+  <h3>状态里都装着什么(图中列出的八类)</h3>
+  <div class="chips">
+    <b>💬 会话历史</b><b>🗂️ 长期记忆</b><b>👤 用户信息</b><b>📁 文件 / 数据</b>
+    <b>🔧 工具结果</b><b>🔣 变量 / 状态</b><b>🔎 RAG 检索</b><b>📝 临时草稿 Scratchpad</b>
+  </div>
+  <p>这八类信息合在一起,就是 Agent 在任意时刻「知道的一切」。注意最后一项 <span class="term">临时草稿 Scratchpad</span>:它是 Agent 边做边打的草稿纸,记录中间推演和临时结论。</p>
+  <div class="callout key-teal">
+    <span class="lbl">🔑 关键性质:每轮更新,持续累积</span>
+    <p>Context 不是一次性填好的输入,而是随着循环一圈圈转、<strong>持续累积</strong>的。第一轮它可能只有用户那句话;跑了几轮之后,它已经装满了工具查回来的数据、模型的中间判断、检索到的文档。<strong>正是这份不断变厚的状态,让 Agent 能「记着上文」把长任务接着往下做。</strong></p>
+  </div>
+  <details class="rephrase">
+    <summary>💬 换个说法讲一遍:Context 就像一份边写边加的项目笔记</summary>
+    <div class="body">你接手一个项目,手边有本笔记。刚开始只写着老板一句话「分析上周广告数据」。你查了后台,把数字抄进去;你问了同事,把结论记下来;你算了个 ROI,顺手写在旁边。笔记越来越厚,而你每次决定下一步,都是翻着<strong>整本</strong>笔记来判断——不是只看老板最初那句话。Runtime Context 就是这本笔记,「每轮持续更新、持续累积」就是你不停往里加内容的过程。</div>
+  </details>
+</section>
+
+<!-- 5 Loop -->
+<section id="loop">
+  <span class="sec-kicker">Layer 2 · The Core Loop</span>
+  <h2>🔁 Reasoning Loop:Think → (Plan) → Act → Observe</h2>
+  <p>这是整张图的<strong>核心控制流</strong>,图里给它的定性是「<strong>闭环迭代</strong>」,并写明循环会一直转,<strong>直到任务完成或达成退出条件</strong>。它由四个阶段组成(其中 Plan 是可选的):</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 780 260" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs>
+        <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="20" y="90" width="150" height="80" rx="12" fill="#dbeafe" stroke="#2563eb"/>
+        <text x="95" y="120" text-anchor="middle" fill="#1e3a8a" font-size="15" font-weight="800">🧠 Think</text>
+        <text x="95" y="142" text-anchor="middle" fill="#475467" font-size="11">理解 · 分析 · 回忆</text>
+        <text x="95" y="158" text-anchor="middle" fill="#475467" font-size="11">发现关键点 · 形成思路</text>
+      </g>
+      <g data-anim>
+        <rect x="205" y="90" width="150" height="80" rx="12" fill="#fef3c7" stroke="#b45309"/>
+        <text x="280" y="118" text-anchor="middle" fill="#92400e" font-size="15" font-weight="800">📋 Plan</text>
+        <text x="280" y="138" text-anchor="middle" fill="#7c4a06" font-size="10.5">可选 · 制定计划</text>
+        <text x="280" y="153" text-anchor="middle" fill="#7c4a06" font-size="10.5">拆任务 · 定下一步</text>
+      </g>
+      <g data-anim>
+        <rect x="390" y="90" width="150" height="80" rx="12" fill="#ccfbf1" stroke="#0d9488"/>
+        <text x="465" y="120" text-anchor="middle" fill="#0f766e" font-size="15" font-weight="800">⚡ Act</text>
+        <text x="465" y="142" text-anchor="middle" fill="#475467" font-size="11">选资源(Skill/</text>
+        <text x="465" y="158" text-anchor="middle" fill="#475467" font-size="11">Workflow/Tool)· 执行</text>
+      </g>
+      <g data-anim>
+        <rect x="575" y="90" width="150" height="80" rx="12" fill="#e0e7ff" stroke="#4f46e5"/>
+        <text x="650" y="118" text-anchor="middle" fill="#3730a3" font-size="15" font-weight="800">👁️ Observe</text>
+        <text x="650" y="138" text-anchor="middle" fill="#475467" font-size="11">接结果 · 评估进展</text>
+        <text x="650" y="153" text-anchor="middle" fill="#475467" font-size="11">完成了吗?要调整吗?</text>
+      </g>
+      <path d="M170,130 L203,130" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <path d="M355,130 L388,130" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <path d="M540,130 L573,130" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <!-- loop back -->
+      <path d="M650,90 C650,30 95,30 95,88" stroke="#4f46e5" stroke-width="2" fill="none" stroke-dasharray="6 5" marker-end="url(#ar2)" data-draw/>
+      <text x="372" y="26" text-anchor="middle" fill="#4f46e5" font-size="11.5" font-weight="700">未完成 → 带着新观察,回到 Think 再转一圈</text>
+      <!-- exit -->
+      <path d="M650,170 L650,215" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <text x="650" y="234" text-anchor="middle" fill="#0f766e" font-size="11.5" font-weight="700">已完成 / 达退出条件 → 交付</text>
+    </svg>
+    <div class="fig-cap">四步闭环:每一轮从 Think 出发,到 Observe 收尾判断;没完成就带着新观察回到 Think 再转一圈,完成或触发退出条件才跳出循环。</div>
+  </div>
+
+  <h3>逐步拆开这四个阶段</h3>
+  <ol class="steps">
+    <li>
+      <h5>Think(思考 / 推理)</h5>
+      <p>理解问题、分析现状、回忆相关信息、发现关键点、形成思路。这是每一轮的起点——先想清楚「现在是什么情况、该往哪走」。</p>
+    </li>
+    <li>
+      <h5>(可选)Plan(计划)</h5>
+      <p>制定计划、拆解任务、选择策略、确定下一步。图里特别标注:Plan 是<strong>可选</strong>的,<strong>「部分范式中并入 Think」</strong>——也就是说有些 Agent 不单独设 Plan 阶段,而是把规划直接揉进思考里。</p>
+    </li>
+    <li>
+      <h5>Act(行动)</h5>
+      <p>选择要使用的资源(<span class="term">Skill / Workflow / Tool</span>)并执行行动。这是唯一真正「动手」的阶段——图里强调「<strong>每轮 Act 时按需调用资源</strong>」,资源是在这一步被挑选和触发的。</p>
+    </li>
+    <li>
+      <h5>Observe(观察 / 反馈)</h5>
+      <p>接收结果、分析反馈、评估进展,并回答两个决定命运的问题:<strong>「是否完成?」「需要调整吗?」</strong> 这一步的判断决定了:跳出循环交付,还是带着新观察回到 Think 再转一圈。</p>
+    </li>
+  </ol>
+  <div class="callout key">
+    <span class="lbl">🎯 为什么是「闭环」而不是「流水线」</span>
+    <p>流水线是走一遍就完(A→B→C→出货);闭环是<strong>Observe 会把控制权送回 Think</strong>,形成回路。正因如此,Agent 才能在中途发现「数据不对/方向偏了」时自我纠偏,而不是一条道走到黑。图底部那句「不断的思考、行动、观察和调整」说的就是这个回路。</p>
+  </div>
+</section>
+
+<!-- 6 Resources -->
+<section id="resources">
+  <span class="sec-kicker">Layer 2b · Callable Resources</span>
+  <h2>🧰 可调用资源:横向调用,不是顺序流水线</h2>
+  <p>Act 阶段要「选资源」,那有哪些资源可选?图里列了三类,并特别用一句话点明它们的关系:<strong>「横向调用,不是顺序流水线」</strong>——意思是这三类不是「先用这个再用那个」的固定次序,而是每一轮 Act 按当下需要<strong>横向</strong>挑一个来用。</p>
+
+  <h3>三类资源</h3>
+  <div class="def" id="skills">
+    <h4>① Skills(能力)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><strong>高层能力封装,直接解决特定类型问题。</strong></div>
+    <div class="row"><span class="tag tag-eg">示例</span>写代码、数据分析、写 PRD、SEO 优化、广告优化、合同审查……</div>
+  </div>
+  <div class="def" id="workflow">
+    <h4>② Workflow(流程)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><strong>多步骤流程执行,用来实现复杂任务。</strong>一个 Workflow 内部本身是有序的一串步骤。</div>
+    <div class="row"><span class="tag tag-eg">示例</span>一个「数据分析 Workflow」内部依次是:</div>
+    <div class="flow" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0;padding:12px;background:#f0fdfa;border-radius:10px;justify-content:center;font-size:13px">
+      <b style="background:#fff;border:1.5px solid #0d9488;color:#0f766e;border-radius:8px;padding:5px 10px">读取数据</b><span style="color:#0d9488;font-weight:800">→</span>
+      <b style="background:#fff;border:1.5px solid #0d9488;color:#0f766e;border-radius:8px;padding:5px 10px">数据清洗</b><span style="color:#0d9488;font-weight:800">→</span>
+      <b style="background:#fff;border:1.5px solid #0d9488;color:#0f766e;border-radius:8px;padding:5px 10px">数据分析</b><span style="color:#0d9488;font-weight:800">→</span>
+      <b style="background:#fff;border:1.5px solid #0d9488;color:#0f766e;border-radius:8px;padding:5px 10px">生成图表</b><span style="color:#0d9488;font-weight:800">→</span>
+      <b style="background:#fff;border:1.5px solid #0d9488;color:#0f766e;border-radius:8px;padding:5px 10px">生成报告</b><span style="color:#0d9488;font-weight:800">→</span>
+      <b style="background:#fff;border:1.5px solid #0d9488;color:#0f766e;border-radius:8px;padding:5px 10px">检查与验证</b><span style="color:#0d9488;font-weight:800">→</span>
+      <b style="background:#fff;border:1.5px solid #0d9488;color:#0f766e;border-radius:8px;padding:5px 10px">导出结果</b>
+    </div>
+  </div>
+  <div class="def" id="tools">
+    <h4>③ Tools / MCP(工具)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><strong>外部工具与服务,通过 API 或 MCP 连接。</strong>(MCP = Model Context Protocol,一种把外部工具接给模型用的标准协议。)</div>
+    <div class="row"><span class="tag tag-eg">示例</span>GitHub、Slack、Browser(浏览器)、SQL Database、Figma、Notion、本地文件系统、Email / Calendar……</div>
+  </div>
+
+  <div class="callout key-gold">
+    <span class="lbl">⚠️ 别误解:三类资源是「横向并列」的选项库</span>
+    <p>很容易把 Skills → Workflow → Tools 看成三道先后工序,那是错的。图里明说是<strong>横向调用</strong>:它们是三个<strong>并列的资源池</strong>,Agent 在每轮 Act 时,按这一步到底需要什么,<strong>横向</strong>地从中挑一个(可能是调一个 Skill,可能是跑一个 Workflow,也可能是点一个 Tool)。<strong>Workflow 内部</strong>才是有顺序的;三类资源<strong>之间</strong>没有固定顺序。</p>
+  </div>
+  <div class="analogy">
+    <div class="lbl">🔗 类比:厨房里的三种取用方式</div>
+    <p>Skills 像大厨的<strong>拿手菜</strong>(「来一份宫保鸡丁」一句话搞定);Workflow 像一张<strong>菜谱流程</strong>(备料→切→炒→装盘,一步步走);Tools 像厨房里的<strong>各种电器与外部供应</strong>(冰箱、烤箱、外卖平台)。做每道菜时,你是横向地看「这一步该用拿手菜、走菜谱、还是开个电器」,而不是被逼着「必须先用完拿手菜才能碰烤箱」。</p>
+  </div>
+</section>
+
+<!-- 7 Assemble -->
+<section id="assemble">
+  <span class="sec-kicker">Layer 3 · Assembling Input</span>
+  <h2>🧩 组装本轮模型输入:动态聚合 Context</h2>
+  <p>循环转到要「问模型」的时候,Runtime 得先把一堆零散信息<strong>拼成这一轮喂给模型的输入</strong>。图里把这一步叫「<strong>组装本轮模型输入(动态聚合 Context)</strong>」,并列出了拼进去的七种成分:</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 800 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4f46e5"/></marker></defs>
+      <g font-size="11.5" font-weight="700">
+        <g data-anim><rect x="18" y="20" width="150" height="34" rx="8" fill="#dbeafe" stroke="#2563eb"/><text x="93" y="42" text-anchor="middle" fill="#1e3a8a">System Prompt 角色设定</text></g>
+        <g data-anim><rect x="18" y="62" width="150" height="34" rx="8" fill="#dbeafe" stroke="#2563eb"/><text x="93" y="84" text-anchor="middle" fill="#1e3a8a">Instructions 任务指令</text></g>
+        <g data-anim><rect x="18" y="104" width="150" height="34" rx="8" fill="#dbeafe" stroke="#2563eb"/><text x="93" y="126" text-anchor="middle" fill="#1e3a8a">Memory 记忆</text></g>
+        <g data-anim><rect x="18" y="146" width="150" height="34" rx="8" fill="#dbeafe" stroke="#2563eb"/><text x="93" y="168" text-anchor="middle" fill="#1e3a8a">History 历史对话</text></g>
+        <g data-anim><rect x="18" y="188" width="150" height="34" rx="8" fill="#ccfbf1" stroke="#0d9488"/><text x="93" y="210" text-anchor="middle" fill="#0f766e">Tool Schema 工具描述</text></g>
+        <g data-anim><rect x="182" y="104" width="150" height="34" rx="8" fill="#ccfbf1" stroke="#0d9488"/><text x="257" y="126" text-anchor="middle" fill="#0f766e">Observations 工具结果</text></g>
+        <g data-anim><rect x="182" y="146" width="150" height="34" rx="8" fill="#e0e7ff" stroke="#4f46e5"/><text x="257" y="168" text-anchor="middle" fill="#3730a3">Retrieved Docs RAG</text></g>
+      </g>
+      <!-- plus -> aggregate -->
+      <g data-anim>
+        <rect x="410" y="86" width="170" height="80" rx="14" fill="#1e3a8a"/>
+        <text x="495" y="118" text-anchor="middle" fill="#fff" font-size="13" font-weight="800">动态聚合</text>
+        <text x="495" y="140" text-anchor="middle" fill="#bfdbfe" font-size="11.5">= 本轮 Model Context</text>
+      </g>
+      <path d="M334,120 L408,124" stroke="#4f46e5" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw/>
+      <!-- to model -->
+      <g data-anim>
+        <rect x="622" y="90" width="160" height="72" rx="12" fill="#0f172a"/>
+        <text x="702" y="122" text-anchor="middle" fill="#fff" font-size="13" font-weight="800">Foundation Model</text>
+        <text x="702" y="143" text-anchor="middle" fill="#93c5fd" font-size="10.5">理解·推理·规划·生成</text>
+      </g>
+      <path d="M580,126 L620,126" stroke="#4f46e5" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw/>
+    </svg>
+    <div class="fig-cap">七种成分被「动态聚合」成这一轮的 Model Context(模型输入),再喂给基础模型。「动态」的意思是:每一轮拼出来的内容都不同,因为记忆、历史、工具结果都在变。</div>
+  </div>
+
+  <p>七种成分是:<strong>System Prompt(角色设定)</strong> + <strong>Instructions(任务指令)</strong> + <strong>Memory(记忆)</strong> + <strong>History(历史对话)</strong> + <strong>Tool Schema(工具描述)</strong> + <strong>Observations(工具结果)</strong> + <strong>Retrieved Docs(RAG 检索)</strong>,聚合后 → <strong>生成本轮 Model Context(输入)</strong>。</p>
+  <div class="callout key-teal">
+    <span class="lbl">🔑 关键词:「动态」</span>
+    <p>为什么强调「<strong>动态</strong>聚合」?因为这不是一份写死的 prompt。每转一轮,History 更长了、Observations 换成了最新的工具结果、Memory 也可能更新——所以<strong>每一轮拼给模型的 Context 都是当轮现攒的、内容各不相同</strong>。这正是前面 Context「持续累积」在模型输入侧的体现。</p>
+  </div>
+</section>
+
+<!-- 8 Model -->
+<section id="model">
+  <span class="sec-kicker">Layer 3b · The Brain</span>
+  <h2>🧠 Foundation Model:循环里被反复调用的大脑</h2>
+  <div class="def">
+    <h4>Foundation Model(基础模型)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span>GPT、Claude、Gemini、Llama…… 这类大模型。图里写明它「<strong>在循环内被反复调用</strong>」,职责是<strong>理解、推理、规划和生成</strong>。</div>
+    <div class="row"><span class="tag tag-why">为什么</span>它是整个 Agent 里唯一「会思考」的部件。Runtime 不推理、资源只执行,真正把 Context 读进去、判断下一步该干什么的,是它。所以它不是被调用一次就完,而是<strong>循环的每一轮</strong>都要被喂一次最新 Context、吐一次决策。</div>
+  </div>
+
+  <h3>模型的输出只有两种(图里的关键分叉)</h3>
+  <p>模型读完这一轮的 Model Context 后,产出会走向两条路之一:</p>
+  <div class="cards">
+    <div class="card"><div class="ic">✅</div><h4>输出 A:Final Answer(最终答案)</h4><p><strong>任务完成,返回最终结果。</strong>这条路意味着循环可以结束、把答案交给用户。</p></div>
+    <div class="card t-gold"><div class="ic">🔧</div><h4>输出 B:Tool Call(工具调用)</h4><p><strong>需要调用工具,返回调用指令与参数。</strong>这条路意味着还没完,得先去动手用个工具,再看结果继续转。</p></div>
+  </div>
+  <div class="callout key">
+    <span class="lbl">🔀 这个分叉,就是循环「继续还是结束」的开关</span>
+    <p>模型每轮输出要么是 <strong>Final Answer</strong>(→ 结束,交付),要么是 <strong>Tool Call</strong>(→ 继续,去执行工具再回来)。理解这个二选一,就理解了闭环是怎么被驱动、又是怎么被终止的:<strong>只要模型还在吐 Tool Call,循环就继续;一旦吐出 Final Answer,循环就收尾。</strong></p>
+  </div>
+</section>
+
+<!-- 9 Tool flow -->
+<section id="toolflow">
+  <span class="sec-kicker">Layer 3c · Tool Loop</span>
+  <h2>🔧 工具调用流程与 Observation 回流</h2>
+  <p>当模型选了「Tool Call」这条路,接下来发生的事<strong>由 Runtime 执行</strong>。图里把它拆成三步,并接上最关键的一环——结果如何流回去:</p>
+
+  <div class="figure" data-fig>
+    <svg viewBox="0 0 800 210" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs>
+        <marker id="ar4" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#0d9488"/></marker>
+        <marker id="ar4b" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#b45309"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="20" y="30" width="150" height="60" rx="11" fill="#0f172a"/>
+        <text x="95" y="56" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">模型决定</text>
+        <text x="95" y="74" text-anchor="middle" fill="#93c5fd" font-size="11">调用工具</text>
+      </g>
+      <g data-anim>
+        <rect x="230" y="30" width="150" height="60" rx="11" fill="#eff5ff" stroke="#2563eb"/>
+        <text x="305" y="56" text-anchor="middle" fill="#1e3a8a" font-size="12.5" font-weight="700">工具调度器</text>
+        <text x="305" y="74" text-anchor="middle" fill="#475467" font-size="11">实际执行工具</text>
+      </g>
+      <g data-anim>
+        <rect x="440" y="30" width="150" height="60" rx="11" fill="#ccfbf1" stroke="#0d9488"/>
+        <text x="515" y="56" text-anchor="middle" fill="#0f766e" font-size="12.5" font-weight="700">返回结果</text>
+        <text x="515" y="74" text-anchor="middle" fill="#0f766e" font-size="11">Observation</text>
+      </g>
+      <path d="M170,60 L228,60" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#ar4)" data-draw/>
+      <path d="M380,60 L438,60" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#ar4)" data-draw/>
+      <!-- context box -->
+      <g data-anim>
+        <rect x="230" y="150" width="360" height="46" rx="11" fill="#fef3c7" stroke="#b45309"/>
+        <text x="410" y="170" text-anchor="middle" fill="#92400e" font-size="12" font-weight="800">Runtime Context(状态 / 记忆 / 历史)</text>
+        <text x="410" y="187" text-anchor="middle" fill="#7c4a06" font-size="10.5">更新后作为下一轮输入</text>
+      </g>
+      <!-- observation writes back -->
+      <path d="M515,90 C515,125 430,130 415,148" stroke="#b45309" stroke-width="2" fill="none" stroke-dasharray="6 5" marker-end="url(#ar4b)" data-draw/>
+      <text x="600" y="120" text-anchor="middle" fill="#b45309" font-size="11" font-weight="700">写回 · 回流</text>
+      <!-- back to model -->
+      <path d="M230,173 C120,173 95,150 95,92" stroke="#b45309" stroke-width="2" fill="none" stroke-dasharray="6 5" marker-end="url(#ar4b)" data-draw/>
+      <text x="120" y="130" text-anchor="middle" fill="#b45309" font-size="11" font-weight="700">驱动下一轮</text>
+    </svg>
+    <div class="fig-cap">工具调用回路:模型决定 → 调度器执行 → 返回 Observation;Observation 被写回 Runtime Context,更新状态后成为下一轮的输入,驱动模型再想一步。</div>
+  </div>
+
+  <ol class="steps">
+    <li><h5>模型决定调用工具</h5><p>模型输出一个 Tool Call,指明要用哪个工具、传什么参数。</p></li>
+    <li><h5>工具调度器执行工具</h5><p>Runtime 里的工具调度器接过指令,实际去把这个工具跑起来。</p></li>
+    <li><h5>返回结果 = Observation</h5><p>工具执行完,产出结果,这个结果就是 <span class="term">Observation(观察)</span>。</p></li>
+  </ol>
+
+  <div class="def">
+    <h4>Observation(观察 / 反馈)= 上方 Observe 步骤的落地实现</h4>
+    <div class="row"><span class="tag tag-what">是什么</span>图里画了一条明确的对应关系:底部工具流里的 <strong>Observation</strong>,正是核心循环里 <strong>Observe 步骤的具体实现</strong>。前面 Reasoning Loop 讲的「观察」是概念,这里的 Observation 是它真正发生的地方。</div>
+    <div class="row"><span class="tag tag-why">为什么关键</span>因为它负责<strong>回流</strong>:Observation 会把工具结果(或其他反馈)<strong>写回 Runtime Context,更新状态、记忆、历史等,作为下一轮输入</strong>。没有这一步回流,循环就断了——模型永远不知道自己上一步动作的结果。</div>
+    <div class="row"><span class="tag tag-eg">例子</span>模型说「查一下上周广告花费」(Tool Call)→ 调度器跑 SQL 工具 → 返回「花了 ¥8,200」(Observation)→ 这个数字被写回 Context → 下一轮模型带着这个数字继续想「ROI 是多少、该不该加预算」。</div>
+  </div>
+  <div class="callout key-teal">
+    <span class="lbl">♻️ 工具结果回流:闭环真正「闭」上的那一笔</span>
+    <p>「工具执行结果 Observation 回流到 Runtime Context,驱动下一轮推理与行动」——这句话是整张图的枢纽。它把「模型的输出」变回「模型下一轮的输入」,让一次次孤立的调用串成一个真正转起来的循环。</p>
+  </div>
+</section>
+
+<!-- 10 Principles -->
+<section id="principles">
+  <span class="sec-kicker">Key Concepts</span>
+  <h2>📚 关键概念说明 &amp; 核心原则</h2>
+  <p>图右侧的「关键概念说明」和右下的「核心原则」,其实是把前面所有块提炼成几条要点。放在一起对照,正好收束全篇。</p>
+
+  <h3>五条关键概念(图右侧栏)</h3>
+  <div class="tbl-wrap">
+    <table class="cmp">
+      <thead><tr><th>关键概念</th><th>说的是什么</th></tr></thead>
+      <tbody>
+        <tr><th>闭环迭代</th><td>Agent 通过 <strong>Think → Act → Observe</strong> 的循环不断逼近目标,直到完成。</td></tr>
+        <tr><th>资源按需调用</th><td><strong>Skills / Workflow / Tools</strong> 在每一轮 Act 阶段按需选择和调用(横向,不是固定顺序)。</td></tr>
+        <tr><th>Context 贯穿全程</th><td><strong>Runtime Context</strong> 持续累积和更新,每一轮动态聚合为模型输入。</td></tr>
+        <tr><th>模型在循环内调用</th><td><strong>Foundation Model</strong> 在循环的每一轮被调用,输出驱动下一步决策。</td></tr>
+        <tr><th>工具结果回流</th><td>工具执行结果 <strong>Observation</strong> 回流到 Runtime Context,驱动下一轮推理与行动。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>四条核心原则(图右下角)</h3>
+  <ul class="practice">
+    <li><strong>资源按需调用</strong> —— 用什么临时挑,不预设固定流程。</li>
+    <li><strong>状态持续累积</strong> —— Context 越转越厚,记得住上文。</li>
+    <li><strong>模型反复调用</strong> —— 每一轮都问一次模型,而非只问一次。</li>
+    <li><strong>形成闭环迭代</strong> —— Observe 送回 Think,循环直到完成。</li>
+  </ul>
+
+  <div class="callout key-gold">
+    <span class="lbl">🧷 五概念与四原则其实一一呼应</span>
+    <p>「资源按需调用」对应资源横向挑;「状态持续累积 + Context 贯穿全程」对应那份越堆越厚的 Runtime Context;「模型反复调用」对应大脑在循环里被反复喂输入;「闭环迭代 + 工具结果回流」对应 Observation 把结果送回去、把循环闭上。<strong>本质上,它们都在说同一件事的不同侧面:一个会自我更新、自我驱动的循环。</strong></p>
+  </div>
+</section>
+
+<!-- 11 Takeaway -->
+<section id="takeaway" class="final">
+  <span class="sec-kicker" style="color:#93c5fd">Takeaway</span>
+  <h2>🌀 一句话记住这张图</h2>
+  <p>用户给一句<span class="term">自然语言需求</span>;<span class="term">Runtime(Harness)</span>这个不推理的底座,管着状态、循环、工具与预算,托住整场运行;在它之上,<span class="term">Reasoning Loop</span> 以「Think →(Plan)→ Act → Observe」一圈圈转;每轮 Act 时,从 Skills / Workflow / Tools 里<strong>横向按需</strong>取一个来用;每轮都把七类信息<strong>动态聚合</strong>成 Context,喂给 <span class="term">Foundation Model</span> 这颗大脑;模型要么给出 <strong>Final Answer</strong> 收尾,要么发一个 <strong>Tool Call</strong>;工具跑完的 <strong>Observation</strong> 回流进 Context,驱动下一轮——如此往复,直到任务完成。</p>
+  <p>所以最后再强调一次图底部那句题眼:</p>
+  <p style="font-size:19px;font-weight:700;color:#bfdbfe;line-height:1.7">这不是一条从上到下的流水线,而是一个持续迭代的智能循环。Agent 通过不断的思考、行动、观察和调整,逐步完成复杂任务。</p>
+</section>
+
+<div class="foot-note">阅读顺序建议:先看第 2 节「闭环全景图」建立整体地图,再按底座 → 循环 → 模型交互往下读;看完回到第 10 节的表格,就能把整张架构图默画出来。</div>
+
+<footer>
+  整理自一张「Agent 运行时架构 / Reasoning Loop 闭环迭代」中文架构示意图。<br>
+  处理方式:逐块还原图中全部信息(七组件 / 八类状态 / 四步循环 / 三类资源 / 七种输入成分 / 两种输出 / 五概念四原则),配三段式、类比、分步与循环图/流程图/输入输出图可视化,保留原图的每个术语、示例与限定条件,不删改不压缩。
+</footer>
+
+</div>
+
+<script>
+(function(){
+  const sections=[...document.querySelectorAll('section[id]')];
+  const links=[...document.querySelectorAll('.side-toc a')];
+  const topProg=document.getElementById('topProg');
+  const pctBar=document.getElementById('pctBar');
+  const pctTxt=document.getElementById('pctTxt');
+  function onScroll(){
+    const h=document.documentElement;
+    const scrolled=h.scrollTop/(h.scrollHeight-h.clientHeight)||0;
+    const pct=Math.round(scrolled*100);
+    topProg.style.width=pct+'%';pctBar.style.width=pct+'%';pctTxt.textContent=pct+'%';
+    let cur=sections[0];
+    for(const s of sections){if(s.getBoundingClientRect().top<=140) cur=s;}
+    links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur.id));
+  }
+  document.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);onScroll();
+  const toggle=document.getElementById('tocToggle');
+  const toc=document.getElementById('sideToc');
+  toggle.addEventListener('click',()=>toc.classList.toggle('open'));
+  links.forEach(a=>a.addEventListener('click',()=>toc.classList.remove('open')));
+  document.querySelectorAll('[data-draw]').forEach(p=>{
+    try{const len=p.getTotalLength();p.style.setProperty('--len',len);}catch(e){}
+  });
+  const io=new IntersectionObserver((es)=>{
+    es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:.2});
+  document.querySelectorAll('[data-fig]').forEach(f=>io.observe(f));
+})();
+</script>
+<script id="toc-fix-script">
+(function(){
+  var toc=document.querySelector('.side-toc');
+  if(!toc) return;
+  var btn=document.querySelector('.toc-toggle');
+  if(btn){var n=btn.cloneNode(true);btn.parentNode.replaceChild(n,btn);btn=n;}
+  else{btn=document.createElement('button');btn.className='toc-toggle';btn.setAttribute('aria-label','目录');btn.textContent='☰';document.body.appendChild(btn);}
+  var embedded=false; try{embedded=window.self!==window.top;}catch(e){embedded=true;}
+  var open=!embedded;
+  function apply(){
+    toc.classList.toggle('__toc-open',open);
+    toc.classList.toggle('__toc-closed',!open);
+    document.body.classList.toggle('__toc-off',!open);
+    btn.setAttribute('aria-expanded',open?'true':'false');
+  }
+  apply();
+  btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();open=!open;apply();});
+  toc.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(embedded||window.innerWidth<1180){open=false;apply();}});});
+})();
+</script>
+</body>
+</html>
