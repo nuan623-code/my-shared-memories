@@ -120,6 +120,16 @@ function ArticleDetailPage() {
         const win = iframe.contentWindow;
         if (!doc || !win) return;
 
+        // 目录归站点外壳管:隐藏文章 HTML 自带的悬浮目录/进度条/切换按钮,
+        // 避免它们在自适应高度 iframe 里因 position:fixed 失去参照而出框、和外壳目录重复。
+        if (!doc.getElementById("__host-hide-chrome")) {
+          const style = doc.createElement("style");
+          style.id = "__host-hide-chrome";
+          style.textContent =
+            ".side-toc,.toc-toggle,.top-progress{display:none!important}";
+          (doc.head || doc.documentElement).appendChild(style);
+        }
+
         const headings = Array.from(doc.querySelectorAll("h2, h3"));
         const items: TocItem[] = [];
         headings.forEach((h, i) => {
@@ -200,12 +210,14 @@ function ArticleDetailPage() {
     if (!iframe) return;
     try {
       const doc = iframe.contentDocument;
-      const win = iframe.contentWindow;
-      if (!doc || !win) return;
+      if (!doc) return;
       const el = doc.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      if (!el) return;
+      // iframe 自适应高度、无内部滚动:元素在 iframe 内的 top 即它距 iframe 顶的距离,
+      // 加上 iframe 在外层页面的绝对位置,再滚外层 window(留出顶部粘性条的空间)。
+      const iframeTop = iframe.getBoundingClientRect().top + window.scrollY;
+      const elTop = el.getBoundingClientRect().top;
+      window.scrollTo({ top: iframeTop + elTop - 80, behavior: "smooth" });
     } catch {
       // ignore
     }
@@ -272,6 +284,36 @@ function ArticleDetailPage() {
 
       {/* Main layout: left TOC + right content */}
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6">
+        {/* Left TOC (站点外壳统一目录,跟随整页滚动) */}
+        {toc.length > 0 && (
+          <aside className="hidden w-56 shrink-0 lg:block">
+            <nav className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto pr-1">
+              <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                目录
+              </div>
+              <ul className="space-y-0.5">
+                {toc.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => jumpTo(item.id)}
+                      style={{ paddingLeft: item.level === 3 ? 14 : 0 }}
+                      className={`block w-full truncate text-left text-sm leading-6 transition-colors hover:text-foreground ${
+                        activeId === item.id
+                          ? "font-medium text-primary"
+                          : "text-muted-foreground"
+                      }`}
+                      title={item.text}
+                    >
+                      {item.text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </aside>
+        )}
+
         {/* Right content */}
         <div className="min-w-0 flex-1">
           {(() => {

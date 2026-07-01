@@ -42,7 +42,7 @@ function SearchPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate({ search: (p: z.infer<typeof schema>) => ({ ...p, q }) });
+    navigate({ search: (p: z.input<typeof schema>) => ({ ...p, q }) });
   };
 
   return (
@@ -68,7 +68,7 @@ function SearchPage() {
           <Link
             key={t}
             to="/search"
-            search={(p: z.infer<typeof schema>) => ({ ...p, type: t })}
+            search={(p: z.input<typeof schema>) => ({ ...p, type: t })}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
               params.type === t
                 ? "border-primary bg-primary text-primary-foreground"
