@@ -74,6 +74,7 @@ function ArticleDetailPage() {
   const [progress, setProgress] = useState(0);
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [frameHeight, setFrameHeight] = useState<number | null>(null);
   const [annotationsOn, setAnnotationsOn] = useState<boolean>(true);
   const [annotationsHydrated, setAnnotationsHydrated] = useState(false);
   const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({ prev: null, next: null });
@@ -108,6 +109,11 @@ function ArticleDetailPage() {
     const iframe = iframeRef.current;
     if (!iframe || !article.url) return;
 
+    setFrameHeight(null);
+    let ro: ResizeObserver | null = null;
+    let winScroll: (() => void) | null = null;
+    let winResize: (() => void) | null = null;
+
     const onLoad = () => {
       try {
         const doc = iframe.contentDocument;
@@ -127,26 +133,53 @@ function ArticleDetailPage() {
         });
         setToc(items);
 
-        const onScroll = () => {
-          const docEl = doc.documentElement;
-          const top = docEl.scrollTop || doc.body.scrollTop;
-          const h = (docEl.scrollHeight || doc.body.scrollHeight) - win.innerHeight;
-          setProgress(h > 0 ? Math.min(100, Math.max(0, (top / h) * 100)) : 0);
+        // 让 iframe 高度自适应文章内容:文章随整页滚动,而不是挤在小窗口里。
+        const measure = () => {
+          const h = Math.max(
+            doc.documentElement.scrollHeight,
+            doc.body.scrollHeight,
+          );
+          if (h) setFrameHeight((prev) => (prev && Math.abs(prev - h) < 2 ? prev : h));
+        };
+        // 宽度变化后内容会重排,需在重排结束后再测一次(rAF + 延时兜底)。
+        const measureSoon = () => {
+          measure();
+          win.requestAnimationFrame(measure);
+          window.setTimeout(measure, 200);
+        };
+        measureSoon();
+        const RO = (win as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+        if (RO) {
+          ro = new RO(measure);
+          ro.observe(doc.body);
+          ro.observe(doc.documentElement);
+        }
+        winResize = measureSoon;
+        window.addEventListener("resize", winResize);
+        // 晚加载的字体 / 图片 / SVG 动画会改变高度,头几秒兜底重测。
+        [300, 800, 1600].forEach((t) => window.setTimeout(measure, t));
+
+        // iframe 已无内部滚动,阅读进度/当前标题改由外层页面滚动驱动。
+        winScroll = () => {
+          const rect = iframe.getBoundingClientRect();
+          const vh = window.innerHeight;
+          const total = rect.height - vh;
+          const scrolled = -rect.top;
+          const p = total > 0 ? (scrolled / total) * 100 : rect.top <= 0 ? 100 : 0;
+          setProgress(Math.min(100, Math.max(0, p)));
 
           let current: string | null = null;
           for (const item of items) {
             const el = doc.getElementById(item.id);
             if (el) {
-              const rect = el.getBoundingClientRect();
-              if (rect.top <= 120) current = item.id;
+              const r = el.getBoundingClientRect();
+              if (r.top + rect.top <= 120) current = item.id;
             }
           }
           setActiveId(current);
         };
-
-        win.addEventListener("scroll", onScroll, { passive: true });
-        onScroll();
-        return () => win.removeEventListener("scroll", onScroll);
+        window.addEventListener("scroll", winScroll, { passive: true });
+        winScroll();
       } catch {
         // ignore cross-origin or other errors
       }
@@ -154,7 +187,12 @@ function ArticleDetailPage() {
 
     iframe.addEventListener("load", onLoad);
     if (iframe.contentDocument?.readyState === "complete") onLoad();
-    return () => iframe.removeEventListener("load", onLoad);
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+      if (ro) ro.disconnect();
+      if (winScroll) window.removeEventListener("scroll", winScroll);
+      if (winResize) window.removeEventListener("resize", winResize);
+    };
   }, [article.url]);
 
   const jumpTo = (id: string) => {
@@ -258,7 +296,8 @@ function ArticleDetailPage() {
                       : { src: article.url as string })}
                     title={article.title ?? ""}
                     referrerPolicy="no-referrer"
-                    className="h-[calc(100vh-10rem)] w-full rounded-lg border border-border bg-white"
+                    className="block w-full rounded-lg border border-border bg-white"
+                    style={{ height: frameHeight ? `${frameHeight}px` : "calc(100vh - 10rem)" }}
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   />
                   {/* 段落批注 + 按钮暂时隐藏:Lovable 的定位算法有 bug,+ 会全挤在右上角。
