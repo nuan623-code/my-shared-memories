@@ -238,6 +238,31 @@ async function fetchArticle(url) {
   };
 }
 
+// ---- 封面转存 --------------------------------------------------------------
+// 列表卡片的封面 <img> 由站点组件渲染、会带 Referer,微信 CDN 会回防盗链占位图
+// (正文里的图有 no-referrer 不受影响)。所以封面一律下载后转存到自己的
+// Storage 桶 resources/wechat-covers/,cover_url 存自己的公开链接。
+async function rehostCover(coverUrl, slug) {
+  if (!coverUrl || !/qpic\.cn/.test(coverUrl)) return coverUrl;
+  const img = await fetch(coverUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0 Safari/537.36" },
+  });
+  if (!img.ok) throw new Error(`封面下载 HTTP ${img.status}`);
+  const buf = Buffer.from(await img.arrayBuffer());
+  if (buf.length < 5000) throw new Error(`封面太小(${buf.length}B),疑似防盗链占位图`);
+  const ct = img.headers.get("content-type") || "image/jpeg";
+  const ext = ct.includes("png") ? "png" : ct.includes("gif") ? "gif" : ct.includes("webp") ? "webp" : "jpg";
+  const { createHash } = await import("node:crypto");
+  const name = `wechat-covers/${createHash("md5").update(slug).digest("hex").slice(0, 12)}.${ext}`;
+  const up = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/resources/${name}`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": ct, "x-upsert": "true" },
+    body: buf,
+  });
+  if (!up.ok) throw new Error(`封面上传 ${up.status}`);
+  return `${SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/public/resources/${name}`;
+}
+
 // ---- 逐篇抓取 + 收集(带节流,别把微信惹毛)-------------------------------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rows = [];
@@ -250,6 +275,10 @@ for (let i = 0; i < urls.length; i++) {
   try {
     const a = await fetchArticle(u);
     const slug = slugify(a.title);
+    if (!DRY && a.coverUrl) {
+      try { a.coverUrl = await rehostCover(a.coverUrl, slug); }
+      catch (e) { log(`  ${C.y}⚠ 封面转存失败,保留原链接:${e.message}${C.x}`); }
+    }
     rows.push({
       slug,
       type: "article",
