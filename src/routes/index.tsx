@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { fetchResources, type Resource } from "@/lib/resources";
 import { categories } from "@/lib/data";
-import { ResourceMasonry } from "@/components/ResourceMasonry";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTopViewed } from "@/lib/views";
@@ -42,12 +41,6 @@ export const Route = createFileRoute("/")({
   ),
 });
 
-// 首页按「分类」筛选(与资源库侧栏同一份 categories 定义,保持一致)
-const CAT_FILTERS: { id: string; label: string; color: string | null }[] = [
-  { id: "all", label: "全部", color: null },
-  ...categories.map((c) => ({ id: c.id, label: c.label, color: c.color })),
-];
-
 function resourceHref(r: Resource): string {
   if (r.type === "article" && r.slug) return `/articles/${r.slug}`;
   if (r.url) return r.url;
@@ -56,13 +49,14 @@ function resourceHref(r: Resource): string {
 
 function HomePage() {
   const { data: resources } = useSuspenseQuery(resourcesQO);
-  const [filter, setFilter] = useState<string>("all");
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: resources.length };
-    for (const r of resources) if (r.category) c[r.category] = (c[r.category] || 0) + 1;
-    return c;
-  }, [resources]);
+  // 分类分区(按 lib/data 的 categories 顺序,空分类不显示)
+  const catSections = useMemo(
+    () =>
+      categories
+        .map((c) => ({ ...c, items: resources.filter((r) => r.category === c.id) }))
+        .filter((s) => s.items.length > 0),
+    [resources],
+  );
 
   const featured = useMemo(() => resources.slice(0, 3), [resources]);
 
@@ -78,10 +72,6 @@ function HomePage() {
     return d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
   }, [resources]);
 
-  const filtered = useMemo(
-    () => (filter === "all" ? resources : resources.filter((r) => r.category === filter)),
-    [resources, filter],
-  );
 
   return (
     <div className="flex flex-col">
@@ -149,21 +139,25 @@ function HomePage() {
             </Link>
           </div>
 
-          {/* Stats strip:按分类统计,只显示有内容的分类 */}
+          {/* Stats strip:按分类统计,点击滚动到对应分区 */}
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {CAT_FILTERS.filter((c) => c.id !== "all" && (counts[c.id] ?? 0) > 0).map((c) => {
+            {catSections.map((c) => {
               return (
                 <button
                   key={c.id}
-                  onClick={() => setFilter(c.id)}
+                  onClick={() =>
+                    document
+                      .getElementById(`cat-${c.id}`)
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
                   className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-left backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                 >
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 transition group-hover:bg-primary/20">
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color ?? undefined }} />
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color }} />
                   </div>
                   <div>
                     <div className="text-lg font-semibold leading-none text-foreground">
-                      {counts[c.id] ?? 0}
+                      {c.items.length}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">{c.label}</div>
                   </div>
@@ -264,52 +258,91 @@ function HomePage() {
       <TopViewedAndSubscribe allResources={resources} />
 
 
-      {/* Category filter chips:与资源库侧栏同一份分类,只显示有内容的 */}
-      <section className="sticky top-[57px] z-30 border-b border-border/50 bg-background/85 px-4 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto py-3">
-          {CAT_FILTERS.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0).map((c) => {
-            const active = filter === c.id;
-            const n = counts[c.id] ?? 0;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setFilter(c.id)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                  active
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/30"
-                    : "border-border bg-card text-foreground hover:border-primary/40"
-                }`}
+      {/* 分类分区:按 lib/data 的 categories 顺序上下排(AI 学习在上、公众号文章在下),
+          空分类不显示;卡片纯文字、不放封面图 */}
+      {catSections.map((s) => (
+        <section
+          key={s.id}
+          id={`cat-${s.id}`}
+          className="scroll-mt-20 border-b border-border/50 px-4 py-12"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-6 flex items-end justify-between">
+              <div>
+                <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                  {s.description}
+                </div>
+                <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                  {s.label}
+                  <span className="ml-2 align-middle text-sm font-normal text-muted-foreground">
+                    {s.items.length} 篇
+                  </span>
+                </h2>
+              </div>
+              <Link
+                to="/resources"
+                className="hidden items-center gap-1 text-xs font-medium text-primary hover:underline sm:inline-flex"
               >
-                {c.color && (
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
-                )}
-                {c.label}
-                <span
-                  className={`rounded-full px-1.5 text-[10px] ${
-                    active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {n}
-                </span>
-              </button>
-            );
-          })}
-          <Link
-            to="/resources"
-            className="ml-auto hidden shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline sm:inline-flex"
-          >
-            进入完整资源库
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-      </section>
-
-      {/* Masonry feed */}
-      <section className="px-4 py-8">
-        <div className="mx-auto max-w-7xl">
-          <ResourceMasonry resources={filtered} />
-        </div>
-      </section>
+                进入完整资源库
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {s.items.map((r) => {
+                const href = resourceHref(r);
+                const isExternal = href.startsWith("http");
+                const inner = (
+                  <article className="group flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
+                    <div>
+                      <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {new Date(r.published_at).toLocaleDateString("zh-CN", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-primary opacity-0 transition group-hover:opacity-100">
+                          阅读
+                          <ArrowUpRight className="h-3 w-3" />
+                        </span>
+                      </div>
+                      <h3 className="line-clamp-2 text-base font-semibold text-foreground transition group-hover:text-primary">
+                        {r.title || "未命名资源"}
+                      </h3>
+                      {r.summary && (
+                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{r.summary}</p>
+                      )}
+                    </div>
+                    {(r.tags?.length ?? 0) > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {r.tags.slice(0, 3).map((t) => (
+                          <span
+                            key={t}
+                            className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                );
+                return isExternal ? (
+                  <a key={r.id} href={href} target="_blank" rel="noreferrer">
+                    {inner}
+                  </a>
+                ) : (
+                  <Link key={r.id} to={href}>
+                    {inner}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ))}
 
       {/* Tag cloud */}
       {topTags.length > 0 && (
