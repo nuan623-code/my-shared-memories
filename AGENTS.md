@@ -59,10 +59,11 @@
 
 ## 日常:拉 Lovable 更新并上线
 ```bash
-./publish.sh               # 拉 main → 合 prod → 构建 → 部署 → 验证,一条龙
+./publish.sh               # 拉 main → 合 prod → 构建 → 部署 → 验证 → push GitHub,一条龙
 ./publish.sh --deploy-only # 只改了文档/内容、没动 Lovable
 ./publish.sh --schema-ok   # 已在 Supabase 跑过新迁移,允许继续部署
 ```
+**提交/推送规则(2026-07-02 用户定)**:改动完成后**自动 commit 并 push `origin prod`**,不用再等确认(publish.sh 末尾也会自动 push)。只推 prod、普通 push、绝不 force;main 仍然只拉不推。
 两个**安全停车点**:
 1. **合并冲突** —— 几乎只会在 `auth.tsx` / `__root.tsx` / `package.json` / `admin.tsx`,一律**保留 prod 这边**(原生登录、去 lovable 依赖、ResourcesManager)。解完 commit,再 `--deploy-only`。
 2. **新数据库迁移** —— Lovable 在 `supabase/migrations/` 新增的 `.sql`,按文件原样跑一遍(它们是 Lovable 写好的,别重抄进 schema.sql):优先 `node scripts/run-sql.mjs supabase/migrations/<新文件>.sql`(需 `~/.ms-supabase-token`,见下方文件地图);没令牌就退回 Supabase SQL Editor 手动跑。跑完用 `--schema-ok` 继续。

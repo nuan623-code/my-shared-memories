@@ -128,5 +128,9 @@ for path in "/" "/auth" "/articles/deepseek-r1-guide"; do
   [ "$code" = "200" ] || warn "$path 不是 200,去看看。"
 done
 
+# --- 7. 同步 GitHub(prod 分支;普通 push、绝不 force)------------------------
+say "同步 GitHub(origin/prod)"
+git push origin prod || warn "push 失败(部署本身已成功),稍后手动 git push origin prod。"
+
 printf "\n\033[1;32m✔ 完成:%s 已更新。\033[0m\n" "$SITE"
 echo "  当前分支:$(git rev-parse --abbrev-ref HEAD)(prod);main 保持 Lovable 镜像。"
