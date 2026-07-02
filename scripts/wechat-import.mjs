@@ -288,7 +288,9 @@ for (let i = 0; i < urls.length; i++) {
       url: a.sourceUrl,
       cover_url: a.coverUrl,
       tags: ["公众号"],
-      category: null,
+      // 站点分类真理源 src/lib/data.ts:公众号文章统一归 article 大类;
+      // 子类(industry/product/practice/learning)导入后在 /admin 或按内容补
+      category: "article",
       subcategory: null,
       owner_id: null,
       published_at: a.publishedAt,
