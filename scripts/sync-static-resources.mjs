@@ -9,6 +9,8 @@
 //               public/foo.html          -> "foo"
 //   标题:       scripts/resources.manifest.json 覆盖 > <h1> > <title>
 //   去重:       已存在的 slug 一律跳过、永不覆盖(只新增)。
+//   排除:       manifest 里给 slug 设 "skip": true → 永不入库
+//               (在网页上删掉某篇静态文档后,要在这里加 skip,否则下次部署会被重新插回)。
 //
 // 写权限来自 service_role key,只从仓库外的 ~/.ms-supabase-admin 读取
 // (chmod 600,绝不进 git、绝不打包进网站)。缺这个文件时本步骤直接跳过,
@@ -83,9 +85,10 @@ for (const s of SCAN) {
     if (!name.endsWith(".html")) continue;
     const base = name.replace(/\.html$/, "");
     const slug = s.prefix + base;
+    const o = manifest[slug] || {};
+    if (o.skip) continue;
     const urlPath = "/" + (s.dir ? `${s.dir}/` : "") + name;
     const html = readFileSync(join(abs, name), "utf8");
-    const o = manifest[slug] || {};
     rows.push({
       slug,
       type: "article",

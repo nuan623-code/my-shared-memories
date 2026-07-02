@@ -48,6 +48,10 @@
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
 | `src/lib/ai-gateway.server.ts` + `classify.functions.ts` | /admin 自动分类改用 **Claude**(`@ai-sdk/anthropic`,读 `ANTHROPIC_API_KEY`) |
 | `package.json` | 删 `@lovable.dev/cloud-auth-js`;**保留 `@lovable.dev/vite-tanstack-config`(这是构建工具,删了会炸)** |
+| `src/components/ResourcesManager.tsx` | /admin「资料管理」:全部 5 类资料的删除/置顶(Lovable 的 ArticlesManager 只管文章);删除后核对返回行数防 RLS 假成功 |
+| `src/routes/_authenticated/admin.tsx` | 仅一行改动:`ArticlesManager` 换成 `ResourcesManager`(合并冲突保留本端) |
+| `supabase/patches/` | 我方 SQL 补丁(非 Lovable 迁移,一律写成幂等);用 `node scripts/run-sql.mjs --patches` 执行;已含 2026-07-02 管理员可删/改任何 resources |
+| `scripts/run-sql.mjs` | 在用户 Supabase 上跑任意 SQL(Management API)。凭证 = 个人访问令牌 `sbp_...`,存仓库外 `~/.ms-supabase-token`(chmod 600);`~/.ms-supabase-admin` 的 sb_secret 只能写数据行、跑不了 SQL,别混。**有此令牌后,补丁和 Lovable 新迁移都不用再让用户去 SQL Editor 手动跑** |
 | (已删除) | `src/integrations/lovable/`、`src/lib/lovable-error-reporting.ts` |
 | `.env`(不入 git)/ `.gitignore` / `.env.example` | 用用户自己的 Supabase key |
 | `supabase/schema.sql`、`publish.sh`、`AGENTS.md` | bootstrap / 部署脚本 / 本文件 |
@@ -60,8 +64,8 @@
 ./publish.sh --schema-ok   # 已在 Supabase 跑过新迁移,允许继续部署
 ```
 两个**安全停车点**:
-1. **合并冲突** —— 几乎只会在 `auth.tsx` / `__root.tsx` / `package.json`,一律**保留 prod 这边**(原生登录、去 lovable 依赖)。解完 commit,再 `--deploy-only`。
-2. **新数据库迁移** —— Lovable 在 `supabase/migrations/` 新增的 `.sql`,**直接在 Supabase SQL Editor 按文件原样跑一遍**(它们是 Lovable 写好的,别重抄进 schema.sql)。跑完用 `--schema-ok` 继续。
+1. **合并冲突** —— 几乎只会在 `auth.tsx` / `__root.tsx` / `package.json` / `admin.tsx`,一律**保留 prod 这边**(原生登录、去 lovable 依赖、ResourcesManager)。解完 commit,再 `--deploy-only`。
+2. **新数据库迁移** —— Lovable 在 `supabase/migrations/` 新增的 `.sql`,按文件原样跑一遍(它们是 Lovable 写好的,别重抄进 schema.sql):优先 `node scripts/run-sql.mjs supabase/migrations/<新文件>.sql`(需 `~/.ms-supabase-token`,见下方文件地图);没令牌就退回 Supabase SQL Editor 手动跑。跑完用 `--schema-ok` 继续。
 
 > `supabase/schema.sql` 只是**全新数据库的一次性 bootstrap**(幂等,整合了历史迁移)。日常更新走上面第 2 点,不要每次把新迁移再整合进它 —— 那是重复劳动。
 
@@ -69,7 +73,8 @@
 资料库列表读 Supabase `resources` 表,不是静态文件。以前每加一篇要手动插一行 SQL;现在 `publish.sh` 部署后会跑 `scripts/sync-static-resources.mjs` 自动同步:
 - **流程**:把 HTML 放进 `public/ai-notes/`(或 `overseas/`、根目录)→ `./publish.sh --deploy-only` → 脚本扫描、按 **`folder-filename`** 约定生成 slug、`upsert`(`ignore-duplicates`,**只新增、绝不覆盖已有行**)。
 - **标题/分类**:默认取文件 `<h1>`→`<title>` + 按目录给默认分类;要精修就在 `scripts/resources.manifest.json` 按 slug 覆盖 `title/summary/category/subcategory/tags`。
-- **写凭证**:service_role key,只存 **仓库外 `~/.ms-supabase-admin`(chmod 600,绝不进 git、绝不打包/内联)**。缺这个文件脚本自动跳过、不阻断部署。**这是唯一能写 `resources` 的凭证**(`.env` 里的 publishable key 对该表只读)。
+- **写凭证**:service_role key,只存 **仓库外 `~/.ms-supabase-admin`(chmod 600,绝不进 git、绝不打包/内联)**。缺这个文件脚本自动跳过、不阻断部署。**这是唯一能写 `resources` 的凭证**(`.env` 里的 publishable key 对该表只读;管理员登录后经 RLS 也可删/改,见 `supabase/patches/`)。
+- **删静态文档**:在 /admin 资料管理里删掉库中行后,只要 HTML 还在 `public/`,下次部署会被同步脚本重新插回 —— 要么删掉 HTML 文件,要么在 `scripts/resources.manifest.json` 给该 slug 设 `"skip": true`。
 - 已废弃:一次性 `supabase/seed-*.sql`(改由脚本统一管理)。
 
 ## 测试深度(默认最轻,省 token)

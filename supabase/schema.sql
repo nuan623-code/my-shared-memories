@@ -518,3 +518,20 @@ SELECT id, 'admin'::public.app_role
 FROM auth.users
 WHERE email = 'nuan623@gmail.com'
 ON CONFLICT (user_id, role) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 管理员可更新/删除任何资料(2026-07-02,同 patches/20260702-admin-manage-resources.sql)。
+-- 放在文件末尾是因为策略引用 has_role,必须在该函数创建之后执行。
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Owners can update their resources" ON public.resources;
+DROP POLICY IF EXISTS "Owners or admins update resources" ON public.resources;
+CREATE POLICY "Owners or admins update resources"
+  ON public.resources FOR UPDATE TO authenticated
+  USING (auth.uid() = owner_id OR public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (auth.uid() = owner_id OR public.has_role(auth.uid(), 'admin'));
+
+DROP POLICY IF EXISTS "Owners can delete their resources" ON public.resources;
+DROP POLICY IF EXISTS "Owners or admins delete resources" ON public.resources;
+CREATE POLICY "Owners or admins delete resources"
+  ON public.resources FOR DELETE TO authenticated
+  USING (auth.uid() = owner_id OR public.has_role(auth.uid(), 'admin'));

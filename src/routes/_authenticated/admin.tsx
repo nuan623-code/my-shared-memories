@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { categories } from "@/lib/data";
 import type { ResourceType } from "@/lib/resources";
 import { importWechatArticle } from "@/lib/wechat-import.functions";
-import { ArticlesManager } from "@/components/ArticlesManager";
+import { ResourcesManager } from "@/components/ResourcesManager";
 
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -140,7 +140,7 @@ function AdminPage() {
 
       <WechatImporter />
 
-      <ArticlesManager />
+      <ResourcesManager />
 
 
 
