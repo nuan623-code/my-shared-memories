@@ -15,11 +15,11 @@
 
 > 给接手的 AI:先读这一页,别重新侦察仓库。
 
-## 核心原则
-**Lovable 是设计 / 功能 / 数据库 schema 的唯一真理源。**
-它写过的东西,直接信任、复用 —— 不复审、不重写、不"换种写法"、不重新推导。
-你的职责只有两件:① 维持那层薄薄的「去 Lovable」叠加;② 把成果构建 + 部署上线。
-`git merge` 进来的几十个文件原样接受,只解已知的几个冲突,其余看都不必看。
+## 核心原则(2026-07-02 用户改)
+**「Lovable 是功能真理源」规则已废除**:任何文件都可以直接修改、修 bug、按需求改造,不用再"等 Lovable 修"或先停下来问。
+仍然成立的两条:
+- **不为改而改**:Lovable 写的能正常工作的代码不去重写/重构/"优化",改动只服务于明确的需求或 bug。
+- **改了就登记**:凡动过 Lovable 侧的文件,在下面的文件地图记一行(它现在的作用 = 合并冲突时"保留本端"的清单)。若以后还拉 Lovable 更新,冲突一律以 prod 本端为准。
 
 ## 不变事实(已钉死,别再去查)
 - **仓库**:GitHub `nuan623-code/my-shared-memories`,与 Lovable 双向同步。本地 `~/my-shared-memories`。
@@ -38,13 +38,14 @@
 3. **邮箱免确认**:Supabase 后台 → Authentication → Providers → **Email → 关掉 Confirm email**(SQL 改不了,只能后台)。否则邮箱注册后没 session,像"注册了登不进"。
 4. **(可选)Cloudflare secret**:自动分类 `ANTHROPIC_API_KEY`、微信导入 `FIRECRAWL_API_KEY`,`wrangler secret put` 设;不设只是对应按钮提示未配置。
 
-## 我的地图:只有这些文件是「我写的」(去 Lovable 叠加层)
-**这张表之外的一切都属于 Lovable —— 只读、别翻、别改。** 要动表外文件先停下问。
+## 我的地图:本端改过的文件(合并时保留本端)
+2026-07-02 起任何文件都可改(见核心原则);这张表登记所有本端改动,合并 Lovable 更新时按它解冲突。
 | 文件 | 我做的事 |
 |---|---|
 | `src/routes/auth.tsx` | Google 登录用原生 `supabase.auth.signInWithOAuth`(不是 `lovable.auth`) |
 | `src/routes/__root.tsx` | 去掉 `reportLovableError`,meta 改本站 |
-| `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动。合并冲突时保留本端自适应高度逻辑 |
+| `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动;段落批注层 enabled 恢复为 annotationsOn。合并冲突时保留本端 |
+| `src/components/ParagraphCommentLayer.tsx` | 修复批注标记定位(原先全挤右上角):标记坐标加 iframe.offsetTop、跳过 0 高度元素、ResizeObserver 盯正文任何布局变化重扫(替代一次性延时)。合并冲突时保留本端 |
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
 | `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除。合并冲突时保留本端分区布局 |
 | `src/lib/ai-gateway.server.ts` + `classify.functions.ts` | /admin 自动分类改用 **Claude**(`@ai-sdk/anthropic`,读 `ANTHROPIC_API_KEY`) |
@@ -89,5 +90,5 @@
 
 ## 已知 & 别做
 - `src/routes/search.tsx` 有个 TanStack Router 的类型告警(`<Link search={fn}>` 签名),**运行无碍,别改** —— 改了每次 merge 多一处冲突。
-- 别重写 / 重构 / "优化" Lovable 的组件。
+- 别为改而改:能正常工作的组件不重写/重构(改 bug、加需求随时可以,记得登记文件地图)。
 - 可选 key(缺了只是 /admin 对应按钮提示未配置,不影响其它):微信导入 `FIRECRAWL_API_KEY`、自动分类 `ANTHROPIC_API_KEY`。

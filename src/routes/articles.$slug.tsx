@@ -342,12 +342,12 @@ function ArticleDetailPage() {
                     style={{ height: frameHeight ? `${frameHeight}px` : "calc(100vh - 10rem)" }}
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   />
-                  {/* 段落批注 + 按钮暂时隐藏:Lovable 的定位算法有 bug,+ 会全挤在右上角。
-                      等 Lovable 修好后把 enabled 改回 {annotationsOn} 即可恢复。划词高亮/评论不受影响。 */}
+                  {/* 段落批注标记:定位已在本端修复(iframe 偏移 + ResizeObserver 重扫),
+                      不再等 Lovable。划词批注也靠它显示。 */}
                   <ParagraphCommentLayer
                     resourceId={article.id}
                     iframeRef={iframeRef}
-                    enabled={false}
+                    enabled={annotationsOn}
                   />
                   <HighlightLayer
                     resourceId={article.id}

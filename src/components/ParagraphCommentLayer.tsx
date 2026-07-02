@@ -71,7 +71,10 @@ export function ParagraphCommentLayer({
     } catch {
       return;
     }
-    if (!doc) return;
+    if (!doc || !doc.body) return;
+    // 外壳把 iframe 调成高度自适应(无内部滚动),iframe 上方还有提示条:
+    // 标记要落在「容器坐标系」= iframe 在容器内的偏移 + 元素在文档内的绝对 top。
+    const iframeTop = iframe.offsetTop;
     const nodes = Array.from(
       doc.querySelectorAll("p, li, blockquote, h2, h3"),
     ) as HTMLElement[];
@@ -82,7 +85,8 @@ export function ParagraphCommentLayer({
       const id = el.dataset.anchorId || hashAnchor(text, i);
       el.dataset.anchorId = id;
       const rect = el.getBoundingClientRect();
-      const top = rect.top + (doc!.documentElement.scrollTop || doc!.body.scrollTop);
+      if (rect.height === 0) return; // 布局未完成或隐藏元素,等 ResizeObserver 触发重扫
+      const top = iframeTop + rect.top + (doc!.documentElement.scrollTop || doc!.body.scrollTop);
       items.push({ id, text: text.slice(0, 120), top, height: rect.height });
     });
     setAnchors(items);
@@ -103,15 +107,28 @@ export function ParagraphCommentLayer({
         const onScroll = () => {
           setScrollTop(doc.documentElement.scrollTop || doc.body.scrollTop);
         };
-        const onResize = () => scan();
         win.addEventListener("scroll", onScroll, { passive: true });
-        win.addEventListener("resize", onResize);
-        // re-scan a few times in case images/fonts shift layout
+        win.addEventListener("resize", scan);
+        // 内容高度随图片/字体加载和外壳自适应不断变化,一次性延时重扫不够:
+        // 用 ResizeObserver 盯住正文,任何布局变化都重扫(rAF 去抖)。
+        let raf = 0;
+        const onBodyResize = () => {
+          window.cancelAnimationFrame(raf);
+          raf = window.requestAnimationFrame(scan);
+        };
+        let ro: ResizeObserver | undefined;
+        if (typeof ResizeObserver === "function" && doc.body) {
+          ro = new ResizeObserver(onBodyResize);
+          ro.observe(doc.body);
+        }
+        // 兜底重扫(极老浏览器无 ResizeObserver 时仍可用)
         const t1 = window.setTimeout(scan, 400);
-        const t2 = window.setTimeout(scan, 1200);
+        const t2 = window.setTimeout(scan, 1500);
         cleanup = () => {
           win.removeEventListener("scroll", onScroll);
-          win.removeEventListener("resize", onResize);
+          win.removeEventListener("resize", scan);
+          ro?.disconnect();
+          window.cancelAnimationFrame(raf);
           window.clearTimeout(t1);
           window.clearTimeout(t2);
         };
@@ -139,7 +156,9 @@ export function ParagraphCommentLayer({
       >
         {anchors.map((a) => {
           const y = a.top - scrollTop + Math.min(24, a.height / 2);
-          if (y < -20 || y > (iframeRef.current?.clientHeight ?? 0) + 20) return null;
+          const maxY =
+            (iframeRef.current?.offsetTop ?? 0) + (iframeRef.current?.clientHeight ?? 0);
+          if (y < -20 || y > maxY + 20) return null;
           const count = counts?.get(a.id) ?? 0;
           return (
             <button
