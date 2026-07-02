@@ -5,18 +5,14 @@ import {
   ArrowRight,
   ArrowUpRight,
   Library,
-  FileText,
-  Video,
-  Link as LinkIcon,
-  Paperclip,
-  StickyNote,
   Sparkles,
   Clock,
   Tag,
   Compass,
   Mail,
 } from "lucide-react";
-import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType, type Resource } from "@/lib/resources";
+import { fetchResources, type Resource } from "@/lib/resources";
+import { categories } from "@/lib/data";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { useQuery } from "@tanstack/react-query";
@@ -46,21 +42,10 @@ export const Route = createFileRoute("/")({
   ),
 });
 
-const TYPE_META: Record<ResourceType, { label: string; icon: typeof FileText }> = {
-  article: { label: RESOURCE_TYPE_LABELS.article, icon: FileText },
-  video: { label: RESOURCE_TYPE_LABELS.video, icon: Video },
-  link: { label: RESOURCE_TYPE_LABELS.link, icon: LinkIcon },
-  file: { label: RESOURCE_TYPE_LABELS.file, icon: Paperclip },
-  note: { label: RESOURCE_TYPE_LABELS.note, icon: StickyNote },
-};
-
-const TYPE_FILTERS: { id: ResourceType | "all"; label: string }[] = [
-  { id: "all", label: "全部" },
-  { id: "article", label: RESOURCE_TYPE_LABELS.article },
-  { id: "video", label: RESOURCE_TYPE_LABELS.video },
-  { id: "link", label: RESOURCE_TYPE_LABELS.link },
-  { id: "file", label: RESOURCE_TYPE_LABELS.file },
-  { id: "note", label: RESOURCE_TYPE_LABELS.note },
+// 首页按「分类」筛选(与资源库侧栏同一份 categories 定义,保持一致)
+const CAT_FILTERS: { id: string; label: string; color: string | null }[] = [
+  { id: "all", label: "全部", color: null },
+  ...categories.map((c) => ({ id: c.id, label: c.label, color: c.color })),
 ];
 
 function resourceHref(r: Resource): string {
@@ -71,11 +56,11 @@ function resourceHref(r: Resource): string {
 
 function HomePage() {
   const { data: resources } = useSuspenseQuery(resourcesQO);
-  const [filter, setFilter] = useState<ResourceType | "all">("all");
+  const [filter, setFilter] = useState<string>("all");
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: resources.length };
-    for (const r of resources) c[r.type] = (c[r.type] || 0) + 1;
+    for (const r of resources) if (r.category) c[r.category] = (c[r.category] || 0) + 1;
     return c;
   }, [resources]);
 
@@ -94,7 +79,7 @@ function HomePage() {
   }, [resources]);
 
   const filtered = useMemo(
-    () => (filter === "all" ? resources : resources.filter((r) => r.type === filter)),
+    () => (filter === "all" ? resources : resources.filter((r) => r.category === filter)),
     [resources, filter],
   );
 
@@ -164,24 +149,23 @@ function HomePage() {
             </Link>
           </div>
 
-          {/* Stats strip */}
+          {/* Stats strip:按分类统计,只显示有内容的分类 */}
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {(Object.keys(TYPE_META) as ResourceType[]).map((t) => {
-              const Icon = TYPE_META[t].icon;
+            {CAT_FILTERS.filter((c) => c.id !== "all" && (counts[c.id] ?? 0) > 0).map((c) => {
               return (
                 <button
-                  key={t}
-                  onClick={() => setFilter(t)}
+                  key={c.id}
+                  onClick={() => setFilter(c.id)}
                   className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-left backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
-                    <Icon className="h-4 w-4" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 transition group-hover:bg-primary/20">
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color ?? undefined }} />
                   </div>
                   <div>
                     <div className="text-lg font-semibold leading-none text-foreground">
-                      {counts[t] ?? 0}
+                      {counts[c.id] ?? 0}
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{TYPE_META[t].label}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{c.label}</div>
                   </div>
                 </button>
               );
@@ -213,7 +197,7 @@ function HomePage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {featured.map((r, i) => {
-                const Icon = TYPE_META[r.type].icon;
+                const cat = categories.find((c) => c.id === r.category);
                 const href = resourceHref(r);
                 const isExternal = href.startsWith("http");
                 const inner = (
@@ -228,13 +212,15 @@ function HomePage() {
                     />
                     <div className="relative">
                       <div className="mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                          <Icon className="h-3 w-3" />
-                          {TYPE_META[r.type].label}
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                          {cat && (
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: cat.color }}
+                            />
+                          )}
+                          {cat?.label ?? "未分类"}
                         </span>
-                        {r.category && (
-                          <span className="text-[11px] text-muted-foreground">{r.category}</span>
-                        )}
                       </div>
                       <h3 className="line-clamp-2 text-lg font-semibold text-foreground transition group-hover:text-primary">
                         {r.title || "未命名资源"}
@@ -278,23 +264,26 @@ function HomePage() {
       <TopViewedAndSubscribe allResources={resources} />
 
 
-      {/* Type filter chips */}
+      {/* Category filter chips:与资源库侧栏同一份分类,只显示有内容的 */}
       <section className="sticky top-[57px] z-30 border-b border-border/50 bg-background/85 px-4 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto py-3">
-          {TYPE_FILTERS.map((t) => {
-            const active = filter === t.id;
-            const n = counts[t.id] ?? 0;
+          {CAT_FILTERS.filter((c) => c.id === "all" || (counts[c.id] ?? 0) > 0).map((c) => {
+            const active = filter === c.id;
+            const n = counts[c.id] ?? 0;
             return (
               <button
-                key={t.id}
-                onClick={() => setFilter(t.id)}
+                key={c.id}
+                onClick={() => setFilter(c.id)}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                   active
                     ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/30"
                     : "border-border bg-card text-foreground hover:border-primary/40"
                 }`}
               >
-                {t.label}
+                {c.color && (
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
+                )}
+                {c.label}
                 <span
                   className={`rounded-full px-1.5 text-[10px] ${
                     active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"

@@ -46,6 +46,7 @@
 | `src/routes/__root.tsx` | 去掉 `reportLovableError`,meta 改本站 |
 | `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动。合并冲突时保留本端自适应高度逻辑 |
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
+| `src/routes/index.tsx` | 首页筛选栏/统计条/亮点徽章从「资源类型」改为「分类」(读 lib/data 的 categories,与资源库侧栏一致,空分类不显示)。合并冲突时保留本端分类筛选 |
 | `src/lib/ai-gateway.server.ts` + `classify.functions.ts` | /admin 自动分类改用 **Claude**(`@ai-sdk/anthropic`,读 `ANTHROPIC_API_KEY`) |
 | `package.json` | 删 `@lovable.dev/cloud-auth-js`;**保留 `@lovable.dev/vite-tanstack-config`(这是构建工具,删了会炸)** |
 | `src/components/ResourcesManager.tsx` | /admin「资料管理」:全部 5 类资料的删除/置顶(Lovable 的 ArticlesManager 只管文章);删除后核对返回行数防 RLS 假成功 |
