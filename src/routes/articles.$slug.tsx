@@ -277,6 +277,19 @@ function ArticleDetailPage() {
         />
       </div>
 
+      {/* 目录收起时的悬浮展开按钮:顶栏按钮会随滚动离开视口,
+          读者读到中途想打开目录必须能随手够到。 */}
+      {toc.length > 0 && !tocOpen && (
+        <button
+          type="button"
+          onClick={toggleToc}
+          title="展开目录"
+          className="fixed left-3 top-24 z-40 hidden items-center gap-1.5 rounded-full border border-border bg-card/95 px-3 py-2 text-xs text-muted-foreground shadow-md backdrop-blur transition-colors hover:text-foreground lg:flex"
+        >
+          <PanelLeftOpen className="h-4 w-4" /> 目录
+        </button>
+      )}
+
       {/* Top action bar */}
       <div className="border-b border-border bg-card/50 px-4 py-3">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
@@ -347,8 +360,18 @@ function ArticleDetailPage() {
         {toc.length > 0 && tocOpen && (
           <aside className="hidden w-56 shrink-0 lg:block">
             <nav className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto pr-1">
-              <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                目录
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  目录
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleToc}
+                  title="收起目录"
+                  className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <PanelLeftClose className="h-3.5 w-3.5" />
+                </button>
               </div>
               <ul className="space-y-0.5">
                 {toc.map((item) => (
