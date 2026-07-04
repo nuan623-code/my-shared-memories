@@ -142,7 +142,8 @@ function ArticleDetailPage() {
             ".side-toc,.toc-toggle,.top-progress{display:none!important}",
             // 老文章给自带悬浮目录预留的 margin-left(calc/262px/300px/330px 等),
             // 目录被隐藏后会变成纯留白把正文挤窄——嵌入时统一居中。
-            ".wrap,.main{margin-left:auto!important;margin-right:auto!important}",
+            // 大屏时文章内列统一放宽:多数老文档自限 1050px 以内,在 1600px 外壳里显小。
+            ".wrap,.main,.container{max-width:min(1240px,100%)!important;margin-left:auto!important;margin-right:auto!important}",
             "img,video{max-width:100%;height:auto}",
             "svg{max-width:100%;height:auto}",
             "table{display:block;max-width:100%;overflow-x:auto}",
@@ -275,7 +276,7 @@ function ArticleDetailPage() {
 
       {/* Top action bar */}
       <div className="border-b border-border bg-card/50 px-4 py-3">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <Link
               to="/resources"
@@ -338,7 +339,7 @@ function ArticleDetailPage() {
       </div>
 
       {/* Main layout: left TOC + right content */}
-      <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6">
+      <div className="mx-auto flex w-full max-w-[1600px] gap-6 px-4 py-6">
         {/* Left TOC (站点外壳统一目录,跟随整页滚动;可收起,状态记忆在 localStorage) */}
         {toc.length > 0 && tocOpen && (
           <aside className="hidden w-56 shrink-0 lg:block">
