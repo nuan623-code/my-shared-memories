@@ -148,6 +148,9 @@ function ArticleDetailPage() {
             "svg{max-width:100%;height:auto}",
             "table{display:block;max-width:100%;overflow-x:auto}",
             "pre{max-width:100%;overflow-x:auto}",
+            // iframe 高度已完全自适应内容,禁掉文档级滚动:
+            // 高度测量的 2px 容差会让内容略高于框,外接鼠标时 macOS 显示第二根滚动条。
+            "html,body{overflow:hidden!important}",
           ].join("");
           (doc.head || doc.documentElement).appendChild(style);
         }
@@ -394,7 +397,7 @@ function ArticleDetailPage() {
                       : { src: article.url as string })}
                     title={article.title ?? ""}
                     referrerPolicy="no-referrer"
-                    className="block w-full rounded-lg border border-border bg-white"
+                    className="block w-full bg-white"
                     style={{ height: frameHeight ? `${frameHeight}px` : "calc(100vh - 10rem)" }}
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   />
