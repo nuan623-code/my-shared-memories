@@ -23,7 +23,7 @@ async function loadProfile(username: string) {
       .select("id, slug, title, summary, published_at, type")
       .eq("owner_id", profile.id).order("published_at", { ascending: false }).limit(50),
     supabase.from("comments")
-      .select("id, content, created_at, resource_id")
+      .select("id, content, created_at, resource_id, anchor_id, resources(title, slug, type)")
       .eq("user_id", profile.id).order("created_at", { ascending: false }).limit(20),
   ]);
 
@@ -85,12 +85,37 @@ function PublicProfilePage() {
           <p className="text-sm text-muted-foreground">暂无评论</p>
         ) : (
           <ul className="space-y-2">
-            {comments.map((c: { id: string; content: string; created_at: string }) => (
-              <li key={c.id} className="rounded-md border border-border bg-card px-4 py-2.5">
-                <p className="line-clamp-2 text-sm text-foreground">{c.content}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString("zh-CN")}</p>
-              </li>
-            ))}
+            {comments.map((c: { id: string; content: string; created_at: string; anchor_id: string | null; resources: { title: string | null; slug: string | null; type: string } | null }) => {
+              const res = c.resources;
+              const linkable = res?.type === "article" && res?.slug;
+              const body = (
+                <>
+                  {res?.title && (
+                    <p className="mb-1 text-xs text-muted-foreground">
+                      在《<span className="text-primary">{res.title}</span>》
+                      {c.anchor_id ? "的段落里评论" : "里评论"}
+                    </p>
+                  )}
+                  <p className="line-clamp-2 text-sm text-foreground">{c.content}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString("zh-CN")}</p>
+                </>
+              );
+              return (
+                <li key={c.id}>
+                  {linkable ? (
+                    <Link
+                      to="/articles/$slug"
+                      params={{ slug: res!.slug! }}
+                      className="block rounded-md border border-border bg-card px-4 py-2.5 transition hover:border-primary/40 hover:bg-muted/30"
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div className="rounded-md border border-border bg-card px-4 py-2.5">{body}</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
         )}

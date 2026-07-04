@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
@@ -11,7 +11,6 @@ import { trackView } from "@/lib/views";
 import { readingMinutes } from "@/lib/article-utils";
 import type { Resource } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
-import { ParagraphCommentLayer } from "@/components/ParagraphCommentLayer";
 import { SelectionToolbar } from "@/components/SelectionToolbar";
 import { HighlightLayer } from "@/components/HighlightLayer";
 
@@ -77,14 +76,27 @@ function ArticleDetailPage() {
   const [frameHeight, setFrameHeight] = useState<number | null>(null);
   const [annotationsOn, setAnnotationsOn] = useState<boolean>(true);
   const [annotationsHydrated, setAnnotationsHydrated] = useState(false);
+  const [tocOpen, setTocOpen] = useState<boolean>(true);
   const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({ prev: null, next: null });
   const [related, setRelated] = useState<Resource[]>([]);
   const mins = readingMinutes(article.content || article.summary || article.title || "");
   useEffect(() => {
     const stored = window.localStorage.getItem("annotationsOn");
     if (stored !== null) setAnnotationsOn(stored !== "0");
+    const tocStored = window.localStorage.getItem("tocOpen");
+    if (tocStored !== null) setTocOpen(tocStored !== "0");
     setAnnotationsHydrated(true);
   }, []);
+  const toggleToc = () =>
+    setTocOpen((v) => {
+      const next = !v;
+      try {
+        window.localStorage.setItem("tocOpen", next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
   useEffect(() => {
     if (!annotationsHydrated) return;
     window.localStorage.setItem("annotationsOn", annotationsOn ? "1" : "0");
@@ -122,11 +134,20 @@ function ArticleDetailPage() {
 
         // 目录归站点外壳管:隐藏文章 HTML 自带的悬浮目录/进度条/切换按钮,
         // 避免它们在自适应高度 iframe 里因 position:fixed 失去参照而出框、和外壳目录重复。
+        // 同时注入媒体溢出兜底:存量文章的宽 SVG/表格/代码块在窄屏会把正文顶出横向滚动。
         if (!doc.getElementById("__host-hide-chrome")) {
           const style = doc.createElement("style");
           style.id = "__host-hide-chrome";
-          style.textContent =
-            ".side-toc,.toc-toggle,.top-progress{display:none!important}";
+          style.textContent = [
+            ".side-toc,.toc-toggle,.top-progress{display:none!important}",
+            // 老文章给自带悬浮目录预留的 margin-left(calc/262px/300px/330px 等),
+            // 目录被隐藏后会变成纯留白把正文挤窄——嵌入时统一居中。
+            ".wrap,.main{margin-left:auto!important;margin-right:auto!important}",
+            "img,video{max-width:100%;height:auto}",
+            "svg{max-width:100%;height:auto}",
+            "table{display:block;max-width:100%;overflow-x:auto}",
+            "pre{max-width:100%;overflow-x:auto}",
+          ].join("");
           (doc.head || doc.documentElement).appendChild(style);
         }
 
@@ -143,6 +164,17 @@ function ArticleDetailPage() {
         });
         setToc(items);
 
+        // 标题位置缓存:iframe 无内部滚动,标题距 iframe 顶的距离只在重排时变。
+        // 滚动帧里只读一次 iframe 自身的 rect,避免逐标题 getBoundingClientRect 造成掉帧。
+        const headingTops = new Map<string, number>();
+        const cacheHeadings = () => {
+          headingTops.clear();
+          for (const item of items) {
+            const el = doc.getElementById(item.id);
+            if (el) headingTops.set(item.id, el.getBoundingClientRect().top);
+          }
+        };
+
         // 让 iframe 高度自适应文章内容:文章随整页滚动,而不是挤在小窗口里。
         const measure = () => {
           const h = Math.max(
@@ -150,6 +182,7 @@ function ArticleDetailPage() {
             doc.body.scrollHeight,
           );
           if (h) setFrameHeight((prev) => (prev && Math.abs(prev - h) < 2 ? prev : h));
+          cacheHeadings();
         };
         // 宽度变化后内容会重排,需在重排结束后再测一次(rAF + 延时兜底)。
         const measureSoon = () => {
@@ -170,23 +203,29 @@ function ArticleDetailPage() {
         [300, 800, 1600].forEach((t) => window.setTimeout(measure, t));
 
         // iframe 已无内部滚动,阅读进度/当前标题改由外层页面滚动驱动。
-        winScroll = () => {
+        // rAF + pending 标志:每帧最多算一次;帧内只读 iframe 一个 rect + 查缓存。
+        let scrollPending = false;
+        const onScrollFrame = () => {
+          scrollPending = false;
           const rect = iframe.getBoundingClientRect();
           const vh = window.innerHeight;
           const total = rect.height - vh;
           const scrolled = -rect.top;
           const p = total > 0 ? (scrolled / total) * 100 : rect.top <= 0 ? 100 : 0;
-          setProgress(Math.min(100, Math.max(0, p)));
+          const rounded = Math.round(Math.min(100, Math.max(0, p)));
+          setProgress((prev) => (prev === rounded ? prev : rounded));
 
           let current: string | null = null;
           for (const item of items) {
-            const el = doc.getElementById(item.id);
-            if (el) {
-              const r = el.getBoundingClientRect();
-              if (r.top + rect.top <= 120) current = item.id;
-            }
+            const top = headingTops.get(item.id);
+            if (top !== undefined && top + rect.top <= 120) current = item.id;
           }
-          setActiveId(current);
+          setActiveId((prev) => (prev === current ? prev : current));
+        };
+        winScroll = () => {
+          if (scrollPending) return;
+          scrollPending = true;
+          window.requestAnimationFrame(onScrollFrame);
         };
         window.addEventListener("scroll", winScroll, { passive: true });
         winScroll();
@@ -225,8 +264,9 @@ function ArticleDetailPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
-      {/* Reading progress bar */}
-      <div className="sticky top-0 z-20 h-1 w-full bg-border/40">
+      {/* Reading progress bar:fixed 到视口最顶层(Header 也是 sticky top-0,
+          原先 sticky 进度条被压在 Header 底下几乎不可见) */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-1">
         <div
           className="h-full bg-gradient-to-r from-primary to-accent transition-[width]"
           style={{ width: `${progress}%` }}
@@ -251,6 +291,21 @@ function ArticleDetailPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {toc.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleToc}
+                className="hidden items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground lg:inline-flex"
+                title={tocOpen ? "收起目录" : "展开目录"}
+              >
+                {tocOpen ? (
+                  <PanelLeftClose className="h-3.5 w-3.5" />
+                ) : (
+                  <PanelLeftOpen className="h-3.5 w-3.5" />
+                )}
+                {tocOpen ? "收起目录" : "目录"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setAnnotationsOn((v) => !v)}
@@ -284,8 +339,8 @@ function ArticleDetailPage() {
 
       {/* Main layout: left TOC + right content */}
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6">
-        {/* Left TOC (站点外壳统一目录,跟随整页滚动) */}
-        {toc.length > 0 && (
+        {/* Left TOC (站点外壳统一目录,跟随整页滚动;可收起,状态记忆在 localStorage) */}
+        {toc.length > 0 && tocOpen && (
           <aside className="hidden w-56 shrink-0 lg:block">
             <nav className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto pr-1">
               <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -342,13 +397,8 @@ function ArticleDetailPage() {
                     style={{ height: frameHeight ? `${frameHeight}px` : "calc(100vh - 10rem)" }}
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   />
-                  {/* 段落批注标记:定位已在本端修复(iframe 偏移 + ResizeObserver 重扫),
-                      不再等 Lovable。划词批注也靠它显示。 */}
-                  <ParagraphCommentLayer
-                    resourceId={article.id}
-                    iframeRef={iframeRef}
-                    enabled={annotationsOn}
-                  />
+                  {/* 段落「+」批注层已移除:一次渲染近百个按钮且随滚动整层重渲染,
+                      是阅读卡顿主因;划词高亮/评论(SelectionToolbar)保留。 */}
                   <HighlightLayer
                     resourceId={article.id}
                     iframeRef={iframeRef}
