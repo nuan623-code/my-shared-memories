@@ -47,7 +47,8 @@
 | `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动;段落批注层 enabled 恢复为 annotationsOn。合并冲突时保留本端 |
 | `src/components/ParagraphCommentLayer.tsx` | 修复批注标记定位(原先全挤右上角):标记坐标加 iframe.offsetTop、跳过 0 高度元素、ResizeObserver 盯正文任何布局变化重扫(替代一次性延时)。合并冲突时保留本端 |
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
-| `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除。合并冲突时保留本端分区布局 |
+| `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除;2026-07-05 AI 分区内再按子分类分组(智能体/大模型/AI 工程…,未知归「其他」)。合并冲突时保留本端分区布局 |
+| `src/lib/data.ts` | 2026-07-05 AI 分类子分类扩充:新增 agent(智能体)、engineering(AI 工程),排序 agent/llm/engineering/notes/cv/experiment;存量文档已用 `supabase/patches/2026-07-05-ai-subcategories.sql` 重新归类 |
 | `src/lib/ai-gateway.server.ts` + `classify.functions.ts` | /admin 自动分类改用 **Claude**(`@ai-sdk/anthropic`,读 `ANTHROPIC_API_KEY`) |
 | `package.json` | 删 `@lovable.dev/cloud-auth-js`;**保留 `@lovable.dev/vite-tanstack-config`(这是构建工具,删了会炸)** |
 | `src/components/ResourcesManager.tsx` | /admin「资料管理」:全部 5 类资料的删除/置顶(Lovable 的 ArticlesManager 只管文章);删除后核对返回行数防 RLS 假成功 |

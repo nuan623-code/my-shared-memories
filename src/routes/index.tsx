@@ -260,7 +260,23 @@ function HomePage() {
 
       {/* 分类分区:按 lib/data 的 categories 顺序上下排(AI 学习在上、公众号文章在下),
           空分类不显示;卡片纯文字、不放封面图 */}
-      {catSections.map((s) => (
+      {catSections.map((s) => {
+        // AI 分区按子分类再分组(智能体/大模型/AI 工程…),其余分区保持整块网格;
+        // 不认识的 subcategory 归入「其他」,空组不显示
+        const groups =
+          s.id === "ai"
+            ? [...s.subcategories, { id: "__other", label: "其他" }]
+                .map((sub) => ({
+                  ...sub,
+                  items: s.items.filter((r) =>
+                    sub.id === "__other"
+                      ? !s.subcategories.some((x) => x.id === r.subcategory)
+                      : r.subcategory === sub.id,
+                  ),
+                }))
+                .filter((g) => g.items.length > 0)
+            : [{ id: "__all", label: "", items: s.items }];
+        return (
         <section
           key={s.id}
           id={`cat-${s.id}`}
@@ -288,8 +304,18 @@ function HomePage() {
                 <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
+            {groups.map((g) => (
+            <div key={g.id} className="mt-2 first:mt-0">
+              {g.label && (
+                <div className="mb-4 mt-8 flex items-center gap-2 first:mt-0">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                  <h3 className="text-lg font-semibold text-foreground">{g.label}</h3>
+                  <span className="text-xs text-muted-foreground">{g.items.length} 篇</span>
+                  <span className="h-px flex-1 bg-border/60" />
+                </div>
+              )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {s.items.map((r) => {
+              {g.items.map((r) => {
                 const href = resourceHref(r);
                 const isExternal = href.startsWith("http");
                 const inner = (
@@ -340,9 +366,12 @@ function HomePage() {
                 );
               })}
             </div>
+            </div>
+            ))}
           </div>
         </section>
-      ))}
+        );
+      })}
 
       {/* Tag cloud */}
       {topTags.length > 0 && (
