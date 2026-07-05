@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adjust Web to App Campaign 流程及设置 · 全渠道配置指南</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1c2733; --muted:#5b6b7c;
+  --accent:#1a6cff; --accent-soft:#e8f1ff; --accent-dark:#0b2e66;
+  --teal:#0e9f8f; --gold:#b97f0e; --warn:#d23f3f; --line:#dce6f2;
+  --shadow:0 6px 24px rgba(20,50,100,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:17px;line-height:1.88}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#1a6cff,#0e9f8f);z-index:99}
+/* ---------- 侧边目录 ---------- */
+.side-toc{position:fixed;left:22px;top:50%;transform:translateY(-50%);width:216px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);z-index:90}
+.st-brand{font-weight:800;font-size:14px;color:var(--accent-dark)}
+.st-sub{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.st-progress{height:6px;background:#e3ecf7;border-radius:4px;overflow:hidden;margin:6px 0 4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#1a6cff,#0e9f8f);border-radius:4px;transition:width .15s}
+.st-pct{font-size:11px;color:var(--muted);text-align:right;margin-bottom:6px}
+.side-toc ul{list-style:none;margin:0;padding:0}
+.side-toc li a{display:flex;gap:8px;align-items:baseline;padding:6px 8px;border-radius:9px;font-size:13px;color:var(--muted);text-decoration:none;line-height:1.4}
+.side-toc li a b{font-size:11px;color:#9fb2c8;font-weight:700;min-width:18px}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent-dark);font-weight:700}
+.side-toc li a.on b{color:var(--accent)}
+.toc-btn{display:none;position:fixed;left:14px;top:14px;z-index:95;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:18px;cursor:pointer;box-shadow:var(--shadow)}
+@media(max-width:1179px){
+  .side-toc{display:none;left:14px;top:66px;transform:none;max-height:70vh;overflow:auto}
+  .side-toc.open{display:block}
+  .toc-btn{display:block}
+}
+/* ---------- 主体 ---------- */
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 60px}
+@media(min-width:1180px){.wrap{margin-left:calc(50% - 310px)}}
+@media(min-width:1500px){.wrap{margin:0 auto}}
+.hero{margin:26px 0 34px;background:linear-gradient(135deg,#0b2140 0%,#0b2e66 55%,#123f8f 100%);border-radius:22px;color:#fff;padding:44px 40px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(26,108,255,.45),transparent 70%)}
+.hero .kicker{font-size:13px;letter-spacing:.16em;opacity:.75;font-weight:700}
+.hero h1{margin:10px 0 12px;font-size:30px;line-height:1.35}
+.hero p{margin:0;opacity:.88;font-size:15px;max-width:620px}
+.hero .chips{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.hero .chips span{font-size:12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:3px 12px;border-radius:999px}
+section{margin:52px 0}
+h2{font-size:24px;margin:0 0 6px;display:flex;align-items:center;gap:10px}
+h2 .no{font-size:12px;font-weight:800;color:var(--accent);background:var(--accent-soft);border:1px solid #c9dcff;padding:2px 10px;border-radius:999px;letter-spacing:.08em}
+.sec-lead{color:var(--muted);font-size:15px;margin:0 0 18px}
+h3{font-size:19px;margin:34px 0 12px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.5}
+h4{font-size:16px;margin:24px 0 8px}
+p{margin:10px 0}
+.term{background:linear-gradient(transparent 62%,#cfe3ff 62%);font-weight:700;padding:0 2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);margin:16px 0}
+/* 三段式 def 卡 */
+.def{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:14px;padding:16px 20px;margin:14px 0;box-shadow:var(--shadow)}
+.def .dt{font-weight:800;font-size:16.5px;margin-bottom:6px}
+.tagline{display:flex;gap:8px;margin:8px 0;align-items:flex-start}
+.tagline .tg{flex:none;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;margin-top:6px}
+.tg-what{background:#e8f1ff;color:#1a5cd6}
+.tg-why{background:#e5f6f3;color:#0e7f72}
+.tg-eg{background:#fdf3e0;color:#a06c08}
+.tagline div{flex:1}
+/* callout */
+.callout{border-radius:14px;padding:14px 18px;margin:16px 0;font-size:15.5px;border:1px solid}
+.callout .ct{font-weight:800;margin-bottom:4px}
+.co-key{background:#eaf2ff;border-color:#c9dcff}
+.co-key .ct{color:#1a5cd6}
+.co-teal{background:#e9f7f5;border-color:#c4e8e2}
+.co-teal .ct{color:#0e7f72}
+.co-gold{background:#fdf6e6;border-color:#f0dfb4}
+.co-gold .ct{color:#a06c08}
+.co-warn{background:#fdeeee;border-color:#f3c9c9}
+.co-warn .ct{color:var(--warn)}
+/* steps */
+.steps{counter-reset:st;margin:16px 0;padding:0;list-style:none}
+.steps li{position:relative;padding:2px 0 18px 52px}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:0;top:2px;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px}
+.steps li::after{content:"";position:absolute;left:16px;top:40px;bottom:0;width:2px;background:#cfe0f5}
+.steps li:last-child::after{display:none}
+.steps .st-t{font-weight:800;font-size:16px}
+.steps .st-d{color:var(--muted);font-size:14.5px;margin-top:2px}
+.steps.teal li::before{background:var(--teal)}
+/* 表格 */
+.tbl{width:100%;border-collapse:collapse;margin:14px 0;background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow);font-size:14.5px}
+.tbl th{background:var(--accent-dark);color:#fff;padding:10px 12px;text-align:left;font-size:13.5px}
+.tbl td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:top}
+.tbl tr:nth-child(even) td{background:#f6faff}
+.ok{color:var(--teal);font-weight:800}
+.tbl-wrap{overflow-x:auto}
+/* code */
+pre.code{background:#0f2038;color:#dbe8ff;border-radius:12px;padding:14px 18px;font-size:13px;line-height:1.75;overflow-x:auto;font-family:"SF Mono",Consolas,Menlo,monospace;margin:12px 0;white-space:pre-wrap;word-break:break-all}
+pre.code .hy{background:#8a6d00;color:#ffe9a8;border-radius:3px;padding:0 2px}
+pre.code .hc{background:#0a5e63;color:#a9f3f7;border-radius:3px;padding:0 2px}
+pre.code .hg{background:#1c6b2d;color:#c9f5cf;border-radius:3px;padding:0 2px}
+pre.code .hr{background:#7c1f1f;color:#ffd2d2;border-radius:3px;padding:0 2px}
+code{background:#e7eefb;border-radius:5px;padding:1px 6px;font-size:.86em;font-family:"SF Mono",Consolas,Menlo,monospace}
+/* practice 清单 */
+.practice{list-style:none;margin:10px 0;padding:0}
+.practice li{padding:6px 0 6px 30px;position:relative}
+.practice li::before{content:"✔";position:absolute;left:2px;color:var(--teal);font-weight:800}
+/* figure & svg */
+.figure{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 14px 10px;margin:18px 0;box-shadow:var(--shadow);opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{text-align:center;color:var(--muted);font-size:13px;margin:8px 6px 6px}
+svg .nbox{fill:#ffffff;stroke:#9db9e8;stroke-width:1.6}
+svg .nbox-a{fill:#e8f1ff;stroke:#1a6cff;stroke-width:1.8}
+svg .nbox-t{fill:#e9f7f5;stroke:#0e9f8f;stroke-width:1.8}
+svg .nbox-g{fill:#fdf6e6;stroke:#d9a92e;stroke-width:1.8}
+svg .nbox-d{fill:#0b2e66;stroke:#0b2e66}
+svg .ntxt{font-size:13.5px;fill:#1c2733;font-weight:700}
+svg .ntxt-w{font-size:13.5px;fill:#ffffff;font-weight:700}
+svg .stxt{font-size:11.5px;fill:#5b6b7c}
+svg .etxt{font-size:11.5px;fill:#1a5cd6;font-weight:700}
+svg .edge{stroke:#8fb0e0;stroke-width:2;fill:none}
+svg .edge-o{stroke:#f08a3c;stroke-width:2.4;fill:none}
+svg .edge-b{stroke:#4d8bf0;stroke-width:2.4;fill:none}
+[data-anim]{opacity:0;transform:translateY(10px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+/* glossary */
+.glossary{display:grid;grid-template-columns:150px 1fr;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:14px 0;background:#fff;box-shadow:var(--shadow);font-size:14.5px}
+.glossary>div{padding:9px 14px;border-top:1px solid var(--line)}
+.glossary>div:nth-child(-n+2){border-top:none}
+.glossary .g-k{background:#f2f7ff;font-weight:800;font-family:"SF Mono",Consolas,monospace;font-size:13px}
+/* rephrase 折叠 */
+details.rephrase{background:#f4f8ff;border:1px dashed #b9d0f5;border-radius:12px;padding:10px 16px;margin:12px 0;font-size:15px}
+details.rephrase summary{cursor:pointer;font-weight:700;color:#1a5cd6;font-size:14px}
+details.rephrase[open]{background:#eef5ff}
+/* cases 对比卡 */
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.case{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.case .c-h{font-weight:800;margin-bottom:6px;font-size:15.5px}
+.case p{font-size:14.5px;color:#33445a;margin:6px 0}
+@media(max-width:720px){.cases{grid-template-columns:1fr}.hero{padding:32px 24px}.hero h1{font-size:24px}body{font-size:16px}.glossary{grid-template-columns:120px 1fr}}
+/* final */
+.final{background:linear-gradient(135deg,#0b2140,#123f8f);color:#fff;border-radius:20px;padding:30px 32px;margin-top:48px}
+.final h2{color:#fff}
+footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:34px;line-height:1.8}
+.pill{display:inline-block;font-size:11.5px;font-weight:800;border-radius:999px;padding:1px 10px;margin-right:6px;vertical-align:2px}
+.pill-b{background:#e8f1ff;color:#1a5cd6}
+.pill-t{background:#e9f7f5;color:#0e7f72}
+.pill-r{background:#fdeeee;color:#c73535}
+.pill-g{background:#fdf6e6;color:#a06c08}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">Adjust Web2App</div>
+  <div class="st-sub">全渠道流程及设置指南</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ul>
+    <li><a href="#what-why"><b>01</b>What &amp; Why</a></li>
+    <li><a href="#google"><b>02</b>Google Web2App 设置</a></li>
+    <li><a href="#facebook"><b>03</b>Facebook Web2App 设置</a></li>
+    <li><a href="#tiktok"><b>04</b>TikTok Web2App 设置</a></li>
+    <li><a href="#kwai"><b>05</b>Kwai Web2App 设置</a></li>
+    <li><a href="#others"><b>06</b>Snap / Pinterest / Bing</a></li>
+  </ul>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">ADJUST · WEB TO APP CAMPAIGN</div>
+  <h1>Web to App Campaign<br>流程及设置全指南</h1>
+  <p>从「为什么要做 Web2App」讲起，逐渠道拆解 Google、Facebook、TikTok、Kwai、Snap / Pinterest / Bing 的广告流程、Adjust 后台配置、跟踪链接拼接与数据回传设置，并配动态流程图帮助理解每条链路的归因原理。</p>
+  <div class="chips"><span>📈 投放流程</span><span>🔗 跟踪链接</span><span>🎯 概率模型归因</span><span>📤 渠道回传</span><span>🧭 常见问题排查</span></div>
+</div>
+
+<!-- ============ 01 What & Why ============ -->
+<section id="what-why">
+  <h2><span class="no">01</span>🧭 What &amp; Why：什么是 Web2App，为什么要投</h2>
+  <p class="sec-lead">先看用户路径长什么样，再看四类产品各自为什么需要这种投放方式。</p>
+
+  <h3>🛣️ W2A 广告流程</h3>
+  <p>Web to App（W2A）指的是：广告投放在 <span class="term">Web 端</span>（网页广告位），用户点击后先进入一个<strong>落地页</strong>，再由落地页把用户引导到 App。用户点击网页内的 CTA（Call To Action，行动号召）按钮后，去向有三种可能：</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 320" role="img" aria-label="W2A 广告流程图">
+      <defs>
+        <marker id="arr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#8fb0e0"/></marker>
+      </defs>
+      <!-- 主链 -->
+      <g data-anim><rect class="nbox-a" x="20" y="120" width="150" height="58" rx="12"/><text class="ntxt" x="95" y="145" text-anchor="middle">👆 点击 Web 广告</text><text class="stxt" x="95" y="164" text-anchor="middle">网页广告位</text></g>
+      <path class="edge" data-draw d="M170,149 H222" marker-end="url(#arr1)"/>
+      <g data-anim><rect class="nbox-a" x="226" y="120" width="150" height="58" rx="12"/><text class="ntxt" x="301" y="145" text-anchor="middle">🌐 跳转落地页</text><text class="stxt" x="301" y="164" text-anchor="middle">展示完整内容</text></g>
+      <path class="edge" data-draw d="M376,149 H428" marker-end="url(#arr1)"/>
+      <g data-anim><rect class="nbox-a" x="432" y="120" width="168" height="58" rx="12"/><text class="ntxt" x="516" y="145" text-anchor="middle">🔘 点击网页内</text><text class="stxt" x="516" y="164" text-anchor="middle">CTA（Download）按钮</text></g>
+      <!-- 三条分叉 -->
+      <path class="edge" data-draw d="M600,135 C650,110 660,70 700,58" marker-end="url(#arr1)"/>
+      <path class="edge" data-draw d="M600,149 H700" marker-end="url(#arr1)"/>
+      <path class="edge" data-draw d="M600,163 C650,190 660,228 700,242" marker-end="url(#arr1)"/>
+      <g data-anim><rect class="nbox-t" x="704" y="30" width="100" height="54" rx="12"/><text class="ntxt" x="754" y="53" text-anchor="middle">🏪 跳转</text><text class="ntxt" x="754" y="71" text-anchor="middle">应用商店</text></g>
+      <g data-anim><rect class="nbox-t" x="704" y="122" width="100" height="54" rx="12"/><text class="ntxt" x="754" y="145" text-anchor="middle">📦 下载</text><text class="ntxt" x="754" y="163" text-anchor="middle">APK</text></g>
+      <g data-anim><rect class="nbox-t" x="704" y="214" width="100" height="66" rx="12"/><text class="ntxt" x="754" y="238" text-anchor="middle">💻 打开</text><text class="ntxt" x="754" y="256" text-anchor="middle">Web / PWA</text><text class="stxt" x="754" y="272" text-anchor="middle">(Web2Web)</text></g>
+    </svg>
+    <div class="fig-cap">W2A 广告流程：点击 Web 广告 → 跳转落地页 → 点击网页内 CTA 按钮 → 三种去向（应用商店 / 下载 APK / 打开 Web·PWA 即 Web2Web）</div>
+  </div>
+
+  <details class="rephrase"><summary>💬 换个说法讲一遍</summary>
+  传统 App Campaign 是「广告 → 直接跳商店」；W2A 则在中间加了一个自家网页。这个网页既是「加长版广告位」（能放下更完整的内容），也是一个「中转站」——用户在网页里点下载按钮时，Adjust 能在这里记录一次点击，为后面的归因埋下线索。</details>
+
+  <h3>🎯 四类产品各自为什么需要 W2A</h3>
+  <div class="cases">
+    <div class="case">
+      <div class="c-h">📚 电商 / 短剧 / 小说 / 漫画等内容类产品（一）</div>
+      <p>由于广告投放素材 / 内容受限制，需要在网页里展示完整内容。</p>
+      <p><strong>W2A 的解法：</strong>投放方式可以在落地页完整展示，从而<span class="term">提高转化率</span>。</p>
+    </div>
+    <div class="case">
+      <div class="c-h">🍎 内容类产品（二）：iOS 隐私限制</div>
+      <p>由于 iOS 14.5+ 广告隐私政策的影响，Meta 针对新用户的 app 广告下实现深度链接效果受限。</p>
+      <p><strong>W2A 的解法：</strong>可以通过<span class="term">概率模型</span>获取用户真归因信息，完成<span class="term">延迟深度链接拉起</span>。</p>
+    </div>
+    <div class="case">
+      <div class="c-h">🚫 特殊品类产品</div>
+      <p>对于无法投放 App Campaign 的产品类型，广告买量受到限制。</p>
+      <p><strong>W2A 的解法：</strong>可以通过落地页中转获取该应用，减轻上架审核过程中对获客的影响。</p>
+    </div>
+    <div class="case">
+      <div class="c-h">🌍 全品类产品</div>
+      <p>对于长期投放 App Campaign 的产品类型，寻求新的获客增长机会。</p>
+      <p><strong>W2A 的解法：</strong>可以利用 Web 端广告流量，覆盖 Web 端人群，为 APP 获客带来新的增长机遇。</p>
+    </div>
+  </div>
+
+  <h3>📊 Adjust Web to App：各渠道支持概览</h3>
+  <p>当前 Adjust 对不同渠道的 Web to App 支持能力如下（其中「广告消耗」和「渠道回传」是尤为关键的两列）：</p>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <tr><th>渠道</th><th>链接模版</th><th>安装归因</th><th>广告消耗 *</th><th>渠道回传</th><th>特征 ID</th></tr>
+    <tr><td><strong>Facebook Web</strong></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td><code>fbclid</code> / <code>fbpid</code></td></tr>
+    <tr><td><strong>Google Web</strong></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td><code>gclid</code> / <code>gbraid</code> / <code>wbraid</code></td></tr>
+    <tr><td><strong>TikTok / Kwai Web</strong></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td><code>ttclid</code></td></tr>
+    <tr><td><strong>Snap / Pinterest / Bing Ads Web</strong></td><td class="ok">✓</td><td class="ok">✓</td><td>Snap 支持</td><td>Pinterest 支持</td><td><code>msclkid</code>（Bing）</td></tr>
+    <tr><td><strong>其他</strong></td><td></td><td class="ok">✓</td><td>视渠道</td><td></td><td></td></tr>
+  </table>
+  </div>
+  <div class="callout co-gold"><div class="ct">⚠️ 注</div>Web2App 广告消耗功能需<strong>额外开通</strong>，具体请联系负责您账户的 Adjust 商务沟通。</div>
+
+  <h3>📈 Adjust Web to App 数据支持</h3>
+  <p>配置完成后，可在 Adjust 后台按「渠道源」查看 Web2App 的完整效果数据，包括广告支出、点击（归因）、CCR（点击转化率）、安装、所有收入、投资回报率（ROI）等指标。原文给出的示例面板如下（<strong>表格中数据为 demo 数据</strong>，仅示意报表形态）：</p>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <tr><th>渠道源</th><th>广告支出</th><th>点击 (归因)</th><th>CCR</th><th>安装</th><th>所有收入</th><th>投资回报率 (ROI)</th></tr>
+    <tr><td>Google web</td><td>397,416.00</td><td>12,329,871</td><td>3.82%</td><td>471,212</td><td>142,135.91</td><td>-99.94%</td></tr>
+    <tr><td>Facebook web</td><td>547,404.00</td><td>6,260,111</td><td>3.47%</td><td>217,455</td><td>128,585.83</td><td>-98.14%</td></tr>
+    <tr><td>Tiktok web</td><td>331,771.00</td><td>4,269,373</td><td>2.42%</td><td>103,449</td><td>11,322.65</td><td>-98.24%</td></tr>
+  </table>
+  </div>
+</section>
+
+<!-- ============ 02 Google ============ -->
+<section id="google">
+  <h2><span class="no">02</span>🟦 Google Web to App 广告流程及设置</h2>
+  <p class="sec-lead">Google Web2App 的核心链路：Adjust 跟踪链接记录点击 → 概率模型匹配安装 → 归因给 Google Web → 回传给 Google。</p>
+
+  <h3>🗺️ 流程图</h3>
+  <div class="figure">
+    <svg viewBox="0 0 820 430" role="img" aria-label="Google Web to App 归因流程图">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#8fb0e0"/></marker>
+        <marker id="arr2o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#f08a3c"/></marker>
+        <marker id="arr2b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#4d8bf0"/></marker>
+      </defs>
+      <!-- 左侧来源 -->
+      <g data-anim><rect class="nbox-g" x="16" y="90" width="160" height="62" rx="12"/><text class="ntxt" x="96" y="115" text-anchor="middle">落地页/商店链接</text><text class="ntxt" x="96" y="135" text-anchor="middle">+ Adjust 跟踪链接</text></g>
+      <path class="edge" data-draw d="M176,105 C210,90 220,72 246,60" marker-end="url(#arr2)"/>
+      <path class="edge" data-draw d="M176,140 C215,160 230,185 252,198" marker-end="url(#arr2)"/>
+      <!-- 顶部橙色链 -->
+      <g data-anim><rect class="nbox-a" x="250" y="26" width="130" height="54" rx="12"/><text class="ntxt" x="315" y="58" text-anchor="middle">👆 点击广告</text></g>
+      <path class="edge-o" data-draw d="M380,53 H438" marker-end="url(#arr2o)"/>
+      <g data-anim><rect class="nbox-a" x="442" y="26" width="140" height="54" rx="12"/><text class="ntxt" x="512" y="58" text-anchor="middle">🏪 跳转商店/网页</text></g>
+      <path class="edge-o" data-draw d="M582,53 H640" marker-end="url(#arr2o)"/>
+      <g data-anim><rect class="nbox-a" x="644" y="26" width="156" height="54" rx="12"/><text class="ntxt" x="722" y="50" text-anchor="middle">📱 下载安装</text><text class="ntxt" x="722" y="68" text-anchor="middle">并打开 app</text></g>
+      <!-- 中层：Adjust 收到点击/安装 -->
+      <path class="edge-b" data-draw d="M315,80 V182" marker-end="url(#arr2b)"/>
+      <path class="edge-b" data-draw d="M722,80 V182" marker-end="url(#arr2b)"/>
+      <g data-anim><rect class="nbox" x="238" y="186" width="154" height="50" rx="12"/><text class="ntxt" x="315" y="216" text-anchor="middle">Adjust 收到点击</text></g>
+      <g data-anim><rect class="nbox" x="645" y="186" width="154" height="50" rx="12"/><text class="ntxt" x="722" y="216" text-anchor="middle">Adjust 收到安装</text></g>
+      <path class="edge-b" data-draw d="M396,211 H641" marker-end="url(#arr2b)"/>
+      <path class="edge-b" data-draw d="M641,211 H396" marker-end="url(#arr2b)"/>
+      <g data-anim><rect x="458" y="192" width="120" height="26" rx="13" fill="#e8f1ff" stroke="#4d8bf0"/><text class="etxt" x="518" y="210" text-anchor="middle">🎲 概率模型匹配</text></g>
+      <!-- 归因 -->
+      <path class="edge-b" data-draw d="M518,236 V282" marker-end="url(#arr2b)"/>
+      <g data-anim><rect class="nbox-t" x="330" y="286" width="376" height="48" rx="12"/><text class="ntxt" x="518" y="315" text-anchor="middle">✅ Adjust 归因 Google Web 跟踪链接</text></g>
+      <path class="edge-b" data-draw d="M518,334 V372" marker-end="url(#arr2b)"/>
+      <g data-anim><rect class="nbox-d" x="310" y="376" width="416" height="48" rx="12"/><text class="ntxt-w" x="518" y="398" text-anchor="middle">📤 Adjust 把数据回传给 Google</text><text class="stxt" x="518" y="415" text-anchor="middle" fill="#bcd2f5">（前提：设置好 Google Web 回传）</text></g>
+    </svg>
+    <div class="fig-cap">Google Web2App 双轨流程：橙色是用户看到的路径（点击 → 商店/网页 → 装机打开）；蓝色是 Adjust 侧的归因路径（收到点击 + 收到安装 → 概率模型匹配 → 归因 → 回传给 Google）</div>
+  </div>
+
+  <div class="def" id="prob-model">
+    <div class="dt">🎲 关键概念：概率模型（Probabilistic Modeling）</div>
+    <div class="tagline"><span class="tg tg-what">是什么</span><div>一种<strong>不依赖设备广告 ID 的归因方式</strong>：Adjust 把「点击时刻收到的信息」与「安装打开时刻收到的信息」做概率匹配，判断这次安装大概率来自哪次点击。</div></div>
+    <div class="tagline"><span class="tg tg-why">为什么</span><div>Web 点击发生在浏览器里，App 安装发生在设备上，两边拿不到同一个确定性 ID（尤其 iOS 14.5+ 之后），所以必须用概率匹配来把「Web 的点击」和「App 的安装」接起来。这也是为什么<strong>每个渠道的链接创建向导里都强调「启用概率模型」是必须步骤</strong>——不开它，Web 点击和 App 安装就断链，归因不到渠道头上。</div></div>
+    <div class="tagline"><span class="tg tg-eg">例子</span><div>用户在 Google 搜索结果页点了广告（Adjust 记到一次点击），3 小时后装好 App 首次打开（Adjust 记到一次安装）。若概率模型窗口设为 6 小时，两条记录在窗口内匹配成功，安装被归因给这条 Google Web 跟踪链接。</div></div>
+  </div>
+
+  <h3>🔑 Google Web to App 广告设置关键步骤</h3>
+  <ol class="steps">
+    <li><div class="st-t">Adjust 后台 —— 生成 Google Web 跟踪链接 + 做好归因设置</div></li>
+    <li><div class="st-t">Adjust 后台 —— 做好 Google Web 数据回传设置</div></li>
+    <li><div class="st-t">Google 后台 —— 设置落地页 / 商店链接 + Adjust 跟踪链接</div></li>
+    <li><div class="st-t">广告主的网页设置跟踪链接</div><div class="st-d">如 Google 广告设置直接跳转商店，可忽略这步。</div></li>
+  </ol>
+
+  <h3>🛠️ Adjust 后台设置 —— 跟踪链接 · 创建链接</h3>
+  <p><strong>入口：</strong>Campaign Lab → 合作伙伴（点「+」新建）。</p>
+  <div class="callout co-key"><div class="ct">🔍 合作伙伴怎么选（很容易选错）</div>
+  Google Web 的 campaign 类型很多，请搜索 <code>Google</code> 然后根据自己具体的类型勾选合作伙伴。注意两条排除规则：<br>
+  ① 带有 <strong>（Web app）后缀</strong>的是给 <span class="term">web2web</span> 的，投 web2app <strong>不要选</strong>；<br>
+  ② <strong>Google Ads</strong> 这个合作伙伴适用于 <span class="term">app campaign</span>，投 web2app 也<strong>不要选</strong>。</div>
+  <ul class="practice">
+    <li><strong>应用选择：</strong>勾选要投放的 app，然后点击下一步。</li>
+    <li><strong>链接名称：</strong>填写您希望在 Adjust 后台看到的渠道名称（如 <code>Google W2A</code>），<strong>其他不要改</strong>，然后下一步。推广活动参数默认为 <code>{campaignid}</code> / <code>{adgroupid}</code> / <code>{keyword}%20({matchtype})</code> 的层级结构。</li>
+    <li><strong>用户目的位置：</strong>跑 Google 的 Web2App campaign 此步<strong>一般保持默认设置</strong>（深度链接、重定向、后备均为可选），如有特殊需求请和您的 Adjust AM 沟通后再设置。</li>
+  </ul>
+
+  <h4>🎲 归因设置：启用概率模型（<span style="color:var(--warn)">必须步骤</span>）</h4>
+  <p>在「归因设置 → 新用户：归因 → 点击」中：设备匹配归因窗口默认 7 天（可设 1–30 天）；<strong>务必打开「启用概率模型」开关</strong>，其归因窗口可在 1–24 小时间设置（示例中为 6 小时）。「启用暂时归因」保持关闭即可。</p>
+
+  <h4>🔗 生成的跟踪链接长这样</h4>
+  <p>把生成的 Adjust 跟踪链接配置到 Google 后台，目的是<strong>追踪到 Google Web 的点击</strong>。比如（不同的 campaign 类型链接的参数可能不一样，以您在 Adjust 后台生成的为准）：</p>
+  <pre class="code">https://app.adjust.com/<span class="hr">abc123</span>?campaign={campaignid}&amp;adgroup={adgroupid}&amp;creative={keyword}%20({matchtype})&amp;gclid={gclid}&amp;lpurl={lpurl}&amp;gbraid={gbraid}</pre>
+  <div class="callout co-warn"><div class="ct">🚨 注意！go.link 链接不能直接当 Web2App 跟踪链接用</div>
+  如果您在 Adjust 后台生成的链接是 <code>https://xxx.go.link/xxxxxx</code>，而非 <code>https://app.adjust.com/xxxxxx</code>，<strong>请勿直接使用</strong>，和您的 Adjust 账户经理沟通。</div>
+
+  <h3>⚙️ Google 后台设置</h3>
+  <div class="glossary">
+    <div class="g-k">最终到达网址<br>Final URL</div><div>填广告主网页链接，或 GP（Google Play）/ App Store 商店链接。</div>
+    <div class="g-k">跟踪模板<br>Tracking Template</div><div>填使用之前步骤在 Adjust 后台生成好的跟踪链接（即上面的 <code>app.adjust.com/abc123?...</code> 示例，请使用您自己生成的链接）。</div>
+    <div class="g-k">最终到达网址后缀<br>Final URL suffix</div><div>如广告主最终目的是<strong>推 app</strong>，Adjust 不要求填，可以根据自己需要填写；如果是<strong>推 web</strong> 则需要填，设置方法参考：<a href="https://help.adjust.com/zh/article/track-web-campaigns#set-up-google-ads-web-campaign" target="_blank" rel="noopener">help.adjust.com/zh/article/track-web-campaigns#set-up-google-ads-web-campaign</a></div>
+  </div>
+
+  <h3>🏗️ 广告主落地页设置（如 Google 后台最终到达网址设置商店，请忽略这步）</h3>
+  <p>如最终到达网址（Final URL）设置的是<strong>广告主的网页、非商店页</strong>，需要在网页内做如下设置：</p>
+  <ol class="steps teal">
+    <li><div class="st-t">再生成一条自定义跟踪链接</div><div class="st-d">如 <code>https://app.adjust.com/def456</code>，<strong>同样打开概率模型</strong>。</div></li>
+    <li><div class="st-t">手动按模板添加相关参数（这是用户在网页里点击下载按钮触发的链接）</div><div class="st-d"><pre class="code">https://app.adjust.com/<span class="hy">def456</span>?<span class="hc">engagement_type=fallback_click</span><span class="hg">&amp;redirect=编码后的跳转地址</span></pre></div></li>
+  </ol>
+  <ul class="practice">
+    <li>模板里的 <span style="background:#fff3bf;padding:0 4px;border-radius:3px"><code>def456</code></span> 是举例，记得替换成自己跟踪链接的 tracker。</li>
+    <li><span style="background:#d5f5f9;padding:0 4px;border-radius:3px"><code>engagement_type=fallback_click</code></span> 的目的是能正常区分统计<strong>广告量</strong>和<strong>网址自然量</strong>，<strong>一定要加</strong>——否则根据 last click 原则，安装会归因给网页里的这条链接而非 Google Web 链接。</li>
+    <li><span style="background:#d9f5df;padding:0 4px;border-radius:3px"><code>&amp;redirect=编码后的跳转地址</code></span>：如果推 APK 需要加 APK 的下载地址，注意要<strong>编码（encode）</strong>；如果跳 GP 或 App Store 可以不加。</li>
+  </ul>
+  <details class="rephrase"><summary>💬 没看懂 fallback_click 为什么必加？点这里换种说法</summary>
+  Adjust 默认按「最后一次点击」（last click）归因。用户路径里有两次点击：① Google 广告位上的点击（走 abc123 链接），② 落地页下载按钮上的点击（走 def456 链接）。② 发生在后面，如果不做区分，安装会全部记到 ② 这条「网页内链接」头上，Google Web 渠道就看不到量了。加上 <code>engagement_type=fallback_click</code> 相当于告诉 Adjust：「这只是页面内的兜底点击，别抢真正广告点击的归因」。</details>
+</section>
+
+<!-- ============ 02b Google 回传 ============ -->
+<section id="google-callback" data-subof="google">
+  <h3>📤 将从 Adjust 收到的原始数据转发给 Google（回传设置）</h3>
+  <p>针对 Google 的数据回传（即把归因给 Google Web to App campaign 的数据回传给 Google），Adjust 的配置要求如下：</p>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <tr><th>Google Web2App Campaign</th><th>Google Ads（数据分享）</th><th>Google Ads Offline Conversion（离线转化）</th></tr>
+    <tr><td>App 上架商店时（iOS / Android）</td><td><strong>必须设置</strong></td><td><strong>强烈建议启用</strong></td></tr>
+    <tr><td>APK</td><td>无需设置</td><td><strong>必须启用</strong></td></tr>
+    <tr><th>Google Web2Web / Web2PC</th><th>Google Ads</th><th>Google Ads Offline Conversion</th></tr>
+    <tr><td>Web</td><td>无需设置</td><td><strong>必须启用</strong></td></tr>
+    <tr><td>PC</td><td>无需设置</td><td><strong>必须启用</strong></td></tr>
+  </table>
+  </div>
+
+  <div class="callout co-warn"><div class="ct">📣 重要：无需再向 Google 申请 API 权限</div>
+  Adjust 已完成对接 <strong>Google Conversion API</strong>，已为所有客户添加 Google 白名单，您<strong>无需再和 Google 申请 API 权限</strong>；无论 app 是否上架商店，均可以通过 Adjust 后台设置将数据分享给 Google。</div>
+
+  <p><strong>数据回传配置流程分两种情况：</strong></p>
+  <div class="cases">
+    <div class="case">
+      <div class="c-h">🏪 应用上架商店时</div>
+      <p>① 在 Adjust 后台启用 Google Ads 数据分享（<strong>必须</strong>）；</p>
+      <p>② 在 Adjust 后台设置 Google Ads 离线转化并关联转化共享服务（<strong>强烈建议</strong>）。</p>
+      <p style="color:var(--muted);font-size:13.5px">* 如之前投放过 Google App Campaign，应该已有「数据分享」这部分设置，不用再重复设置。设置方式：在数据分享页<strong>输入 link id 以启用数据分享</strong>（可进一步设置分享哪些来源/事件、启用再归因监测、使用 Google Ads 归因窗口 30 天等）。</p>
+    </div>
+    <div class="case">
+      <div class="c-h">📦 应用不上架商店时</div>
+      <p>① 在 Adjust 后台设置 Google Ads 离线转化并关联转化共享服务；</p>
+      <p>② 在 Google 后台创建 Google Ads 转化操作。</p>
+    </div>
+  </div>
+
+  <h4>🔗 第一步：Adjust 后台关联转化共享服务（DataWorks → 关联）</h4>
+  <p>适用：<strong>应用不上架商店时需要设置，应用上架商店时建议设置。</strong></p>
+  <div class="callout co-gold"><div class="ct">⚠️ 关联前先清理</div>如果之前关联过「广告支出」等其他服务，建议<strong>删除之前的设置、再重新关联</strong>，同时勾选上需要的所有服务（<strong>包括线下转化</strong>）。</div>
+  <ol class="steps">
+    <li><div class="st-t">点击「关联」</div><div class="st-d">左侧导航 DataWorks → 关联，进入关联管理。</div></li>
+    <li><div class="st-t">添加新关联</div><div class="st-d">点击右上角「+ 新关联」。</div></li>
+    <li><div class="st-t">选择合作伙伴</div><div class="st-d">选 <code>Adwords / Google Ads</code>。</div></li>
+    <li><div class="st-t">关联转化共享服务</div><div class="st-d">在服务下拉中勾选<strong>「线下转化」</strong>（下拉里还有 CV 映射共享 / SKAdNetwork / 受众分群工具 / 广告支出 / 竞价预算等，按需要全部勾上）。随后点击「通过 Google 登录」，选择并关联 Google Ads 账户，并<strong>务必勾选「管理您的 AdWords 推广活动」旁边的复选框</strong>。</div></li>
+  </ol>
+
+  <h4>🧩 第二步：通过映射启用 Google Ads 离线转化（Campaign Lab）</h4>
+  <ol class="steps">
+    <li><div class="st-t">新建合作伙伴</div><div class="st-d">进入 Campaign Lab → 合作伙伴，点击右上角「+ 新合作伙伴」。</div></li>
+    <li><div class="st-t">搜索并选择</div><div class="st-d">在合作伙伴中搜索 <code>Google Ads Offline Conversions</code>。</div></li>
+    <li><div class="st-t">选择应用</div><div class="st-d">勾选要使用的应用，下一步。</div></li>
+    <li><div class="st-t">关联转化分享</div><div class="st-d">如果还未关联转化共享服务，需要点击前往 DataWorks 完成服务关联（提示 Connect Google account to continue：先去 Connections 输入账户凭证，回来点 Reload accounts 继续）。</div></li>
+    <li><div class="st-t">为您的 Google Ads 广告系列配置数据共享</div><div class="st-d">选择想与哪个 Google 账户分享数据。</div></li>
+    <li><div class="st-t">点击「映射事件」</div><div class="st-d"><strong>注意：安装不会自动转发，需要映射事件。</strong>选择要与 Google Ads Offline Conversions 分享的 Adjust 事件并映射到合作伙伴事件。</div></li>
+    <li><div class="st-t">设置概览 → 启用合作伙伴</div><div class="st-d">检查合作伙伴选择 / 应用选择 / 数据分享选项，确认后启用，完成添加新合作伙伴。</div></li>
+  </ol>
+  <div class="callout co-warn"><div class="ct">🧷 映射事件的两个高频坑</div>
+  ① 分享账户处<strong>请勾选 MCC 账户</strong>；如此处没有任何账户，说明前面的账户关联步骤有问题，需要重新关联。<br>
+  ② 合作伙伴事件<strong>仅支持下拉勾选</strong>；如没有选项，请先在 Google 后台创建转化事件。</div>
+
+  <h4>🏗️ 第三步（不上架商店时）：在 Google 后台创建 Google Ads 转化操作</h4>
+  <ol class="steps teal">
+    <li><div class="st-t">进入转化设置</div><div class="st-d">在 Google Ads 控制台中，点击「工具和设置」，然后点击 MEASUREMENT 下的「转化（Conversions）」。</div></li>
+    <li><div class="st-t">新建转化</div><div class="st-d">点击蓝色的「+ 新转化操作（NEW CONVERSION ACTION）」按钮来创建一个新的转化。</div></li>
+    <li><div class="st-t">选择「导入（Import）」</div><div class="st-d">转化类型四选一（Website / App / Phone calls / Import），选 Import——从 Google Analytics 或其他来源导入数据。</div></li>
+    <li><div class="st-t">选择导入方式</div><div class="st-d">选择「导入」后，点击<strong>「使用 API 手动导入或上传」</strong>，然后选择<strong>「跟踪点击转化（Track conversions from clicks）」</strong>；随后配置转化名称、Value、Count、点击型转化窗口（如 90 天）、归因模型（Data-driven 推荐）等。</div></li>
+  </ol>
+  <div class="callout co-key"><div class="ct">🔀 如果没有找到「使用 API 手动导入或上传」选项</div>
+  您可以：① 选择 <strong>CRM – 文件或其他数据源 &gt; 跟踪点击转化</strong>；② 在数据源中选择<strong>跳过此步骤并于稍后设置数据源</strong>。</div>
+
+  <h4>🔁 备选：不用 Adjust 回传、自己直接给 Google 回传</h4>
+  <p>如果您不使用 Adjust 给 Google 回传数据，而是自己直接给 Google 回传：请设置<strong>原始数据回传</strong>，让 Adjust 把必要的数据发给您，您再回传给 Google。两种方式：</p>
+  <ul class="practice">
+    <li><strong>服务器回传设置（实时回传）：</strong><a href="https://help.adjust.com/zh/article/server-callbacks" target="_blank" rel="noopener">help.adjust.com/zh/article/server-callbacks</a></li>
+    <li><strong>云储存上传（每小时传一次上一小时的数据）：</strong><a href="https://help.adjust.com/zh/article/cloud-storage-uploads" target="_blank" rel="noopener">help.adjust.com/zh/article/cloud-storage-uploads</a></li>
+  </ul>
+  <div class="callout co-gold"><div class="ct">🧩 Google web2app 额外需要的必要占位符</div>
+  <code>{gclid}</code>, <code>{gbraid}</code>, <code>{wbraid}</code>, <code>{dcp_wbraid}</code>, <code>{dcp_gbraid}</code></div>
+
+  <h3>🧾 Google Web2App 全流程梳理</h3>
+  <ol class="steps">
+    <li><div class="st-t">在 Adjust 后台生成一条 Google Web 的跟踪链接</div><div class="st-d">如 <code>https://app.adjust.com/abc123</code>（abc123 是举例）。</div></li>
+    <li><div class="st-t">给这个 tracker 打开点击的概率模型，或打开 app level 的概率模型</div></li>
+    <li><div class="st-t">在 Adjust 后台做给 Google 回传数据的设置</div></li>
+    <li><div class="st-t">在 Google 后台填写相关链接</div><div class="st-d">· <strong>最终到达网址(Final URL)</strong>：广告主网页 或 GP 链接 或 App Store 链接；<br>· <strong>跟踪模板(Tracking Template)</strong>：每种 Google Campaign 跟踪链接里的参数不太一样，请以您在 Adjust 后台生成的为准——<code>https://app.adjust.com/abc123?campaign={campaignid}&amp;adgroup={adgroupid}&amp;creative={keyword}%20({matchtype})&amp;gclid={gclid}&amp;lpurl={lpurl}&amp;gbraid={gbraid}</code>；<br>· <strong>最终到达网址后缀(Final URL suffix)</strong>：Adjust 不要求填写，可以按需增加。</div></li>
+    <li><div class="st-t">（如最终到达网址是商店，可跳过此步）在广告主网页设置跟踪链接</div><div class="st-d">如 <code>https://app.adjust.com/def456?engagement_type=fallback_click&amp;redirect=编码后的跳转地址</code></div></li>
+    <li><div class="st-t">在 Adjust 后台查看相关数据</div></li>
+    <li><div class="st-t">Adjust 把相关数据回传给 Google</div></li>
+  </ol>
+</section>
+
+<!-- ============ 03 Facebook ============ -->
+<section id="facebook">
+  <h2><span class="no">03</span>🟪 Facebook Web to App 广告流程及设置</h2>
+  <p class="sec-lead">FB Web2App 与 Google 最大的不同：FB 不提供「跟踪模板」入口，Adjust 跟踪链接要靠<strong>落地页透传参数</strong>后由 CTA 按钮触发。</p>
+
+  <h3>🗺️ Facebook Web to App 流程图</h3>
+  <div class="figure">
+    <svg viewBox="0 0 820 430" role="img" aria-label="Facebook Web to App 流程图">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#8fb0e0"/></marker>
+        <marker id="arr3b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#4d8bf0"/></marker>
+      </defs>
+      <!-- 顶排 -->
+      <g data-anim><rect class="nbox-a" x="14" y="26" width="150" height="56" rx="12"/><text class="ntxt" x="89" y="50" text-anchor="middle">👆 点击</text><text class="ntxt" x="89" y="68" text-anchor="middle">FB Web 广告</text></g>
+      <path class="edge" data-draw d="M164,54 H210" marker-end="url(#arr3)"/>
+      <g data-anim><rect class="nbox-a" x="214" y="26" width="150" height="56" rx="12"/><text class="ntxt" x="289" y="50" text-anchor="middle">🌐 跳转</text><text class="ntxt" x="289" y="68" text-anchor="middle">广告主网页</text></g>
+      <path class="edge" data-draw d="M364,54 H410" marker-end="url(#arr3)"/>
+      <g data-anim><rect class="nbox-a" x="414" y="26" width="160" height="56" rx="12"/><text class="ntxt" x="494" y="50" text-anchor="middle">🔘 点击 web 内</text><text class="ntxt" x="494" y="68" text-anchor="middle">下载按钮</text></g>
+      <path class="edge" data-draw d="M574,54 H620" marker-end="url(#arr3)"/>
+      <g data-anim><rect class="nbox-a" x="624" y="26" width="180" height="56" rx="12"/><text class="ntxt" x="714" y="50" text-anchor="middle">🏪 跳转商店 /</text><text class="ntxt" x="714" y="68" text-anchor="middle">下载 APK</text></g>
+      <!-- 中排 -->
+      <path class="edge-b" data-draw d="M89,82 V158" marker-end="url(#arr3b)"/>
+      <g data-anim><rect class="nbox" x="14" y="162" width="170" height="50" rx="12"/><text class="ntxt" x="99" y="192" text-anchor="middle">广告主落地页链接</text></g>
+      <path class="edge-b" data-draw d="M184,187 H400" marker-end="url(#arr3b)"/>
+      <g data-anim><text class="etxt" x="292" y="228" text-anchor="middle">🔁 需要把落地页链接里的信息</text><text class="etxt" x="292" y="246" text-anchor="middle">透传给 Adjust 跟踪链接</text></g>
+      <g data-anim><rect class="nbox-t" x="404" y="162" width="180" height="50" rx="12"/><text class="ntxt" x="494" y="192" text-anchor="middle">Adjust 跟踪链接</text></g>
+      <path class="edge-b" data-draw d="M494,82 V158" marker-end="url(#arr3b)"/>
+      <!-- 右列 -->
+      <path class="edge-b" data-draw d="M714,82 V270" marker-end="url(#arr3b)"/>
+      <g data-anim><rect class="nbox-t" x="560" y="274" width="248" height="48" rx="12"/><text class="ntxt" x="684" y="303" text-anchor="middle">✅ Adjust 归因给 FB Web</text></g>
+      <path class="edge-b" data-draw d="M684,322 V362" marker-end="url(#arr3b)"/>
+      <g data-anim><rect class="nbox-d" x="510" y="366" width="298" height="48" rx="12"/><text class="ntxt-w" x="659" y="395" text-anchor="middle">📤 Adjust 回传数据给 FB Web</text></g>
+    </svg>
+    <div class="fig-cap">Facebook Web2App 流程：广告点击落到广告主网页；落地页链接携带的信息需<strong>透传</strong>给 Adjust 跟踪链接，用户点下载按钮触发该链接 → Adjust 归因给 FB Web 并回传</div>
+  </div>
+
+  <h3>🔑 Facebook W2A 配置关键步骤</h3>
+  <ol class="steps">
+    <li><div class="st-t">Facebook Dashboard：生成 Pixel ID 和 Access Token</div><div class="st-d">在 FB 事件管理工具后台生成 pixel id 和 access token。</div></li>
+    <li><div class="st-t">Adjust Dashboard：创建跟踪链接 &amp; 配置数据分享</div><div class="st-d">Campaign Lab 中搜索 Facebook Web，创建对应跟踪链接；填入 FB pixel id 和 access token，完成事件映射。</div></li>
+    <li><div class="st-t">落地页配置：完成参数透传并生成新的跟踪链接</div><div class="st-d">将 Adjust 跟踪链接配置在落地页 CTA 按钮上。</div></li>
+    <li><div class="st-t">Facebook Dashboard：广告落地页地址</div><div class="st-d">FB 广告管理工具中，在广告层级填入落地页地址以及需要的参数，开始投放广告。</div></li>
+  </ol>
+
+  <h3>🧿 Facebook Ads Dashboard：创建 Pixel ID</h3>
+  <p>登录 <strong>Meta 事件管理工具</strong>后台：</p>
+  <ol class="steps teal">
+    <li><div class="st-t">点击添加「+ 数据源」，并选择「网站」</div><div class="st-d">（数据源类型还包括应用 / 线下 / CRM / 消息，W2A 场景选网站。）</div></li>
+    <li><div class="st-t">为像素命名，根据提示完成创建</div></li>
+    <li><div class="st-t">在数据源中找到 pixel id</div></li>
+  </ol>
+
+  <h3>🔑 Facebook Ads Dashboard：创建 Access Token</h3>
+  <p>同样在 Meta 事件管理工具后台：</p>
+  <ol class="steps teal">
+    <li><div class="st-t">选择要监测的数据源 →「设置」</div></li>
+    <li><div class="st-t">找到「转化 API（Conversions API）」，点击「生成访问口令（Generate access token）」</div><div class="st-d">位于 Set up manually 区域下方。</div></li>
+  </ol>
+  <div class="callout co-gold"><div class="ct">⚠️ 注意</div>「生成访问口令」<strong>仅对拥有企业开发者特权的用户可见</strong>，对其他用户不可见。</div>
+
+  <h3>🛠️ Adjust Dashboard：创建链接与数据分享</h3>
+  <p><strong>入口：</strong>Campaign Lab → 合作伙伴 → 添加新合作伙伴，搜索 <code>Facebook Web</code>。</p>
+  <h4>① 启用数据分享（填入凭证）</h4>
+  <div class="glossary">
+    <div class="g-k">Pixel ID</div><div>必填，上一步在 Meta 事件管理工具创建。</div>
+    <div class="g-k">Access Token</div><div>必填，上一步生成的转化 API 访问口令。</div>
+    <div class="g-k">Event Source URL</div><div>选填，默认发 app id。</div>
+    <div class="g-k">FB Install Event Name</div><div>选填。Adjust 会默认把 FB Web 的安装发到 <strong>Leads（留下潜客信息）</strong>；如需要把安装发到其他事件，请在这里设置。</div>
+  </div>
+  <h4>② 映射您的事件</h4>
+  <ul class="practice">
+    <li>支持映射<strong>标准 &amp; 自定义事件</strong>（选择想与 Facebook Web 分享的 Adjust 事件 → 对应的合作伙伴事件，名称可自定义）。</li>
+    <li>如需转发收入，请映射收入事件<strong>并勾选「应用内收入（来自应用购买）」</strong>。</li>
+  </ul>
+  <div class="callout co-warn"><div class="ct">🚨 S2S 上报注意</div>如果您使用 S2S 给 Adjust 上报事件，且需给 FB Web 转发，请在 S2S 请求中加上 <code>ip_address</code> 和 <code>user_agent</code>，否则会影响数据转发。</div>
+  <h4>③ 链接结构与用户目的位置</h4>
+  <ul class="practice">
+    <li><strong>链接名称：</strong>为该链接命名，此命名将用于 Datascape 数据面板中「渠道源」的展示。推广活动参数默认为 <code>{{campaign.name}}%20%28{{campaign.id}}%29</code> 等三层结构。</li>
+    <li><strong>设置深度链接：</strong>如需使用深度链接进行应用内页面跳转，请配置第一部分（前提：做好 Adjust 侧所有深度链接相关的设置和技术接入）。</li>
+    <li><strong>添加重定向：</strong>如非上架应用商店，则在第二部分填入 <strong>APK 下载地址</strong>。</li>
+    <li><strong>添加后备：</strong>如广告在电脑端打开无法正常访问，可将官网地址填入第三部分作为备选地址。</li>
+  </ul>
+  <h4>④ 归因设置</h4>
+  <ul class="practice">
+    <li>投放安卓 APK 包或 iOS 产品，启用「新用户：归因」→「点击」→「<strong style="color:var(--warn)">启用概率模型</strong>」，归因窗口可设置 1–24 小时。</li>
+    <li>如投放<strong>再归因</strong>广告请与 Adjust 客户经理联系。</li>
+    <li>点击「快速创建」获取跟踪链接。</li>
+  </ul>
+
+  <h3>🔗 Adjust 跟踪链接（拼接规则）</h3>
+  <p><strong>Adjust 后台生成的跟踪链接示例：</strong></p>
+  <pre class="code">https://app.adjust.com/<span class="hr">1fg1of</span>?campaign={{campaign.name}}%20%28{{campaign.id}}%29&amp;adgroup={{adset.name}}%20%28{{adset.id}}%29&amp;creative={{ad.name}}%20%28{{ad.id}}%29</pre>
+  <p><strong>落地页 CTA 按钮触发链接示例（透传赋值后）：</strong></p>
+  <pre class="code">https://app.adjust.com/<span class="hr">1fg1of</span>?campaign=<span class="hy">{{campaign.name}}</span>%20%28<span class="hy">{{campaign.id}}</span>%29&amp;adgroup=<span class="hy">{{adset.name}}</span>%20%28<span class="hy">{{adset.id}}</span>%29&amp;creative=<span class="hy">{{ad.name}}</span>%20%28<span class="hy">{{ad.id}}</span>%29&amp;<span class="hc">fbclid=xxxxx</span>&amp;<span class="hc">fbpid=xxxxxx</span>&amp;<span class="hg">fb_pixel_id=xxxxx</span>&amp;<span class="hg">fb_access_token=xxxxxxxx</span></pre>
+  <div class="glossary">
+    <div class="g-k">🔴 红色部分</div><div>Adjust tracker token（跟踪链接唯一识别码），<strong>保持不变</strong>。</div>
+    <div class="g-k">🟡 黄色部分</div><div>由 Meta 替换的宏，在<strong>落地页地址</strong>中获取。</div>
+    <div class="g-k">🔵 青色部分</div><div>由 Meta 生成：<code>fbclid</code> 在落地页地址中获取；<code>fbpid</code> 需集成 Meta Pixel 后在 <strong>cookie</strong> 中获取。</div>
+    <div class="g-k">🟢 绿色部分</div><div>使用场景为<strong>多个代理 / 账户投放</strong>、涉及多组 id &amp; token 需要回传时，需手动拼在对应链接后。</div>
+  </div>
+
+  <h3>⚙️ Facebook Ads Dashboard：填入落地页地址</h3>
+  <p>广告的「目标位置」选择<strong>网站</strong>（目前只有选择购物转化事件时，才能使用「网站和店铺」目标位置）。在原本落地页地址（如 <code>https://mywebsite.com/123</code>）后增加以下参数：</p>
+  <pre class="code">p0=adjustTrackerToken&amp;p1={{campaign.name}}&amp;p2={{campaign.id}}&amp;p3={{adset.name}}&amp;p4={{adset.id}}&amp;p5={{ad.name}}&amp;p6={{ad.id}}</pre>
+  <ul class="practice">
+    <li>tracker token 由 Adjust 后台生成。</li>
+    <li><code>p0</code>–<code>p6</code> 参数名<strong>可任意修改</strong>。</li>
+  </ul>
+
+  <h3>🔁 透传：把落地页链接的各项信息透传给 Adjust 跟踪链接</h3>
+  <p>由<strong>广告主的网页研发</strong>实现。Adjust 提供现成的 script，可根据自己的情况添加到 HTML（英文文档）：<br><a href="https://tokyoadjust.notion.site/tokyoadjust/Adjust-Web-to-App-Campaign-solution-ver1-0-EN-1af379383ae147d2b187b44ee53457cd" target="_blank" rel="noopener">Adjust Web-to-App Campaign solution ver1.0 (EN) · Notion</a></p>
+  <details class="rephrase"><summary>💬 「透传」到底在传什么？</summary>
+  Meta 只会把宏的真实值（campaign 名、adset id、fbclid 等）写进<strong>落地页 URL</strong>，Adjust 的跟踪链接自己是拿不到的。所以需要一段前端脚本在页面加载时读出 URL 里的这些参数值，再把它们拼到 CTA 按钮指向的 Adjust 跟踪链接上——这样用户点下载时，Adjust 才能收到带完整推广信息的点击。这一步就叫「透传」。</details>
+
+  <h3>🧪 Facebook Web2App 特殊设置方式（不建议）</h3>
+  <div class="card">
+    <p>Adjust 跟踪链接加上 <span style="background:#fff3bf;padding:0 4px;border-radius:3px"><code>&amp;redirect=落地页链接(encode)</code></span>，可以<strong>直接配置在 FB 后台</strong>的网址栏（网址填 Adjust 链接、redirect 指向落地页）。</p>
+    <p><strong>优点：</strong>省去透传的步骤。</p>
+    <p><strong>注意：</strong>需要和 FB 的 AM 确认 OK 后再使用。</p>
+  </div>
+</section>
+
+<!-- ============ 03b FB 问题与优化 ============ -->
+<section id="fb-faq" data-subof="facebook">
+  <h3>🩺 Facebook W2A 常见问题梳理</h3>
+
+  <h4>问题一：Facebook 事件管理工具后台没有「安装」</h4>
+  <ul class="practice">
+    <li><strong>Adjust 后台安装统计：</strong>Adjust 没有统计到任何来源的安装 → 需检查 Adjust SDK 集成；Adjust 有安装但无归因给 Meta 的安装 → 需检查归因设置。</li>
+    <li><strong>Campaign Lab 中信息填写：</strong>检查「数据分享」中填写的 Pixel ID 和 Access Token。</li>
+    <li><strong>链接参数拼接：</strong>落地页集成 Pixel SDK 可获取正确 fbpid，Adjust 跟踪链接上报 fbpid <strong>不可传 undefined / null</strong>；检查跟踪链接中其他组 Pixel ID 和 Access Token 拼写方法。</li>
+    <li><strong>Meta 事件管理工具指标：</strong>Adjust 默认将安装以<strong>「留下潜客信息」</strong>的名称转发给 Meta，可在 Campaign Lab「数据分享」中修改该名称。</li>
+  </ul>
+
+  <h4>问题二：Facebook 事件管理工具后台没有「事件」</h4>
+  <ul class="practice">
+    <li><strong>Adjust 后台事件统计：</strong>Adjust 没有统计到任何来源的事件 → 需检查事件上报方法；Adjust 有事件但无归因给 Meta 的事件 → 需检查是否有归因给 Meta 的安装。</li>
+    <li><strong>Campaign Lab 中信息填写：</strong>检查「数据分享」中填写的 Pixel ID 和 Access Token。</li>
+    <li><strong>链接参数拼接：</strong>同上——fbpid 不可传 undefined / null；检查其他组 Pixel ID / Access Token 拼写。</li>
+    <li><strong>S2S 上报事件：</strong>通过 <code>https://s2s.adjust.com/event</code> 上报自定义事件<strong>必须上报 IP Address 和 User Agent</strong>。</li>
+  </ul>
+
+  <h4>问题三：Facebook 事件管理工具后台与 Adjust 后台数据差异对比</h4>
+  <ul class="practice">
+    <li><strong>日期时区一致：</strong>Adjust 后台可在「数据配置」中自由选择对比的日期和时区，请保持两边设置一致。</li>
+    <li><strong>事件映射逻辑一致：</strong>检查 Adjust 后台事件映射关系，是否有映射错误或多对一的映射关系。</li>
+    <li><strong>收入指标对比逻辑一致：</strong>Adjust 后台「收入」的次数与金额会将<strong>所有上报金额和货币的事件加总</strong>，因此上报多种收入事件时，注意只选择该映射事件的收入相关指标。</li>
+    <li><strong>数据来源一致：</strong>「数据分享」如选择了全渠道回传，则对比数据需对比包含全渠道数据的事件总量。</li>
+    <li><strong>数据更新同步：</strong>Adjust 实时转发数据给 Meta，需要等待 Meta 数据更新至后台。</li>
+  </ul>
+
+  <h3>📈 Facebook W2A 优化建议</h3>
+  <h4>① 提高事件质量评分（1 —— 10 分）</h4>
+  <p>Meta 会按事件携带的用户参数给事件打「质量评分」，参数越多越准，广告优化效果越好。参数按优先级分三档：</p>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <tr><th>优先级</th><th>参数</th></tr>
+    <tr><td><span class="pill pill-b">高</span></td><td>邮箱：<code>em</code>　·　点击编号：<code>fbc</code></td></tr>
+    <tr><td><span class="pill pill-g">中</span></td><td>浏览器编号：<code>fbp</code>　·　fb 登录编号：<code>fb_login_id</code>　·　出生日期：<code>bd</code>　·　国家：<code>country</code>　·　手机号：<code>ph</code>　·　外部编号：<code>external_id</code></td></tr>
+    <tr><td><span class="pill pill-t">低</span></td><td>邮编：<code>zp</code>　·　城市：<code>ct</code>　·　名字：<code>fn</code>　·　姓氏：<code>ln</code>　·　潜客信息：<code>lead_id</code></td></tr>
+  </table>
+  </div>
+
+  <h4>② Adjust 实时转发以下参数（可接收的完整参数列表见 Adjust 文档）</h4>
+  <ul class="practice">
+    <li><strong>安装 / 自定义事件默认转发：</strong><code>event_name</code>、<code>event_time</code>、<code>action_source</code>、<code>event_source_url</code>、<code>client_ip_address (ipv4)</code>、<code>client_user_agent</code>（S2S 上报方法注意增传 ip 和 ua 参数）。</li>
+    <li><strong>收入事件增加以下参数：</strong><code>currency</code>、<code>vaule</code>（原稿拼写如此，即事件金额 value）。</li>
+    <li><strong>归因给 Facebook Web 的安装产生数据，增加以下参数：</strong><code>fbp（fbpid）</code>、<code>fbc（fbclid）</code>。</li>
+  </ul>
+
+  <h4>③ 参数映射配置</h4>
+  <p>通过<strong>客户端 / 服务端</strong>上报事件时可增加更多参数以提高 Meta 事件管理工具评分；在 Adjust 配置「数据分享」时，勾选「参数」，完成参数映射配置（如 SDK 参数 <code>email_address</code> → 合作伙伴参数 <code>em</code>）。</p>
+  <div class="callout co-warn"><div class="ct">🚨 三条硬性注意</div>
+  ① 参数值请<strong>不要传 null</strong>，Meta 不接受任何 value=null 的上报；<br>
+  ② <strong>IPV6</strong> 需通过参数上报映射完成；<br>
+  ③ Meta 对一些参数比如<strong>用户邮箱要求编码</strong>，请按照要求编码后报给 Adjust。</div>
+
+  <h3>🧾 Facebook Web2App 全流程梳理</h3>
+  <ol class="steps">
+    <li><div class="st-t">在 Adjust 后台 → Campaign Lab → 广告渠道 → 设置 Facebook Web 渠道</div><div class="st-d">生成跟踪链接 + 设置给 FB Web 的数据回传 + 打开概率模型。</div></li>
+    <li><div class="st-t">在 Facebook 后台填写落地页 URL</div><div class="st-d"><pre class="code">https://mywebsite.com/123?p0=<span class="hr">adjustTrackerToken</span>&amp;p1=<span class="hy">{{campaign.name}}</span>&amp;p2=<span class="hy">{{campaign.id}}</span>&amp;p3=<span class="hy">{{adset.name}}</span>&amp;p4=<span class="hy">{{adset.id}}</span>&amp;p5=<span class="hy">{{ad.name}}</span>&amp;p6=<span class="hy">{{ad.id}}</span></pre></div></li>
+    <li><div class="st-t">用户点击 Facebook 的 web 广告后，Facebook 重定向用户到落地页并给链接中的相关宏赋值</div></li>
+    <li><div class="st-t">用户跳转到广告主网页，链接里有相关的值</div><div class="st-d"><pre class="code">https://mywebsite.com/123?p0=<span class="hr">adjustTrackerToken</span>&amp;p1=<span class="hy">campaignABC</span>&amp;p2=<span class="hy">campaignID123</span>&amp;p3=<span class="hy">adsetABC</span>&amp;p4=<span class="hy">adsetId123</span>&amp;p5=<span class="hy">adNameABC</span>&amp;p6=<span class="hy">adId123</span>&amp;fbclid=<span class="hc">123</span>&amp;fbpid=<span class="hc">456</span></pre>（fbpid 存在获取不到的情况，没有影响。）</div></li>
+    <li><div class="st-t">广告主技术把落地页链接里的值透传给 Adjust 跟踪链接</div><div class="st-d"><pre class="code">https://app.adjust.com/<span class="hr">adjustTrackerToken</span>?campaign=<span class="hy">campaignABC</span>%20%28<span class="hy">campaignID123</span>%29&amp;adgroup=<span class="hy">adsetABC</span>%20%28<span class="hy">adsetId123</span>%29&amp;creative=<span class="hy">adNameABC</span>%20%28<span class="hy">adId123</span>%29&amp;fbclid=<span class="hc">123</span>&amp;fbpid=<span class="hc">456</span></pre>如没有接 FB Pixel 获取不到 fbpid，请在 Adjust 跟踪链接里<strong>直接去掉</strong> <code>&amp;fbpid=xxxxxx</code>，不要自己模拟 fbpid 或传 <code>&amp;fbpid=null</code> 或传 <code>&amp;fbpid=undefined</code> 等等；如要下载 APK，还需要在链接中加上 <code>&amp;redirect=</code>encode 后的 APK 下载地址。</div></li>
+    <li><div class="st-t">用户点击已做好赋值的 Adjust 跟踪链接，Adjust 统计点击并把用户引导到商店或 APK 下载</div></li>
+    <li><div class="st-t">Adjust 通过概率模型把安装归因给 Facebook Web</div></li>
+    <li><div class="st-t">Adjust 把相关数据回传给 Facebook Web</div></li>
+  </ol>
+
+  <h3>🎓 高阶：如果 Web 和 App 在同一个 Adjust app 下，如何实现 Facebook Web 归因与回传</h3>
+  <div class="callout co-key"><div class="ct">📌 适用场景（需同时满足下面 3 个条件）</div>
+  1、既有 Web 应用，同时网页上还有应用下载按钮，点击按钮下载 App（包括跳商店和下 APK）；<br>
+  2、Web 应用和 App 在同一个 Adjust App 下（同一个 App Token）；<br>
+  3、既实现 Facebook Web 的 Web 的安装跟踪，同时又实现 App 的跟踪，并希望能<strong>同时回传</strong> Facebook Web 这两种安装与应用内事件。</div>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 300" role="img" aria-label="高阶方案时序流程">
+      <defs><marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#4d8bf0"/></marker></defs>
+      <g data-anim><rect class="nbox-a" x="14" y="30" width="180" height="62" rx="12"/><text class="ntxt" x="104" y="55" text-anchor="middle">用户落地到网页</text><text class="stxt" x="104" y="76" text-anchor="middle">⚠️ 先不要初始化 Web SDK</text></g>
+      <path class="edge-b" data-draw d="M194,61 H244" marker-end="url(#arr4)"/>
+      <g data-anim><rect class="nbox" x="248" y="30" width="188" height="62" rx="12"/><text class="ntxt" x="342" y="55" text-anchor="middle">取参数请求 FB Web</text><text class="stxt" x="342" y="76" text-anchor="middle">跟踪链接 + redirect={base_url}</text></g>
+      <path class="edge-b" data-draw d="M436,61 H486" marker-end="url(#arr4)"/>
+      <g data-anim><rect class="nbox" x="490" y="30" width="170" height="62" rx="12"/><text class="ntxt" x="575" y="55" text-anchor="middle">跳回落地页，提取</text><text class="stxt" x="575" y="76" text-anchor="middle">adjust_referrer (reftag)</text></g>
+      <path class="edge-b" data-draw d="M660,61 H710" marker-end="url(#arr4)"/>
+      <g data-anim><rect class="nbox-t" x="714" y="30" width="94" height="62" rx="12"/><text class="ntxt" x="761" y="55" text-anchor="middle">初始化</text><text class="ntxt" x="761" y="74" text-anchor="middle">Web SDK</text></g>
+      <path class="edge-b" data-draw d="M761,92 C761,140 500,150 342,164" marker-end="url(#arr4)"/>
+      <g data-anim><rect class="nbox-g" x="180" y="168" width="330" height="56" rx="12"/><text class="ntxt" x="345" y="192" text-anchor="middle">set referrer（用提取到的 adjust_reftag）</text><text class="stxt" x="345" y="212" text-anchor="middle">⏱️ 「请求链接 → set referrer」需在 30 秒内完成</text></g>
+      <path class="edge-b" data-draw d="M510,196 H580" marker-end="url(#arr4)"/>
+      <g data-anim><rect class="nbox-d" x="584" y="168" width="224" height="56" rx="12"/><text class="ntxt-w" x="696" y="192" text-anchor="middle">后续点下载按钮</text><text class="stxt" x="696" y="212" text-anchor="middle" fill="#bcd2f5">走标准 Web2App 流程再次透传</text></g>
+    </svg>
+    <div class="fig-cap">高阶方案时序：先请求跟踪链接拿 referrer、再初始化 Web SDK 并 set referrer（30 秒内），Web 归因与 App 归因互不干扰</div>
+  </div>
+
+  <ol class="steps">
+    <li><div class="st-t">在 Adjust 后台 → Campaign Lab → 广告渠道 → 设置 Facebook Web 渠道（同 Web2App）</div><div class="st-d">生成跟踪链接 + 设置给 FB Web 的数据回传 + 打开概率模型。</div></li>
+    <li><div class="st-t">在 Facebook 后台填写落地页 URL（同 Web2App）</div><div class="st-d"><code>https://mywebsite.com/?p0=abc123&amp;p1={{campaign.name}}&amp;p2={{campaign.id}}&amp;p3={{adset.name}}&amp;p4={{adset.id}}&amp;p5={{ad.name}}&amp;p6={{ad.id}}</code></div></li>
+    <li><div class="st-t">用户从 FB web 广告落地到客户的网址：先不要初始化 Web SDK，先取参数请求 Facebook Web 的 Adjust 跟踪链接（不带 redirect = apk 下载地址），拿到 adjust_referrer</div>
+      <div class="st-d">
+      <strong>3-1</strong> 用户点击 FB 广告后跳转落地页会带上相关参数（举例如下），此时<strong>不要初始化 Adjust Web SDK</strong>：<br><code>https://mywebsite.com?p0=abc123&amp;p1=A&amp;p2=B&amp;p3=C&amp;p4=D&amp;p5=E&amp;p6=F&amp;fbclid=456mnb</code><br>
+      <strong>3-2</strong> 从落地页链接里获取到各参数的值，透传给 FB web 跟踪链接——带上 <span style="background:#fff3bf;padding:0 4px;border-radius:3px"><code>&amp;redirect={base_url}</code></span> 并请求这个链接，比如：<br><code>https://app.adjust.com/abc123?campaign=A%20%28B%29&amp;adgroup=C%20%28D%29&amp;creative=E%20%28F%29&amp;fbclid=456mnb&amp;fbpid=890fds&amp;redirect={base_url}</code><br><strong style="color:var(--warn)">注意：&amp;redirect={base_url} 不要做任何修改。</strong><br>
+      <strong>3-3</strong> 跳转落地页，提取其中的 <code>adjust_reftag%3DcO0Mji8QL0qr6</code>：<br><code>https://mywebsite.com/?adjust_referrer=adjust_reftag%3DcO0Mji8QL0qr6</code>
+      </div></li>
+    <li><div class="st-t">初始化 Web SDK，并 set referrer（用上一步的 adjust_reftag%3DcO0Mji8QL0qr6）</div><div class="st-d">Web SDK Set referrer 方法：<a href="https://github.com/adjust/web_sdk?tab=readme-ov-file#setting-referrer" target="_blank" rel="noopener">github.com/adjust/web_sdk#setting-referrer</a><br><strong style="color:var(--warn)">注意：3-2 到 4 需要在 30 秒内完成，否则影响 Web 的归因。</strong></div></li>
+    <li><div class="st-t">后续用户点击网页上的 APK 下载按钮，或者直接跳转商店</div><div class="st-d">流程就与 Web2app 的流程一样，再次透传参数并再次触发 Facebook Web 的跟踪链接。</div></li>
+  </ol>
+</section>
+
+<!-- ============ 04 TikTok ============ -->
+<section id="tiktok">
+  <h2><span class="no">04</span>⬛ TikTok Web to App 广告流程及设置</h2>
+  <p class="sec-lead">TikTok 提供第三方点击跟踪位（Third Party tracking settings），因此不需要 FB 那样的前端透传，链路更接近 Google。</p>
+
+  <h3>🗺️ 流程图</h3>
+  <div class="figure">
+    <svg viewBox="0 0 820 430" role="img" aria-label="TikTok Web to App 归因流程图">
+      <defs>
+        <marker id="arr5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#8fb0e0"/></marker>
+        <marker id="arr5o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#f08a3c"/></marker>
+        <marker id="arr5b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#4d8bf0"/></marker>
+      </defs>
+      <g data-anim><rect class="nbox-g" x="16" y="90" width="160" height="62" rx="12"/><text class="ntxt" x="96" y="115" text-anchor="middle">落地页链接</text><text class="ntxt" x="96" y="135" text-anchor="middle">+ Adjust 跟踪链接</text></g>
+      <path class="edge" data-draw d="M176,105 C210,90 220,72 246,60" marker-end="url(#arr5)"/>
+      <path class="edge" data-draw d="M176,140 C215,160 230,185 252,198" marker-end="url(#arr5)"/>
+      <g data-anim><rect class="nbox-a" x="250" y="26" width="130" height="54" rx="12"/><text class="ntxt" x="315" y="58" text-anchor="middle">👆 点击广告</text></g>
+      <path class="edge-o" data-draw d="M380,53 H438" marker-end="url(#arr5o)"/>
+      <g data-anim><rect class="nbox-a" x="442" y="26" width="140" height="54" rx="12"/><text class="ntxt" x="512" y="58" text-anchor="middle">🌐 跳转网页</text></g>
+      <path class="edge-o" data-draw d="M582,53 H640" marker-end="url(#arr5o)"/>
+      <g data-anim><rect class="nbox-a" x="644" y="26" width="156" height="54" rx="12"/><text class="ntxt" x="722" y="50" text-anchor="middle">📱 下载安装</text><text class="ntxt" x="722" y="68" text-anchor="middle">并打开 app</text></g>
+      <path class="edge-b" data-draw d="M315,80 V182" marker-end="url(#arr5b)"/>
+      <path class="edge-b" data-draw d="M722,80 V182" marker-end="url(#arr5b)"/>
+      <g data-anim><rect class="nbox" x="238" y="186" width="154" height="50" rx="12"/><text class="ntxt" x="315" y="216" text-anchor="middle">Adjust 收到点击</text></g>
+      <g data-anim><rect class="nbox" x="645" y="186" width="154" height="50" rx="12"/><text class="ntxt" x="722" y="216" text-anchor="middle">Adjust 收到安装</text></g>
+      <path class="edge-b" data-draw d="M396,211 H641" marker-end="url(#arr5b)"/>
+      <path class="edge-b" data-draw d="M641,211 H396" marker-end="url(#arr5b)"/>
+      <g data-anim><rect x="458" y="192" width="120" height="26" rx="13" fill="#e8f1ff" stroke="#4d8bf0"/><text class="etxt" x="518" y="210" text-anchor="middle">🎲 概率模型匹配</text></g>
+      <path class="edge-b" data-draw d="M518,236 V282" marker-end="url(#arr5b)"/>
+      <g data-anim><rect class="nbox-t" x="322" y="286" width="392" height="48" rx="12"/><text class="ntxt" x="518" y="315" text-anchor="middle">✅ Adjust 归因 TikTok Web 跟踪链接</text></g>
+      <path class="edge-b" data-draw d="M518,334 V372" marker-end="url(#arr5b)"/>
+      <g data-anim><rect class="nbox-d" x="296" y="376" width="444" height="48" rx="12"/><text class="ntxt-w" x="518" y="398" text-anchor="middle">📤 Adjust 把相关数据转发给 TikTok Web</text><text class="stxt" x="518" y="415" text-anchor="middle" fill="#bcd2f5">（前提：做好 TikTok Web 渠道回传设置）</text></g>
+    </svg>
+    <div class="fig-cap">TikTok Web2App 流程：与 Google 同构——点击与安装分别上报 Adjust，由概率模型匹配后归因给 TikTok Web 跟踪链接并回传</div>
+  </div>
+
+  <h3>🔑 TikTok Web to App 广告设置关键步骤</h3>
+  <ol class="steps">
+    <li><div class="st-t">Adjust 后台生成 TikTok Web 的跟踪链接并做好 TikTok Web 渠道回传设置</div></li>
+    <li><div class="st-t">将落地页链接和 Adjust 跟踪链接分别配置在 TikTok 后台</div></li>
+    <li><div class="st-t">如果落地页链接填写的是自己的网页而非商店</div><div class="st-d">落地页里可以加上另一条 Adjust 跟踪链接（跟踪链接需要加上 <code>engagement_type=fallback_click</code>），实现跳转商店 / 下载 APK，并区分落地页自然量和推广量。</div></li>
+  </ol>
+
+  <h3>🛠️ Adjust 跟踪链接生成及渠道数据分享设置</h3>
+  <ul class="practice">
+    <li><strong>入口：</strong>Campaign Lab → 广告渠道（合作伙伴）→ 新渠道 → <code>TikTok Web</code>。</li>
+    <li><strong>数据分享：</strong>启用 TikTok Web 数据分享，填入 <strong>TikTok Pixel Code</strong>、<strong>Access Token</strong>（等信息在 TT 后台获取），Source URL 为可选。</li>
+    <li><strong>链接结构：</strong>链接名称按照自己的需求命名（如 <code>Test---TikTok Web</code>），<strong>其他不要修改</strong>（推广层级默认 <code>__CAMPAIGN_NAME__%20(__CAMPAIGN_ID__)</code> 等宏）。</li>
+    <li><strong>归因设置：</strong>打开<strong style="color:var(--warn)">概率模型（必要）</strong>，点击归因窗口 1–24 小时（示例 6 小时）。</li>
+    <li><strong>复制点击 URL 备用</strong>（Link URLs 页有 Click URL 与 Impression URL）。</li>
+  </ul>
+  <div class="callout co-warn"><div class="ct">🚨 注意！</div>如果您在 Adjust 后台生成的链接是 <code>https://xxx.go.link/xxxxxx</code>，而非 <code>https://s2s.adjust.com/xxxxxx</code>，<strong>请勿直接使用</strong>，和您的 Adjust 账户经理沟通。</div>
+
+  <h3>🔗 Adjust 跟踪链接（设置在 TikTok 后台）</h3>
+  <p>设置位置：TikTok 后台 → <strong>Third Party tracking settings → Click tracking URL</strong>。目的：Adjust 记录点击。</p>
+  <pre class="code">https://s2s.adjust.com/<span class="hr">abc123</span>?campaign=__CAMPAIGN_NAME__%20(__CAMPAIGN_ID__)&amp;adgroup=__AID_NAME__%20(__AID__)&amp;creative=__CID_NAME__%20(__CID__)&amp;idfa=__IDFA__&amp;ttclid=__callback_param__&amp;gps_adid=__GAID__&amp;adgroup_id=__AID__&amp;ip_address=__IP__&amp;user_agent=__UA__&amp;campaign_id=__CAMPAIGN_ID__&amp;creative_id=__CID__&amp;tracker_limit=250000&amp;tiktok_placement=__PLACEMENT__&amp;external_tracker_ids=1&amp;s2s=1<span class="hg">&amp;tt_pixel=xxxx&amp;tt_access=xxxxxx</span></pre>
+  <ul class="practice">
+    <li>如果您推的是 <strong>web2web</strong>，不要直接使用上面的链接，请和您的 Adjust AM 沟通。</li>
+    <li><span style="background:#ffd9d9;padding:0 4px;border-radius:3px"><code>abc123</code></span> 是举例，请使用自己生成的链接。</li>
+    <li>如果有<strong>多个 TT 代理</strong>，需要在跟踪链接里加上 <code>&amp;tt_pixel=代理的pixel_id&amp;tt_access=代理的accessToken</code>，用来把数据回传给不同的代理账户。<strong>不是必须</strong>——产品有多个代理才需要加，不加默认按照后台填写的来。<strong>一条链接一组 TT pixel/access，请勿一条链接传多组 pixel/access。</strong></li>
+  </ul>
+
+  <h3>⚙️ TikTok 后台：落地页链接和跟踪链接设置</h3>
+  <div class="glossary">
+    <div class="g-k">URL</div><div>填写您的落地页链接（是否可以直接设置商店链接，请和您的 TT AM 确认）。</div>
+    <div class="g-k">Third Party tracking settings → Click tracking URL</div><div>填写您的 Adjust 跟踪链接（见上文模板）。</div>
+  </div>
+
+  <h3>🏗️ 广告主落地页设置（如 TikTok 后台 URL 设置商店请忽略这步）</h3>
+  <p>如 TikTok 后台 URL 设置的是广告主的网页、非商店页，可以在网页内做如下设置：再生成一条自定义跟踪链接，如 <code>https://app.adjust.com/def456</code>，同样打开概率模型；手动按如下模板添加相关参数（这是用户在网页里点击下载按钮触发的链接）：</p>
+  <pre class="code">https://app.adjust.com/<span class="hy">def456</span>?<span class="hc">engagement_type=fallback_click</span><span class="hg">&amp;redirect=编码后的跳转地址</span></pre>
+  <ul class="practice">
+    <li><code>def456</code> 是举例，记得替换成自己跟踪链接的 tracker。</li>
+    <li><code>engagement_type=fallback_click</code> 目的是能正常区分统计广告量和网址自然量，<strong>一定要加</strong>，否则根据 last click 原则会归因给网页里的链接而非 TikTok web 链接。</li>
+    <li><code>&amp;redirect=编码后的跳转地址</code>：如果推 APK 需要加 APK 的下载地址，注意要编码（encode）；如果跳 GP 或 app store 可以不加。</li>
+  </ul>
+
+  <h3>🧾 TikTok Web2App 全流程梳理</h3>
+  <ol class="steps">
+    <li><div class="st-t">在 Adjust 后台 → Campaign Lab → 广告渠道 → 设置 TikTok Web 渠道</div><div class="st-d">生成跟踪链接 + 设置给 TikTok web 的数据回传 + 打开概率模型。</div></li>
+    <li><div class="st-t">在 TikTok 后台填写 URL（您的落地页链接）</div><div class="st-d">如果希望直接推商店链接，请和 TT 的 AM 确认是否支持。</div></li>
+    <li><div class="st-t">在 TikTok 后台填写第三方的点击跟踪链接——Adjust 跟踪链接</div><div class="st-d">即上文 <code>https://s2s.adjust.com/abc123?...&amp;external_tracker_ids=1&amp;s2s=1</code> 模板；如果有多个代理，链接里还需要加上 <code>&amp;tt_pixel=代理的pixel_id&amp;tt_access=代理的accessToken</code>。<br><strong style="color:var(--warn)">注意！如果您在 Adjust 后台生成的链接是 https://xxx.go.link/xxxxxx，而非 https://s2s.adjust.com/xxxxxx，请勿直接使用，和您的 Adjust 账户经理沟通。</strong></div></li>
+    <li><div class="st-t">（如 TikTok 后台 URL 设置为商店，可跳过此步）在广告主网页设置跟踪链接</div><div class="st-d"><code>https://app.adjust.com/def456?engagement_type=fallback_click&amp;redirect=编码后的跳转地址</code></div></li>
+    <li><div class="st-t">Adjust 通过概率模型把安装归因给 TikTok Web</div></li>
+    <li><div class="st-t">Adjust 把相关数据回传给 TikTok Web</div></li>
+  </ol>
+</section>
+
+<!-- ============ 05 Kwai ============ -->
+<section id="kwai">
+  <h2><span class="no">05</span>🟧 Kwai（快手）Web to App 广告流程及设置</h2>
+  <p class="sec-lead">Kwai（快手海外）的配置方式与 TikTok 高度相似：Adjust 生成跟踪链接 → 配到 Kwai 后台第三方跟踪位 → 概率模型归因 → 回传。</p>
+
+  <h3>🗺️ 流程图</h3>
+  <div class="figure">
+    <svg viewBox="0 0 820 430" role="img" aria-label="Kwai Web to App 归因流程图">
+      <defs>
+        <marker id="arr6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#8fb0e0"/></marker>
+        <marker id="arr6o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#f08a3c"/></marker>
+        <marker id="arr6b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#4d8bf0"/></marker>
+      </defs>
+      <g data-anim><rect class="nbox-g" x="16" y="90" width="160" height="62" rx="12"/><text class="ntxt" x="96" y="115" text-anchor="middle">落地页链接</text><text class="ntxt" x="96" y="135" text-anchor="middle">+ Adjust 跟踪链接</text></g>
+      <path class="edge" data-draw d="M176,105 C210,90 220,72 246,60" marker-end="url(#arr6)"/>
+      <path class="edge" data-draw d="M176,140 C215,160 230,185 252,198" marker-end="url(#arr6)"/>
+      <g data-anim><rect class="nbox-a" x="250" y="26" width="130" height="54" rx="12"/><text class="ntxt" x="315" y="58" text-anchor="middle">👆 点击广告</text></g>
+      <path class="edge-o" data-draw d="M380,53 H438" marker-end="url(#arr6o)"/>
+      <g data-anim><rect class="nbox-a" x="442" y="26" width="140" height="54" rx="12"/><text class="ntxt" x="512" y="58" text-anchor="middle">🌐 跳转网页</text></g>
+      <path class="edge-o" data-draw d="M582,53 H640" marker-end="url(#arr6o)"/>
+      <g data-anim><rect class="nbox-a" x="644" y="26" width="156" height="54" rx="12"/><text class="ntxt" x="722" y="50" text-anchor="middle">📱 下载安装</text><text class="ntxt" x="722" y="68" text-anchor="middle">并打开 app</text></g>
+      <path class="edge-b" data-draw d="M315,80 V182" marker-end="url(#arr6b)"/>
+      <path class="edge-b" data-draw d="M722,80 V182" marker-end="url(#arr6b)"/>
+      <g data-anim><rect class="nbox" x="238" y="186" width="154" height="50" rx="12"/><text class="ntxt" x="315" y="216" text-anchor="middle">Adjust 收到点击</text></g>
+      <g data-anim><rect class="nbox" x="645" y="186" width="154" height="50" rx="12"/><text class="ntxt" x="722" y="216" text-anchor="middle">Adjust 收到安装</text></g>
+      <path class="edge-b" data-draw d="M396,211 H641" marker-end="url(#arr6b)"/>
+      <path class="edge-b" data-draw d="M641,211 H396" marker-end="url(#arr6b)"/>
+      <g data-anim><rect x="458" y="192" width="120" height="26" rx="13" fill="#e8f1ff" stroke="#4d8bf0"/><text class="etxt" x="518" y="210" text-anchor="middle">🎲 概率模型匹配</text></g>
+      <path class="edge-b" data-draw d="M518,236 V282" marker-end="url(#arr6b)"/>
+      <g data-anim><rect class="nbox-t" x="322" y="286" width="392" height="48" rx="12"/><text class="ntxt" x="518" y="315" text-anchor="middle">✅ Adjust 归因 Kwai Web 跟踪链接</text></g>
+      <path class="edge-b" data-draw d="M518,334 V372" marker-end="url(#arr6b)"/>
+      <g data-anim><rect class="nbox-d" x="296" y="376" width="444" height="48" rx="12"/><text class="ntxt-w" x="518" y="398" text-anchor="middle">📤 Adjust 把相关数据转发给 Kwai</text><text class="stxt" x="518" y="415" text-anchor="middle" fill="#bcd2f5">（前提：做好 Kwai 的渠道回传设置）</text></g>
+    </svg>
+    <div class="fig-cap">Kwai Web2App 流程：结构与 TikTok 相同，特征参数换为 kwai_click_id（__CALLBACK__ 宏）</div>
+  </div>
+
+  <h3>🔑 Kwai Web to App 广告设置关键步骤</h3>
+  <ol class="steps">
+    <li><div class="st-t">Adjust 后台生成 Kwai 的跟踪链接并做好 Kwai 渠道回传设置</div></li>
+    <li><div class="st-t">将落地页链接和 Adjust 跟踪链接分别配置在 Kwai 后台</div></li>
+    <li><div class="st-t">如果落地页链接填写的是自己的网页而非商店</div><div class="st-d">落地页里可以加上另一条 Adjust 跟踪链接（跟踪链接需要加上 <code>engagement_type=fallback_click</code>），实现跳转商店 / 下载 APK，并区分落地页自然量和推广量。</div></li>
+  </ol>
+
+  <h3>🛠️ Adjust 跟踪链接生成及渠道数据分享设置</h3>
+  <ul class="practice">
+    <li><strong>入口：</strong>Campaign Lab → 广告渠道 → 新渠道 → <code>快手（海外）| Kwai for business (global)</code>。</li>
+    <li><strong>数据分享：</strong>启用 kwai for business (global) 数据分享；可设置分享哪些数据来源（来自所有归因渠道的数据 / 仅归因至 Kwai 的数据），默认分享安装、再归因，还可勾选会话、应用内收入（来自应用内购买）、参数等。</li>
+    <li><strong>映射事件：</strong>如需转发事件，请在「映射您的事件」里做好关联（示例：应用事件 <code>Account closed</code> → 渠道事件 <code>EVENT_COMPLETE_REGISTRATION</code>；未映射事件数据不会被分享）。</li>
+    <li><strong>链接结构：</strong>链接名称按照自己的需求命名（如 <code>test-123</code>），<strong>其他不要修改</strong>（层级宏为 <code>__CMPN__%20(__CMPNID__)</code> / <code>__ADSET__%20(__ADSETID__)</code> / <code>__AD__%20(__ADID__)</code>）。</li>
+    <li><strong>归因设置：</strong>打开<strong style="color:var(--warn)">概率模型（必要）</strong>，窗口 1–24 小时。</li>
+    <li><strong>复制点击 URL 备用。</strong></li>
+  </ul>
+  <div class="callout co-warn"><div class="ct">🚨 注意！</div>如果您在 Adjust 后台生成的链接是 <code>https://xxx.go.link/xxxxxx</code>，而非 <code>https://app.adjust.com/xxxxxx</code>，<strong>请勿直接使用</strong>，和您的 Adjust 账户经理沟通。</div>
+
+  <h3>🔗 Adjust 跟踪链接（设置在 Kwai 后台）</h3>
+  <p>设置位置：Kwai 后台 → <strong>Tracking → Third-party Clicking Tracking URL</strong>。目的：Adjust 记录点击。跟踪链接模板：</p>
+  <pre class="code">https://app.adjust.com/<span class="hr">abc123</span>?campaign=__CMPN__%20(__CMPNID__)&amp;adgroup=__ADSET__%20(__ADSETID__)&amp;creative=__AD__%20(__ADID__)&amp;ad=__AD__&amp;cmpn=__CMPN__&amp;idfa=__IDFA__&amp;adset=__ADSET__&amp;os_name=__OS__&amp;gps_adid=__GAID1__&amp;language=__SL__&amp;adgroup_id=__ADSETID__&amp;ip_address=__IP__&amp;user_agent=__UA__&amp;campaign_id=__CMPNID__&amp;creative_id=__ADID__&amp;device_name=__MODEL__&amp;publisher_id=__SITE_ID__&amp;kwai_click_id=__CALLBACK__</pre>
+  <ul class="practice">
+    <li><span style="background:#ffd9d9;padding:0 4px;border-radius:3px"><code>abc123</code></span> 是举例，请替换成自己的 link token（tracker token）。</li>
+    <li><strong>其他请不要修改。</strong></li>
+  </ul>
+
+  <h3>⚙️ Kwai 后台：落地页链接和跟踪链接设置</h3>
+  <div class="glossary">
+    <div class="g-k">Website Url</div><div>填写您的落地页链接。</div>
+    <div class="g-k">Tracking → Third-party Tracking URL</div><div>填写您的 Adjust 跟踪链接。</div>
+  </div>
+
+  <h3>🏗️ 广告主落地页设置</h3>
+  <p>如希望追踪到<strong>落地页自然量</strong>，还可以在网页内做如下设置：再生成一条自定义跟踪链接，如 <code>https://app.adjust.com/def456</code>，同样打开概率模型；手动按如下模板添加相关参数（这是用户在网页里点击下载按钮触发的链接）：</p>
+  <pre class="code">https://app.adjust.com/<span class="hy">def456</span>?<span class="hc">engagement_type=fallback_click</span><span class="hg">&amp;redirect=编码后的跳转地址</span></pre>
+  <ul class="practice">
+    <li><code>def456</code> 是举例，记得替换成自己跟踪链接的 tracker。</li>
+    <li><code>engagement_type=fallback_click</code> 目的是能正常区分统计广告量和网址自然量，<strong>一定要加</strong>，否则根据 last click 原则会归因给网页里的链接而非 Kwai web 链接。</li>
+    <li><code>&amp;redirect=编码后的跳转地址</code>：如果推 APK 需要加 APK 的下载地址，注意要编码（encode）；如果跳 GP 或 app store 可以不加。</li>
+  </ul>
+
+  <h3>🧾 Kwai Web2App 全流程梳理</h3>
+  <ol class="steps">
+    <li><div class="st-t">在 Adjust 后台 → Campaign Lab → 广告渠道 → 设置 Kwai for business (global)</div><div class="st-d">生成跟踪链接 + 设置给 Kwai 的数据回传 + 打开概率模型。</div></li>
+    <li><div class="st-t">在 Kwai 后台填写 Website URL（您的落地页链接）</div></li>
+    <li><div class="st-t">在 Kwai 后台填写第三方的点击跟踪链接——Adjust 跟踪链接</div><div class="st-d">即上文含 <code>kwai_click_id=__CALLBACK__</code> 的完整模板。</div></li>
+    <li><div class="st-t">如希望跟踪网页自然量，还可在广告主网页设置跟踪链接</div><div class="st-d"><code>https://app.adjust.com/def456?engagement_type=fallback_click&amp;redirect=编码后的跳转地址</code></div></li>
+    <li><div class="st-t">Adjust 通过概率模型把安装归因给 Kwai Web</div></li>
+    <li><div class="st-t">Adjust 把相关数据回传给 Kwai</div></li>
+  </ol>
+</section>
+
+<!-- ============ 06 Snap/Pinterest/Bing ============ -->
+<section id="others">
+  <h2><span class="no">06</span>🧩 Snap / Pinterest / Bing Ads Web to App 设置</h2>
+  <p class="sec-lead">这三个渠道均通过 Campaign Lab → Custom Links 新建跟踪链接完成配置，套路分别向 Google（Bing）和 Facebook（Snapchat）看齐。</p>
+
+  <h3>🔎 Bing Ads Web2App 跟踪链接设置</h3>
+  <p>（和 Google 的 Web2app 设置类似。）</p>
+  <ul class="practice">
+    <li><strong>最终到达网址（Final URL）：</strong>填写落地页 URL。</li>
+    <li><strong>跟踪链接模板：</strong>您的 Adjust 链接 + 所需其他参数，例如：</li>
+  </ul>
+  <pre class="code">https://app.adjust.com/<span class="hr">abc123</span>?campaign={Campaign}&amp;adgroup={AdGroup}&amp;creative={AdId}&amp;lpurl={lpurl}&amp;external_click_id={msclkid}</pre>
+  <ul class="practice">
+    <li>Campaign Lab → Custom Links → 新建跟踪链接。</li>
+    <li>把自己跟踪链接的 tracker token 替换模板里的 <code>abc123</code>。</li>
+    <li>归因设置里记得<strong>打开点击归因的概率模型开关</strong>。</li>
+  </ul>
+
+  <h3>👻 Snapchat Web2App 跟踪链接设置</h3>
+  <p>（和 FB 的 Web2app 设置类似。）</p>
+  <p><strong>落地页 URL 模板：</strong></p>
+  <pre class="code">https://example.com/?utm_source=snapchat&amp;utm_medium=paid_social&amp;utm_campaign={{campaign.name}}&amp;utm_content={{creative.name}}&amp;utm_audience={{adSet.name}}&amp;utm_placement={{placement}}&amp;utm_ssn={{site_source_name}}</pre>
+  <p><strong>跟踪链接模板：</strong>您的 Adjust 链接 + 所需其他参数，例如：</p>
+  <pre class="code">https://app.adjust.com/<span class="hr">abc123</span>?campaign={{campaign.name}}&amp;adgroup={{adSet.name}}&amp;creative={{creative.name}}<span class="hg">&amp;redirect=https%3A%2F%2Fexample.com%2F%3Futm_source%3Dsnapchat%26utm_medium%3Dpaid_social%26utm_campaign%3D{{campaign.name}}%26utm_content%3D{{creative.name}}%26utm_audience%3D{{adSet.name}}%26utm_placement%3D{{placement}}%26utm_ssn%3D{{site_source_name}}</span></pre>
+  <ul class="practice">
+    <li>Campaign Lab → Custom Links → 新建跟踪链接。</li>
+    <li>把自己跟踪链接的 tracker token 替换模板里的 <code>abc123</code>。</li>
+    <li>归因设置里记得<strong>打开点击归因的概率模型开关</strong>。</li>
+    <li><strong>网页开发把落地页 URL 里的参数透传给 Adjust 跟踪链接</strong>（同 FB 的透传思路）。</li>
+  </ul>
+
+  <h3>📌 Pinterest Web2App 跟踪链接设置</h3>
+  <p>（在 Pinterest 后台设置监测。）<strong>跟踪链接模板：</strong></p>
+  <pre class="code">https://app.adjust.com/<span class="hr">abc123</span>?campaign={campaignid}&amp;adgroup={adgroupid}&amp;creative={product_partition_id}<span class="hg">&amp;redirect={lpurl}</span></pre>
+  <ul class="practice">
+    <li>Campaign Lab → Custom Links → 新建跟踪链接。</li>
+    <li>把自己跟踪链接的 tracker token 替换模板里的 <code>abc123</code>。</li>
+    <li>归因设置里记得<strong>打开点击归因的概率模型开关</strong>。</li>
+    <li>对于 <strong>Pinterest 购物推广活动</strong>，建议您将点击链接设置在<strong>产品组层级</strong>。</li>
+  </ul>
+</section>
+
+<div class="final">
+  <h2 style="margin-top:0">🧠 一图记住全渠道套路</h2>
+  <p style="opacity:.92">所有渠道的 Web2App 配置都可以归纳成同一个骨架：<strong>① Adjust 后台建渠道跟踪链接（务必开概率模型）→ ② 配好渠道回传（数据分享 / 离线转化 / pixel+token）→ ③ 把 Adjust 链接放进渠道后台的跟踪位（Google/TikTok/Kwai/Bing 有专门入口；FB/Snap 靠落地页透传）→ ④ 落地页非商店时加 <code style="background:rgba(255,255,255,.15);color:#fff">fallback_click</code> 链接区分自然量 → ⑤ Adjust 概率模型归因并回传渠道</strong>。差异只在「链接放在哪」和「特征 ID 是什么」（gclid / fbclid+fbpid / ttclid / kwai_click_id / msclkid）。有 Questions 随时找您的 Adjust 账户经理。</p>
+</div>
+
+<footer>
+  整理自《Adjust Web2App 流程及设置》（250107 内部 PPT，100 页）· 处理方式：逐页信息点保真整理 + 概念展开（概率模型 / fallback_click / 透传）+ 动态 SVG 流程图可视化<br>
+  文中所有链接示例中的 abc123 / def456 / 1fg1of 均为举例 token，请以自己 Adjust 后台生成的为准。
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* 进度条 */
+  var topBar=document.getElementById('topProgress'),stBar=document.getElementById('stBar'),stPct=document.getElementById('stPct');
+  function onScroll(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight,
+        p=max>0?Math.min(100,Math.max(0,h.scrollTop/max*100)):0;
+    topBar.style.width=p+'%'; stBar.style.width=p+'%'; stPct.textContent=Math.round(p)+'%';
+    highlight();
+  }
+  /* 目录高亮 */
+  var links=[].slice.call(document.querySelectorAll('.side-toc a')),
+      secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))});
+  var subMap={'google-callback':'google','fb-faq':'facebook'};
+  function highlight(){
+    var y=window.scrollY+140, cur=0;
+    document.querySelectorAll('section[id]').forEach(function(s){
+      if(s.offsetTop<=y){
+        var id=s.id; if(subMap[id]) id=subMap[id];
+        var idx=links.findIndex(function(a){return a.getAttribute('href')==='#'+id});
+        if(idx>-1) cur=idx;
+      }
+    });
+    links.forEach(function(a,i){a.classList.toggle('on',i===cur)});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+  /* 移动端目录 */
+  var btn=document.getElementById('tocBtn'), toc=document.getElementById('sideToc');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A')toc.classList.remove('open')});
+
+  /* 图表入场动画 */
+  if(reduce){
+    document.querySelectorAll('.figure').forEach(function(f){f.classList.add('in')});
+    document.querySelectorAll('[data-anim]').forEach(function(el){el.style.opacity=1;el.style.transform='none';el.style.transition='none'});
+    return;
+  }
+  document.querySelectorAll('[data-draw]').forEach(function(p){
+    try{var L=p.getTotalLength();p.style.strokeDasharray=L;p.style.strokeDashoffset=L;}catch(e){}
+  });
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(!en.isIntersecting)return;
+      var fig=en.target; fig.classList.add('in'); io.unobserve(fig);
+      var anims=fig.querySelectorAll('[data-anim]'), draws=fig.querySelectorAll('[data-draw]');
+      anims.forEach(function(el,i){el.style.transitionDelay=(0.12*i)+'s'});
+      draws.forEach(function(p,i){
+        p.style.transition='stroke-dashoffset .7s ease '+(0.18+0.14*i)+'s';
+        requestAnimationFrame(function(){p.style.strokeDashoffset=0});
+      });
+    });
+  },{threshold:0.25});
+  document.querySelectorAll('.figure').forEach(function(f){io.observe(f)});
+})();
+</script>
+</body>
+</html>
