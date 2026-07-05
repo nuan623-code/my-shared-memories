@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第三方 Agent 生态与行业结构(2026 年中调研)</title>
+<style>
+:root{
+  --bg:#edf3fb; --card:#ffffff; --ink:#1d2b3a; --muted:#5b6b7d;
+  --accent:#2563eb; --accent-soft:#dbeafe; --teal:#0e7490; --teal-soft:#cffafe;
+  --indigo:#4f46e5; --gold:#b45309; --gold-soft:#fef3c7;
+  --warn:#b91c1c; --warn-soft:#fee2e2; --line:#d7e3f2;
+  --deep1:#0d1f3c; --deep2:#16346b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:17px;line-height:1.88}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#2563eb,#06b6d4);z-index:99}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 60px}
+/* ---------- side toc ---------- */
+.side-toc{position:fixed;left:18px;top:50%;transform:translateY(-50%);width:216px;background:rgba(255,255,255,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(215,227,242,.9);border-radius:14px;padding:14px 12px;z-index:90;box-shadow:0 8px 30px rgba(23,50,95,.08);max-height:86vh;overflow:auto}
+.st-brand{font-weight:700;font-size:13.5px;color:var(--deep2);padding:0 6px}
+.st-sub{font-size:11.5px;color:var(--muted);padding:0 6px;margin-bottom:8px}
+.st-progress{height:5px;background:#e3ecf7;border-radius:3px;margin:4px 6px 10px;overflow:hidden}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#06b6d4);border-radius:3px}
+.st-pct{font-size:10.5px;color:var(--muted);text-align:right;padding:0 6px;margin-top:-6px;margin-bottom:6px}
+.side-toc ul{list-style:none}
+.side-toc a{display:flex;gap:7px;align-items:baseline;text-decoration:none;color:#42566d;font-size:12.8px;padding:5px 7px;border-radius:8px;line-height:1.4}
+.side-toc a .n{font-size:10.5px;color:#8fa3ba;font-variant-numeric:tabular-nums;flex:none}
+.side-toc a:hover{background:#eaf2fd}
+.side-toc a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.side-toc a.on .n{color:var(--accent)}
+.toc-btn{display:none;position:fixed;left:14px;top:14px;z-index:95;width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:17px;cursor:pointer;box-shadow:0 4px 14px rgba(23,50,95,.12)}
+@media(max-width:1330px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:64px;transform:none;max-height:74vh}
+  .toc-btn{display:block}
+}
+/* ---------- hero ---------- */
+.hero{background:linear-gradient(135deg,var(--deep1),var(--deep2) 70%,#1d4ed8);color:#eaf2ff;border-radius:0 0 26px 26px;padding:64px 30px 46px;margin:0 -22px 36px}
+.hero .kicker{font-size:13px;letter-spacing:.18em;color:#93b4e8;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-size:31px;line-height:1.45;margin-bottom:14px;color:#fff}
+.hero p{color:#c6d8f5;font-size:15.5px;max-width:660px}
+.hero .meta{margin-top:18px;font-size:12.5px;color:#8fabd8}
+/* ---------- sections & cards ---------- */
+section{margin-bottom:52px}
+h2{font-size:23px;color:var(--deep2);margin:0 0 6px;line-height:1.5;scroll-margin-top:70px}
+.h2sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+h3{font-size:18px;color:#173a6b;margin:26px 0 10px}
+p{margin-bottom:14px}
+ul.plain{margin:0 0 14px 1.3em}
+ul.plain li{margin-bottom:6px}
+.term{background:linear-gradient(transparent 62%,#c7e0ff 62%);font-weight:600;padding:0 2px}
+.hl{color:var(--accent);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:0 2px 10px rgba(23,50,95,.04)}
+/* def card */
+.def{border-left:4px solid var(--accent)}
+.def .dt{font-weight:700;font-size:16.5px;margin-bottom:8px;color:var(--deep2)}
+.def .row{display:flex;gap:10px;margin-bottom:8px}
+.def .tag{flex:none;font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 8px;height:fit-content;margin-top:5px;white-space:nowrap}
+.tag-what{background:var(--accent-soft);color:var(--accent)}
+.tag-why{background:var(--teal-soft);color:var(--teal)}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .row p{margin:0;font-size:15.5px}
+/* callout */
+.callout{border-radius:12px;padding:16px 18px;margin:16px 0;font-size:15.5px}
+.callout.key{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.callout.teal{background:var(--teal-soft);border-left:4px solid var(--teal)}
+.callout.warn{background:var(--warn-soft);border-left:4px solid var(--warn)}
+.callout.gold{background:var(--gold-soft);border-left:4px solid var(--gold)}
+.callout p{margin-bottom:8px}
+.callout p:last-child{margin-bottom:0}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stats .s{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.stats .v{font-size:21px;font-weight:800;color:var(--accent);line-height:1.3}
+.stats .k{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+/* steps */
+.steps{counter-reset:st;margin:16px 0}
+.steps .step{position:relative;padding:0 0 18px 46px}
+.steps .step:before{counter-increment:st;content:counter(st);position:absolute;left:0;top:1px;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.steps .step:after{content:"";position:absolute;left:14.5px;top:34px;bottom:2px;width:1.5px;background:var(--line)}
+.steps .step:last-child:after{display:none}
+.steps b{display:block;font-size:15.8px;color:var(--deep2)}
+.steps p{font-size:14.8px;color:#3c4d61;margin:3px 0 0}
+/* glossary */
+.glossary{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.8px}
+.glossary th{background:#e8f0fb;color:var(--deep2);text-align:left;padding:9px 12px;border:1px solid var(--line);font-size:13.5px}
+.glossary td{padding:9px 12px;border:1px solid var(--line);vertical-align:top;background:#fff}
+.glossary td:first-child{font-weight:700;white-space:nowrap;color:var(--accent)}
+/* compare table */
+.cmp{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+.cmp th{background:var(--deep2);color:#eaf2ff;text-align:left;padding:9px 11px;font-weight:600;font-size:13px}
+.cmp td{padding:9px 11px;border:1px solid var(--line);vertical-align:top;background:#fff}
+.cmp tr:nth-child(even) td{background:#f6faff}
+.tbl-scroll{overflow-x:auto}
+/* analogy */
+.analogy{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:16px 0;background:#fff}
+.analogy .side{flex:none;background:var(--indigo);color:#fff;writing-mode:vertical-rl;display:flex;align-items:center;justify-content:center;font-size:12.5px;padding:10px 7px;letter-spacing:.2em}
+.analogy .body{padding:14px 18px;font-size:15.3px}
+/* rephrase */
+details.rephrase{border:1px dashed #a8c6ee;border-radius:10px;background:#f4f9ff;padding:10px 16px;margin:12px 0}
+details.rephrase summary{cursor:pointer;font-size:14.5px;font-weight:600;color:var(--accent)}
+details.rephrase div{padding-top:8px;font-size:15px;color:#33475e}
+/* figure */
+.figure{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px 10px;margin:20px 0;opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.figure.vis{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--muted);text-align:center;padding:8px 10px 6px;line-height:1.6}
+[data-anim]{opacity:0;transition:opacity .6s ease,transform .6s ease;transform:translateY(8px)}
+.figure.vis [data-anim]{opacity:1;transform:none}
+[data-draw]{stroke-dasharray:1;stroke-dashoffset:1}
+.figure.vis [data-draw]{animation:draw 1.1s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){
+  .figure{opacity:1;transform:none;transition:none}
+  [data-anim]{opacity:1;transform:none;transition:none}
+  [data-draw]{stroke-dashoffset:0;animation:none}
+}
+/* final & footer */
+.final{background:linear-gradient(135deg,var(--deep1),var(--deep2));color:#dbe7fb;border-radius:18px;padding:28px 26px;margin-top:8px}
+.final h3{color:#fff;margin-top:0}
+.final p{color:#c2d4f0;font-size:15px}
+footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer ul{list-style:none;margin-top:8px}
+footer li{margin-bottom:5px;line-height:1.7}
+footer a{color:#3a6bc4;text-decoration:none;word-break:break-all}
+footer a:hover{text-decoration:underline}
+@media(max-width:640px){
+  body{font-size:16px}
+  .hero h1{font-size:24px}
+  .stats{grid-template-columns:1fr}
+  .def .row{flex-direction:column;gap:3px}
+  .hero{padding:52px 22px 38px}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">🧭 Agent 生态与行业结构</div>
+  <div class="st-sub">2026 年中调研版</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ul>
+    <li><a href="#overview"><span class="n">01</span>开篇速览</a></li>
+    <li><a href="#background"><span class="n">02</span>背景与关键术语</a></li>
+    <li><a href="#ide"><span class="n">03</span>IDE / 编程类第三方</a></li>
+    <li><a href="#general"><span class="n">04</span>通用自主 Agent</a></li>
+    <li><a href="#framework"><span class="n">05</span>框架层</a></li>
+    <li><a href="#china"><span class="n">06</span>中国生态</a></li>
+    <li><a href="#firstparty"><span class="n">07</span>模型厂商下场</a></li>
+    <li><a href="#structure"><span class="n">08</span>行业结构判断</a></li>
+    <li><a href="#sources"><span class="n">09</span>资源与来源</a></li>
+  </ul>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">Agent Ecosystem · Industry Structure</div>
+  <h1>第三方 Agent 生态与行业结构<br>——当模型厂商亲自下场做「壳」之后</h1>
+  <p>从 Cursor、Devin、Manus 到 LangGraph 与中国开源模型军团,这份文档梳理 2025–2026 年 agent 生态五个层面的现状,并收束到一个核心问题:harness(执行外壳)到底是护城河,还是终将被商品化的耗材?</p>
+  <div class="meta">调研时间:2026-07-05 · 基于 20+ 公开来源交叉核实 · 快速迭代领域,细节请以官方最新文档为准</div>
+</div>
+
+<!-- ================ 01 ================ -->
+<section id="overview">
+  <h2>🗺️ 01 · 开篇速览:30 秒版本</h2>
+  <div class="h2sub">先看全貌,再逐层深入</div>
+
+  <p>如果只有 30 秒,这个行业的故事是这样的:2025 年,一批<span class="term">不训练大模型、只做「让模型干活的产品」</span>的第三方公司率先跑出了惊人的商业规模——Cursor 三年做到 20 亿美元年化收入,Manus 上线八个月宣称年化收入破亿美元。但从 2025 年中开始,<span class="term">模型厂商自己下场做产品</span>:Anthropic 的 Claude Code 一年做到 25 亿美元级别的年化收入,OpenAI 重启 Codex,Google 推出 Antigravity。与此同时,中国厂商(Qwen、Kimi、DeepSeek、GLM)用<span class="term">开源权重 + 超低价订阅</span>从底部掀桌子。三股力量交汇,把整个生态逼到一个结构性问题面前:<span class="hl">当模型和「壳」由同一家公司做,且开源壳免费、开源模型够用,第三方还剩下什么?</span></p>
+
+  <div class="stats">
+    <div class="s"><div class="v">$2.6B</div><div class="k">Cursor 年化收入(2026.6,被 SpaceX 以 $60B 全股票收购前)</div></div>
+    <div class="s"><div class="v">$2.5B+</div><div class="k">Claude Code 年化收入(2026 年初,上线仅约一年)</div></div>
+    <div class="s"><div class="v">180k+</div><div class="k">OpenCode GitHub star 数——一个完全免费的开源 harness,star 超过 Claude Code</div></div>
+  </div>
+
+  <p>先把「谁在哪一层」画清楚。这个生态大体是一个四层结构:最底层是<strong>模型</strong>,最上层是<strong>用户</strong>,中间夹着两层——面向开发者的<strong>框架层</strong>,和面向使用者的<strong>harness/产品层</strong>。行业结构之争,争的就是中间这两层的归属。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 400" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+      <!-- 用户层 -->
+      <g data-anim>
+        <rect x="60" y="20" width="700" height="52" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="410" y="43" text-anchor="middle" font-size="15" font-weight="700" fill="#16346b">👤 用户 / 场景层</text>
+        <text x="410" y="62" text-anchor="middle" font-size="11.5" fill="#42566d">开发者写代码 · 打工人做研究报告 · 企业自动化业务流程</text>
+      </g>
+      <line x1="410" y1="72" x2="410" y2="94" stroke="#94a3b8" stroke-width="1.5" data-draw/>
+      <!-- harness 层 -->
+      <g data-anim>
+        <rect x="60" y="96" width="700" height="112" rx="10" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="410" y="118" text-anchor="middle" font-size="15" font-weight="700" fill="#16346b">🐚 Harness / 产品层(本文主角,三方混战)</text>
+        <rect x="80" y="130" width="212" height="64" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+        <text x="186" y="152" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1d4ed8">第一方(模型厂商自营)</text>
+        <text x="186" y="171" text-anchor="middle" font-size="11" fill="#42566d">Claude Code · Codex</text>
+        <text x="186" y="187" text-anchor="middle" font-size="11" fill="#42566d">Antigravity(Google)</text>
+        <rect x="304" y="130" width="212" height="64" rx="8" fill="#f0fdfa" stroke="#5eead4"/>
+        <text x="410" y="152" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0e7490">第三方(独立公司)</text>
+        <text x="410" y="171" text-anchor="middle" font-size="11" fill="#42566d">Cursor · Devin · Manus</text>
+        <text x="410" y="187" text-anchor="middle" font-size="11" fill="#42566d">Genspark · Windsurf(已并购)</text>
+        <rect x="528" y="130" width="212" height="64" rx="8" fill="#fefce8" stroke="#fde047"/>
+        <text x="634" y="152" text-anchor="middle" font-size="12.5" font-weight="700" fill="#a16207">开源社区(免费)</text>
+        <text x="634" y="171" text-anchor="middle" font-size="11" fill="#42566d">OpenCode · Cline · Aider</text>
+        <text x="634" y="187" text-anchor="middle" font-size="11" fill="#42566d">Roo Code · Goose</text>
+      </g>
+      <line x1="410" y1="208" x2="410" y2="230" stroke="#94a3b8" stroke-width="1.5" data-draw/>
+      <!-- 框架层 -->
+      <g data-anim>
+        <rect x="60" y="232" width="700" height="56" rx="10" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+        <text x="410" y="255" text-anchor="middle" font-size="15" font-weight="700" fill="#3730a3">🧱 框架层(给开发者自己搭 agent 用的积木)</text>
+        <text x="410" y="276" text-anchor="middle" font-size="11.5" fill="#42566d">LangGraph · CrewAI · OpenAI Agents SDK · Microsoft Agent Framework · smolagents</text>
+      </g>
+      <line x1="410" y1="288" x2="410" y2="310" stroke="#94a3b8" stroke-width="1.5" data-draw/>
+      <!-- 模型层 -->
+      <g data-anim>
+        <rect x="60" y="312" width="700" height="66" rx="10" fill="#0d1f3c"/>
+        <text x="410" y="337" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">🧠 模型层(智能的来源)</text>
+        <text x="410" y="360" text-anchor="middle" font-size="11.5" fill="#b8ccec">闭源:Claude · GPT · Gemini ｜ 开源权重:Kimi K2.x · DeepSeek V4 · GLM-5.x · Qwen3-Coder</text>
+      </g>
+    </svg>
+    <div class="fig-cap">图 1 · Agent 生态四层定位图:行业结构之争的本质,是中间两层(harness 层与框架层)的价值归属之争——模型厂商在向上吃,开源社区在把价格打到零。</div>
+  </div>
+
+  <p>读完本文你会带走五件事:每个赛道<strong>头部玩家的现状</strong>(第 03–06 章)、模型厂商<strong>下场后的打法</strong>(第 07 章),以及一个可以自己检验的<strong>行业结构分析框架</strong>(第 08 章)。</p>
+</section>
+
+<!-- ================ 02 ================ -->
+<section id="background">
+  <h2>🧩 02 · 背景与关键术语:为什么 2025 年是分水岭</h2>
+  <div class="h2sub">先补齐词汇表,后面的故事才读得顺</div>
+
+  <p>回到 2023–2024 年:那时 AI 写代码的主流形态是「聊天补全」——你问,它答,你自己复制粘贴。模型已经很聪明,但它像一个<strong>被关在玻璃房里的专家</strong>:看不到你的文件,碰不到你的终端,改不了你的代码。瓶颈不在智能,而在「手脚」。</p>
+
+  <p>于是一类新东西出现了:给模型装上手脚的<span class="term">执行外壳</span>。它负责把模型接进真实环境——读写文件、跑命令、开浏览器、循环验证「改完之后测试过没过」。行业给这层外壳起的名字,就是 <span class="term">harness</span>。2025 年 2 月 Anthropic 发布的 Claude Code 把这个形态定型为「终端里的 agent」,随后一年里被几乎所有厂商复刻。</p>
+
+  <div class="def card">
+    <div class="dt">📖 核心术语:Harness(执行外壳)</div>
+    <div class="row"><span class="tag tag-what">是什么</span><p>围绕大模型搭建的一整套执行设施:工具调用、文件读写、终端与沙箱、权限控制、上下文管理、验证循环。模型负责「想」,harness 负责「让想法落地并兜底」。</p></div>
+    <div class="row"><span class="tag tag-why">为什么重要</span><p>同一个模型,配不同的 harness,实际表现差距很大——Anthropic 在其 2026 年报告中称,仅基础设施配置就能让基准测试成绩摆动 5 个百分点以上。2026 年 5 月,评测机构 Artificial Analysis 干脆推出了首个按「模型 + harness」整体打分的 Coding Agent Index,承认二者已不可拆开评价。</p></div>
+    <div class="row"><span class="tag tag-eg">例子</span><p>Claude Code、Cursor、OpenCode 都是 harness;它们可以驱动同一个模型,但工具设计、上下文策略、验证方式各不相同,产出质量也不同。</p></div>
+  </div>
+
+  <details class="rephrase"><summary>💬 换个说法讲一遍</summary><div>把大模型想成一台很强的发动机。发动机自己不能上路——需要底盘、变速箱、方向盘、刹车。harness 就是这套「除了发动机之外的整车工程」。行业争论的「harness 商品化」,本质上是在问:整车厂(第三方产品公司)有没有独立价值,还是发动机厂(模型厂商)顺手就把车也造了?</div></details>
+
+  <table class="glossary">
+    <tr><th style="width:150px">术语</th><th>一句话解释</th></tr>
+    <tr><td>Agent(智能体)</td><td>能自己拆解任务、调用工具、根据结果调整下一步的 AI 程序;区别于「一问一答」的聊天机器人。</td></tr>
+    <tr><td>BYOK</td><td>Bring Your Own Key,「自带钥匙」:工具本身免费/开源,你填自己的模型 API key,费用直接付给模型厂商,工具不赚差价。</td></tr>
+    <tr><td>开源权重</td><td>模型参数文件公开可下载,任何人可自己部署、微调甚至商用(视许可证);区别于只给 API 的闭源模型。</td></tr>
+    <tr><td>MoE</td><td>Mixture of Experts,混合专家架构:模型总参数极大,但每次推理只激活一小部分,「体量大、油耗低」。写作「1T 总参 / 32B 激活」。</td></tr>
+    <tr><td>ARR / 年化收入</td><td>Annualized Run-Rate Revenue:把最近的月收入 ×12 得出的年化口径,创业公司常用来展示增长势头,注意它不等于实际年收入。</td></tr>
+    <tr><td>SWE-bench / Terminal-Bench</td><td>两个主流 agent 编程基准:前者测「修真实 GitHub issue」的能力,后者测「在终端里完成任务」的能力。</td></tr>
+    <tr><td>MCP</td><td>Model Context Protocol,Anthropic 2024 年底提出的开放协议,让 agent 用统一方式接外部工具与数据源,已成事实标准之一。</td></tr>
+    <tr><td>Acqui-hire / 反向收购雇佣</td><td>大公司不买公司、只「买人 + 授权技术」的操作;Google 对 Windsurf 创始团队的 24 亿美元交易即典型案例。</td></tr>
+  </table>
+
+  <h3>⏳ 两年时间线:从实验品到万亿级并购</h3>
+  <p>下面这条时间线值得花一分钟看完——生态的每一次结构变化,几乎都能对应到其中某个事件。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 560" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+      <line x1="110" y1="30" x2="110" y2="540" stroke="#2563eb" stroke-width="2.5" data-draw/>
+      <g data-anim>
+        <circle cx="110" cy="46" r="6" fill="#2563eb"/><text x="96" y="51" text-anchor="end" font-size="12" font-weight="700" fill="#16346b">2024.10</text>
+        <text x="128" y="43" font-size="13" font-weight="700" fill="#1d2b3a">OpenAI 发布 Swarm(仅教育实验)</text>
+        <text x="128" y="60" font-size="11.5" fill="#5b6b7d">多 agent 编排的雏形,官方声明不用于生产</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="92" r="6" fill="#2563eb"/><text x="96" y="97" text-anchor="end" font-size="12" font-weight="700" fill="#16346b">2025.2–3</text>
+        <text x="128" y="89" font-size="13" font-weight="700" fill="#1d2b3a">Claude Code 亮相 · Manus 爆红 · Agents SDK 取代 Swarm</text>
+        <text x="128" y="106" font-size="11.5" fill="#5b6b7d">「终端 agent」与「通用 agent」两个形态同时定型</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="138" r="6" fill="#2563eb"/><text x="96" y="143" text-anchor="end" font-size="12" font-weight="700" fill="#16346b">2025.5–6</text>
+        <text x="128" y="135" font-size="13" font-weight="700" fill="#1d2b3a">OpenAI 重启 Codex(云端自主 agent)· Google 推 Gemini CLI</text>
+        <text x="128" y="152" font-size="11.5" fill="#5b6b7d">三大模型厂商全部下场自做 harness;Claude Code 正式 GA</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="184" r="6" fill="#b45309"/><text x="96" y="189" text-anchor="end" font-size="12" font-weight="700" fill="#b45309">2025.7</text>
+        <text x="128" y="181" font-size="13" font-weight="700" fill="#1d2b3a">Windsurf 事变:OpenAI 收购告吹 → Google $2.4B 挖走创始团队 → 剩余部分 72 小时内卖给 Cognition</text>
+        <text x="128" y="198" font-size="11.5" fill="#5b6b7d">同月:Qwen3-Coder 与 Kimi K2 开源,中国模型进入 agent 编程第一梯队</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="230" r="6" fill="#2563eb"/><text x="96" y="235" text-anchor="end" font-size="12" font-weight="700" fill="#16346b">2025.10</text>
+        <text x="128" y="227" font-size="13" font-weight="700" fill="#1d2b3a">LangChain / LangGraph 1.0 · OpenAI DevDay 发布 AgentKit</text>
+        <text x="128" y="244" font-size="11.5" fill="#5b6b7d">框架层走向「稳定承诺」;Microsoft 宣布合并 AutoGen 与 Semantic Kernel</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="276" r="6" fill="#2563eb"/><text x="96" y="281" text-anchor="end" font-size="12" font-weight="700" fill="#16346b">2025.11</text>
+        <text x="128" y="273" font-size="13" font-weight="700" fill="#1d2b3a">Cursor 发布自研模型 Composer;Claude Code 年化收入破 $1B</text>
+        <text x="128" y="290" font-size="11.5" fill="#5b6b7d">最大的第三方 harness 开始自己训模型——垂直整合反向发生</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="322" r="6" fill="#b45309"/><text x="96" y="327" text-anchor="end" font-size="12" font-weight="700" fill="#b45309">2025.12</text>
+        <text x="128" y="319" font-size="13" font-weight="700" fill="#1d2b3a">Meta 宣布收购 Manus(报道口径 $2–3B)</text>
+        <text x="128" y="336" font-size="11.5" fill="#5b6b7d">通用 agent 第一次被巨头「收编」——但故事没完(见第 04 章)</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="368" r="6" fill="#2563eb"/><text x="96" y="373" text-anchor="end" font-size="12" font-weight="700" fill="#16346b">2026.2</text>
+        <text x="128" y="365" font-size="13" font-weight="700" fill="#1d2b3a">GLM-5 发布,Coding Plan 当日售罄;Cursor 年化收入达 $2B</text>
+        <text x="128" y="382" font-size="11.5" fill="#5b6b7d">Claude Code 约占公开 GitHub 提交的 4%(第三方统计)</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="414" r="6" fill="#2563eb"/><text x="96" y="419" text-anchor="end" font-size="12" font-weight="700" fill="#16346b">2026.4–5</text>
+        <text x="128" y="411" font-size="13" font-weight="700" fill="#1d2b3a">Kimi K2.6 · DeepSeek V4 相继开源;Microsoft Agent Framework 1.0;中国监管叫停 Meta-Manus</text>
+        <text x="128" y="428" font-size="11.5" fill="#5b6b7d">Google I/O:Antigravity 2.0 发布,Gemini CLI 品牌被并入 Antigravity CLI</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="460" r="6" fill="#b45309"/><text x="96" y="465" text-anchor="end" font-size="12" font-weight="700" fill="#b45309">2026.6</text>
+        <text x="128" y="457" font-size="13" font-weight="700" fill="#1d2b3a">SpaceX 宣布以 $60B 全股票收购 Cursor(待监管审批,预计 Q3 交割)</text>
+        <text x="128" y="474" font-size="11.5" fill="#5b6b7d">史上最大 VC 支持创业公司收购案;Windsurf 更名 Devin Desktop;GLM-5.2 开源</text>
+      </g>
+      <g data-anim>
+        <circle cx="110" cy="512" r="7" fill="#0e7490"/><text x="96" y="517" text-anchor="end" font-size="12" font-weight="700" fill="#0e7490">现在</text>
+        <text x="128" y="509" font-size="13" font-weight="700" fill="#0e7490">2026.7:三股力量(第一方、第三方、开源+中国模型)全面交战</text>
+        <text x="128" y="526" font-size="11.5" fill="#5b6b7d">本文档写作于此时点</text>
+      </g>
+    </svg>
+    <div class="fig-cap">图 2 · 2024.10–2026.7 生态时间线。橙色节点是三次「结构性事件」:Windsurf 事变、Meta-Manus 收购与被叫停、SpaceX 收购 Cursor——它们共同揭示了第三方 harness 的终局形态(详见第 08 章)。</div>
+  </div>
+
+  <div class="callout key"><p>💡 <strong>读时间线的一个视角</strong>:2025 年上半年的主角是第三方(Cursor/Manus 的爆发);下半年主角换成模型厂商(Codex 重启、Claude Code 冲刺 $1B);2026 年的主角则是「资本收编」与「中国开源」。三幕戏,正好对应第 08 章要讨论的三股结构性力量。</p></div>
+</section>
+
+<!-- ================ 03 ================ -->
+<section id="ide">
+  <h2>💻 03 · IDE / 编程类第三方:钱最多、火最旺的战场</h2>
+  <div class="h2sub">Cursor · Cognition(Devin + Windsurf)· Cline · OpenCode</div>
+
+  <p>编程是 agent 落地最快的场景,原因很朴素:代码任务<strong>有明确的对错反馈</strong>(测试通过与否),模型可以自我验证、自我修正,这正是 agent 循环最需要的土壤。也因此,这条赛道聚集了最多的钱和最激烈的结构冲突。四个代表玩家,恰好代表四种不同的生存策略。</p>
+
+  <h3>🖱️ Cursor(Anysphere):从「壳」长成「模型公司」,再被 $60B 收购</h3>
+  <p>Cursor 是一个 VS Code 的深度改造版(fork),核心体验是「Tab 补全 + 内嵌 agent」。它的商业成绩是全行业的标杆:据 TechCrunch 报道,其年化收入从 2025 年 1 月的 $100M 一路涨到 2026 年 2 月的 $2B,公司自称 64% 的财富 500 强在使用(注意这是官方口径)。但对理解行业结构而言,Cursor 更重要的是两个动作:</p>
+  <ul class="plain">
+    <li><strong>自研模型 Composer</strong>(2025.11):不再纯粹依赖 Anthropic/OpenAI。2026 年 3 月的 Composer 2 技术报告披露,它以开源的 <span class="hl">Kimi K2.5 base 为底座继续预训练</span>,再在模拟 Cursor 使用场景的环境里做大规模强化学习——一家美国明星公司的自研模型,建立在中国开源权重之上,这是 2026 年生态最有象征意义的事实之一。</li>
+    <li><strong>多模型路由降本</strong>:把部分流量路由到更便宜的模型(包括中国模型),据报道借此实现了毛利转正——「多模型中立」在这里首先是一门成本生意。</li>
+  </ul>
+  <p>2026 年 6 月 16 日,刚完成 IPO 的 SpaceX 宣布以 <strong>$60B 全股票</strong>收购 Anysphere(CNBC、TechCrunch 均报道;预计 Q3 交割,尚待监管批准)。最大的独立 harness,最终没有以「独立」收场。</p>
+
+  <h3>🤖 Cognition(Devin)+ Windsurf:一场并购吃出双形态</h3>
+  <p>Cognition 走的是另一条路:不做「辅助工具」,直接做「AI 软件工程师」——Devin 从 2024 年发布起就定位为能独立领任务的数字员工。2025 年 7 月的 Windsurf 事变(时间线橙色节点)让它捡到大礼:OpenAI 对 Windsurf 约 $3B 的收购谈崩,Google 以 $2.4B「反向收购雇佣」只带走 CEO 和研究负责人,Cognition 在 72 小时内签约,拿下 Windsurf 的 IP、产品和约 210 名剩余员工(TechCrunch;当时 Windsurf ARR 约 $82M)。</p>
+  <p>整合效果按其披露相当可观:2026 年 5 月 ARR 达 $492M,Series D 融资超 $1B、投后估值 $26B;2026 年 6 月 2 日 Windsurf 正式更名 <strong>Devin Desktop</strong>,「自主 agent + IDE」双形态合一。定价上,Devin 以 ACU(计算单元)计量:Core $20/月起,按 $2.25/ACU 计费;企业版主打 VPC 私有部署与合规——Goldman Sachs、Mercedes-Benz、NASA 等被列为客户。<strong>企业集成与私有化,是它区别于 Cursor 的护城河叙事。</strong></p>
+
+  <h3>🔓 Cline:开源 + BYOK,「不赚 token 差价」的透明路线</h3>
+  <p>Cline 是 VS Code 生态里最大的开源 coding agent 扩展(约 500 万安装、48k star),核心主张是 <span class="term">BYOK</span>:工具开源免费,用户自带模型 key,费用直接付给模型商,Cline 不加价、prompt 全透明。2025 年它完成 $32M 融资(Emergence、Pace 领投),推出面向企业的 Cline Teams(集中计费、组织管理),并宣称 SAP、三星等将其作为选用的 coding agent。它证明了一件事:<strong>在第一方和闭源第三方的夹缝里,「透明 + 中立」本身可以是卖点</strong>——尤其对不愿被单一模型厂商锁定的企业。</p>
+
+  <h3>⌨️ OpenCode:star 数超过 Claude Code 的免费终端 agent</h3>
+  <p>OpenCode(由 SST 团队创建,现属 Anomaly Innovations)是终端 TUI 形态的开源 harness,接入 75+ 模型提供商,Plan/Build 双模式切换。它最惊人的数据是:截至 2026 年 6 月,GitHub star 约 <strong>18 万,超过了 Claude Code 本体</strong>(约 13.5 万)。一个不收一分钱的社区项目,在开发者声量上压过年入 25 亿美元的官方产品——这就是「harness 商品化」论最直观的证据:<strong>壳的功能本身,社区几个月就能追平。</strong></p>
+
+  <div class="tbl-scroll">
+  <table class="cmp">
+    <tr><th style="width:110px">玩家</th><th>形态</th><th>商业模式</th><th>模型策略</th><th>2026 年中状态</th></tr>
+    <tr><td><strong>Cursor</strong></td><td>VS Code fork(IDE)</td><td>订阅($16+/月)</td><td>多模型路由 + 自研 Composer(基于 Kimi K2.5 底座)</td><td>ARR ~$2.6B;被 SpaceX $60B 收购(待交割)</td></tr>
+    <tr><td><strong>Devin / Cognition</strong></td><td>自主 agent + IDE(Devin Desktop)</td><td>$20/月起 + ACU 用量计费;企业 VPC</td><td>依赖前沿闭源模型 + 自研中</td><td>ARR $492M;估值 $26B</td></tr>
+    <tr><td><strong>Cline</strong></td><td>开源 VS Code 扩展 / CLI / SDK</td><td>工具免费,BYOK;企业版 Teams 收费</td><td>完全中立,任意模型</td><td>5M 安装;$32M 融资</td></tr>
+    <tr><td><strong>OpenCode</strong></td><td>开源终端 TUI</td><td>完全免费,只付模型钱</td><td>75+ 提供商,极端中立</td><td>~180k star,超越 Claude Code</td></tr>
+  </table>
+  </div>
+
+  <div class="callout teal"><p>🔎 <strong>本章小结</strong>:四家代表四条路——Cursor 证明「壳可以长成模型公司,但终局是被收购」;Cognition 证明「企业集成是真护城河」;Cline 和 OpenCode 则证明「壳的基础功能正在归零定价」。这三个结论会在第 08 章重新汇合。</p></div>
+</section>
+
+<!-- ================ 04 ================ -->
+<section id="general">
+  <h2>🤖 04 · 通用自主 Agent:Manus 现象与它的同类</h2>
+  <div class="h2sub">「给 AI 一台云端电脑,让它替你把整件事做完」</div>
+
+  <p>如果说编程 agent 服务的是开发者,通用 agent 想服务的是<strong>所有打工人</strong>:丢给它一句「帮我筛这 50 份简历」「做一份行业分析报告」,它在云端虚拟机里自己开浏览器、查资料、写文件,最后交付成品。这个品类的开创者叙事属于 Manus。</p>
+
+  <h3>🦋 Manus(Butterfly Effect):爆红、收编、又被叫停的三幕剧</h3>
+  <div class="steps">
+    <div class="step"><b>爆红(2025.3)</b><p>3 月 6 日邀请制上线,演示视频(自主筛简历、做股票分析)20 小时破百万播放,邀请码一度被炒卖。公司 Butterfly Effect 创立于中国、后总部迁至新加坡。</p></div>
+    <div class="step"><b>商业化超预期(2025)</b><p>4 月获 Benchmark 领投 $75M Series B(腾讯、红杉中国 HSG 亦为股东);上线八个月后公司宣称年化收入超过 $100M(官方口径)。</p></div>
+    <div class="step"><b>Meta 收购(2025.12)</b><p>Meta 宣布收购 Manus,报道口径交易估值 $2–3B(CNBC)——巨头用支票承认了「通用 agent」品类。</p></div>
+    <div class="step"><b>监管反转(2026.4–6)</b><p>4 月 27 日,中国发改委叫停该交易,要求撤回;6 月 15 日 Meta 宣布正式与 Manus 切割(SiliconANGLE 等报道)。Manus 回到独立运营状态,产品仍在增长。</p></div>
+  </div>
+  <p>Manus 的技术本质并不神秘:它不训练前沿大模型,而是<strong>在别人的模型(公开报道多次提及 Claude 系)之上做多 agent 编排 + 云端虚拟机 + 任务模板</strong>——一个面向普通用户的通用 harness。它的三幕剧因此格外有结构意义:市场先用真金白银证明这层壳有价值($2–3B 估值),地缘监管又证明<strong>这层壳的归属已是国家级议题</strong>。</p>
+
+  <h3>✨ Genspark 及同类:第二名反而跑得更快?</h3>
+  <p>Manus 最直接的对手 Genspark(MainFunc,前百度高管 Eric Jing 等创办,注册于帕洛阿尔托)走「Mixture-of-Agents」路线——同一任务混用 GPT、Claude、Gemini 多家模型互相校验。据 Sacra 估算,其 ARR 在 2026 年 1 月达 $100M,官方称 2026 年 4 月突破 $250M(上线仅 12 个月),同期 Series B 扩至 $385M。此外这个品类还有 Kortix 等玩家,以及一个绕不开的对手:<strong>ChatGPT 和 Claude 自己</strong>——两者都在往「自带浏览器、自带虚拟机」的方向演进,通用 agent 创业公司与模型厂商的正面碰撞比编程赛道来得更直接。</p>
+
+  <div class="callout warn"><p>⚠️ <strong>社区视角的冷水</strong>(观点,非事实):TechTimes 等媒体在 2026 年 5 月的评论指出,这个品类「融资远远跑在证明有效之前」——高额 token 成本、任务成功率不稳定、与基座模型产品的同质化,都是公开讨论中的常见质疑。引用时请与官方增长口径对照着看。</p></div>
+</section>
+
+<!-- ================ 05 ================ -->
+<section id="framework">
+  <h2>🧱 05 · 框架层:从百花齐放到加速合并</h2>
+  <div class="h2sub">LangGraph · CrewAI · OpenAI Swarm→Agents SDK · Microsoft Agent Framework · smolagents</div>
+
+  <p>框架层和上面两章的「产品」不同:它卖给的是<strong>要自己搭 agent 的开发者</strong>。2023–2024 年这里曾百花齐放,但到 2026 年,主线剧情只有一个词:<strong>合并收敛</strong>。原因也直白——框架本身极难收费(都开源),真正能收钱的是框架背后的平台(观测、托管、企业治理),而平台生意有规模效应,养不活太多家。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+      <!-- OpenAI line -->
+      <g data-anim>
+        <rect x="30" y="30" width="150" height="46" rx="9" fill="#fee2e2" stroke="#ef4444"/>
+        <text x="105" y="49" text-anchor="middle" font-size="12.5" font-weight="700" fill="#991b1b">Swarm(2024.10)</text>
+        <text x="105" y="66" text-anchor="middle" font-size="10.5" fill="#7f1d1d">教育实验,已废弃</text>
+      </g>
+      <path d="M180 53 H 250" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr)" data-draw/>
+      <g data-anim>
+        <rect x="252" y="30" width="170" height="46" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="337" y="49" text-anchor="middle" font-size="12.5" font-weight="700" fill="#16346b">Agents SDK(2025.3)</text>
+        <text x="337" y="66" text-anchor="middle" font-size="10.5" fill="#5b6b7d">handoff / guardrail / tracing</text>
+      </g>
+      <path d="M422 53 H 492" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr)" data-draw/>
+      <g data-anim>
+        <rect x="494" y="12" width="296" height="84" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="642" y="34" text-anchor="middle" font-size="12.5" font-weight="700" fill="#16346b">2026:模型原生 harness 化</text>
+        <text x="642" y="53" text-anchor="middle" font-size="10.5" fill="#42566d">沙箱执行 · Manifest 工作区抽象</text>
+        <text x="642" y="70" text-anchor="middle" font-size="10.5" fill="#b45309">⚠ AgentKit 的 Agent Builder / Evals</text>
+        <text x="642" y="86" text-anchor="middle" font-size="10.5" fill="#b45309">宣布 2026.11.30 停服</text>
+      </g>
+      <!-- Microsoft line -->
+      <g data-anim>
+        <rect x="30" y="130" width="150" height="42" rx="9" fill="#f1f5f9" stroke="#64748b"/>
+        <text x="105" y="148" text-anchor="middle" font-size="12.5" font-weight="700" fill="#334155">AutoGen</text>
+        <text x="105" y="164" text-anchor="middle" font-size="10.5" fill="#64748b">多 agent 会话(研究向)</text>
+      </g>
+      <g data-anim>
+        <rect x="30" y="184" width="150" height="42" rx="9" fill="#f1f5f9" stroke="#64748b"/>
+        <text x="105" y="202" text-anchor="middle" font-size="12.5" font-weight="700" fill="#334155">Semantic Kernel</text>
+        <text x="105" y="218" text-anchor="middle" font-size="10.5" fill="#64748b">企业级 .NET/Python</text>
+      </g>
+      <path d="M180 151 C 230 151 230 178 268 178" stroke="#94a3b8" stroke-width="1.8" fill="none" data-draw/>
+      <path d="M180 205 C 230 205 230 180 268 179" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arr)" data-draw/>
+      <g data-anim>
+        <rect x="270" y="150" width="250" height="56" rx="9" fill="#ffffff" stroke="#4f46e5" stroke-width="1.5"/>
+        <text x="395" y="172" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3730a3">Microsoft Agent Framework 1.0</text>
+        <text x="395" y="192" text-anchor="middle" font-size="10.5" fill="#5b6b7d">2026.4.3 · .NET + Python · 旧框架进维护模式</text>
+      </g>
+      <!-- LangChain line -->
+      <g data-anim>
+        <rect x="30" y="252" width="150" height="42" rx="9" fill="#f1f5f9" stroke="#64748b"/>
+        <text x="105" y="270" text-anchor="middle" font-size="12.5" font-weight="700" fill="#334155">LangChain(2022–)</text>
+        <text x="105" y="286" text-anchor="middle" font-size="10.5" fill="#64748b">链式调用先驱</text>
+      </g>
+      <path d="M180 273 H 268" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr)" data-draw/>
+      <g data-anim>
+        <rect x="270" y="240" width="250" height="66" rx="9" fill="#ffffff" stroke="#0e7490" stroke-width="1.5"/>
+        <text x="395" y="262" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0e7490">LangChain / LangGraph 1.0(2025.10)</text>
+        <text x="395" y="281" text-anchor="middle" font-size="10.5" fill="#5b6b7d">图状态机 · 持久执行 · 官方称 90M 月下载</text>
+        <text x="395" y="297" text-anchor="middle" font-size="10.5" fill="#5b6b7d">商业化靠 LangSmith 观测平台</text>
+      </g>
+      <g data-anim>
+        <rect x="560" y="180" width="230" height="110" rx="9" fill="#fefce8" stroke="#eab308"/>
+        <text x="675" y="204" text-anchor="middle" font-size="12" font-weight="700" fill="#a16207">仍独立的少数派</text>
+        <text x="675" y="226" text-anchor="middle" font-size="11" fill="#5b6b7d">CrewAI:角色式多 agent,</text>
+        <text x="675" y="243" text-anchor="middle" font-size="11" fill="#5b6b7d">靠企业平台(治理/SOC2)收费</text>
+        <text x="675" y="264" text-anchor="middle" font-size="11" fill="#5b6b7d">smolagents(HF):代码即动作,</text>
+        <text x="675" y="281" text-anchor="middle" font-size="11" fill="#5b6b7d">轻量原型与教学首选</text>
+      </g>
+      <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/></marker></defs>
+    </svg>
+    <div class="fig-cap">图 3 · 框架层的三条演化线:OpenAI 两年内换了三代方案(且高层封装 Agent Builder 已宣布停服);Microsoft 把两个框架合并成一个;LangChain 系收敛到 LangGraph 1.0。存活逻辑全都指向「框架免费、平台收费」。</div>
+  </div>
+
+  <h3>各家一句话画像 + 关键事实</h3>
+  <ul class="plain">
+    <li><strong>LangGraph</strong>:把 agent 建模为「图状态机」,主打持久化执行(服务器重启后 agent 还能接着跑)。2025 年 10 月与 LangChain 同步发布 1.0,承诺 2.0 前不破坏兼容;官方列出 Uber、LinkedIn、Klarna、JPMorgan 等生产用户。事实上的<strong>企业自建 agent 默认选项</strong>,真正的收入来自 LangSmith(观测/评估平台)。</li>
+    <li><strong>CrewAI</strong>:「角色扮演式」多 agent(研究员 + 写手 + 审校协作),上手最快。$18M Series A(Insight Partners 领投);官方宣称过去 12 个月约 20 亿次执行、60% 财富 500 强有使用(注意为官方口径)。收费点在企业平台:SOC2、SSO、PII 脱敏等治理能力。</li>
+    <li><strong>OpenAI Swarm → Agents SDK</strong>:Swarm 只是 2024 年 10 月的教育实验;2025 年 3 月被生产级的 Agents SDK 取代(保留 handoff 概念,加上 guardrails、tracing、sessions)。2026 年的演化方向值得注意:<span class="hl">沙箱执行与「模型原生 harness」</span>——把原本属于外壳的能力直接吸进模型与 SDK。而 DevDay 2025 发布的 AgentKit 中,可视化的 Agent Builder 与 Evals 已宣布于 2026 年 11 月 30 日停服:<strong>连平台方自己的高层封装都活不过两年</strong>,这是框架层选型最重要的一课。</li>
+    <li><strong>Microsoft Agent Framework</strong>:2026 年 4 月 3 日 1.0 发布,正式合并 AutoGen(研究向多 agent)与 Semantic Kernel(企业向 SDK),两个旧框架进入只修 bug 的维护模式。微软系企业的默认答案。</li>
+    <li><strong>smolagents</strong>:Hugging Face 出品,~28k star,理念独特——agent 用「写 Python 代码」而非 JSON 来表达动作(天然支持循环、嵌套)。定位轻量原型与教学,不追求企业平台。</li>
+  </ul>
+
+  <div class="callout key"><p>💡 <strong>框架层的结构判断</strong>:这一层商品化最彻底——五个主流框架全部开源免费,没有一家靠框架本身赚钱。选型建议因此很简单:企业长线项目看 LangGraph 或 Microsoft Agent Framework(有稳定承诺),快速原型看 CrewAI 或 smolagents,而<strong>任何绑定单一厂商可视化建站工具的方案都要三思</strong>(Agent Builder 的下场就在眼前)。</p></div>
+</section>
+
+<!-- ================ 06 ================ -->
+<section id="china">
+  <h2>🇨🇳 06 · 中国生态:开源权重 + 低价订阅的「掀桌子」打法</h2>
+  <div class="h2sub">Qwen · Kimi(Moonshot)· DeepSeek · GLM(智谱 / Z.ai)</div>
+
+  <p>中国厂商在这场结构之争里扮演的角色非常清晰,可以概括成一套组合拳:<strong>模型权重开源(逼近闭源前沿)→ API 和订阅卖到极低价 → 自带一个复刻 Claude Code 形态的 CLI</strong>。这套打法不直接与美国第一方拼产品,而是釜底抽薪——把「模型智能」这个上游原料的价格打下来,从而系统性地强化「harness 商品化」一侧的论据。</p>
+
+  <h3>🌊 Qwen(阿里):最激进的开源 + 免费补贴</h3>
+  <p>2025 年 7 月的 Qwen3-Coder(480B 总参 / 35B 激活,MoE)是开源 agent 编程模型的标志性release,官方称其 agentic coding 能力比肩当时的 Claude Sonnet 4。配套的 <strong>Qwen Code</strong> CLI(Apache 2.0)长期提供免费 API 额度——社区普遍解读为市场份额补贴。2026 年的 Qwen3-Coder-Next 走向另一个极端:80B 总参、仅 3B 激活,专为「便宜地跑长程 agent 循环」设计。</p>
+
+  <h3>🌙 Kimi / Moonshot:从 K2 到「给 Cursor 当底座」</h3>
+  <p>Moonshot 的 K2(2025.7 开源权重)以编程能力出圈;9 月上线的 <strong>OK Computer</strong> 把 Kimi 变成能产出多页网站、可编辑幻灯片的通用 agent(对标 Manus);2026 年 1 月 K2.5(1T 总参 / 32B 激活)、4 月 K2.6 相继发布,官方称 K2.6 的 Agent Swarm 可协调 300 个子 agent(官方宣传口径)。但 Kimi 在行业结构里最重要的一笔,是<span class="hl">Cursor 的 Composer 2 公开承认以 K2.5 base 为底座</span>——中国开源权重不再只是「便宜替代品」,而是成了美国头部产品的上游。</p>
+
+  <h3>🐋 DeepSeek:极致性价比的开源前沿</h3>
+  <p>DeepSeek V4(2026 上半年发布)分两档:V4-Pro(1.6T 总参 / 49B 激活)与 V4-Flash(284B / 13B),均支持 1M 上下文、MIT 许可。多个第三方评测称 V4-Pro 在 LiveCodeBench 等编程基准上领先包括闭源模型在内的所有对手(以各评测原文为准)。它同时提供官方 CLI「Deep Code」,并被 Claude Code、OpenCode 等主流 harness 直接列为可选模型——<strong>开源模型与开源壳的自由组合,正是第一方订阅捆绑的最大解构力量。</strong></p>
+
+  <h3>📐 GLM / 智谱(Z.ai):用「Coding Plan」直接抢订阅</h3>
+  <p>智谱的打法最贴身:GLM Coding Plan 以约 $10/月起的价格,提供兼容 Claude Code 等主流 harness 的模型服务——你继续用你喜欢的壳,只是把里面的模型换成 GLM。2026 年 2 月 12 日 GLM-5 发布(官方称编程能力对齐 Claude Opus 4.5),Coding Plan 当日售罄,随后因灰度太慢等问题于 2 月 21 日公开致歉;此后 GLM-5.1(3 月)、GLM-5.2(6 月 13 日,~753B MoE、MIT 许可、1M 上下文)快速迭代。这是「模型作为可插拔耗材」最纯粹的商业形态。</p>
+
+  <div class="stats">
+    <div class="s"><div class="v">MIT / Apache</div><div class="k">DeepSeek V4、GLM-5.2、Qwen3-Coder 均以宽松许可开源权重,可商用</div></div>
+    <div class="s"><div class="v">~$10/月</div><div class="k">GLM Coding Plan 起步价——第一方同类订阅的几分之一</div></div>
+    <div class="s"><div class="v">76–78%</div><div class="k">GLM-5 / K2.5 在 SWE-bench 上的社区汇总成绩,已进入前沿区间(第三方口径)</div></div>
+  </div>
+
+  <div class="callout gold"><p>🧭 <strong>对行业结构的含义</strong>:中国生态的存在,让「换掉模型」从理论可能变成了日常操作——OpenRouter、CLIProxyAPI、OpenClaw 这类路由/网关工具专门服务于此。上游原料越便宜、越可替换,壳的「多模型中立」策略就越有生存空间;但同一件事反过来也压缩了壳靠转售 token 赚差价的利润。低价是双刃剑,第 08 章展开。</p></div>
+</section>
+
+<!-- ================ 07 ================ -->
+<section id="firstparty">
+  <h2>🏭 07 · 模型厂商下场:第一方 harness 的三种打法</h2>
+  <div class="h2sub">Anthropic · OpenAI · Google——同一个动作,三种战略表达</div>
+
+  <p>理解了第三方,再看第一方就清楚了:三大模型厂商在 2025 年先后想通了同一件事——<strong>与其把模型批发给别人做产品,不如自己直接触达用户</strong>,既拿走产品利润,又拿到最宝贵的真实使用数据。但三家的落子方式并不相同。</p>
+
+  <h3>Anthropic:Claude Code——先发定义品类,收入证明模式</h3>
+  <p>Claude Code(2025 年 2 月亮相、5 月 GA)定义了「终端 agent」这个形态:纯命令行、直接操作代码库、hooks/子 agent/MCP 全套可扩展。商业成绩是第一方下场论最硬的证据:2025 年 11 月年化收入破 $1B,2026 年初翻倍至 <strong>$2.5B+,占 Anthropic 企业收入的一半以上</strong>(公司披露口径);第三方统计称 2026 年 2 月约 4% 的公开 GitHub 提交由 Claude Code 署名。同时 Anthropic 通过 Agent SDK 把 Claude Code 的底层开放出来——<strong>既做产品,又当第三方的地基</strong>,两头下注。</p>
+
+  <h3>OpenAI:Codex——云端自主 + 把 harness 吸进模型</h3>
+  <p>OpenAI 在 2025 年 5 月把旧品牌 Codex 重启为云端自主编程 agent(独立沙箱里长时间跑任务),CLI 与桌面端随 ChatGPT 订阅捆绑。其 2026 年公开的技术叙事「harness engineering」揭示了更深的意图:让模型<strong>原生学会使用工具和沙箱</strong>,把过去属于外壳的能力内化到模型层(所谓 model-native harness)。如果这条路走通,第三方壳的技术空间会被从下方直接抽走。基准上,Codex + GPT-5.x 组合在 Terminal-Bench 上领先,Claude 系在 SWE-bench 上领先(2026 年中各评测口径)。</p>
+
+  <h3>Google:Antigravity——用平台和免费额度打分发战</h3>
+  <p>Google 起步稍晚但动作最大:2025 年 6 月的 Gemini CLI 以每天 1000 次免费请求横扫入门市场;2025 年 11 月推出 agent 优先的 IDE「Antigravity」;到 I/O 2026(5 月),Antigravity 2.0 升级为完整桌面平台(并行管理多个本地 agent、定时任务),Gemini CLI 品牌整体过渡为 Antigravity CLI,同时在 Gemini API 里推出 Managed Agents——一个 API 调用就给你一个带 Linux 沙箱的托管 agent。官方明确宣传其 harness 与 Gemini 3.5 <strong>联合优化(co-optimized)</strong>——垂直整合说得最直白的一家。注意一个细节:连 Google 自己的 harness 品牌(Gemini CLI)都在一年内被合并重组——<strong>第一方的壳同样在剧烈换代</strong>。</p>
+
+  <div class="tbl-scroll">
+  <table class="cmp">
+    <tr><th style="width:110px">厂商</th><th>产品线</th><th>战略重心</th><th>对第三方的挤压方式</th></tr>
+    <tr><td><strong>Anthropic</strong></td><td>Claude Code + Agent SDK</td><td>品类定义者,收入验证</td><td>订阅捆绑 + 最强编程模型的「亲儿子」体验;同时向第三方供 SDK,两头下注</td></tr>
+    <tr><td><strong>OpenAI</strong></td><td>Codex(云端+CLI)+ Agents SDK</td><td>把 harness 能力内化进模型</td><td>model-native:模型越强,外壳的独立价值越小</td></tr>
+    <tr><td><strong>Google</strong></td><td>Antigravity 平台 + Managed Agents API</td><td>平台化 + 免费额度换分发</td><td>价格战(免费额度)+ 与自家全家桶(Chrome/Cloud/Android)绑定</td></tr>
+  </table>
+  </div>
+
+  <div class="callout key"><p>💡 <strong>一个别忽略的信号</strong>:2026 年上半年,多家媒体报道 Claude Code、Copilot、Codex、Gemini 系产品先后<strong>提价或收紧用量</strong>。第一方靠补贴换份额的阶段正在过去——这对按用量透明计费的第三方(Cline、Devin 的 ACU 模式)反而是相对利好。</p></div>
+</section>
+
+<!-- ================ 08 ================ -->
+<section id="structure">
+  <h2>⚖️ 08 · 行业结构判断:harness 商品化 vs 垂直整合</h2>
+  <div class="h2sub">两套叙事的证据对撞,以及第三方剩下的三块生存空间</div>
+
+  <p>前面七章的所有事实,最终都在喂养两套针锋相对的叙事。先把两边最强的证据摆出来,再给出综合判断。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 470" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+      <g data-anim>
+        <rect x="280" y="18" width="260" height="50" rx="10" fill="#0d1f3c"/>
+        <text x="410" y="40" text-anchor="middle" font-size="14.5" font-weight="700" fill="#fff">Harness 是护城河吗?</text>
+        <text x="410" y="58" text-anchor="middle" font-size="11" fill="#b8ccec">同一组事实,两种读法</text>
+      </g>
+      <path d="M340 68 C 250 100 220 110 205 128" stroke="#0e7490" stroke-width="2" fill="none" marker-end="url(#arr2)" data-draw/>
+      <path d="M480 68 C 570 100 600 110 615 128" stroke="#4f46e5" stroke-width="2" fill="none" marker-end="url(#arr3)" data-draw/>
+      <!-- left: commoditization -->
+      <g data-anim>
+        <rect x="40" y="132" width="340" height="212" rx="12" fill="#f0fdfa" stroke="#0e7490" stroke-width="1.5"/>
+        <text x="210" y="158" text-anchor="middle" font-size="14.5" font-weight="700" fill="#0e7490">叙事 A:harness 终将商品化</text>
+        <text x="60" y="186" font-size="11.8" fill="#134e4a">▸ OpenCode(免费)star 数超过 Claude Code</text>
+        <text x="60" y="208" font-size="11.8" fill="#134e4a">▸ Claude Code 形态被十余家像素级复刻</text>
+        <text x="60" y="230" font-size="11.8" fill="#134e4a">▸ 中国开源权重把模型价格持续打穿</text>
+        <text x="60" y="252" font-size="11.8" fill="#134e4a">▸ 路由器让任意壳 × 任意模型自由组合</text>
+        <text x="60" y="274" font-size="11.8" fill="#134e4a">▸ 框架层已归零:五大框架全部免费</text>
+        <text x="60" y="303" font-size="12" font-weight="700" fill="#0e7490">推论:价值流向模型与分发,</text>
+        <text x="60" y="322" font-size="12" font-weight="700" fill="#0e7490">「纯壳」无法长期收租</text>
+      </g>
+      <!-- right: vertical integration -->
+      <g data-anim>
+        <rect x="440" y="132" width="340" height="212" rx="12" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+        <text x="610" y="158" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3730a3">叙事 B:模型×harness 垂直整合胜出</text>
+        <text x="460" y="186" font-size="11.8" fill="#312e81">▸ harness 配置可摆动基准成绩 5+ 个百分点</text>
+        <text x="460" y="208" font-size="11.8" fill="#312e81">▸ Antigravity 与 Gemini 3.5 公开宣称联合优化</text>
+        <text x="460" y="230" font-size="11.8" fill="#312e81">▸ OpenAI 走 model-native harness 路线</text>
+        <text x="460" y="252" font-size="11.8" fill="#312e81">▸ Cursor 用自家使用数据训练 Composer(数据飞轮)</text>
+        <text x="460" y="274" font-size="11.8" fill="#312e81">▸ 评测已按「模型+壳」整体打分(Coding Agent Index)</text>
+        <text x="460" y="303" font-size="12" font-weight="700" fill="#3730a3">推论:联合优化产生真实性能差,</text>
+        <text x="460" y="322" font-size="12" font-weight="700" fill="#3730a3">一体化玩家拿走溢价</text>
+      </g>
+      <!-- synthesis -->
+      <path d="M210 344 C 210 380 330 392 396 396" stroke="#94a3b8" stroke-width="1.8" fill="none" data-draw/>
+      <path d="M610 344 C 610 380 490 392 424 396" stroke="#94a3b8" stroke-width="1.8" fill="none" data-draw/>
+      <g data-anim>
+        <rect x="150" y="396" width="520" height="58" rx="12" fill="#fefce8" stroke="#eab308" stroke-width="1.5"/>
+        <text x="410" y="420" text-anchor="middle" font-size="13" font-weight="700" fill="#a16207">综合:两个叙事在不同层面同时为真</text>
+        <text x="410" y="440" text-anchor="middle" font-size="11.5" fill="#713f12">通用壳的「功能」商品化;但「联合优化 + 数据飞轮 + 企业分发」不商品化</text>
+      </g>
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0e7490"/></marker>
+        <marker id="arr3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4f46e5"/></marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">图 4 · 两套叙事的证据对撞。注意两边引用的是同一个生态的不同侧面——分歧不在事实,而在「哪一层的价值能守住」。</div>
+  </div>
+
+  <div class="analogy"><div class="side">类比</div><div class="body">把 harness 想成浏览器史:浏览器「功能」早已商品化(内核开源、免费分发),但 Chrome 依然是 Google 最重要的资产之一——因为它守住的不是功能,而是<strong>分发入口和数据回流</strong>。2026 年的 agent 壳正在走向同一格局:壳本身不值钱,壳的位置值钱。</div></div>
+
+  <h3>🧷 综合判断(本文档的分析,非单一来源结论)</h3>
+
+  <div class="steps">
+    <div class="step"><b>「纯壳」的空间确实在坍缩</b><p>证据链完整:Windsurf 在被三家轮番争夺后失去独立存在;OpenAI 自己的 Agent Builder 两年内停服;开源社区把基础壳的价格打到零。只做「模型 API + 好看界面」的公司,2026 年已无新故事。</p></div>
+    <div class="step"><b>幸存空间一:多模型中立 + 成本套利</b><p>企业不愿被单一模型厂商锁定,这是真实需求(Cline 的 SAP/三星案例、Cursor 的路由降本、OpenRouter 的存在都是证据)。但注意其内在矛盾:中立做得最成功的 Cursor,最终选择自研模型——<strong>中立可能是通往垂直整合的过渡态,而非稳定终态</strong>。</p></div>
+    <div class="step"><b>幸存空间二:差异化 UX 与工作流</b><p>Tab 补全的手感(Cursor)、终端 TUI 的极简(OpenCode)、并行 agent 管理(Antigravity/Devin)——体验差异真实存在且用户愿意付费。但这是最脆弱的一块:UX 可以被抄,且第一方抄起来带着订阅捆绑的价格优势。</p></div>
+    <div class="step"><b>幸存空间三:企业集成、私有化与合规</b><p>VPC 部署、SSO、审计、PII 治理、与存量系统的缝合(Devin Enterprise、CrewAI 平台、Cline Teams 的卖点全在此)。这块空间最持久——模型厂商没有动力去做每个行业的脏活,「outer harness」(业务规则、验证、权限)天然属于买方和贴身服务商。社区把这个分工总结为:<strong>labs 吃掉通用 inner harness,企业侧 outer harness 留给第三方</strong>。</p></div>
+    <div class="step"><b>头部第三方的终局:被收购,或自己变成模型公司</b><p>2025.7 Windsurf→Cognition;2025.12 Manus→Meta(被中国监管叫停,暴露地缘变量);2026.6 Cursor→SpaceX($60B)。三个头部案例无一例外走向「并入更大的资本/算力体」;而尚未被收购的 Cognition 和被收购前的 Cursor,都选择了自研模型。<strong>两条终局路径,没有第三条叫「永远做独立的壳」。</strong></p></div>
+    <div class="step"><b>开源壳的角色:公共品,反而抬高第一方</b><p>OpenCode/Cline 把壳变成公共品后,竞争焦点被迫上移到「模型 + 订阅 + 数据飞轮」——恰恰是第一方最强的三样。开源壳杀死的不是第一方,而是平庸的闭源第三方。</p></div>
+  </div>
+
+  <div class="callout warn"><p>⚠️ <strong>本判断的不确定性,诚实列出</strong>:① model-native harness 若完全走通,幸存空间二会进一步收窄——目前它仍是 OpenAI 的方向性叙事而非既成事实;② 中国开源模型能否长期保持前沿水平存在政策与算力变量;③ SpaceX-Cursor 尚未交割,Meta-Manus 的反转说明大额并购在当前地缘环境下随时可能生变;④ 各家 ARR 均为公司口径的年化数,横向比较需谨慎。</p></div>
+
+  <div class="final">
+    <h3>🎯 一段话收束</h3>
+    <p>2025–2026 年的 agent 生态完成了一次「价值层级的显影」:框架层已经归零商品化;通用壳的功能正在归零商品化;真正守得住的只有三样东西——<strong>模型与壳的联合优化能力、真实使用数据的飞轮、以及通往企业和用户的分发管道</strong>。第三方的理性策略因此不是「做更好的壳」,而是三选一:向下长出模型(Cursor 路线)、向企业扎根合规集成(Devin/Cline 路线)、或把壳彻底开源换取生态位(OpenCode 路线)。至于模型厂商——它们下场做壳从来不是为了壳,而是为了数据和入口。看懂这一点,后面每一条新闻都不再意外。</p>
+  </div>
+</section>
+
+<!-- ================ 09 ================ -->
+<section id="sources">
+  <h2>📚 09 · 继续深入:资源清单</h2>
+  <div class="h2sub">按「想深入哪一层」组织</div>
+
+  <ul class="plain">
+    <li><strong>看产品与格局</strong>:dev.to《Every AI Coding CLI in 2026》(30+ 工具全景表,2026.4)· Artificial Analysis 的 Coding Agent Index(模型+壳整体评测)</li>
+    <li><strong>看框架</strong>:LangGraph 官方文档 docs.langchain.com · Microsoft Agent Framework(learn.microsoft.com/agent-framework)· OpenAI Agents SDK(openai.github.io/openai-agents-python)· smolagents(huggingface.co/docs/smolagents)</li>
+    <li><strong>看中国生态</strong>:QwenLM/qwen-code 与 Qwen3-Coder 的 GitHub · api-docs.deepseek.com(V4 与 Deep Code)· z.ai/subscribe(GLM Coding Plan)· Moonshot 平台 platform.moonshot.ai</li>
+    <li><strong>看行业结构讨论</strong>:OpenAI《Harness engineering》博文 · martinfowler.com 的 harness engineering 系列 · Anthropic《2026 Agentic Coding Trends Report》</li>
+  </ul>
+
+  <footer>
+    <p><strong>调研时间:2026-07-05。</strong>本文档由公开来源交叉整理而成;agent 领域迭代极快,所有版本号、价格、数据请以官方最新文档为准。文中标注「官方口径」处为公司自述,未经独立审计;标注「观点」处为社区/媒体评论,与事实陈述区分。主要来源:</p>
+    <ul>
+      <li>📰 收购与融资:<a href="https://techcrunch.com/2026/04/17/sources-cursor-in-talks-to-raise-2b-at-50b-valuation-as-enterprise-growth-surges/">TechCrunch · Cursor $50B 融资谈判(2026.4)</a> · <a href="https://www.cnbc.com/2026/06/16/spacex-spcx-cursor-acquisition-ipo.html">CNBC · SpaceX $60B 收购 Cursor(2026.6.16)</a> · <a href="https://techcrunch.com/2025/07/14/cognition-maker-of-the-ai-coding-agent-devin-acquires-windsurf/">TechCrunch · Cognition 收购 Windsurf(2025.7.14,含 Google $2.4B acqui-hire 与 OpenAI 谈判破裂细节)</a> · <a href="https://www.cnbc.com/2025/12/30/meta-acquires-singapore-ai-agent-firm-manus-china-butterfly-effect-monicai.html">CNBC · Meta 收购 Manus(2025.12)</a> · <a href="https://siliconangle.com/2026/04/27/china-blocks-metas-acquisition-ai-agent-developer-manus/">SiliconANGLE · 中国叫停 Meta-Manus(2026.4.27)</a></li>
+      <li>🏢 公司官方:<a href="https://cognition.com/blog/windsurf">Cognition 官方公告</a> · <a href="https://cline.bot/blog/cline-raises-32m-series-a-and-seed-funding-building-the-open-source-ai-coding-agent-that-enterprises-trust">Cline $32M 融资公告</a> · <a href="https://opencode.ai/">OpenCode 官网</a> · <a href="https://devin.ai/pricing/">Devin 定价页</a> · <a href="https://www.langchain.com/blog/langchain-langgraph-1dot0">LangChain/LangGraph 1.0 公告(2025.10)</a> · <a href="https://openai.com/index/introducing-agentkit/">OpenAI AgentKit(2025.10)</a> · <a href="https://openai.com/index/the-next-evolution-of-the-agents-sdk/">OpenAI · Agents SDK 演进</a> · <a href="https://devblogs.microsoft.com/agent-framework/migrate-your-semantic-kernel-and-autogen-projects-to-microsoft-agent-framework-release-candidate/">Microsoft Agent Framework 迁移指南</a> · <a href="https://qwen.ai/blog?id=qwen3-coder">Qwen3-Coder 发布博客</a> · <a href="https://api-docs.deepseek.com/news/news260424">DeepSeek V4 发布页</a> · <a href="https://z.ai/subscribe">GLM Coding Plan</a> · <a href="https://blog.google/innovation-and-ai/technology/developers-tools/google-io-2026-developer-highlights/">Google I/O 2026 开发者要点</a> · <a href="https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/">Gemini CLI → Antigravity CLI 过渡公告</a> · <a href="https://www.anthropic.com/news/anthropic-raises-30-billion-series-g-funding-380-billion-post-money-valuation">Anthropic Series G 公告</a></li>
+      <li>📊 数据与评测:<a href="https://dev.to/soulentheo/every-ai-coding-cli-in-2026-the-complete-map-30-tools-compared-4gob">dev.to · 2026 AI Coding CLI 全景(2026.4.15,已全文核读)</a> · <a href="https://www.morphllm.com/best-ai-coding-agents-2026">Morph · Coding Agent 排行(2026.6)</a> · <a href="https://sacra.com/c/genspark/">Sacra · Genspark 收入估算</a> · <a href="https://venturebeat.com/technology/anthropic-says-it-hit-a-30-billion-revenue-run-rate-after-crazy-80x-growth">VentureBeat · Anthropic $30B run-rate</a> · <a href="https://www.cnbc.com/2025/09/08/cognition-valued-at-10point2-billion-two-months-after-windsurf-.html">CNBC · Cognition 估值(2025.9)</a></li>
+      <li>🇨🇳 中国生态补充:<a href="https://en.wikipedia.org/wiki/Manus_(AI_agent)">Wikipedia · Manus</a> · <a href="https://en.wikipedia.org/wiki/Kimi_(chatbot)">Wikipedia · Kimi</a> · <a href="https://rits.shanghai.nyu.edu/ai/moonshot-ai-releases-kimi-k2-6-with-256k-context-and-300-agent-swarms/">NYU Shanghai RITS · Kimi K2.6</a> · <a href="https://asiatechdaily.com/chinese-ai-firm-butterfly-effect-raises-75-million-to-scale-manus-ai-globally/">AsiaTechDaily · Butterfly Effect $75M</a></li>
+      <li>💬 行业结构讨论:<a href="https://martinfowler.com/articles/harness-engineering.html">martinfowler.com · Harness Engineering</a> · <a href="https://openai.com/index/harness-engineering/">OpenAI · Harness Engineering</a> · <a href="https://www.faros.ai/blog/harness-engineering">Faros · Harness Engineering(「第三阶段」提法)</a> · <a href="https://www.augmentcode.com/guides/harness-engineering-ai-coding-agents">Augment Code · inner/outer harness 框架</a></li>
+    </ul>
+    <p style="margin-top:12px">整理方式:主题式全网调研(20+ 来源搜索与全文核读)→ 关键事实两源交叉验证 → 结构化重讲 + 可视化。第 08 章的「综合判断」为基于上述事实的分析框架,请结合自身判断使用。</p>
+  </footer>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var toc=document.getElementById('sideToc'),btn=document.getElementById('tocBtn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A'&&window.innerWidth<1330)toc.classList.remove('open')});
+  var links=[].slice.call(toc.querySelectorAll('a'));
+  var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+  var bar=document.getElementById('stBar'),pct=document.getElementById('stPct'),top=document.getElementById('topProgress');
+  function onScroll(){
+    var h=document.documentElement,max=h.scrollHeight-h.clientHeight,p=max>0?Math.min(100,Math.round(h.scrollTop/max*100)):0;
+    bar.style.width=p+'%';top.style.width=p+'%';pct.textContent=p+'%';
+    var cur=0;
+    for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].getBoundingClientRect().top<130)cur=i}
+    links.forEach(function(a,i){a.classList.toggle('on',i===cur)});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+  if(reduced){figs.forEach(function(f){f.classList.add('vis')})}
+  else if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          var f=en.target;f.classList.add('vis');
+          var items=[].slice.call(f.querySelectorAll('[data-anim]'));
+          items.forEach(function(el,i){el.style.transitionDelay=(i*0.16)+'s'});
+          var paths=[].slice.call(f.querySelectorAll('[data-draw]'));
+          paths.forEach(function(pth,i){
+            try{var L=pth.getTotalLength();pth.style.strokeDasharray=L;pth.style.strokeDashoffset=L;}catch(e){}
+            pth.style.animationDelay=(0.3+i*0.22)+'s';
+          });
+          io.unobserve(f);
+        }
+      });
+    },{threshold:0.18});
+    figs.forEach(function(f){io.observe(f)});
+  } else {figs.forEach(function(f){f.classList.add('vis')})}
+})();
+</script>
+</body>
+</html>

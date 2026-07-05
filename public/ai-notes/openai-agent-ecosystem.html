@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenAI / ChatGPT Agent 生态全景调研</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1c2b3a; --ink-soft:#46586b; --ink-mute:#7b8a99;
+  --accent:#1f6fd6; --accent-deep:#124a94; --accent-soft:#e3eefc; --accent-line:#bcd6f5;
+  --teal:#0e8a86; --teal-soft:#e0f4f3; --indigo:#5457c9; --indigo-soft:#e9e9fb;
+  --gold:#a97b12; --gold-soft:#fbf3dd; --warn:#b3541e; --warn-soft:#fdeee2;
+  --green:#1e7d46; --green-soft:#e2f5e9;
+  --hero-g:linear-gradient(135deg,#0d2a52 0%,#124a94 55%,#1f6fd6 100%);
+  --radius:14px; --shadow:0 2px 14px rgba(18,74,148,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.88}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,#1f6fd6,#0e8a86);z-index:99}
+.side-toc{position:fixed;top:50%;transform:translateY(-50%);left:18px;width:236px;max-height:82vh;overflow-y:auto;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(188,214,245,.7);border-radius:16px;padding:16px 14px;z-index:90;box-shadow:var(--shadow)}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep)}
+.st-sub{font-size:11.5px;color:var(--ink-mute);margin-bottom:8px}
+.st-progress{height:6px;background:var(--accent-soft);border-radius:3px;margin:6px 0 12px;overflow:hidden}
+.st-progress i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#1f6fd6,#0e8a86);border-radius:3px;transition:width .15s}
+.st-pct{font-size:11px;color:var(--ink-mute);text-align:right;margin-top:-8px;margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{display:flex;gap:7px;align-items:baseline;padding:5px 8px;border-radius:8px;font-size:12.8px;color:var(--ink-soft);text-decoration:none;line-height:1.45}
+.side-toc li a .n{font-size:10.5px;color:var(--accent);font-weight:700;min-width:16px}
+.side-toc li a:hover{background:var(--accent-soft)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.toc-btn{display:none;position:fixed;top:14px;left:14px;z-index:95;width:42px;height:42px;border-radius:12px;border:1px solid var(--accent-line);background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:19px;color:var(--accent-deep);cursor:pointer;box-shadow:var(--shadow)}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 60px;padding-left:calc(22px + 250px)}
+@media(max-width:1180px){
+  .wrap{padding-left:22px}
+  .side-toc{left:12px;top:64px;transform:none;display:none}
+  .side-toc.open{display:block}
+  .toc-btn{display:block}
+}
+.hero{background:var(--hero-g);color:#fff;border-radius:0 0 26px 26px;padding:64px 26px 46px;margin:0 -22px 38px;text-align:center}
+@media(min-width:1181px){.hero{margin-left:-22px}}
+.hero .kicker{display:inline-block;font-size:13px;letter-spacing:.14em;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:4px 14px;border-radius:999px;margin-bottom:16px}
+.hero h1{font-size:clamp(26px,4.4vw,40px);line-height:1.35;margin-bottom:14px}
+.hero p{max-width:640px;margin:0 auto;color:#d7e6fa;font-size:15.5px}
+.hero .meta{margin-top:18px;font-size:12.5px;color:#a9c6ec}
+section{margin-bottom:52px}
+h2{font-size:24px;color:var(--accent-deep);margin-bottom:6px;line-height:1.5;scroll-margin-top:24px}
+h2 .sec-n{color:var(--accent);font-size:15px;vertical-align:2px;margin-right:6px}
+h3{font-size:18.5px;color:var(--ink);margin:26px 0 10px}
+.lede{color:var(--ink-soft);font-size:15.5px;margin-bottom:18px}
+p{margin-bottom:14px}
+.term{background:linear-gradient(transparent 62%,#cfe3fb 62%);padding:0 2px;font-weight:600}
+.hl{color:var(--accent-deep);font-weight:700}
+.card{background:var(--card);border:1px solid var(--accent-line);border-radius:var(--radius);padding:20px 22px;margin:16px 0;box-shadow:var(--shadow)}
+.def{border-left:4px solid var(--accent)}
+.def .tag{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 9px;margin-right:8px;vertical-align:1px}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--teal-soft);color:var(--teal)}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def p{margin-bottom:9px}
+.callout{border-radius:var(--radius);padding:16px 20px;margin:16px 0;font-size:15.8px}
+.callout.key{background:var(--accent-soft);border:1px solid var(--accent-line)}
+.callout.warn{background:var(--warn-soft);border:1px solid #f2cdae}
+.callout.teal{background:var(--teal-soft);border:1px solid #b8e2e0}
+.callout .c-title{font-weight:700;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.figure{background:var(--card);border:1px solid var(--accent-line);border-radius:var(--radius);padding:18px 14px 10px;margin:20px 0;box-shadow:var(--shadow);opacity:0;transform:translateY(18px);transition:opacity .7s,transform .7s}
+.figure.vis{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--ink-mute);text-align:center;padding:8px 10px 6px;line-height:1.6}
+.figure img{max-width:100%;border-radius:10px;display:block;margin:0 auto}
+[data-anim]{opacity:0;transform:translateY(8px);transition:opacity .6s,transform .6s}
+.figure.vis [data-anim]{opacity:1;transform:none}
+[data-draw]{stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.2s ease}
+.figure.vis [data-draw]{stroke-dashoffset:0}
+@media(prefers-reduced-motion:reduce){.figure,[data-anim]{opacity:1!important;transform:none!important;transition:none!important}[data-draw]{stroke-dashoffset:0!important;transition:none!important}}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:16px 0;font-size:14.6px}
+th{background:var(--accent-deep);color:#fff;text-align:left;padding:10px 12px;font-weight:600;line-height:1.5}
+td{padding:10px 12px;border-top:1px solid #e4edf8;vertical-align:top;line-height:1.7}
+tr:nth-child(even) td{background:#f7fafe}
+.tbl-scroll{overflow-x:auto;margin:16px 0}
+.tbl-scroll table{margin:0;min-width:640px}
+.steps{list-style:none;margin:16px 0}
+.steps li{position:relative;padding:0 0 20px 46px}
+.steps li::before{content:attr(data-n);position:absolute;left:0;top:1px;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.steps li::after{content:"";position:absolute;left:14.5px;top:34px;bottom:2px;width:2px;background:var(--accent-line)}
+.steps li:last-child::after{display:none}
+.steps .s-t{font-weight:700;margin-bottom:2px}
+.steps .s-d{font-size:15px;color:var(--ink-soft)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.stat{background:var(--card);border:1px solid var(--accent-line);border-radius:var(--radius);padding:16px;text-align:center;box-shadow:var(--shadow)}
+.stat .v{font-size:26px;font-weight:800;color:var(--accent-deep)}
+.stat .l{font-size:12.8px;color:var(--ink-mute);line-height:1.5;margin-top:4px}
+.glossary{margin:16px 0}
+.glossary dt{font-weight:700;color:var(--accent-deep);margin-top:12px}
+.glossary dd{margin-left:0;color:var(--ink-soft);font-size:15.3px}
+.rephrase{margin:12px 0;border:1px dashed var(--accent-line);border-radius:10px;background:#f8fbff}
+.rephrase summary{cursor:pointer;padding:10px 16px;font-size:14.5px;color:var(--accent-deep);font-weight:600}
+.rephrase div{padding:0 16px 12px;font-size:15.3px;color:var(--ink-soft)}
+.analogy{border-left:4px solid var(--teal);background:var(--teal-soft)}
+.analogy .a-tag{font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px}
+.prereq{font-size:13.5px;color:var(--ink-mute);background:#f4f8fd;border-radius:8px;padding:6px 12px;display:inline-block;margin-bottom:10px}
+.prereq a{color:var(--accent)}
+.src-note{font-size:12.5px;color:var(--ink-mute)}
+pre{background:#0f2440;color:#d9e8fb;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:14px 0}
+code{font-family:"SF Mono",Menlo,Consolas,monospace}
+footer{border-top:1px solid var(--accent-line);padding-top:24px;font-size:13px;color:var(--ink-mute);line-height:2}
+footer a{color:var(--accent);text-decoration:none;word-break:break-all}
+.final{background:var(--hero-g);color:#e8f1fc;border-radius:18px;padding:26px 28px;margin:30px 0}
+.final h3{color:#fff;margin-top:0}
+ul.practice{list-style:none;margin:12px 0}
+ul.practice li{padding:5px 0 5px 30px;position:relative}
+ul.practice li::before{content:"✦";position:absolute;left:6px;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">OpenAI Agent 生态</div>
+  <div class="st-sub">调研学习文档 · 2026-07</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#overview"><span class="n">1</span>开篇速览</a></li>
+    <li><a href="#history"><span class="n">2</span>背景与演进脉络</a></li>
+    <li><a href="#codex"><span class="n">3</span>Codex</a></li>
+    <li><a href="#agent"><span class="n">4</span>ChatGPT Agent</a></li>
+    <li><a href="#sdk"><span class="n">5</span>Agents SDK / AgentKit</a></li>
+    <li><a href="#apps"><span class="n">6</span>GPTs → Apps / Workspace Agents</a></li>
+    <li><a href="#atlas"><span class="n">7</span>Atlas 浏览器</a></li>
+    <li><a href="#matrix"><span class="n">8</span>五产品对比总表</a></li>
+    <li><a href="#versus"><span class="n">9</span>OpenAI vs Anthropic 路线</a></li>
+    <li><a href="#pitfalls"><span class="n">10</span>常见坑与风险</a></li>
+    <li><a href="#resources"><span class="n">11</span>学习资源清单</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+<div class="hero">
+  <span class="kicker">TOPIC RESEARCH · AI AGENT 生态</span>
+  <h1>🧭 OpenAI / ChatGPT Agent 生态全景</h1>
+  <p>Codex · ChatGPT Agent · Agents SDK / AgentKit · GPTs 与 ChatGPT Apps · Atlas 浏览器——每条产品线按「定位 / 目标用户 / 场景 / 成熟度 / 定价」梳理，并与 Anthropic 的路线做一次系统对比。</p>
+  <div class="meta">调研时间：2026-07-05 · 基于 OpenAI / Anthropic 官方文档与主流媒体报道 · 快速迭代领域，请以官方最新文档为准</div>
+</div>
+
+<!-- ================= 1 开篇速览 ================= -->
+<section id="overview">
+  <h2><span class="sec-n">01</span>⚡ 开篇速览：30 秒版本</h2>
+  <p class="lede">如果只读这一段：OpenAI 的 agent 战略不是「一个产品」，而是<span class="hl">一套从消费者到开发者的立体入口矩阵</span>。</p>
+  <p>OpenAI 把「让 AI 替你干活」这件事拆成了五个面向不同人群的产品：<span class="term">Codex</span> 面向开发者（现在也扩展到分析师、销售等知识工作者），在终端、IDE、云端替你写代码干活；<span class="term">ChatGPT Agent</span> 是 ChatGPT 里的「agent 模式」，用自己的虚拟电脑上网、点按钮、做表格，面向普通付费用户；<span class="term">Agents SDK / AgentKit</span> 是给开发者构建自有 agent 的工具箱；<span class="term">ChatGPT Apps（Apps SDK）</span>把第三方应用装进 ChatGPT 对话里，接替了当年的 GPTs；<span class="term">Atlas</span> 则是一个内置 ChatGPT 的浏览器，把「入口」本身做成产品。</p>
+  <p>一句话概括两家路线的差异：<strong>OpenAI 押注「消费级超级入口 + 平台生态」</strong>——8 亿周活的 ChatGPT 是流量心脏，浏览器、应用商店、支付协议围绕它生长；<strong>Anthropic 押注「开发者与专业工作流 + 垂直 harness」</strong>——Claude Code / Cowork 这类「干活容器」扎进具体工作场景，收入以企业 API 为主，生态以 MCP、插件这类开放协议为骨架。</p>
+
+  <div class="figure" id="fig-overview">
+    <svg viewBox="0 0 820 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenAI agent 产品栈分层图">
+      <defs>
+        <marker id="ar1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f6fd6"/></marker>
+      </defs>
+      <text x="410" y="28" text-anchor="middle" font-size="16" font-weight="700" fill="#124a94" data-anim>OpenAI Agent 产品栈：一颗模型心脏，五个面向不同人群的出口</text>
+      <!-- model core -->
+      <g data-anim>
+        <rect x="285" y="352" width="250" height="52" rx="12" fill="#0d2a52"/>
+        <text x="410" y="374" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">GPT-5.x 模型家族</text>
+        <text x="410" y="392" text-anchor="middle" font-size="11" fill="#a9c6ec">通用模型 + Codex 编码特化版本</text>
+      </g>
+      <!-- platform layer -->
+      <g data-anim>
+        <rect x="120" y="268" width="580" height="56" rx="12" fill="#e9e9fb" stroke="#5457c9"/>
+        <text x="410" y="291" text-anchor="middle" font-size="13.5" font-weight="700" fill="#5457c9">平台层：Responses API · Agents SDK · Apps SDK（基于 MCP）· ChatKit</text>
+        <text x="410" y="309" text-anchor="middle" font-size="11" fill="#46586b">开发者用这层把 agent 能力搬进自己的产品</text>
+      </g>
+      <!-- product boxes -->
+      <g data-anim>
+        <rect x="30" y="150" width="140" height="86" rx="12" fill="#e3eefc" stroke="#1f6fd6"/>
+        <text x="100" y="178" text-anchor="middle" font-size="13.5" font-weight="700" fill="#124a94">Codex</text>
+        <text x="100" y="198" text-anchor="middle" font-size="10.8" fill="#46586b">CLI / IDE / 云端</text>
+        <text x="100" y="215" text-anchor="middle" font-size="10.8" fill="#46586b">开发者→知识工作者</text>
+      </g>
+      <g data-anim>
+        <rect x="190" y="150" width="140" height="86" rx="12" fill="#e0f4f3" stroke="#0e8a86"/>
+        <text x="260" y="178" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0e8a86">ChatGPT Agent</text>
+        <text x="260" y="198" text-anchor="middle" font-size="10.8" fill="#46586b">对话里的 agent 模式</text>
+        <text x="260" y="215" text-anchor="middle" font-size="10.8" fill="#46586b">付费个人用户</text>
+      </g>
+      <g data-anim>
+        <rect x="350" y="150" width="140" height="86" rx="12" fill="#fbf3dd" stroke="#a97b12"/>
+        <text x="420" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="#a97b12">Apps in ChatGPT</text>
+        <text x="420" y="198" text-anchor="middle" font-size="10.8" fill="#46586b">第三方应用进对话</text>
+        <text x="420" y="215" text-anchor="middle" font-size="10.8" fill="#46586b">全体用户 + 品牌方</text>
+      </g>
+      <g data-anim>
+        <rect x="510" y="150" width="140" height="86" rx="12" fill="#e2f5e9" stroke="#1e7d46"/>
+        <text x="580" y="178" text-anchor="middle" font-size="12.6" font-weight="700" fill="#1e7d46">Workspace Agents</text>
+        <text x="580" y="198" text-anchor="middle" font-size="10.8" fill="#46586b">GPTs 的企业版继任者</text>
+        <text x="580" y="215" text-anchor="middle" font-size="10.8" fill="#46586b">企业团队</text>
+      </g>
+      <g data-anim>
+        <rect x="670" y="150" width="120" height="86" rx="12" fill="#fdeee2" stroke="#b3541e"/>
+        <text x="730" y="178" text-anchor="middle" font-size="13.5" font-weight="700" fill="#b3541e">Atlas</text>
+        <text x="730" y="198" text-anchor="middle" font-size="10.8" fill="#46586b">AI 原生浏览器</text>
+        <text x="730" y="215" text-anchor="middle" font-size="10.8" fill="#46586b">消费级入口</text>
+      </g>
+      <!-- top -->
+      <g data-anim>
+        <rect x="240" y="58" width="340" height="52" rx="14" fill="#124a94"/>
+        <text x="410" y="80" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">ChatGPT：8 亿+ 周活的消费级超级入口</text>
+        <text x="410" y="98" text-anchor="middle" font-size="11" fill="#a9c6ec">所有产品线共享同一个账号、订阅与流量池</text>
+      </g>
+      <!-- lines -->
+      <path d="M100 150 L 330 112" stroke="#1f6fd6" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw/>
+      <path d="M260 150 L 370 112" stroke="#1f6fd6" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw/>
+      <path d="M420 150 L 415 112" stroke="#1f6fd6" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw/>
+      <path d="M580 150 L 465 112" stroke="#1f6fd6" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw/>
+      <path d="M730 150 L 545 112" stroke="#1f6fd6" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw/>
+      <path d="M410 268 L 410 240" stroke="#5457c9" stroke-width="2" fill="none" data-draw/>
+      <path d="M410 352 L 410 326" stroke="#0d2a52" stroke-width="2" fill="none" data-draw/>
+    </svg>
+    <div class="fig-cap">OpenAI agent 产品栈：底层是 GPT-5.x 模型，中间是开发者平台层，上层五个产品各自面向一类人群，最终都汇入 ChatGPT 这个超级入口。</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">8 亿+</div><div class="l">ChatGPT 周活用户（官方，2025-10 DevDay）</div></div>
+    <div class="stat"><div class="v">500 万+</div><div class="l">Codex 周活用户（官方，2026-06）</div></div>
+    <div class="stat"><div class="v">~20%</div><div class="l">Codex 用户已是非开发者，且增速为开发者 3 倍（官方）</div></div>
+    <div class="stat"><div class="v">5 条</div><div class="l">产品线并行：Codex / Agent / SDK / Apps / Atlas</div></div>
+  </div>
+</section>
+
+<!-- ================= 2 背景与脉络 ================= -->
+<section id="history">
+  <h2><span class="sec-n">02</span>🕰️ 背景与演进脉络：从「会聊天」到「会干活」</h2>
+  <p class="lede">先搞清楚一个问题：为什么 2025 年之后所有 AI 公司都在做 agent？</p>
+  <p>2023–2024 年的 ChatGPT 本质上是一个「问答机」：你问，它答，动手的永远是你。但大量真实工作不是「告诉我怎么做」，而是「替我做完」——订酒店要真的去点网页，改代码要真的跑测试，做周报要真的去翻 Slack。<span class="term">Agent（智能体）</span>就是为此而生的形态：给模型配上浏览器、终端、文件系统这些「手脚」，让它自己规划步骤、调用工具、检查结果，直到把任务做完。</p>
+  <div class="rephrase"><details><summary>💬 没看懂 agent 和聊天机器人的区别？点这里换种说法</summary><div>聊天机器人像一位「顾问」：你描述问题，它给建议，动手还得靠你。Agent 像一位「助理」：你说「把这事办了」，它自己打开电脑、查资料、填表格、写文档，最后把结果交给你。两者用的可能是同一个大脑（模型），差别在于有没有「手脚」（工具）和「自主循环」（自己规划、执行、检查、修正）。</div></details></div>
+  <p>OpenAI 的 agent 版图不是一天画出来的，而是两年里一系列试验、合并与淘汰的结果。看懂这条时间线，就看懂了每个产品「为什么存在」：</p>
+
+  <div class="figure" id="fig-timeline">
+    <svg viewBox="0 0 820 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenAI agent 产品演进时间线">
+      <line x1="120" y1="40" x2="120" y2="530" stroke="#bcd6f5" stroke-width="3" data-draw/>
+      <g data-anim><circle cx="120" cy="52" r="7" fill="#1f6fd6"/><text x="30" y="57" font-size="12.5" font-weight="700" fill="#124a94">2025.01–02</text><text x="140" y="48" font-size="13.5" font-weight="700" fill="#1c2b3a">Operator 与 Deep Research 相继发布</text><text x="140" y="66" font-size="12" fill="#46586b">一个会点网页、一个会做深度研究——两个「偏科生」各管一摊</text></g>
+      <g data-anim><circle cx="120" cy="110" r="7" fill="#1f6fd6"/><text x="30" y="115" font-size="12.5" font-weight="700" fill="#124a94">2025.03</text><text x="140" y="106" font-size="13.5" font-weight="700" fill="#1c2b3a">Responses API + Agents SDK 开源发布</text><text x="140" y="124" font-size="12" fill="#46586b">给开发者的 agent 地基：把「模型调工具」标准化成 API 和代码框架</text></g>
+      <g data-anim><circle cx="120" cy="168" r="7" fill="#1f6fd6"/><text x="30" y="173" font-size="12.5" font-weight="700" fill="#124a94">2025.04–05</text><text x="140" y="164" font-size="13.5" font-weight="700" fill="#1c2b3a">Codex CLI（开源）与 Codex 云端版上线</text><text x="140" y="182" font-size="12" fill="#46586b">编码 agent 从终端和云端两头起步，随后统一进一个产品</text></g>
+      <g data-anim><circle cx="120" cy="226" r="7" fill="#0e8a86"/><text x="30" y="231" font-size="12.5" font-weight="700" fill="#0e8a86">2025.07</text><text x="140" y="222" font-size="13.5" font-weight="700" fill="#1c2b3a">ChatGPT Agent 发布：Operator + Deep Research 合并</text><text x="140" y="240" font-size="12" fill="#46586b">「偏科生」合体成通用操作 agent，Operator 独立站随后关停</text></g>
+      <g data-anim><circle cx="120" cy="284" r="7" fill="#1f6fd6"/><text x="30" y="289" font-size="12.5" font-weight="700" fill="#124a94">2025.09</text><text x="140" y="280" font-size="13.5" font-weight="700" fill="#1c2b3a">GPT-5-Codex：编码特化模型</text><text x="140" y="298" font-size="12" fill="#46586b">测试中可独立连续工作 7 小时以上；「通用模型 + 场景特化版」策略成形</text></g>
+      <g data-anim><circle cx="120" cy="342" r="7" fill="#a97b12"/><text x="30" y="347" font-size="12.5" font-weight="700" fill="#a97b12">2025.10</text><text x="140" y="338" font-size="13.5" font-weight="700" fill="#1c2b3a">DevDay 三连发：AgentKit + Apps SDK + Atlas 浏览器</text><text x="140" y="356" font-size="12" fill="#46586b">开发者工具箱、应用生态、浏览器入口同月推出，版图基本成形</text></g>
+      <g data-anim><circle cx="120" cy="400" r="7" fill="#1f6fd6"/><text x="30" y="405" font-size="12.5" font-weight="700" fill="#124a94">2025.12</text><text x="140" y="396" font-size="13.5" font-weight="700" fill="#1c2b3a">ChatGPT App Directory 上线，开放第三方提交</text><text x="140" y="414" font-size="12" fill="#46586b">应用目录取代当年的 GPT Store，成为「对话内应用商店」</text></g>
+      <g data-anim><circle cx="120" cy="458" r="7" fill="#1e7d46"/><text x="30" y="463" font-size="12.5" font-weight="700" fill="#1e7d46">2026.04</text><text x="140" y="454" font-size="13.5" font-weight="700" fill="#1c2b3a">Workspace Agents 发布（GPTs 继任者）+ Agents SDK 大改版</text><text x="140" y="472" font-size="12" fill="#46586b">企业侧用 Codex 驱动的常驻 agent 接棒 GPTs；SDK 引入沙箱、harness、子 agent</text></g>
+      <g data-anim><circle cx="120" cy="516" r="7" fill="#b3541e"/><text x="30" y="521" font-size="12.5" font-weight="700" fill="#b3541e">2026.06</text><text x="140" y="512" font-size="13.5" font-weight="700" fill="#1c2b3a">Codex 面向所有职能扩展；Agent Builder / Evals 宣布弃用</text><text x="140" y="530" font-size="12" fill="#46586b">角色插件把 Codex 推向非开发者；上线仅 8 个月的可视化编排画布被砍</text></g>
+    </svg>
+    <div class="fig-cap">2025–2026 年 OpenAI agent 版图演进：试验（Operator / Deep Research）→ 合并（ChatGPT Agent）→ 铺生态（DevDay 三连发）→ 收敛与淘汰（Workspace Agents 接棒 GPTs、Agent Builder 被砍）。</div>
+  </div>
+
+  <div class="callout key"><div class="c-title">🔑 读这条时间线的三个要点</div>
+  <p>① OpenAI 习惯「先发多个试验品，再合并成一个正品」——Operator 和 Deep Research 合并成 ChatGPT Agent 是典型案例；② 产品淘汰速度极快，Agent Builder 从发布到宣布弃用只有 8 个月，评估工具 Evals 同批被砍；③ 2026 年的主线是「Codex 化」：Workspace Agents 由 Codex 驱动，Codex 本身也从编码工具扩张成全职能工作平台。</p></div>
+</section>
+
+<!-- ================= 3 Codex ================= -->
+<section id="codex">
+  <h2><span class="sec-n">03</span>👨‍💻 Codex：从编码 agent 到「全职能同事」</h2>
+  <p class="lede">Codex 是 OpenAI 所有 agent 产品里成熟度最高、演进最快的一条线——也是理解其整体战略的最佳切口。</p>
+
+  <div class="card def">
+    <p><span class="tag tag-what">是什么</span>一个「派活式」的软件工程 agent：你用自然语言描述任务（修 bug、做重构、写测试、审 PR），它在<strong>终端（CLI）、IDE 插件、云端容器、GitHub、手机 App</strong> 五个入口里的任意一个替你完成，且工作上下文可以在这些入口之间无缝流转。同一个 ChatGPT 账号打通全部入口。</p>
+    <p><span class="tag tag-why">为什么</span>写代码是「验证闭环最完整」的工作：改完能编译、能跑测试，agent 可以自己检查自己。这让编码成为 agent 最先跑通的场景。OpenAI 又发现这套「读文件 → 干活 → 自查 → 交付」的循环对做表格、写报告同样成立，于是 2026 年把 Codex 推向分析师、销售、投行等非开发者。</p>
+    <p><span class="tag tag-eg">例子</span>OpenAI 官方称内部「绝大多数 PR」已由 Codex 自动审查，每天拦下数百个问题；Cisco Meraki 的工程师把跨团队代码库的重构和测试生成整体外包给 Codex，自己只做验收。</p>
+  </div>
+
+  <h3>🧩 形态与用法</h3>
+  <p>Codex 的五个入口共享同一个 agent 内核：<strong>CLI</strong>（开源，<code>npm i -g @openai/codex</code> 安装，支持图片输入、待办清单、web 搜索、MCP 连接外部系统）；<strong>IDE 扩展</strong>（VS Code / Cursor / Windsurf，能读你当前打开的文件做上下文）；<strong>Codex Cloud</strong>（云端容器跑长任务，可自动配环境、开浏览器自查界面、截图附在 PR 里）；<strong>GitHub 集成</strong>（PR 自动审查，@codex review 召唤）；<strong>ChatGPT App</strong>（手机上派活）。本地安全模型是三档审批：只读、工作区内自动、完全放开。项目根目录的 <code>AGENTS.md</code> 文件充当「给 agent 的说明书」。</p>
+  <ol class="steps">
+    <li data-n="1"><div class="s-t">派任务</div><div class="s-d">在任一入口用自然语言描述任务，可附截图、设计稿；复杂任务 Codex 会自己列 to-do 清单。</div></li>
+    <li data-n="2"><div class="s-t">Agent 自主工作</div><div class="s-d">读代码库 → 改代码 → 跑测试 → 自查修正；云端任务可长时间独立运行（官方称 GPT-5-Codex 测试中曾连续工作 7 小时以上）。</div></li>
+    <li data-n="3"><div class="s-t">审查与迭代</div><div class="s-d">Codex 交付 diff、终端日志、测试结果和引用；你用「annotations」圈中某一处继续让它改，或直接合并。</div></li>
+  </ol>
+
+  <h3>📈 2026 年的关键转向：非开发者市场</h3>
+  <p>2026 年 6 月官方数据：Codex 周活超过 <span class="hl">500 万</span>，其中约 <span class="hl">20% 是非开发者</span>（分析师、市场、设计、投资人等），且这部分人群增速是开发者的 3 倍以上。为承接他们，OpenAI 发布了六个<span class="term">角色插件</span>（数据分析、创意制作、销售、产品设计、公开市场投资、投行——打包了 62 个应用连接和 110 个技能）、<span class="term">Sites</span>（用一个 URL 分享 Codex 生成的交互式网页/应用，预览版）和 annotations 精修能力。官方明确表态要建「合作伙伴可发布自有插件」的开放生态。</p>
+
+  <h3>💰 定价与成熟度</h3>
+  <p>Codex 不单独收费，<strong>捆绑在 ChatGPT 订阅里</strong>，用量随档位放大；超出后可买 credits 或挂 API key 按量付费。2026 年 4 月起 credits 计费改为按 token 计价。当前可用模型包括 GPT-5.5、GPT-5.4（官方 changelog 称其为首个原生支持计算机操作的通用模型，实验性支持 1M 上下文）、GPT-5.4-mini 及 GPT-5.3-Codex 等特化版。</p>
+  <div class="tbl-scroll"><table>
+    <tr><th>档位</th><th>价格</th><th>Codex 用量定位（官方口径）</th></tr>
+    <tr><td>Free</td><td>$0</td><td>体验级尝鲜</td></tr>
+    <tr><td>Go</td><td>$8/月</td><td>轻量编码任务</td></tr>
+    <tr><td>Plus</td><td>$20/月</td><td>每周几次专注编码会话；GPT-5.5 本地消息约 15–80 条/5 小时</td></tr>
+    <tr><td>Pro（5x / 20x）</td><td>$100 / $200 每月</td><td>支撑全周多项目工作；20x 档 GPT-5.5 约 300–1600 条/5 小时</td></tr>
+    <tr><td>Business</td><td>按席位</td><td>与 Plus 相近的席位额度，可购 credits 扩展</td></tr>
+    <tr><td>Enterprise / Edu</td><td>联系销售</td><td>共享 credits 池，用多少付多少</td></tr>
+  </table></div>
+  <p class="src-note">额度为区间估计且随模型与任务复杂度浮动，本地消息与云任务共享 5 小时窗口；来源：developers.openai.com/codex/pricing（2026-07 读取）。</p>
+  <p><strong>成熟度评价：五条产品线中最高。</strong>产品形态稳定（五入口格局一年未变）、有清晰的企业管控（管理员权限、AWS 上可用）、商业模式跑通（订阅捆绑 + credits）。风险点主要是非开发者场景仍在快速加建，角色插件、Sites 均为最近数月的新特性。</p>
+</section>
+
+<!-- ================= 4 ChatGPT Agent ================= -->
+<section id="agent">
+  <h2><span class="sec-n">04</span>🕹️ ChatGPT Agent：对话里的「虚拟电脑」</h2>
+  <p class="lede">如果说 Codex 是给专业用户的重器，ChatGPT Agent 就是把同一理念装进普通人每天用的聊天框。</p>
+
+  <div class="card def">
+    <p><span class="tag tag-what">是什么</span>ChatGPT 内置的「agent 模式」：在任意对话中从工具下拉菜单选择 agent mode，ChatGPT 就会启动一台<strong>自己的虚拟电脑</strong>，用视觉浏览器点网页、文本浏览器读资料、终端跑代码、API 拿数据，把「查资料 + 动手操作」一条龙做完，产出可编辑的幻灯片、表格等交付物。</p>
+    <p><span class="tag tag-why">为什么</span>它是 2025 年 1 月的 Operator（只会操作网页、不会深度分析）和 2 月的 Deep Research（只会研究、不能登录网站和交互）的合并体。OpenAI 发现用户拿 Operator 干的很多活其实更适合 Deep Research，索性把两者能力装进一个统一系统——这也是「先试验、后合并」策略的代表作。</p>
+    <p><span class="tag tag-eg">例子</span>官方演示：「看我的日历，结合近期新闻给我做客户会议简报」「规划一顿四人日式早餐并把食材加进购物车」「分析三家竞品并产出幻灯片」。</p>
+  </div>
+
+  <div class="figure" id="fig-agent">
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ChatGPT Agent 虚拟电脑机制图">
+      <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0e8a86"/></marker></defs>
+      <text x="410" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#124a94" data-anim>一台虚拟电脑 + 四类工具，在同一个上下文里自由切换</text>
+      <g data-anim>
+        <rect x="40" y="120" width="150" height="60" rx="12" fill="#e3eefc" stroke="#1f6fd6"/>
+        <text x="115" y="146" text-anchor="middle" font-size="13" font-weight="700" fill="#124a94">你的指令</text>
+        <text x="115" y="164" text-anchor="middle" font-size="10.5" fill="#46586b">可随时打断 / 接管</text>
+      </g>
+      <path d="M190 150 L 240 150" stroke="#0e8a86" stroke-width="2.5" marker-end="url(#ar2)" data-draw/>
+      <g data-anim>
+        <rect x="240" y="60" width="340" height="185" rx="16" fill="#f0fbfa" stroke="#0e8a86" stroke-width="2"/>
+        <text x="410" y="85" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0e8a86">Agent 的虚拟电脑（上下文全程保留）</text>
+        <rect x="258" y="100" width="145" height="40" rx="8" fill="#fff" stroke="#0e8a86"/><text x="330" y="118" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1c2b3a">🖱️ 视觉浏览器</text><text x="330" y="133" text-anchor="middle" font-size="9.8" fill="#7b8a99">点按钮、填表单、登录</text>
+        <rect x="417" y="100" width="145" height="40" rx="8" fill="#fff" stroke="#0e8a86"/><text x="489" y="118" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1c2b3a">📄 文本浏览器</text><text x="489" y="133" text-anchor="middle" font-size="9.8" fill="#7b8a99">高效读长网页</text>
+        <rect x="258" y="150" width="145" height="40" rx="8" fill="#fff" stroke="#0e8a86"/><text x="330" y="168" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1c2b3a">⌨️ 终端</text><text x="330" y="183" text-anchor="middle" font-size="9.8" fill="#7b8a99">跑代码、处理文件</text>
+        <rect x="417" y="150" width="145" height="40" rx="8" fill="#fff" stroke="#0e8a86"/><text x="489" y="168" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1c2b3a">🔌 API + 连接器</text><text x="489" y="183" text-anchor="middle" font-size="9.8" fill="#7b8a99">Gmail、日历、GitHub…</text>
+        <text x="410" y="228" text-anchor="middle" font-size="10.5" fill="#46586b">下载文件 → 终端加工 → 浏览器查看结果，工具间自由接力</text>
+      </g>
+      <path d="M580 150 L 630 150" stroke="#0e8a86" stroke-width="2.5" marker-end="url(#ar2)" data-draw/>
+      <g data-anim>
+        <rect x="630" y="105" width="160" height="90" rx="12" fill="#e2f5e9" stroke="#1e7d46"/>
+        <text x="710" y="133" text-anchor="middle" font-size="13" font-weight="700" fill="#1e7d46">交付物</text>
+        <text x="710" y="153" text-anchor="middle" font-size="10.5" fill="#46586b">可编辑幻灯片 / 表格</text>
+        <text x="710" y="170" text-anchor="middle" font-size="10.5" fill="#46586b">报告 / 完成的网页操作</text>
+      </g>
+      <text x="410" y="280" text-anchor="middle" font-size="11.5" fill="#b3541e" data-anim>⚠️ 重大操作前必须请求确认；发邮件等关键任务需「Watch Mode」全程盯着</text>
+    </svg>
+    <div class="fig-cap">ChatGPT Agent 的机制：一台虚拟电脑装着四类工具，模型按需切换，全程共享一份任务上下文；人类保留打断、接管、确认的控制权。</div>
+  </div>
+
+  <h3>🎯 目标用户与场景</h3>
+  <p>面向<strong>付费个人与团队用户</strong>（发布时覆盖 Plus / Pro / Team，随后扩展到 Enterprise / Edu），典型场景是「一次性委托型任务」：竞品调研 + 做成 PPT、把仪表盘截图转成演示文稿、订餐厅规划活动、更新财务表格。它与 Deep Research 并存——后者依然是下拉菜单里更「重研究、慢而深」的选项。</p>
+
+  <h3>💰 定价与成熟度</h3>
+  <p>不单独收费，按订阅档位给消息额度：发布时 <span class="hl">Pro 每月 400 条 agent 消息、其他付费档 40 条</span>，可用 credits 弹性加购（官方 2025-07 口径；第三方 2026 年整理的档位额度与此基本一致，具体以官方帮助中心为准）。</p>
+  <p><strong>成熟度：中等偏上，但有明确短板。</strong>核心能力（浏览、研究、表格）已稳定；幻灯片生成官方自认「格式粗糙」长期处于 beta。安全上它是 OpenAI 首个按「生物化学高风险能力」等级对待的消费产品，prompt injection（网页里藏恶意指令劫持 agent）被官方列为核心风险，靠训练对抗 + 确认机制 + 监控缓解——这也是所有「上网干活」类 agent 的共同软肋。</p>
+</section>
+
+<!-- ================= 5 Agents SDK / AgentKit ================= -->
+<section id="sdk">
+  <h2><span class="sec-n">05</span>🧰 Agents SDK / AgentKit：给开发者的 agent 工具箱</h2>
+  <p class="lede">这一条线回答的问题是：第三方开发者怎么用 OpenAI 的能力构建<em>自己的</em> agent？答案在 2026 年发生了一次重要收缩。</p>
+
+  <div class="card def">
+    <p><span class="tag tag-what">是什么</span>两层东西。<span class="term">Agents SDK</span>（2025 年 3 月发布）是开源的 Python / TypeScript 代码框架，把 agent、工具、交接（handoff）、护栏（guardrail）建模成代码对象，跑在 Responses API 上。<span class="term">AgentKit</span>（2025 年 10 月 DevDay 发布）是其上的「全家桶」：可视化编排画布 <strong>Agent Builder</strong>、可嵌入的聊天 UI 组件 <strong>ChatKit</strong>、企业数据连接管理 <strong>Connector Registry</strong>，外加评估平台 Evals 的增强。</p>
+    <p><span class="tag tag-why">为什么</span>在此之前，开发者做 agent 要自己拼编排逻辑、连接器、评估管道和前端聊天界面。AgentKit 想把这四件事打包；Agents SDK 则面向愿意写代码的团队。客户案例：Klarna 用这套栈搭的客服 agent 处理了三分之二的工单，Ramp 几小时内搭出采购 agent。</p>
+    <p><span class="tag tag-eg">例子</span>用 Agents SDK 写一个「规划 agent 把研究派给搜索子 agent、把改代码派给编辑子 agent、把测试派给验证子 agent」的流水线，几十行代码即可表达。</p>
+  </div>
+
+  <h3>⚠️ 2026 年 6 月的急转弯：Agent Builder 被砍</h3>
+  <p>发布仅约 8 个月后，OpenAI 于 <span class="hl">2026 年 6 月 3 日</span>宣布弃用 Agent Builder（可视化画布）和 Evals 平台：Evals 于 10 月 31 日转只读，两者 <span class="hl">11 月 30 日</span>彻底下线。ChatKit 保留，Connector Registry 未列入弃用。官方给出的迁移路径：想用代码继续 → Agents SDK；想用自然语言配置 → ChatGPT 里的 Workspace Agents；评估 → 官方指引提及迁移到开源的 Promptfoo。</p>
+  <div class="callout warn"><div class="c-title">⚠️ 这件事的信号意义大于事件本身</div>
+  <p>一个 DevDay 主推的产品 8 个月就被砍，说明两点：其一，OpenAI 内部在「可视化低代码」和「代码优先 + 自然语言配置」两条路线之间选择了后者；其二，托管型专有平台的沉没成本风险是真实的——社区总结的教训是「编排层随时可能换，工具接入层要压在 MCP 这类开放协议上」，这样平台变动时只需要换框架，不用重写所有连接器。</p></div>
+
+  <h3>🚀 与此同时，Agents SDK 本体在加码</h3>
+  <p>2026 年 4 月 15 日 SDK 迎来官方称为「下一次进化」的大改版，方向是把 Codex 验证过的执行架构下放给所有开发者：<strong>原生沙箱执行</strong>（模型生成的代码在隔离容器里跑，内置支持 E2B、Modal、Cloudflare、Daytona、Vercel 等沙箱服务商）、<strong>模型原生 harness</strong>（自带可配置记忆、类 Codex 文件系统工具的长任务执行环境）、<strong>子 agent 原语（beta）</strong>、快照与断点恢复，另有 code mode 在路线图上。先发 Python，TypeScript 跟进。</p>
+  <div class="rephrase"><details><summary>💬 「harness」这个词到底指什么？点这里换种说法</summary><div>harness 直译是「马具」，在 agent 语境里指「让模型能持续干活的那套外围装备」：文件系统、终端、记忆、任务循环、失败重试。模型是马，harness 是鞍和缰绳——没有它，再强的模型也只能站着说话，套上它才能拉车。Claude Code、Codex CLI 本质上都是各家打磨的 harness；OpenAI 这次是把 harness 做成 SDK 里人人可用的标准件。</div></details></div>
+
+  <h3>💰 定价与成熟度</h3>
+  <p>SDK 与 ChatKit 免费，按底层 API 模型调用量计费。<strong>成熟度分裂</strong>：Agents SDK 本体活跃且方向明确（官方钦定的代码路线）；但整个「低代码托管平台」子线刚经历一次公开失败，选型时应把 Agent Builder 类比案例当作前车之鉴。</p>
+</section>
+
+<!-- ================= 6 GPTs / Apps ================= -->
+<section id="apps">
+  <h2><span class="sec-n">06</span>🧩 GPTs → ChatGPT Apps 与 Workspace Agents：应用生态的两次接棒</h2>
+  <p class="lede">「让别人在 ChatGPT 里开店」这个想法 OpenAI 做了三代：GPTs → Apps（消费侧）+ Workspace Agents（企业侧）。看懂这次分叉，就看懂了它的平台野心。</p>
+
+  <p>先交代前史：2023 年底的 <span class="term">GPTs</span> 让任何人用提示词 + 知识文件攒一个定制 ChatGPT，2024 年初配了 GPT Store。但 GPTs 本质是「提示词包装」，没有真正的应用逻辑和界面，也一直没跑通开发者分成，生态热度逐年走低。2025 年 10 月，OpenAI 用两个更认真的东西接棒：</p>
+
+  <div class="figure" id="fig-fork">
+    <svg viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GPTs 演进分叉图">
+      <defs><marker id="ar3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a97b12"/></marker></defs>
+      <g data-anim>
+        <rect x="310" y="30" width="200" height="66" rx="12" fill="#eef1f6" stroke="#7b8a99"/>
+        <text x="410" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#46586b">GPTs + GPT Store</text>
+        <text x="410" y="77" text-anchor="middle" font-size="10.8" fill="#7b8a99">2023–24：提示词级定制，变现未跑通</text>
+      </g>
+      <path d="M360 96 C 300 140, 240 150, 205 175" stroke="#a97b12" stroke-width="2.5" fill="none" marker-end="url(#ar3)" data-draw/>
+      <path d="M460 96 C 520 140, 580 150, 615 175" stroke="#a97b12" stroke-width="2.5" fill="none" marker-end="url(#ar3)" data-draw/>
+      <g data-anim>
+        <rect x="40" y="180" width="340" height="120" rx="14" fill="#fbf3dd" stroke="#a97b12" stroke-width="2"/>
+        <text x="210" y="207" text-anchor="middle" font-size="13.5" font-weight="700" fill="#a97b12">消费侧：Apps in ChatGPT（Apps SDK）</text>
+        <text x="210" y="230" text-anchor="middle" font-size="11.3" fill="#46586b">2025.10 发布 · 基于 MCP 开放标准、开源</text>
+        <text x="210" y="250" text-anchor="middle" font-size="11.3" fill="#46586b">真实应用逻辑 + 对话内交互界面（iframe）</text>
+        <text x="210" y="270" text-anchor="middle" font-size="11.3" fill="#46586b">Spotify、Canva、Zillow、Booking 等入驻</text>
+        <text x="210" y="290" text-anchor="middle" font-size="11.3" fill="#46586b">2025.12 App Directory 开放第三方提交</text>
+      </g>
+      <g data-anim>
+        <rect x="440" y="180" width="340" height="120" rx="14" fill="#e2f5e9" stroke="#1e7d46" stroke-width="2"/>
+        <text x="610" y="207" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e7d46">企业侧：Workspace Agents</text>
+        <text x="610" y="230" text-anchor="middle" font-size="11.3" fill="#46586b">2026.04 研究预览 · GPTs 官方继任者</text>
+        <text x="610" y="250" text-anchor="middle" font-size="11.3" fill="#46586b">Codex 驱动、云端常驻、组织内共享</text>
+        <text x="610" y="270" text-anchor="middle" font-size="11.3" fill="#46586b">接 Slack / Salesforce 等企业工具干活</text>
+        <text x="610" y="290" text-anchor="middle" font-size="11.3" fill="#46586b">按 credits 计费（据报道 5.6 起收费）</text>
+      </g>
+    </svg>
+    <div class="fig-cap">GPTs 的遗产一分为二：消费侧由基于 MCP 的 Apps SDK 承接「第三方应用进对话」，企业侧由 Codex 驱动的 Workspace Agents 承接「组织内定制助手」。</div>
+  </div>
+
+  <h3>📱 消费侧：Apps SDK 与 App Directory</h3>
+  <p><span class="term">Apps SDK</span> 的关键设计是构建在 <span class="term">MCP</span>（Model Context Protocol，模型上下文协议——由 Anthropic 发起的开放标准，作用类似「AI 应用的 USB 接口」）之上并开源：开发者同时定义应用逻辑和界面，应用 UI 跑在对话内嵌的 iframe 里，理论上「一次构建，任何采纳该标准的宿主都能跑」。对开发者的诱惑是直达 <span class="hl">8 亿+ 周活用户</span>；对 OpenAI 的意义是把 ChatGPT 从聊天工具变成「操作系统」。首批应用 2025 年 10 月上线（Booking.com、Canva、Coursera、Figma、Spotify、Zillow 等），12 月开放提交并上线应用目录。</p>
+  <p><strong>变现是当前最大的未完成项</strong>：官方支持通过 Agentic Commerce Protocol（与 Stripe 合作）在美国做实体商品的对话内即时结账，应用可外链到自家网站完成交易，但<strong>数字服务/数字商品的应用内售卖尚未开放</strong>，分成模式也未公布——这直接决定这个「应用商店」能不能长成 App Store 那样的生意。</p>
+
+  <div class="figure" id="fig-appshot">
+    <img src="https://images.ctfassets.net/kftzwdyauwt9/2vKwAh34bawGmCw0ozfjg/191c1d3488fb6f331f935830008ce021/Booking_16x9__3_.png" alt="ChatGPT 对话中内嵌 Booking.com 应用卡片：用户询问巴黎酒店，对话内直接显示带图片、价格与设施的酒店搜索结果" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <div style="display:none;padding:14px;font-size:13.5px;color:#7b8a99">🖼️ 原图已失效（来自 OpenAI 官方博客）。该图展示的是 ChatGPT 对话中内嵌的 Booking.com 应用界面：用户用自然语言查巴黎酒店，结果以带图片和价格的交互卡片直接出现在聊天里。</div>
+    <div class="fig-cap">Apps in ChatGPT 实际形态：第三方应用以交互卡片嵌入对话流。图源：OpenAI 官方博客《Introducing apps in ChatGPT》。</div>
+  </div>
+
+  <h3>🏢 企业侧：Workspace Agents</h3>
+  <p>2026 年 4 月 22 日以研究预览发布（Business / Enterprise / Edu 计划），被官方定位为「GPTs 的进化」：由 Codex 驱动、跑在云端所以「你下线它还在干活」、在组织内共享共建，能在 ChatGPT 或 Slack 里被调用，连接企业内部系统完成多步工作流。个人用户的 GPTs 暂时保留，但企业版 GPTs 已确认将在未来某个时点被要求迁移。据报道其计费为按 credits 的用量计价（2026 年 5 月 6 日起收费），意味着每次定时触发都是计费事件。</p>
+  <p><strong>成熟度：消费侧 Apps 属「已上线、商业模式未闭环」；Workspace Agents 属「研究预览、方向清晰」。</strong>两者都强依赖后续 12 个月的变现与迁移政策落地。</p>
+</section>
+
+<!-- ================= 7 Atlas ================= -->
+<section id="atlas">
+  <h2><span class="sec-n">07</span>🌐 Atlas：把浏览器本身做成 AI 入口</h2>
+  <p class="lede">前面四条线都长在 ChatGPT 里面，Atlas 反过来——把 ChatGPT 长成用户上网的「壳」。</p>
+
+  <div class="card def">
+    <p><span class="tag tag-what">是什么</span>基于 Chromium 的 AI 原生浏览器，2025 年 10 月 21 日先发 macOS，免费下载。ChatGPT 以侧边栏常驻：总结当前页面、对比商品、行内改写选中文字（cursor chat）；付费用户可开 <span class="term">agent mode</span>，让 ChatGPT 获得一个光标直接在网页上执行任务（订酒店、批量处理邮件、填表下单）。<span class="term">Browser memories</span> 功能记住你的浏览上下文（「上周你在调研报税软件」），支持随时关闭、逐条删除，官方称服务器端保留 30 天。</p>
+    <p><span class="tag tag-why">为什么</span>搜索和浏览是 Chrome/Google 的腹地，也是用户时长最大的入口。做浏览器 = 不再寄居于别人的入口，把「提问 → 浏览 → 操作」的完整链路都装进自家产品；媒体普遍将其解读为对 Google 搜索分发权的正面进攻（发布同期恰逢 Google 反垄断案余波）。</p>
+    <p><span class="tag tag-eg">例子</span>官方场景：让 agent mode 研究一份周菜谱、列出食材清单并把食材加入生鲜购物车；或让它翻几百封邮件提取行动项。</p>
+  </div>
+
+  <h3>🎯 目标用户、定价与进度</h3>
+  <p>面向<strong>大众消费者</strong>，免费增值模式：浏览器免费，agent mode 等高级能力绑 Plus / Pro / Business 订阅。发布后迭代不慢：2025 年 11 月加垂直标签页、passkey 支持、可设 Google 为默认搜索；2026 年 1 月加标签组和「Auto」搜索模式（按查询自动在 AI 答案和传统 Google 结果间切换，并让外链更显眼——被解读为对「吃掉开放网络流量」批评的回应）。<span class="hl">截至本次调研（2026-07-05），未检索到 Windows / iOS / Android 正式版的官方发布公告</span>，官方口径仍是「即将推出」。</p>
+
+  <h3>⚠️ 争议与成熟度</h3>
+  <p><strong>成熟度：五条线中最低的一档——产品可用，但平台覆盖不全、争议最多。</strong>批评集中在两点：其一，「反开放网络」质疑——知名博主 Anil Dash 批评它「用 AI 生成内容替换了网页却让你以为在看网页」；欧洲广播联盟的研究也被媒体引用来质疑 AI 摘要的可靠性。其二，安全——安全公司 LayerX 报告了被称为「Tainted Memories」的 CSRF 攻击方式（诱导点击恶意链接后向 ChatGPT 记忆注入持久指令，可跨会话跨设备生效）；OpenAI 回应称无法复现该攻击、认为 Atlas 不受影响。浏览器 + 记忆 + agent 的组合天然扩大了 prompt injection 的攻击面，这一点两家（OpenAI 与 Anthropic 的浏览器方案）都无法回避。</p>
+</section>
+
+<!-- ================= 8 对比总表 ================= -->
+<section id="matrix">
+  <h2><span class="sec-n">08</span>📊 五产品对比总表</h2>
+  <p class="lede">把五条产品线放进同一张表——选型时从「你是谁、要干什么」出发对号入座。</p>
+  <div class="tbl-scroll"><table>
+    <tr><th style="width:13%">产品线</th><th>定位</th><th>目标用户</th><th>典型场景</th><th>成熟度</th><th>定价</th></tr>
+    <tr><td><strong>Codex</strong></td><td>多入口工作 agent（终端/IDE/云/GitHub/手机）</td><td>开发者为主，快速扩向分析、销售、投行等知识工作者</td><td>写码修 bug、大型重构、PR 自动审查；非开发者做报告、仪表盘、内部小工具</td><td>★★★★★ 最成熟，规模与企业管控俱全</td><td>捆绑 ChatGPT 订阅（Free–Enterprise 全档），credits/API 扩展</td></tr>
+    <tr><td><strong>ChatGPT Agent</strong></td><td>对话内通用操作 agent（虚拟电脑）</td><td>付费个人 / 团队用户</td><td>调研+做 PPT、网购下单、表格更新、会议准备</td><td>★★★☆☆ 核心稳定，幻灯片等长期 beta，injection 风险常在</td><td>捆绑订阅：Pro 400 条/月、其他付费档 40 条（官方发布时口径）</td></tr>
+    <tr><td><strong>Agents SDK / AgentKit</strong></td><td>开发者构建自有 agent 的框架与组件</td><td>工程团队、企业开发者</td><td>客服 agent、内部工作流、嵌入自家产品的 agent</td><td>★★★☆☆ SDK 活跃进化；Agent Builder/Evals 8 个月即弃用</td><td>SDK/ChatKit 免费，按 API 用量计费</td></tr>
+    <tr><td><strong>GPTs → Apps / Workspace Agents</strong></td><td>ChatGPT 内的应用生态与企业定制 agent</td><td>消费者与品牌方；企业团队</td><td>对话里订酒店/做设计/听歌；企业内共享的常驻工作 agent</td><td>★★☆☆☆ Apps 已上线但变现未闭环；Workspace Agents 研究预览</td><td>Apps 对用户免费；Workspace Agents 据报道按 credits 计费</td></tr>
+    <tr><td><strong>Atlas</strong></td><td>AI 原生浏览器，入口级产品</td><td>大众消费者（暂 macOS）</td><td>边浏览边问、agent 代操作网页、跨会话浏览记忆</td><td>★★☆☆☆ 可用但平台未铺全，安全与「反开放网络」争议大</td><td>浏览器免费；agent mode 绑付费订阅</td></tr>
+  </table></div>
+  <div class="callout teal"><div class="c-title">🧭 一个实用的选型口诀</div>
+  <p>写代码或做「文件进、交付物出」的重活 → Codex；一次性委托「上网查+动手办」→ ChatGPT Agent；要把 agent 装进自己产品 → Agents SDK（工具接入走 MCP 留后路）；想触达 ChatGPT 的流量 → Apps SDK；企业内部共享的常驻助手 → Workspace Agents；想换个「会干活的浏览器」→ Atlas（macOS 用户）。</p></div>
+</section>
+
+<!-- ================= 9 OpenAI vs Anthropic ================= -->
+<section id="versus">
+  <h2><span class="sec-n">09</span>⚔️ 路线对比：OpenAI vs Anthropic</h2>
+  <p class="lede">两家的 agent 产品几乎一一对位，但底层打法是两套哲学：<strong>「消费级入口 + 平台生态」 vs 「开发者/专业工作流 + 垂直 harness」</strong>。</p>
+
+  <div class="figure" id="fig-versus">
+    <svg viewBox="0 0 820 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenAI 与 Anthropic 路线对比分叉图">
+      <g data-anim>
+        <rect x="285" y="24" width="250" height="54" rx="12" fill="#0d2a52"/>
+        <text x="410" y="47" text-anchor="middle" font-size="13.5" font-weight="700" fill="#fff">同一个终局：AI 替人完成真实工作</text>
+        <text x="410" y="66" text-anchor="middle" font-size="10.5" fill="#a9c6ec">但两家选择了不同的切入路径</text>
+      </g>
+      <path d="M340 78 C 260 110, 220 120, 200 140" stroke="#1f6fd6" stroke-width="2.5" fill="none" data-draw/>
+      <path d="M480 78 C 560 110, 600 120, 620 140" stroke="#0e8a86" stroke-width="2.5" fill="none" data-draw/>
+      <g data-anim>
+        <rect x="35" y="145" width="360" height="190" rx="16" fill="#e3eefc" stroke="#1f6fd6" stroke-width="2"/>
+        <text x="215" y="173" text-anchor="middle" font-size="14.5" font-weight="700" fill="#124a94">OpenAI：自上而下，从流量到工作</text>
+        <text x="55" y="200" font-size="12" fill="#1c2b3a">🏟️ 起点：8 亿+ 周活的 ChatGPT 消费入口</text>
+        <text x="55" y="224" font-size="12" fill="#1c2b3a">🧲 打法:把应用(Apps)、商务(结账)、浏览器</text>
+        <text x="72" y="242" font-size="12" fill="#1c2b3a">(Atlas)全吸进对话，做「AI 操作系统」</text>
+        <text x="55" y="266" font-size="12" fill="#1c2b3a">🧬 模型：GPT-5.x 一条主线 + Codex 特化版</text>
+        <text x="55" y="290" font-size="12" fill="#1c2b3a">💰 收入：消费订阅为基本盘，企业侧快速追赶</text>
+        <text x="55" y="314" font-size="12" fill="#1c2b3a">⚡ 风格：快发快砍，试验-合并-淘汰循环极快</text>
+      </g>
+      <g data-anim>
+        <rect x="425" y="145" width="360" height="190" rx="16" fill="#e0f4f3" stroke="#0e8a86" stroke-width="2"/>
+        <text x="605" y="173" text-anchor="middle" font-size="14.5" font-weight="700" fill="#0e8a86">Anthropic：自下而上，从工作流到规模</text>
+        <text x="445" y="200" font-size="12" fill="#1c2b3a">🔧 起点：Claude Code 在开发者工作流里扎根</text>
+        <text x="445" y="224" font-size="12" fill="#1c2b3a">🪜 打法：同一套 harness 复制到知识工作</text>
+        <text x="462" y="242" font-size="12" fill="#1c2b3a">(Cowork)、浏览器(Chrome 插件)、Excel</text>
+        <text x="445" y="266" font-size="12" fill="#1c2b3a">🧬 模型：Opus/Sonnet/Haiku 分级+Fable/Mythos 双轨</text>
+        <text x="445" y="290" font-size="12" fill="#1c2b3a">💰 收入：企业 API 为主（据分析机构约 7–8 成）</text>
+        <text x="445" y="314" font-size="12" fill="#1c2b3a">🧩 风格：协议先行（MCP/技能/插件），生态可移植</text>
+      </g>
+    </svg>
+    <div class="fig-cap">同一个终局，两条路径：OpenAI 用消费流量向下渗透工作场景；Anthropic 用专业工作流向上扩张人群。</div>
+  </div>
+
+  <h3>🤝 产品一一对位</h3>
+  <div class="tbl-scroll"><table>
+    <tr><th>能力域</th><th>OpenAI</th><th>Anthropic</th><th>关键差异</th></tr>
+    <tr><td>编码 agent</td><td>Codex（CLI/IDE/云/GitHub）</td><td>Claude Code（CLI/IDE，Anthropic 研究称重度用户周均使用约 20 小时）</td><td>理念高度趋同（AGENTS.md ↔ CLAUDE.md，均有云端与审查能力）；Codex 正主动破圈非开发者，Claude 侧由 Cowork 分担该角色</td></tr>
+    <tr><td>知识工作 agent</td><td>ChatGPT Agent（对话内虚拟电脑）+ Workspace Agents（企业常驻）</td><td>Claude Cowork（桌面端，直接操作本地文件与应用，已 GA 并配企业管控）</td><td>OpenAI 的执行环境在云端虚拟机；Cowork 强调「就在你电脑上干活」，本地文件与桌面应用是一等公民</td></tr>
+    <tr><td>浏览器</td><td>Atlas（独立浏览器，重造入口）</td><td>Claude in Chrome / Claude for Chrome（寄生现有浏览器的扩展/连接器）</td><td>做壳 vs 做插件：Atlas 赌用户愿意换浏览器；Anthropic 赌用户不愿换、只要能力</td></tr>
+    <tr><td>开发者框架</td><td>Agents SDK（+ChatKit）；Agent Builder 已弃用</td><td>Claude Agent SDK（把 Claude Code 的 harness 开放给开发者）+ Managed Agents（据报道 2026-04 公测）</td><td>2026 年双方架构惊人趋同：沙箱、子 agent、长任务 harness 成为共同标配</td></tr>
+    <tr><td>应用/扩展生态</td><td>Apps SDK + App Directory（基于 MCP）+ Agentic Commerce</td><td>MCP 连接器目录 + Skills（技能）+ Plugins/私有市场</td><td>OpenAI 生态面向 8 亿消费者，含支付闭环野心；Anthropic 生态面向团队与企业的工作流定制</td></tr>
+    <tr><td>分发渠道</td><td>ChatGPT 应用矩阵 + Atlas + AWS 上架（2026-06 起 OpenAI 模型与 Codex 也登陆 AWS）</td><td>Claude 应用 + AWS Bedrock / Google Vertex / Microsoft Foundry 全云覆盖 + 微软 365 集成</td><td>OpenAI 自有入口极强、云分发在补课；Anthropic 反之，借道巨头云触达企业</td></tr>
+  </table></div>
+
+  <h3>🧬 模型策略差异</h3>
+  <p><strong>OpenAI：一条主干 + 场景特化。</strong>GPT-5.x 系列（当前 5.5 / 5.4 / 5.3 各型号）是唯一主干，编码场景派生 Codex 特化版（GPT-5.3-Codex 等），并把 computer use 等 agent 能力逐步内化进主干模型（GPT-5.4 号称首个原生计算机操作的通用模型）。逻辑是「模型即产品」：能力尽量长在模型里，产品只是外壳。</p>
+  <p><strong>Anthropic：能力分级 + 安全双轨。</strong>Opus / Sonnet / Haiku 按「能力-成本」分级供开发者按需选择；2026 年 6 月在 Opus 之上引入 Mythos 级双轨——同一模型以 <span class="term">Fable</span>（附加双用途能力安全措施、公开可用）与 <span class="term">Mythos</span>（仅限获批组织）两种形态发布。逻辑是「harness 即产品」：模型迭代稳健，差异化更多来自 Claude Code / Cowork 这些执行容器的打磨。</p>
+
+  <h3>📦 分发策略差异</h3>
+  <p>OpenAI 的分发是<strong>消费互联网打法</strong>：入口（ChatGPT、Atlas）抓用户时长，商店（App Directory）抓供给，支付（Agentic Commerce Protocol + Stripe）抓交易闭环——三件套齐了就是平台税模式的雏形。Anthropic 的分发是<strong>企业软件打法</strong>：产品嵌进工作现场（终端、桌面、Chrome、Excel、Slack），采购走企业云市场（Bedrock / Vertex / Foundry），管控做给 IT 部门（权限、审计、OpenTelemetry 可观测）。据分析机构估计其收入约七到八成来自企业 API 与开发者合同；OpenAI 则据报道企业收入占比已升至四成左右并计划继续拉升——两家在向对方的腹地渗透。</p>
+
+  <h3>🔓 生态开放度差异</h3>
+  <p>这里有个反直觉的事实：<strong>两家生态如今共享同一块地基——MCP</strong>。这个由 Anthropic 发起的开放协议已被 OpenAI 的 Apps SDK 官方采纳（「构建于 MCP 之上并开源」），Codex CLI 也支持连 MCP 服务器。差异在协议之上的层：OpenAI 开源了 SDK 和应用标准，但<strong>托管平台层归属权在自己手里且变动剧烈</strong>（Agent Builder 八个月被砍、GPTs 强制迁移在途）；Anthropic 的技能（SKILL.md 本质是开放文本格式）、插件、子 agent 定义偏「文件即配置」，可移植性更强，但其订阅条款对第三方 harness 的态度也有过反复（据 VentureBeat 报道，曾限制后又有条件恢复 OpenClaw 等第三方 agent 使用 Claude 订阅）。总体判断：<strong>协议层两家都开放，平台层两家都攥着——开放度的真实差异在「你迁移时能带走多少东西」</strong>，这一点上押注 MCP + 文件化配置的一侧目前更友好。</p>
+</section>
+
+<!-- ================= 10 常见坑 ================= -->
+<section id="pitfalls">
+  <h2><span class="sec-n">10</span>🕳️ 常见坑与风险清单</h2>
+  <p class="lede">来自官方已知限制与社区反馈的高频教训，选型和落地前过一遍。</p>
+  <div class="callout warn"><div class="c-title">⚠️ 平台风险：你依赖的层可能被砍</div>
+  <p>Agent Builder 从 DevDay 主推到宣布弃用仅 8 个月，Evals 同批下线，GPTs 的企业迁移也已在途。社区共识的对冲方法：<strong>编排逻辑写成代码（可版本控制），工具接入压在 MCP 上，评估数据自己留底</strong>——平台变动时损失的只是框架迁移成本。</p></div>
+  <div class="callout warn"><div class="c-title">⚠️ 安全风险：prompt injection 是 agent 时代的「SQL 注入」</div>
+  <p>官方在 ChatGPT Agent 与 Atlas 文档中反复强调：网页里可以藏恶意指令劫持 agent 去泄露连接器数据或执行有害操作。LayerX 报告的 Atlas「Tainted Memories」攻击（OpenAI 称无法复现）说明「记忆 + 浏览器 + agent」组合的攻击面真实存在。实践建议：不用的连接器随手断开、涉钱涉隐私的任务开监督模式、别让 agent 长期持有登录态。</p></div>
+  <div class="callout warn"><div class="c-title">⚠️ 用量与成本坑</div>
+  <p>Agent 类功能消耗额度远快于普通聊天：Codex 的本地消息与云任务共享 5 小时滑动窗口，图片生成耗额度快 3–5 倍；Workspace Agents 据报道按 credits 计费后「每个定时触发都是计费事件」。上规模前先在小范围核算单位任务成本。</p></div>
+  <div class="callout warn"><div class="c-title">⚠️ 能力边界坑</div>
+  <p>ChatGPT Agent 的幻灯片输出官方自认格式粗糙、长期 beta；Atlas 截至调研时仍无 Windows 版；App 变现里数字商品尚未开放。凡是「发布会演示很惊艳」的能力，落地前都值得用自己的真实任务先试一轮。</p></div>
+</section>
+
+<!-- ================= 11 资源 ================= -->
+<section id="resources">
+  <h2><span class="sec-n">11</span>📚 学习资源清单</h2>
+  <ul class="practice">
+    <li><strong>Codex 文档与定价</strong>：developers.openai.com/codex（quickstart、changelog、pricing 都在这里，迭代快，最值得盯）</li>
+    <li><strong>Codex CLI 源码</strong>：github.com/openai/codex（开源，读 README 了解 harness 设计）</li>
+    <li><strong>Agents SDK 指南</strong>：developers.openai.com/api/docs/guides/agents（Agent Builder 弃用后的官方钦定路线）</li>
+    <li><strong>Apps SDK</strong>：developers.openai.com/apps-sdk（含设计规范、示例仓库与 MCP Apps 兼容说明）</li>
+    <li><strong>MCP 协议</strong>：modelcontextprotocol.io（两家生态的公共地基，值得单独学）</li>
+    <li><strong>Anthropic 侧对照</strong>：claude.com/product/claude-code 与 claude.com/product/cowork（对照阅读最能看清路线差异）</li>
+  </ul>
+  <div class="final">
+    <h3>🎁 收尾判断（供参考的综合观点）</h3>
+    <p>把五条线放在一起看，OpenAI 在 2026 年做的其实是一次「收敛」：模型收敛到 GPT-5.x 主干，开发者路线收敛到代码优先的 Agents SDK，企业定制收敛到 Codex 驱动的 Workspace Agents，消费入口收敛到 ChatGPT + Atlas。与 Anthropic 的竞争已经不是「谁的模型强」，而是<strong>「消费流量向下渗透」与「专业工作流向上扩张」谁先吃到对方的地盘</strong>。对使用者和开发者而言，最稳的姿势是：能力选型跟着自己的工作流走，接入层坚定押注 MCP 等开放协议——无论哪家的平台层再怎么变，你的积累都能带走。</p>
+  </div>
+</section>
+
+<footer>
+  <p><strong>关于本文档</strong>：主题深度调研产出 · 调研时间 2026-07-05 · 处理方式：多来源交叉核对 + 概念展开与可视化。Agent 领域迭代极快，价格、限额、可用范围请以官方最新文档为准。未能完全核实的信息已在正文以「据报道 / 据分析机构」标注。</p>
+  <p><strong>主要来源（官方一手）</strong>：<br>
+  · OpenAI — Introducing upgrades to Codex（2025-09-15）：openai.com/index/introducing-upgrades-to-codex/<br>
+  · OpenAI — Codex for every role, tool, and workflow(2026-06-02):openai.com/index/codex-for-every-role-tool-workflow/<br>
+  · OpenAI Developers — Codex Pricing：developers.openai.com/codex/pricing<br>
+  · OpenAI — Introducing ChatGPT agent（2025-07-17）：openai.com/index/introducing-chatgpt-agent/<br>
+  · OpenAI — Introducing AgentKit（2025-10-06）：openai.com/index/introducing-agentkit/<br>
+  · OpenAI — The next evolution of the Agents SDK（2026-04-15）：openai.com/index/the-next-evolution-of-the-agents-sdk/<br>
+  · OpenAI — Introducing apps in ChatGPT and the new Apps SDK（2025-10-06）：openai.com/index/introducing-apps-in-chatgpt/<br>
+  · OpenAI — Introducing workspace agents in ChatGPT（2026-04-22）：openai.com/index/introducing-workspace-agents-in-chatgpt/<br>
+  · OpenAI Developers — Apps SDK Monetization：developers.openai.com/apps-sdk/build/monetization<br>
+  · Anthropic / Claude — Claude Cowork 产品页：claude.com/product/cowork</p>
+  <p><strong>主要来源（二手与媒体）</strong>：<br>
+  · Wikipedia — ChatGPT Atlas（汇总 The Verge / Reuters / Guardian / AP 等报道）：en.wikipedia.org/wiki/ChatGPT_Atlas<br>
+  · MCP.Directory — OpenAI AgentKit Deprecation Guide（2026-06-22，引官方 deprecations 页）：mcp.directory/blog/openai-agentkit-deprecation-2026<br>
+  · TechCrunch — OpenAI updates its Agents SDK（2026-04-15）：techcrunch.com<br>
+  · VentureBeat — Workspace Agents 发布与 App Directory 报道；OpenClaw 报道：venturebeat.com<br>
+  · Data Studios — ChatGPT Atlas for Windows 分析（2025-10-27）：datastudios.org<br>
+  · Sacra / 分析机构 — Anthropic 收入结构估计：sacra.com/c/anthropic</p>
+</footer>
+</div>
+
+<script>
+(function(){
+  var toc=document.getElementById('sideToc'),btn=document.getElementById('tocBtn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  toc.addEventListener('click',function(e){if(e.target.closest('a')&&window.innerWidth<=1180)toc.classList.remove('open')});
+  var links=[].slice.call(toc.querySelectorAll('a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))});
+  var bar=document.getElementById('stBar'),pct=document.getElementById('stPct'),tp=document.getElementById('topProgress');
+  function onScroll(){
+    var h=document.documentElement,max=h.scrollHeight-h.clientHeight,p=max>0?Math.min(100,Math.round(h.scrollTop/max*100)):0;
+    bar.style.width=p+'%';tp.style.width=p+'%';pct.textContent=p+'%';
+    var idx=0;
+    for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].getBoundingClientRect().top<140)idx=i}
+    links.forEach(function(a,i){a.classList.toggle('on',i===idx)});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var figs=document.querySelectorAll('.figure');
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){
+      var f=en.target;f.classList.add('vis');
+      var items=f.querySelectorAll('[data-anim]');
+      items.forEach(function(el,i){el.style.transitionDelay=(i*90)+'ms'});
+      var draws=f.querySelectorAll('[data-draw]');
+      draws.forEach(function(el,i){
+        try{var L=el.getTotalLength();el.style.strokeDasharray=L;el.style.strokeDashoffset=L;void el.getBoundingClientRect();el.style.transitionDelay=(200+i*130)+'ms';el.style.strokeDashoffset=0}catch(e){}
+      });
+      io.unobserve(f);
+    }})},{threshold:.18});
+    figs.forEach(function(f){io.observe(f)});
+  }else{figs.forEach(function(f){f.classList.add('vis')})}
+})();
+</script>
+</body>
+</html>

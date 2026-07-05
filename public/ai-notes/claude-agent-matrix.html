@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude 全产品 Agent 矩阵调研 · 垂直整合 Harness 的布局逻辑</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#16324f; --ink-soft:#3d5a78; --muted:#6b86a3;
+  --accent:#1769ff; --accent-deep:#0b3f9e; --teal:#0e9394; --indigo:#5b5bd6; --gold:#b7791f;
+  --warn-bg:#fff7ed; --warn-bd:#f5c884; --line:#d7e3f2; --hero1:#0a2a56; --hero2:#123f86;
+  --code-bg:#0f2440; --code-ink:#cfe3ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.88}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));z-index:99}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 60px}
+/* ---------- side toc ---------- */
+.side-toc{position:fixed;left:18px;top:70px;width:220px;max-height:78vh;overflow-y:auto;background:rgba(255,255,255,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;padding:14px 12px;z-index:90;box-shadow:0 6px 24px rgba(22,50,79,.08)}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep)}
+.st-sub{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.st-progress{height:6px;background:#e3ecf7;border-radius:4px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal))}
+.st-pct{font-size:11px;color:var(--muted);margin-bottom:8px}
+.side-toc ul{list-style:none}
+.side-toc li a{display:block;padding:4px 8px;border-radius:8px;font-size:12.8px;color:var(--ink-soft);text-decoration:none;line-height:1.5}
+.side-toc li a:hover{background:#e8f0fc}
+.side-toc li a.on{background:var(--accent);color:#fff}
+.toc-btn{display:none;position:fixed;left:14px;top:14px;z-index:95;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.9);font-size:18px;cursor:pointer;box-shadow:0 4px 14px rgba(22,50,79,.12)}
+@media(max-width:1179px){
+  .side-toc{display:none;left:14px;top:62px;width:250px}
+  .side-toc.open{display:block}
+  .toc-btn{display:block}
+}
+/* ---------- hero ---------- */
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#eaf2ff;border-radius:0 0 26px 26px;padding:64px 22px 46px;text-align:center}
+.hero h1{font-size:30px;line-height:1.45;margin-bottom:14px;color:#fff}
+.hero p{max-width:720px;margin:0 auto;font-size:15.5px;color:#c6d9f5}
+.hero .chips{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.hero .chips span{font-size:12.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:3px 12px;border-radius:999px}
+/* ---------- sections ---------- */
+section{margin-top:52px}
+h2{font-size:24px;color:var(--accent-deep);margin-bottom:6px;line-height:1.5}
+h3{font-size:19px;color:var(--ink);margin:26px 0 10px}
+.sec-lead{color:var(--muted);font-size:14.5px;margin-bottom:18px}
+p{margin:12px 0}
+.term{background:linear-gradient(transparent 62%,#cfe0ff 62%);font-weight:600;padding:0 2px}
+.hl{color:var(--accent-deep);font-weight:700}
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:16px 0;box-shadow:0 3px 14px rgba(22,50,79,.05)}
+.def{border-left:5px solid var(--accent)}
+.def .tagline{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
+.tag{flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;margin-top:6px}
+.tag-what{background:#e3edff;color:var(--accent-deep)}
+.tag-why{background:#dff4f2;color:var(--teal)}
+.tag-eg{background:#efe9ff;color:var(--indigo)}
+.callout{border-radius:14px;padding:16px 18px;margin:16px 0;font-size:15.8px}
+.callout.key{background:#e8f0fe;border:1px solid #bcd4fb}
+.callout.key-teal{background:#e2f5f4;border:1px solid #a9dedd}
+.callout.warn{background:var(--warn-bg);border:1px solid var(--warn-bd)}
+.callout.quote-box{background:linear-gradient(135deg,#12325e,#1b4a8f);color:#dbe9ff;border:none}
+.callout .c-title{font-weight:700;margin-bottom:6px}
+/* steps */
+.steps{list-style:none;margin:14px 0}
+.steps li{position:relative;padding:0 0 18px 46px}
+.steps li::before{content:attr(data-n);position:absolute;left:0;top:2px;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.steps li::after{content:"";position:absolute;left:14px;top:36px;bottom:2px;width:2px;background:var(--line)}
+.steps li:last-child::after{display:none}
+.steps b{display:block;margin-bottom:2px}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.stats .s{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+.stats .n{font-size:24px;font-weight:800;color:var(--accent-deep)}
+.stats .l{font-size:12.8px;color:var(--muted);line-height:1.55}
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:16px 0;border-radius:14px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;background:#fff;font-size:14.2px;min-width:640px}
+th{background:#e8f0fc;color:var(--accent-deep);text-align:left;padding:10px 12px;white-space:nowrap}
+td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:top;line-height:1.7}
+tr:nth-child(even) td{background:#f7fafd}
+/* glossary */
+.glossary{display:grid;grid-template-columns:150px 1fr;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:16px 0;background:#fff;font-size:15px}
+.glossary dt{padding:10px 14px;background:#eef4fc;font-weight:700;color:var(--accent-deep);border-top:1px solid var(--line)}
+.glossary dd{padding:10px 14px;border-top:1px solid var(--line)}
+.glossary dt:first-of-type,.glossary dd:first-of-type{border-top:none}
+/* analogy & rephrase & prereq */
+.analogy{display:flex;border:1px solid #cfd8f7;border-radius:14px;overflow:hidden;margin:16px 0;background:#f6f8ff}
+.analogy .a-side{flex:none;writing-mode:vertical-rl;background:var(--indigo);color:#fff;font-size:12.5px;padding:10px 6px;letter-spacing:2px}
+.analogy .a-body{padding:14px 18px;font-size:15.6px}
+.rephrase{border:1px dashed #a9c3ea;border-radius:12px;margin:12px 0;background:#f8fbff}
+.rephrase summary{cursor:pointer;padding:10px 16px;font-weight:600;color:var(--accent-deep);font-size:14.8px}
+.rephrase .r-body{padding:0 16px 14px;font-size:15.4px;color:var(--ink-soft)}
+.prereq{font-size:13.8px;color:var(--muted);background:#f2f7fd;border-radius:8px;padding:6px 12px;display:inline-block;margin:4px 0}
+.prereq a{color:var(--accent)}
+/* practice list */
+.practice{list-style:none;margin:12px 0}
+.practice li{padding:6px 0 6px 30px;position:relative}
+.practice li::before{content:"✦";position:absolute;left:6px;color:var(--accent)}
+/* figure */
+.figure{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin:20px 0;opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.figure.vis{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.5px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.7}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .6s ease,transform .6s ease}
+.figure.vis [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{transition:stroke-dashoffset 1.1s ease}
+.figure img{max-width:100%;border-radius:10px;display:block;margin:0 auto}
+/* code */
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.6px;line-height:1.7;margin:14px 0;font-family:"SF Mono",Menlo,Consolas,monospace}
+/* product header chip row */
+.p-meta{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.p-meta span{font-size:12.5px;padding:3px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft)}
+.p-meta .m-ga{background:#e5f6ec;border-color:#9fdcb6;color:#1b7a3d}
+.p-meta .m-beta{background:#fff3e0;border-color:#f3c37a;color:#9a6410}
+.p-meta .m-preview{background:#f3e8ff;border-color:#d3b4f5;color:#7b3fbf}
+/* final */
+.final{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#dbe9ff;border-radius:20px;padding:28px;margin-top:56px}
+.final h2{color:#fff}
+footer{margin-top:40px;font-size:13px;color:var(--muted);line-height:2}
+footer a{color:var(--accent);text-decoration:none;word-break:break-all}
+@media(max-width:720px){
+  body{font-size:16px}
+  .hero h1{font-size:23px}
+  .stats{grid-template-columns:1fr}
+  .glossary{grid-template-columns:1fr}
+  .glossary dt{border-top:1px solid var(--line)}
+  h2{font-size:21px}
+}
+@media(prefers-reduced-motion:reduce){
+  .figure,.figure [data-anim]{opacity:1!important;transform:none!important;transition:none!important}
+  .figure [data-draw]{transition:none!important;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">Claude Agent 矩阵</div>
+  <div class="st-sub">产品全景 · 调研版</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ul>
+    <li><a href="#overview">1 · 30 秒速览</a></li>
+    <li><a href="#background">2 · 背景:为什么是一堆 Agent</a></li>
+    <li><a href="#concepts">3 · 核心概念:Harness 等</a></li>
+    <li><a href="#matrix">4 · 七产品矩阵总览</a></li>
+    <li><a href="#code">5 · Claude Code</a></li>
+    <li><a href="#sdk">6 · Agent SDK</a></li>
+    <li><a href="#cowork">7 · Cowork</a></li>
+    <li><a href="#chrome">8 · Claude in Chrome</a></li>
+    <li><a href="#excel">9 · Claude for Excel</a></li>
+    <li><a href="#ppt">10 · Claude for PowerPoint</a></li>
+    <li><a href="#research">11 · Deep Research</a></li>
+    <li><a href="#strategy">12 · 布局逻辑:垂直整合</a></li>
+    <li><a href="#choose">13 · 选型与对比</a></li>
+    <li><a href="#pitfalls">14 · 常见坑与限制</a></li>
+    <li><a href="#resources">15 · 学习资源</a></li>
+  </ul>
+</nav>
+
+<header class="hero">
+  <h1>🧭 Claude 全产品 Agent 矩阵</h1>
+  <p>Claude Code · Agent SDK · Cowork · Chrome · Excel · PowerPoint · Deep Research——七个入口,一套引擎。这份文档讲清每个产品「是什么、给谁用、带什么工具、有多成熟、怎么收费」,以及 Anthropic 用「垂直整合 Harness」下的这盘棋。</p>
+  <div class="chips">
+    <span>调研时间 2026-07-05</span><span>官方文档优先</span><span>关键事实交叉验证</span><span>含来源清单</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ 1 overview ============ -->
+<section id="overview">
+  <h2>⚡ 1 · 30 秒速览</h2>
+  <p class="sec-lead">先给全貌,细节后面逐层展开。</p>
+  <p>把 Claude 理解成<span class="term">一台引擎、七个驾驶舱</span>:Anthropic 把同一套「模型 + Agent 执行框架(harness)」装进了七种不同的外壳,每种外壳对准一类人、一类工作场景。开发者在终端里用 <strong>Claude Code</strong>;想把这套能力嵌进自己产品的团队用 <strong>Agent SDK</strong>;不写代码的知识工作者在桌面 App 里用 <strong>Cowork</strong>;要操作网页的场景用 <strong>Chrome 扩展</strong>;金融分析师在 <strong>Excel</strong> 侧栏里用;做汇报的人在 <strong>PowerPoint</strong> 侧栏里用;要查资料写报告的人用 <strong>Deep Research</strong>。它们共享同一批底层积木:工具调用、MCP 连接器、Skills、沙箱、权限系统。</p>
+
+  <div class="figure" id="fig-hub">
+    <svg viewBox="0 0 820 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一个引擎七个入口示意图">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8fb0dd"/></marker>
+      </defs>
+      <!-- center engine -->
+      <g data-anim>
+        <rect x="285" y="150" width="250" height="100" rx="16" fill="#123f86"/>
+        <text x="410" y="188" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">Claude 模型 + Harness</text>
+        <text x="410" y="214" text-anchor="middle" fill="#bcd4fb" font-size="12.5">Agent 循环 · 工具 · MCP · Skills · 沙箱 · 权限</text>
+      </g>
+      <!-- spokes: 7 surfaces -->
+      <g font-size="13" font-weight="600">
+        <g data-anim><rect x="30" y="30" width="170" height="46" rx="10" fill="#e3edff" stroke="#bcd4fb"/><text x="115" y="52" text-anchor="middle" fill="#0b3f9e">💻 Claude Code</text><text x="115" y="68" text-anchor="middle" fill="#6b86a3" font-size="10.5" font-weight="400">开发者 · 终端/桌面/Web</text></g>
+        <g data-anim><rect x="325" y="24" width="170" height="46" rx="10" fill="#e3edff" stroke="#bcd4fb"/><text x="410" y="46" text-anchor="middle" fill="#0b3f9e">🧩 Agent SDK</text><text x="410" y="62" text-anchor="middle" fill="#6b86a3" font-size="10.5" font-weight="400">开发者 · 嵌入自己产品</text></g>
+        <g data-anim><rect x="620" y="30" width="170" height="46" rx="10" fill="#e3edff" stroke="#bcd4fb"/><text x="705" y="52" text-anchor="middle" fill="#0b3f9e">🗂️ Cowork</text><text x="705" y="68" text-anchor="middle" fill="#6b86a3" font-size="10.5" font-weight="400">知识工作者 · 桌面 App</text></g>
+        <g data-anim><rect x="20" y="180" width="180" height="46" rx="10" fill="#dff4f2" stroke="#a9dedd"/><text x="110" y="202" text-anchor="middle" fill="#0e9394">🌐 Claude in Chrome</text><text x="110" y="218" text-anchor="middle" fill="#6b86a3" font-size="10.5" font-weight="400">网页操作 · 浏览器扩展</text></g>
+        <g data-anim><rect x="620" y="180" width="180" height="46" rx="10" fill="#dff4f2" stroke="#a9dedd"/><text x="710" y="202" text-anchor="middle" fill="#0e9394">🔎 Deep Research</text><text x="710" y="218" text-anchor="middle" fill="#6b86a3" font-size="10.5" font-weight="400">调研报告 · Chat 内功能</text></g>
+        <g data-anim><rect x="120" y="330" width="180" height="46" rx="10" fill="#efe9ff" stroke="#d3b4f5"/><text x="210" y="352" text-anchor="middle" fill="#5b5bd6">📊 Claude for Excel</text><text x="210" y="368" text-anchor="middle" fill="#6b86a3" font-size="10.5" font-weight="400">金融/数据 · Office 插件</text></g>
+        <g data-anim><rect x="520" y="330" width="200" height="46" rx="10" fill="#efe9ff" stroke="#d3b4f5"/><text x="620" y="352" text-anchor="middle" fill="#5b5bd6">📽️ Claude for PowerPoint</text><text x="620" y="368" text-anchor="middle" fill="#6b86a3" font-size="10.5" font-weight="400">咨询/汇报 · Office 插件</text></g>
+      </g>
+      <!-- lines -->
+      <g stroke="#8fb0dd" stroke-width="2" fill="none" marker-end="url(#ar)">
+        <path data-draw d="M200 70 L 300 152"/>
+        <path data-draw d="M410 70 L 410 148"/>
+        <path data-draw d="M620 70 L 522 152"/>
+        <path data-draw d="M200 203 L 283 200"/>
+        <path data-draw d="M620 203 L 537 200"/>
+        <path data-draw d="M280 330 L 345 252"/>
+        <path data-draw d="M560 330 L 480 252"/>
+      </g>
+    </svg>
+    <div class="fig-cap">一台引擎、七个驾驶舱:所有产品共享同一套「模型 + harness」核心,差别只在面向谁、装在哪。</div>
+  </div>
+
+  <div class="stats">
+    <div class="s"><div class="n">7</div><div class="l">个 agent 入口<br>覆盖终端 / SDK / 桌面 / 浏览器 / Office / Chat</div></div>
+    <div class="s"><div class="n">1 套</div><div class="l">共享底座:Agent 循环 + MCP + Skills + 沙箱</div></div>
+    <div class="s"><div class="n">$20 起</div><div class="l">订阅即含大部分产品<br>(Pro $20 / Max $100–200 每月)</div></div>
+  </div>
+</section>
+
+<!-- ============ 2 background ============ -->
+<section id="background">
+  <h2>🏔️ 2 · 背景:为什么 Anthropic 做出了「一堆」Agent 产品</h2>
+  <p class="sec-lead">动机先行:没有这段来龙去脉,后面的产品列表只是名词堆砌。</p>
+
+  <p>2023–2024 年,大家用 AI 的方式基本是「聊天框」:你问一句,它答一句。这种模式有个天然的痛点——<strong>真实工作不是一问一答</strong>。写一份报告要先翻十个文件、查五个网页、整理成初稿再排版;这中间的每一步都要人来「搬运」:把文件内容贴给 AI、把 AI 的回答贴回文档。AI 有脑子,但没有手。</p>
+
+  <p>转折点是 2025 年 2 月发布的 <strong>Claude Code</strong>。它最初是给程序员的命令行工具:让 Claude 直接在你的电脑上读文件、改代码、跑命令、自己看报错再改,循环往复直到任务完成。这套「模型自己动手、自己验证、自己迭代」的执行框架,行业里叫 <span class="term">harness(执行框架/挽具)</span>——第 3 章会讲透这个词。</p>
+
+  <p>接下来发生了一件 Anthropic 自己都在官方页面上承认的有趣事情:<strong>公司内部的市场、数据等非技术团队开始绕过聊天界面,跑去用 Claude Code</strong>,因为它能完成「多步骤的真实工作」,而不只是回答问题。外部用户也出现了同样的模式。这直接催生了 2026 年 1 月的 Cowork——官方内部把它描述为「给其余工作用的 Claude Code」(Claude Code for the rest of your work)。</p>
+
+  <div class="callout key">
+    <div class="c-title">💡 一句话概括这盘棋</div>
+    Claude Code 意外验证了一件事:<strong>把「会用工具的模型」装进一个好用的执行框架,它就能干活,而不只是聊天</strong>。之后 Anthropic 做的所有 agent 产品,本质上都是把这套已验证的执行框架,换上不同的外壳,推向不同的人群。
+  </div>
+
+  <div class="figure" id="fig-timeline">
+    <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="产品发布时间线">
+      <line x1="40" y1="120" x2="790" y2="120" stroke="#8fb0dd" stroke-width="3" data-draw/>
+      <g font-size="12">
+        <g data-anim><circle cx="80" cy="120" r="7" fill="#1769ff"/><text x="80" y="95" text-anchor="middle" font-weight="700" fill="#0b3f9e">2025.02</text><text x="80" y="150" text-anchor="middle" fill="#3d5a78">Claude Code</text><text x="80" y="166" text-anchor="middle" fill="#6b86a3" font-size="10.5">发布</text></g>
+        <g data-anim><circle cx="205" cy="120" r="7" fill="#0e9394"/><text x="205" y="95" text-anchor="middle" font-weight="700" fill="#0e9394">2025.08</text><text x="205" y="150" text-anchor="middle" fill="#3d5a78">Chrome 扩展</text><text x="205" y="166" text-anchor="middle" fill="#6b86a3" font-size="10.5">研究预览(千人)</text></g>
+        <g data-anim><circle cx="330" cy="120" r="7" fill="#5b5bd6"/><text x="330" y="95" text-anchor="middle" font-weight="700" fill="#5b5bd6">2025.09–10</text><text x="330" y="150" text-anchor="middle" fill="#3d5a78">Agent SDK 更名扩展</text><text x="330" y="166" text-anchor="middle" fill="#6b86a3" font-size="10.5">Excel 早期预览</text></g>
+        <g data-anim><circle cx="465" cy="120" r="7" fill="#1769ff"/><text x="465" y="95" text-anchor="middle" font-weight="700" fill="#0b3f9e">2026.01</text><text x="465" y="150" text-anchor="middle" fill="#3d5a78">Cowork 研究预览</text><text x="465" y="166" text-anchor="middle" fill="#6b86a3" font-size="10.5">Anthropic Labs 成立</text></g>
+        <g data-anim><circle cx="600" cy="120" r="7" fill="#0e9394"/><text x="600" y="95" text-anchor="middle" font-weight="700" fill="#0e9394">2026.04</text><text x="600" y="150" text-anchor="middle" fill="#3d5a78">Cowork 全量 GA</text><text x="600" y="166" text-anchor="middle" fill="#6b86a3" font-size="10.5">Managed Agents 公测</text></g>
+        <g data-anim><circle cx="735" cy="120" r="7" fill="#5b5bd6"/><text x="735" y="95" text-anchor="middle" font-weight="700" fill="#5b5bd6">2026.05</text><text x="735" y="150" text-anchor="middle" fill="#3d5a78">Excel/PPT/Word GA</text><text x="735" y="166" text-anchor="middle" fill="#6b86a3" font-size="10.5">Outlook 公测</text></g>
+      </g>
+    </svg>
+    <div class="fig-cap">从 Claude Code 到全家桶:一年多时间里,agent 能力从终端一路铺进浏览器、桌面和 Office。日期来自官方公告与帮助中心(Chrome 预览时间见 Anthropic 新闻稿;Cowork 与 M365 时间见来源清单)。</div>
+  </div>
+
+  <p>节奏上还有一个背景值得知道:2026 年 1 月 Anthropic 成立了实验性产品部门 <strong>Anthropic Labs</strong>(由 Instagram 联合创始人 Mike Krieger 参与主导),Cowork、Claude Design 等消费级产品都从这里孵化。据行业媒体报道,2026 年上半年 Anthropic 保持了大约每两周一次重大发布的节奏,并陆续推出了 Claude Design(设计)、Claude Science(科研)等新入口——本文聚焦你点名的七个,但要知道这个矩阵还在继续扩张。</p>
+</section>
+
+<!-- ============ 3 concepts ============ -->
+<section id="concepts">
+  <h2>🧠 3 · 核心概念:看懂矩阵前必须搞清的五个词</h2>
+  <p class="sec-lead">后面每个产品的「工具集」都由这些积木拼成,先把积木认全。</p>
+
+  <div class="card def" id="def-harness">
+    <h3 style="margin-top:0">🛠️ Harness(执行框架)</h3>
+    <div class="tagline"><span class="tag tag-what">是什么</span><p>包在模型外面的一整套「运行时装备」:对话与上下文管理(比如上下文快满时自动压缩)、工具调用层、权限控制、会话与文件系统状态、循环控制与错误处理、基础可观测性。模型负责「想」,harness 负责让它能安全地「做」。</p></div>
+    <div class="tagline"><span class="tag tag-why">为什么重要</span><p>裸的 LLM API 只会输出文字。要让它自主干活,就得有人搭这套装备。过去每个团队自己搭,费时且质量参差;Anthropic 的打法是把自家打磨过的 harness 直接产品化——你要么用现成的壳(Code/Cowork/Excel…),要么用 SDK 拿走整套框架自己包壳。</p></div>
+    <div class="tagline"><span class="tag tag-eg">例子</span><p>你对 Cowork 说「把这个文件夹里的 PDF 整理成周报」。模型决定「先列出文件 → 逐个读取 → 写初稿」;而实际去执行 <code>ls</code>、读文件、写 docx、出错重试、防止它碰文件夹以外的东西的,全是 harness。</p></div>
+    <details class="rephrase"><summary>💬 没看懂?换个说法</summary><div class="r-body">模型像一位聪明的新员工,harness 就是他的工位:电脑、门禁卡、能用哪些系统的权限单、以及「做错了找谁兜底」的流程。没有工位,再聪明的员工也只能站在走廊里给你口头建议。「harness」原意是马具/挽具——把马的力气变成拉车的功。</div></details>
+  </div>
+
+  <dl class="glossary">
+    <dt>Agent 循环</dt><dd>「思考 → 调工具 → 看结果 → 再思考」的自动循环,直到任务完成。这是所有七个产品共同的心跳。</dd>
+    <dt>MCP / 连接器</dt><dd>Model Context Protocol,Anthropic 2024 年底发起的开放协议,现已成行业事实标准:让 agent 用统一方式接入外部系统(Slack、Notion、数据库……)。矩阵里所有产品都靠它扩展「能碰到哪些数据」。</dd>
+    <dt>Skills</dt><dd>用 Markdown + 脚本打包的「技能包」,教 Claude 某类任务的做法(如做 Excel 模型的规范)。官方文档明确:同一个 Skill 可在 Claude Code、claude.ai、Cowork、Excel/PPT 插件里通用——这是「一套底座」最直观的证据。</dd>
+    <dt>Subagent(子代理)</dt><dd>主 agent 把任务拆给多个并行的子 agent 分头执行再汇总。Claude Code 官方更新日志显示,2026 年 6 月起子代理甚至能再派生自己的子代理(链最深 5 层)。</dd>
+    <dt>沙箱(Sandbox)</dt><dd>隔离的执行环境,限制 agent 能读写的文件与网络范围。Cowork 在虚拟机级沙箱里跑命令;开发者社区通过逆向发现 macOS 版用的是 Apple 虚拟化框架启动一个定制 Linux(Simon Willison 的分析,社区信息)。</dd>
+  </dl>
+</section>
+
+<!-- ============ 4 matrix ============ -->
+<section id="matrix">
+  <h2>🗺️ 4 · 七产品矩阵总览</h2>
+  <p class="sec-lead">一张表看全,后面七章逐个展开。成熟度与定价截至 2026-07-05,以官方页面为准。</p>
+
+  <div class="tbl-wrap"><table>
+    <tr><th>产品</th><th>一句话定位</th><th>目标用户</th><th>形态</th><th>成熟度</th><th>定价方式</th></tr>
+    <tr><td><b>Claude Code</b></td><td>代码与终端里的自主开发 agent</td><td>开发者</td><td>CLI + 桌面 App + Web/云 + IDE 插件</td><td>GA(2025.02 起,迭代最快)</td><td>Pro/Max 订阅含;API 按量;Team 高级席位</td></tr>
+    <tr><td><b>Agent SDK</b></td><td>把 Claude Code 的 harness 拿去建自己的 agent</td><td>工程团队 / 产品公司</td><td>Python / TypeScript SDK</td><td>GA(2025.09 由 Claude Code SDK 更名)</td><td>SDK 免费,消耗 API token 计费</td></tr>
+    <tr><td><b>Cowork</b></td><td>不用终端的「Claude Code」,面向文件与文档工作</td><td>非技术知识工作者</td><td>桌面 App(macOS/Windows)内标签页</td><td>GA(2026.01 预览 → 2026.04 全量)</td><td>所有付费订阅含(Pro 起)</td></tr>
+    <tr><td><b>Claude in Chrome</b></td><td>在浏览器里看页面、点按钮、填表单的 agent</td><td>所有付费用户;与 Code/Cowork 联动</td><td>Chrome 扩展(侧栏)</td><td>Beta(2025.08 预览 → 全付费计划)</td><td>付费订阅含</td></tr>
+    <tr><td><b>Claude for Excel</b></td><td>侧栏里的财务建模/数据分析 agent</td><td>金融分析、FP&A、数据岗</td><td>Office 加载项(Web/Win/Mac/iPad)</td><td>GA(2026.05,全付费计划)</td><td>付费订阅含,共用额度</td></tr>
+    <tr><td><b>Claude for PowerPoint</b></td><td>懂模板的做片子 agent</td><td>咨询顾问、汇报密集岗位</td><td>Office 加载项(Web/Win/Mac)</td><td>GA(2026.05,全付费计划)</td><td>付费订阅含,共用额度</td></tr>
+    <tr><td><b>Deep Research</b></td><td>多轮搜索、交叉验证、带引用的调研报告</td><td>需要查资料写报告的所有人</td><td>claude.ai / 桌面 / 移动端的 Research 模式;Claude Code 内另有 deep-research 技能</td><td>GA(2025.04 起)</td><td>付费订阅含,占用对话额度</td></tr>
+  </table></div>
+
+  <div class="callout key-teal">
+    <div class="c-title">🔑 读表的关键视角</div>
+    这张表的行不是按「模型能力」切的——所有产品用的是同一批模型(当前旗舰为 Opus 4.8 / Sonnet 5 等)。它是按<strong>「用户此刻人在哪个界面里」</strong>切的:在终端 → Code;在自己产品的代码里 → SDK;在桌面文件堆里 → Cowork;在网页上 → Chrome;在表格里 → Excel;在片子里 → PPT;在聊天框想要一份报告 → Research。
+  </div>
+</section>
+<!-- ============ 5 Claude Code ============ -->
+<section id="code">
+  <h2>💻 5 · Claude Code:矩阵的原点</h2>
+  <div class="p-meta"><span class="m-ga">GA · 2025.02 发布</span><span>CLI / 桌面 / Web / IDE</span><span>迭代频率:每周多个版本</span></div>
+
+  <h3>定位与目标用户</h3>
+  <p>面向开发者的自主编码 agent:在你的仓库里读代码、改文件、跑测试、开 PR。但它的实际边界远大于「写代码」——凡是能通过执行代码和命令行完成的事(数据处理、批量文件操作、系统管理)它都能做,这正是它后来「溢出」到非技术人群、催生 Cowork 的原因。</p>
+
+  <h3>工具集与形态</h3>
+  <ul class="practice">
+    <li><strong>基础工具</strong>:文件读写编辑、Bash、代码检索(grep/glob)、Web 搜索与抓取、MCP 连接器、Skills、subagent、hooks、插件系统。</li>
+    <li><strong>多形态</strong>:终端 CLI 之外,还有桌面 App(2026.04 重设计为多会话并行的「路由工作」模式)、Claude Code on the web(云端跑会话)、VS Code/JetBrains 集成、GitHub Actions。</li>
+    <li><strong>自主化能力(2026 年官方更新日志确认)</strong>:<code>/goal</code> 设定完成条件后跨回合自动干到达成(v2.1.139 起);<code>claude agents</code> 统一监控所有会话;auto mode 用后台安全分类器代替逐条权限确认(已下放到 Pro 计划);Routines 云端定时任务;dynamic workflows 让一个会话编排成百个 subagent(Opus 4.8 配套,研究预览);<code>/ultrareview</code> 云端 bug 猎手车队;CLI 里的 computer use(研究预览)。</li>
+  </ul>
+
+  <pre># 感受一下它的「自主」程度(官方 What's new 中的真实功能)
+claude
+&gt; /goal "test/auth 下所有测试通过且 lint 干净"
+# Claude 反复写码→跑测试→修错,由轻量监督模型判断条件达成才停</pre>
+
+  <h3>成熟度与定价</h3>
+  <p>七个产品里最成熟、迭代最快的一个:官方每周发布 What's new 摘要,2026 年 6 月已到 v2.1.19x。定价上<strong>不单独收费</strong>:包含在 Pro($20/月)与 Max($100 或 $200/月)订阅内,或走 API 按 token 计费;Team 计划中需要高级席位(约 $100–150/座/月,来源为第三方整理,以官方定价页为准)。</p>
+</section>
+
+<!-- ============ 6 Agent SDK ============ -->
+<section id="sdk">
+  <h2>🧩 6 · Agent SDK:把 harness 卖给开发者</h2>
+  <div class="p-meta"><span class="m-ga">GA</span><span>Python / TypeScript</span><span>2025.09 由 Claude Code SDK 更名</span></div>
+  <div class="prereq">📎 需先理解 <a href="#def-harness">Harness(第 3 章)</a></div>
+
+  <h3>定位与目标用户</h3>
+  <p>官方文档的表述很直白:Agent SDK 给你的是<strong>「驱动 Claude Code 的那一套工具、agent 循环和上下文管理」</strong>,以 Python/TypeScript 库的形式开放。目标用户是要把 agent 能力嵌进自己产品或流水线的工程团队:CI/CD 自动化、客服 agent、内部工具、垂直行业应用。</p>
+
+  <div class="tagline" style="display:flex;gap:8px"><span class="tag tag-why">为什么它是矩阵的枢纽</span><p style="margin:4px 0">其他六个产品是 Anthropic 自己包好的壳;SDK 是把包壳的权利交给你。官方文档也坦率写明代价:「以运行 Anthropic 的 harness 而非你自己的为代价」——你省下数月基建时间,换来的是接受它的循环与工具约定。社区把这种模式称为 <span class="term">HaaS(Harness as a Service)</span>:行业的核心原语正从「LLM API(聊天补全)」转向「Harness API(可定制的 agent 运行时)」。</p></div>
+
+  <h3>工具集</h3>
+  <ul class="practice">
+    <li>内置文件操作、命令执行、Web 搜索等工具,agent 开箱即用;</li>
+    <li>上下文自动压缩(compaction),长任务不爆上下文;</li>
+    <li>细粒度权限、会话管理、错误处理、prompt 缓存优化;</li>
+    <li>可定制系统提示、自定义工具/MCP、subagent(YAML 定义)、hooks。</li>
+  </ul>
+
+  <h3>成熟度、定价与延伸</h3>
+  <p>SDK 本身免费开源,成本是消耗的模型 token(API 计价,如 Opus 4.8;也支持订阅账号认证)。2026 年 4 月起还有云端托管版本 <strong>Claude Managed Agents</strong>(公测):Anthropic 替你管基础设施、状态、权限与模型升级,适合要审计日志、跨天长任务的企业场景,官方博客称 Notion、Asana、Sentry 已在生产使用。另据多家媒体报道,2026 年 5 月 Anthropic 收购了为其生成官方 SDK 的公司 Stainless——把「agent 连接外部软件的最后一公里」也纳入垂直整合。</p>
+</section>
+
+<!-- ============ 7 Cowork ============ -->
+<section id="cowork">
+  <h2>🗂️ 7 · Cowork:给不写代码的人的 Claude Code</h2>
+  <div class="p-meta"><span class="m-ga">GA · 2026.04(2026.01 研究预览)</span><span>macOS / Windows 桌面 App</span><span>所有付费计划</span></div>
+
+  <h3>定位与目标用户</h3>
+  <p>官方产品页的定义:「给它一个目标,Claude 在你的电脑、本地文件和应用上工作,交回一份成品」。目标用户明确是<strong>非技术知识工作者</strong>:研究员、分析师、运营、法务、财务——每天跟文档、数据、文件打交道,却不想碰终端的人。官方 FAQ 直言其起源:内部非技术团队绕过聊天界面去用 Claude Code,Cowork 就是「同样的能力 + 简化的体验」。</p>
+
+  <div class="figure" id="fig-cowork-img">
+    <img src="https://substackcdn.com/image/fetch/$s_!mg_4!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F38b3714c-32f2-4d24-894b-7dd40d30a152_2580x2189.jpeg" alt="Cowork 界面截图:左侧 Chat/Code/Cowork 标签,中间任务对话流显示正在执行 find 命令,右侧进度、产物与上下文面板" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <div style="display:none;color:var(--muted);font-size:14px;padding:12px">🖼️ 原图已失效(来自 Simon Willison 的评测)。该图展示的是 Cowork 界面:桌面 App 内与 Chat、Code 并列的第三个标签,左侧任务列表、中间对话与命令执行流、右侧进度/产物/文件面板。</div>
+    <div class="fig-cap">Cowork 首发日的真实界面:注意命令里的 <code>/sessions/…/mnt/</code> 路径——文件被挂载进隔离沙箱。图源:Simon Willison 评测(2026-01-12)。</div>
+  </div>
+
+  <h3>工具集</h3>
+  <ul class="practice">
+    <li>本地文件夹读写(需授权)、沙箱虚拟机里的 Linux shell、文档产出(docx/xlsx/pptx/pdf 等,配官方 Skills);</li>
+    <li>MCP 连接器与插件市场(含按部门打包的插件)、Skills、并行 subagent、定时任务(scheduled tasks)、可持久刷新的 artifacts;</li>
+    <li>装了 Chrome 扩展后可接管浏览器做网页任务——矩阵产品互相咬合的典型例子;</li>
+    <li>写入前询问权限,「重要决定留给人」是官方明确的设计原则。</li>
+  </ul>
+
+  <h3>成熟度与定价</h3>
+  <p>2026-01-12 以研究预览发布(当时仅 Max 订阅可用),4 月起对<strong>所有付费计划</strong>开放并加入企业管控(角色权限、用量分析等,GA 具体日期来自行业报道,官方页面确认现状为「所有付费计划可用」)。不额外收费,消耗订阅额度。Cowork 团队负责人 2026 年 4 月称发布 12 周后已有数百万人使用(X 帖子,单一来源)。</p>
+
+  <div class="callout quote-box">
+    <div class="c-title">🗣️ 社区视角(Simon Willison,2026-01)</div>
+    「我说了很久,Claude Code 是伪装成开发者工具的通用 agent……Cowork 与常规 Claude Code 的差别?<em>不大</em>。它就是套上了不吓人界面、帮你配好了文件沙箱的 Claude Code。我认为这是非常聪明的产品。」——同时他也提醒:让普通用户自己「留意可疑的提示注入迹象」并不现实,安全仍是这类产品的核心疑问(见第 14 章)。
+  </div>
+</section>
+
+<!-- ============ 8 Chrome ============ -->
+<section id="chrome">
+  <h2>🌐 8 · Claude in Chrome:伸进浏览器的那只手</h2>
+  <div class="p-meta"><span class="m-beta">Beta · 全付费计划</span><span>Chrome 扩展(侧栏)</span><span>2025.08 研究预览起步</span></div>
+
+  <h3>定位与目标用户</h3>
+  <p>让 Claude 直接在浏览器里干活:读页面、点按钮、填表单、跨标签页操作。它解决的是「没有 API 的系统」这个老大难——很多企业内网、SaaS 后台、政府网站只有网页界面,浏览器 agent 是唯一的自动化通路。它既是独立产品(侧栏对话),也是其他产品的「手」:Cowork 和 Claude Code 都能调用它完成网页环节。</p>
+
+  <h3>工具集</h3>
+  <ul class="practice">
+    <li>页面导航、DOM 读取、点击/输入/表单填写、多标签管理、截图与录屏(GIF)、读控制台与网络请求(调试用);</li>
+    <li>站点级权限控制:默认询问,可按域名放行;敏感操作(如发布、支付类动作)保留人工确认;</li>
+    <li>与 Claude Code 打通(code.claude.com 有专门文档),前端调试场景:agent 改完代码直接在浏览器里自测。</li>
+  </ul>
+
+  <h3>成熟度与定价</h3>
+  <p>路线很能说明 Anthropic 的「安全渐进」风格:2025 年 8 月以研究预览面向 1000 名 Max 用户试点(官方新闻稿),随后逐步扩大,截至调研时官方帮助中心表述为<strong>面向所有付费计划的 beta</strong>。官方公开原因是提示注入类攻击的防御仍在完善,GA 前要继续修补(另见:2026 年 7 月有第三方发布说明称其已 GA,与官方帮助中心表述不一致,未能核实,以官方页面为准)。包含在付费订阅内,不单独收费。</p>
+</section>
+<!-- ============ 9 Excel ============ -->
+<section id="excel">
+  <h2>📊 9 · Claude for Excel:侧栏里的金融分析师</h2>
+  <div class="p-meta"><span class="m-ga">GA · 2026.05 · 全付费计划</span><span>Office 加载项</span><span>Web / Windows / Mac / iPad</span></div>
+
+  <h3>定位与目标用户</h3>
+  <p>官方帮助中心定义得很窄也很准:「为大量使用电子表格的专业人士设计,<strong>尤其是金融分析与建模</strong>」。它不是把表格数据贴给聊天框,而是 agent 直接在打开的工作簿里读单元格、公式和多表结构,并原生地做修改。</p>
+
+  <h3>工具集(官方帮助中心逐项列出)</h3>
+  <ul class="practice">
+    <li><strong>读</strong>:回答关于工作簿的问题并给出<span class="term">单元格级引用</span>(点击跳到对应格子)、跨多 tab 导航、解释公式链路;</li>
+    <li><strong>写</strong>:在保持公式依赖关系的前提下改假设、建新模型或填模板、修 #REF!/#VALUE!/循环引用等错误,所有改动高亮标注;</li>
+    <li><strong>原生操作</strong>:排序筛选、数据透视表与图表编辑、条件格式、数据验证、打印区域与金融行业格式(如「蓝色输入、黑色公式」的 IB 惯例);</li>
+    <li><strong>生态复用</strong>:支持全部已配置的 MCP 连接器与 Skills(在侧栏输入 <code>/</code> 直接调用)、可设置持久 Instructions;</li>
+    <li><strong>明确不支持</strong>:VBA/宏、Excel 数据表(Data Tables)功能;不建议用于未经人工复核的最终交付物与审计关键计算。</li>
+  </ul>
+
+  <h3>成熟度与定价</h3>
+  <p>2025 年 10 月起小范围预览,2026-05-07 与 Word、PowerPoint 一起在 Microsoft Marketplace 全量 GA(Outlook 同日进入公测,多家媒体交叉印证)。可用性:Pro、Max、Team、Enterprise 全部付费计划,<strong>共用订阅额度</strong>,不单独收费。企业可经由内部 LLM 网关(Bedrock/Vertex/Azure)使用而无需 Claude 账号。数据方面官方承诺输入输出 30 天内后端删除。</p>
+</section>
+
+<!-- ============ 10 PowerPoint ============ -->
+<section id="ppt">
+  <h2>📽️ 10 · Claude for PowerPoint:懂模板的做片人</h2>
+  <div class="p-meta"><span class="m-ga">GA · 2026.05 · 全付费计划</span><span>Office 加载项</span><span>Web / Windows / Mac</span></div>
+
+  <h3>定位与目标用户</h3>
+  <p>面向「花大量时间做片子的人」——官方示例几乎全是咨询场景(市场规模三页、竞争格局对比、结论先行重排)。它与通用 AI 做 PPT 工具的差异点是<span class="term">模板感知</span>:读取你 deck 的 slide master、版式、字体、配色,在<strong>客户或公司现有模板的规范内</strong>生成和修改,而不是每次产出一套「AI 风格」的野生设计。</p>
+
+  <h3>工具集(官方帮助中心)</h3>
+  <ul class="practice">
+    <li>从模板建新片、对单页做精准修改(不重生成整个 deck)、从自然语言生成整套结构;</li>
+    <li>把 bullet 变成流程图/示意图与<strong>原生可编辑</strong>的 PowerPoint 图表(不是贴图);</li>
+    <li>跨 3–7 页重构叙事线、生成议程页、加过渡页;</li>
+    <li>连接器 + Skills(如 <code>/deck-check</code>)+ 持久 Instructions(品牌规范类偏好),与 Excel 侧的 Instructions 相互独立;</li>
+    <li>官方还提供跨 M365 应用的上下文延续:同一工作流在 Excel、PowerPoint、Word、Outlook 之间接力(见「Work across Microsoft 365 apps」文档)。</li>
+  </ul>
+
+  <h3>成熟度与定价</h3>
+  <p>与 Excel 同批:2026-05-07 GA,全付费计划可用,共用额度。局限也一致:聊天记录只存本地浏览器(IndexedDB)、30 天后端删除、Enterprise 之外暂无审计日志;不支持 iPad/Android 版 PowerPoint。此外据行业报道,2026 年 2 月 Opus 4.6 发布时曾以「PowerPoint 侧栏原生集成」作为亮点之一(单一来源,可视为 GA 前的早期形态)。</p>
+</section>
+
+<!-- ============ 11 Deep Research ============ -->
+<section id="research">
+  <h2>🔎 11 · Deep Research:会自己查资料的研究员</h2>
+  <div class="p-meta"><span class="m-ga">GA · 2025.04 起</span><span>claude.ai / 桌面 / 移动端</span><span>付费计划</span></div>
+
+  <h3>定位与目标用户</h3>
+  <p>严格说这不是独立产品,而是 claude.ai 聊天里的 <strong>Research 模式</strong>(点击输入框「+」开启):你给一个问题,Claude 自主展开<strong>多轮、自我修正的搜索</strong>——官方描述为「逐次搜索相互递进,自动决定下一步查什么」,通常访问十个以上来源、交叉比对、解决矛盾,最后产出带可核查引用的报告。目标用户最宽:任何要「查清楚一件事」的人。</p>
+
+  <h3>工具集</h3>
+  <ul class="practice">
+    <li>Web 搜索 + 网页抓取;接入 Google Workspace(邮件、日历、文档)与各类 MCP 连接器后,可把内部资料纳入同一次调研;</li>
+    <li>产出带引用标注,可逐条点回原文;</li>
+    <li>开发者侧的对应物:Claude Code 有第一方 deep-research 技能,派出并行 subagent 分头搜索、对论断做对抗式核验后合成带引用的报告(此细节来自社区教程,单一来源)。本文档本身就是这类工作流的产物。</li>
+  </ul>
+
+  <h3>成熟度与定价</h3>
+  <p>2025 年 4 月上线,5 月扩展到移动端与「web + Workspace + 集成」的高级模式,现为 Pro/Max/Team/Enterprise 标配,免费版没有。不单独收费,但官方提醒:一次 Research 检索大量来源,<strong>消耗额度比普通对话快</strong>。</p>
+</section>
+
+<!-- ============ 12 strategy ============ -->
+<section id="strategy">
+  <h2>🏗️ 12 · 布局逻辑:垂直整合 Harness 的思路</h2>
+  <p class="sec-lead">把七个产品放回一张图里,战略就显形了。</p>
+
+  <div class="figure" id="fig-stack">
+    <svg viewBox="0 0 820 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="垂直整合分层架构图">
+      <!-- layer 4 surfaces -->
+      <g data-anim>
+        <rect x="40" y="30" width="740" height="86" rx="14" fill="#e3edff" stroke="#bcd4fb"/>
+        <text x="70" y="58" font-size="14" font-weight="700" fill="#0b3f9e">第 4 层 · 入口(Surfaces)—— 按「人在哪」切分</text>
+        <text x="70" y="86" font-size="12.5" fill="#3d5a78">💻 Code(终端)  🗂️ Cowork(桌面)  🌐 Chrome(浏览器)  📊 Excel  📽️ PPT(Office)  🔎 Research(Chat)  ➕ Design / Science / Slack …</text>
+      </g>
+      <!-- layer 3 primitives -->
+      <g data-anim>
+        <rect x="40" y="136" width="740" height="80" rx="14" fill="#dff4f2" stroke="#a9dedd"/>
+        <text x="70" y="164" font-size="14" font-weight="700" fill="#0e9394">第 3 层 · 共享原语 —— 一次构建,处处复用</text>
+        <text x="70" y="192" font-size="12.5" fill="#3d5a78">MCP 连接器生态 · Skills(跨产品通用)· 插件/市场 · subagent · 定时任务 · 沙箱与权限</text>
+      </g>
+      <!-- layer 2 harness -->
+      <g data-anim>
+        <rect x="40" y="236" width="740" height="80" rx="14" fill="#efe9ff" stroke="#d3b4f5"/>
+        <text x="70" y="264" font-size="14" font-weight="700" fill="#5b5bd6">第 2 层 · Harness(Agent SDK / Managed Agents)—— 也单独对外出售</text>
+        <text x="70" y="292" font-size="12.5" fill="#3d5a78">agent 循环 · 上下文压缩 · 工具调用层 · 权限 · 会话状态 · 错误处理(即驱动 Claude Code 的那套框架)</text>
+      </g>
+      <!-- layer 1 model -->
+      <g data-anim>
+        <rect x="40" y="336" width="740" height="70" rx="14" fill="#123f86"/>
+        <text x="70" y="364" font-size="14" font-weight="700" fill="#fff">第 1 层 · 模型 —— Opus / Sonnet / Haiku / Fable(专为长程 agent 任务训练)</text>
+        <text x="70" y="390" font-size="12.5" fill="#bcd4fb">模型训练与 harness 设计互相喂养:训练时就针对自家工具与循环优化</text>
+      </g>
+      <g stroke="#8fb0dd" stroke-width="2">
+        <line data-draw x1="410" y1="336" x2="410" y2="316"/>
+        <line data-draw x1="410" y1="236" x2="410" y2="216"/>
+        <line data-draw x1="410" y1="136" x2="410" y2="116"/>
+      </g>
+    </svg>
+    <div class="fig-cap">四层垂直整合:模型 → harness → 共享原语 → 入口。竞品往往只做其中一两层;Anthropic 四层全部自营,且第 2 层还单独作为产品(SDK)出售。</div>
+  </div>
+
+  <h3>这套打法的三个核心判断</h3>
+  <ol class="steps">
+    <li data-n="1"><b>Harness 是新的护城河,不只是模型。</b>同代模型的能力差距在缩小,但「模型 + 自家打磨两年的执行框架」的组合差距在拉大。Anthropic 的工程博客(如《Effective harnesses for long-running agents》)持续输出这套方法论;模型训练时就针对自家 harness 的工具与循环做优化,形成外人难以复制的耦合。</li>
+    <li data-n="2"><b>矩阵按界面切分,不按能力切分。</b>七个产品没有能力上的「高低配」——Excel 插件和 Claude Code 用的是同一批模型、同一套 Skills。切分维度是用户此刻所在的界面。这让 Anthropic 不需要为每个人群重新发明轮子:新入口 ≈ 新壳 + 已有底座,这解释了为何 2026 年能保持高频发布(Design、Science 都是同一模式的延伸)。</li>
+    <li data-n="3"><b>底座本身也是商品:自用 + 外卖两条腿。</b>自家壳覆盖不到的场景,通过 Agent SDK / Managed Agents 让别人来建,token 消耗仍回流 Anthropic;收购 Stainless(SDK 生成商)进一步握住开发者接入的「最后一公里」(据媒体报道)。社区所谓 HaaS——「人人都想成为用户接入智能的那个 harness」——Anthropic 是目前执行得最彻底的一家。</li>
+  </ol>
+
+  <div class="analogy"><div class="a-side">🔗 类比</div><div class="a-body"><strong>像苹果做硬件+系统+App Store 的垂直整合,只是对象换成了「智能」。</strong>模型是芯片,harness 是操作系统,MCP/Skills/插件市场是 App Store,七个产品是不同形态的终端设备(Mac/iPhone/iPad/Watch)。买任何一台设备,你都进入了同一个生态;开发者想触达这个生态,就得用它的 SDK。</div></div>
+
+  <h3>商业模式与竞争语境</h3>
+  <p>收入结构是「订阅 + 企业协议 + API」,官方明确承诺 Claude 产品不放广告(2026 年 2 月还以此为主题投放了 Super Bowl 广告,与 OpenAI 在免费版测试广告形成对照)。据行业通讯报道,Anthropic 的年化收入 2026 年 2 月约 140 亿美元、5 月底约 470 亿美元,同期完成 650 亿美元 H 轮融资、投后估值约 9650 亿美元——这些数字来自单一第三方来源,未经官方逐项确认,仅供量级参考。竞争面上,OpenAI(Codex/ChatGPT Agent)与 Google(Gemini CLI/Antigravity)在各自构建类似的 harness 与入口;Simon Willison 在 Cowork 评测中的判断是「Gemini 和 OpenAI 大概率会跟进这个品类」。</p>
+</section>
+<!-- ============ 13 choose ============ -->
+<section id="choose">
+  <h2>🧭 13 · 选型:什么场景用哪个</h2>
+  <p class="sec-lead">同一台引擎,选驾驶舱只看两个问题:你是谁 + 活儿在哪。</p>
+
+  <div class="tbl-wrap"><table>
+    <tr><th>你的场景</th><th>选它</th><th>理由</th></tr>
+    <tr><td>写代码、改仓库、跑测试、开 PR</td><td><b>Claude Code</b></td><td>为开发工作流深度定制:git、IDE、CI、并行会话、/goal</td></tr>
+    <tr><td>把 agent 能力做进自己的产品/流水线</td><td><b>Agent SDK</b>(长任务/审计需求 → Managed Agents)</td><td>拿走完整 harness,只写业务差异部分</td></tr>
+    <tr><td>整理文件夹、从一堆材料出报告、重复性文档活</td><td><b>Cowork</b></td><td>无需终端,沙箱保护,产出直接是 docx/xlsx/pptx</td></tr>
+    <tr><td>操作只有网页界面的系统、填表、跨站取数</td><td><b>Claude in Chrome</b></td><td>唯一能「点网页」的入口;可被 Cowork/Code 调用</td></tr>
+    <tr><td>财务模型、表格清洗、公式调试</td><td><b>Claude for Excel</b></td><td>单元格级引用 + 保持公式依赖,在表内原生操作</td></tr>
+    <tr><td>按公司模板做片子、重构叙事线</td><td><b>Claude for PowerPoint</b></td><td>模板感知 + 原生可编辑图表</td></tr>
+    <tr><td>查清一个问题、要带引用的调研结论</td><td><b>Deep Research</b></td><td>多轮搜索 + 交叉验证 + 引用,聊天框里直接开</td></tr>
+  </table></div>
+
+  <div class="callout key">
+    <div class="c-title">🧩 组合使用才是完全体</div>
+    这些入口设计上就是互相咬合的:Cowork 调 Chrome 扩展抓网页数据 → 用 Excel Skill 产出模型 → PPT 插件按模板做成汇报;Claude Code 用 /deep-research 查方案 → 写码 → Chrome 里自测。选型不是七选一,而是以一个主入口为锚,让其余作为它的「手」。
+  </div>
+</section>
+
+<!-- ============ 14 pitfalls ============ -->
+<section id="pitfalls">
+  <h2>⚠️ 14 · 常见坑与限制</h2>
+  <p class="sec-lead">官方已知限制与社区高频反馈,分开标注。</p>
+
+  <div class="callout warn">
+    <div class="c-title">🚨 提示注入(Prompt Injection)是全矩阵的头号风险 —— 官方与社区共识</div>
+    agent 能读外部内容(网页、表格、文件),攻击者就能把恶意指令藏进这些内容里冒充你的指令。官方在 Cowork、Excel、PPT 的文档里都有专节警告,Excel 文档甚至列出了会触发确认弹窗的危险函数清单(WEBSERVICE、INDIRECT、DDE 等),并明确建议:<strong>不要对来源不可信的文件/网站使用这些产品</strong>。社区批评(Simon Willison)则指出:要求非技术用户「自行留意注入迹象」不现实,在出现标志性安全事件前,这个风险普遍被低估。
+  </div>
+
+  <ul class="practice">
+    <li><strong>额度共享</strong>(官方):Excel/PPT/Research 都消耗同一份订阅额度;Research 和并行 subagent 烧额度显著更快,重度用户会撞 Pro 上限。</li>
+    <li><strong>成熟度不均</strong>(官方状态):Chrome 仍是 beta;Claude Code 的 dynamic workflows、computer use 等是研究预览——预览功能的行为和可用性随时会变。</li>
+    <li><strong>Office 插件的边界</strong>(官方):Excel 不支持 VBA/宏;两个插件的聊天记录只存本地浏览器、不跨设备同步;Enterprise 之外无审计日志;官方明确不建议用于未复核的最终交付物。</li>
+    <li><strong>Cowork 沙箱 ≠ 绝对安全</strong>(社区):文件沙箱限制的是「能碰哪些文件」,但授权范围内的数据配上联网能力,仍构成外泄面(「lethal trifecta」问题)。敏感文件夹别授权。</li>
+    <li><strong>迭代过快,教程速朽</strong>(本调研的直接体会):Claude Code 每周都有行为变化,半年前的教程可能已过时——查任何用法,先看官方 What's new 与 changelog。</li>
+  </ul>
+</section>
+
+<!-- ============ 15 resources ============ -->
+<section id="resources">
+  <h2>📚 15 · 学习资源清单</h2>
+  <ul class="practice">
+    <li><strong>官方文档入口</strong>:Claude Code 文档 code.claude.com/docs(含每周 What's new)· Agent SDK 概览 platform.claude.com/docs/en/agent-sdk/overview · 帮助中心 support.claude.com(Excel/PPT/Research/Chrome 各有专文)· 定价 claude.com/pricing</li>
+    <li><strong>官方工程博客</strong>:Building agents with the Claude Agent SDK · Effective harnesses for long-running agents · Writing effective tools for agents(anthropic.com/engineering)</li>
+    <li><strong>产品页</strong>:anthropic.com/product/claude-cowork · claude.com/claude-for-chrome · claude.com/claude-for-microsoft-365</li>
+    <li><strong>社区必读</strong>:Simon Willison 的 Cowork 首日评测(含沙箱逆向)· vtrivedy 的《HaaS: Harness as a Service》(harness 思维框架)· Linas Beliūnas 的 2026 发布全记录(时间线梳理,商业数字需自行核验)</li>
+  </ul>
+</section>
+
+<div class="final">
+  <h2>🎯 收个尾</h2>
+  <p>看懂这个矩阵只需要记住一件事:<strong>Anthropic 卖的不是七个产品,而是同一套「会干活的 Claude」,以七种姿势递到不同的人手里</strong>。模型是引擎,harness 是底盘,MCP/Skills 是通用零件,七个入口是车型。对用户,选型只是「你在哪、干什么活」;对行业,这是从「LLM API」到「Harness API」的范式迁移——而 Anthropic 正在把整条产业链焊在自己手里。</p>
+</div>
+
+<footer>
+  <p><strong>调研时间:2026-07-05</strong> · 方式:官方文档/帮助中心/产品页优先,关键事实交叉验证,商业数字与单一来源信息已在文中标注。Claude 各产品迭代极快,请以官方最新文档为准。</p>
+  <p><strong>来源清单:</strong></p>
+  <p>
+  ① <a href="https://www.anthropic.com/product/claude-cowork">Claude Cowork 官方产品页(Anthropic)</a><br>
+  ② <a href="https://simonwillison.net/2026/Jan/12/claude-cowork/">First impressions of Claude Cowork — Simon Willison,2026-01-12</a><br>
+  ③ <a href="https://code.claude.com/docs/en/whats-new">Claude Code 官方 What's new(2026 年 3–6 月各周,含 /goal、auto mode、dynamic workflows 等)</a><br>
+  ④ <a href="https://platform.claude.com/docs/en/agent-sdk/overview">Agent SDK overview — Claude Platform Docs</a><br>
+  ⑤ <a href="https://support.claude.com/en/articles/12650343-use-claude-for-excel">Use Claude for Excel — 官方帮助中心(更新于 2026-05-27)</a><br>
+  ⑥ <a href="https://support.claude.com/en/articles/13521390-use-claude-for-powerpoint">Use Claude for PowerPoint — 官方帮助中心(更新于 2026-05-27)</a><br>
+  ⑦ <a href="https://support.claude.com/en/articles/11088861-use-research-on-claude">Use research on Claude — 官方帮助中心</a><br>
+  ⑧ <a href="https://www.anthropic.com/news/claude-for-chrome">Piloting Claude in Chrome — Anthropic 新闻(2025-08)</a> · <a href="https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome">Get started with Claude in Chrome — 帮助中心</a><br>
+  ⑨ <a href="https://claude.com/pricing">Plans & Pricing — claude.com</a> · <a href="https://support.claude.com/en/articles/11049741-what-is-the-max-plan">What is the Max plan — 帮助中心</a><br>
+  ⑩ <a href="https://thenewstack.io/claude-word-excel-powerpoint-outlook-microsoft-office/">Claude 跨 Outlook/Word/Excel/PowerPoint — The New Stack(2026-05 GA 报道)</a><br>
+  ⑪ <a href="https://linas.substack.com/p/anthropic-claude-2026-every-launch-guide">Everything Anthropic Shipped in 2026 — Linas Beliūnas(2026-06-01,时间线与商业数字来源,单一来源已标注)</a><br>
+  ⑫ <a href="https://www.vtrivedy.com/posts/claude-code-sdk-haas-harness-as-a-service/">The Claude Code SDK and the Birth of HaaS — vtrivedy(2025-09)</a><br>
+  ⑬ <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">Effective harnesses for long-running agents — Anthropic Engineering</a><br>
+  ⑭ <a href="https://www.anthropic.com/news/introducing-anthropic-labs">Introducing Labs — Anthropic 新闻</a>
+  </p>
+  <p>整理方式:主题全网调研 + 概念展开与可视化(topic-to-html)。文中「据报道 / 单一来源」字样均为置信度标注。</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var toc=document.getElementById('sideToc'),btn=document.getElementById('tocBtn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  document.querySelectorAll('.side-toc a').forEach(function(a){a.addEventListener('click',function(){if(window.innerWidth<1180)toc.classList.remove('open')})});
+  var secs=[].slice.call(document.querySelectorAll('section[id]')),links={};
+  document.querySelectorAll('.side-toc a').forEach(function(a){links[a.getAttribute('href').slice(1)]=a});
+  var bar=document.getElementById('stBar'),pct=document.getElementById('stPct'),top=document.getElementById('topProgress');
+  function onScroll(){
+    var h=document.documentElement,max=h.scrollHeight-h.clientHeight,p=max>0?Math.min(100,Math.round(h.scrollTop/max*100)):0;
+    bar.style.width=p+'%';top.style.width=p+'%';pct.textContent=p+'%';
+    var cur=null;secs.forEach(function(s){if(s.getBoundingClientRect().top<=140)cur=s.id});
+    for(var k in links)links[k].classList.toggle('on',k===cur);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+  if(reduce){figs.forEach(function(f){f.classList.add('vis')});return;}
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(p){
+      var len=p.getTotalLength?p.getTotalLength():300;
+      p.style.strokeDasharray=len;p.style.strokeDashoffset=len;
+    });
+  });
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(!e.isIntersecting)return;
+      var f=e.target;f.classList.add('vis');
+      var i=0;
+      f.querySelectorAll('[data-anim]').forEach(function(el){el.style.transitionDelay=(i*0.12)+'s';i++;});
+      f.querySelectorAll('[data-draw]').forEach(function(p){p.style.transitionDelay=(i*0.12)+'s';p.style.strokeDashoffset=0;i++;});
+      io.unobserve(f);
+    });
+  },{threshold:0.25});
+  figs.forEach(function(f){io.observe(f)});
+})();
+</script>
+</body>
+</html>
