@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAANG 是怎么 Vibe Coding 的 —— 一线 AI 工程师的生产级工作流自述</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1d2b3f; --ink-soft:#48607c; --ink-faint:#7a8ea6;
+  --accent:#2468e5; --accent-deep:#173f8f; --accent-soft:#e3edfd;
+  --teal:#0e9488; --teal-soft:#e0f4f2; --indigo:#5b5bd6; --indigo-soft:#ebebfa;
+  --gold:#b7791f; --gold-soft:#fdf3e0; --warn:#c2410c; --warn-soft:#fdeee4;
+  --line:#d8e4f2; --code-bg:#0f2038; --code-ink:#cfe1f7;
+  --hero1:#122a52; --hero2:#1d4d9e;
+  --radius:14px; --shadow:0 2px 14px rgba(23,63,143,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:17px; line-height:1.88;
+  -webkit-font-smoothing:antialiased;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));z-index:99}
+.side-toc{
+  position:fixed;left:18px;top:50%;transform:translateY(-50%);width:225px;z-index:90;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);
+  max-height:86vh;overflow-y:auto;
+}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep);letter-spacing:.02em}
+.st-sub{font-size:11.5px;color:var(--ink-faint);margin-bottom:10px}
+.st-progress{height:6px;background:var(--accent-soft);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:3px;transition:width .15s}
+.st-pct{font-size:11px;color:var(--ink-faint);text-align:right;margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{
+  display:flex;gap:7px;align-items:baseline;padding:4.5px 8px;border-radius:8px;
+  font-size:12.5px;color:var(--ink-soft);text-decoration:none;line-height:1.45;
+}
+.side-toc li a .n{font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;flex:none;width:16px}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.toc-btn{
+  position:fixed;left:14px;top:14px;z-index:95;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:17px;color:var(--accent-deep);cursor:pointer;display:none;
+  box-shadow:var(--shadow);
+}
+@media(max-width:1179px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:64px;transform:none;max-height:72vh}
+  .toc-btn{display:block}
+}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px 80px}
+@media(min-width:1180px){.wrap{margin-left:calc(50% - 330px)}}
+@media(max-width:1179px){.wrap{margin:0 auto;padding-top:8px}}
+.hero{
+  margin:26px 0 34px;border-radius:22px;padding:46px 44px 40px;color:#eaf2ff;
+  background:linear-gradient(135deg,var(--hero1) 0%,var(--hero2) 78%);
+  box-shadow:0 10px 34px rgba(18,42,82,.28);position:relative;overflow:hidden;
+}
+.hero::after{content:"";position:absolute;right:-70px;top:-70px;width:270px;height:270px;border-radius:50%;
+  background:radial-gradient(circle,rgba(120,180,255,.22),transparent 68%)}
+.hero .kicker{font-size:13px;letter-spacing:.14em;color:#9dc1f5;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-size:31px;line-height:1.42;letter-spacing:.01em;margin-bottom:10px}
+.hero .en{font-size:15px;color:#b9d3f8;margin-bottom:18px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px}
+.hero .meta span{font-size:12.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  padding:4px 12px;border-radius:99px;color:#dcE9fc}
+.hero p.lead{margin-top:18px;font-size:15.5px;line-height:1.85;color:#d7e6fb}
+section{margin:0 0 30px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:40px 0 16px}
+.sec-h .ico{font-size:22px;flex:none}
+.sec-h h2{font-size:23px;color:var(--accent-deep);line-height:1.5}
+.sec-h .no{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+h3{font-size:18.5px;color:var(--ink);margin:26px 0 10px}
+p{margin:0 0 14px}
+a{color:var(--accent);text-decoration:none;border-bottom:1px dashed rgba(36,104,229,.4)}
+a:hover{border-bottom-style:solid}
+strong{color:var(--ink)}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 7px;border-radius:6px;font-weight:600}
+.hl{background:linear-gradient(transparent 62%,#ffe9a8 62%)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.def{border-left:4px solid var(--accent)}
+.def .d-title{font-weight:700;font-size:16.5px;margin-bottom:10px;color:var(--accent-deep)}
+.tagline{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px}
+.tagline .tg{flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;margin-top:5px;letter-spacing:.03em}
+.tg-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tg-why{background:var(--teal-soft);color:var(--teal)}
+.tg-eg{background:var(--gold-soft);color:var(--gold)}
+.tagline p{margin:0;font-size:15.5px}
+.callout{border-radius:var(--radius);padding:16px 20px;margin:16px 0;font-size:15.5px;border:1px solid}
+.callout .c-t{font-weight:700;margin-bottom:6px;font-size:15px}
+.key{background:var(--accent-soft);border-color:#c4d9f9;color:#1c3a6e}
+.key-teal{background:var(--teal-soft);border-color:#b9e4e0;color:#0b5d55}
+.key-gold{background:var(--gold-soft);border-color:#f0dcb4;color:#7c5410}
+.warnbox{background:var(--warn-soft);border-color:#f4cdb4;color:#8a3009}
+.quote-box{
+  background:linear-gradient(135deg,#14294e,#1d4585);color:#dbe8fb;border:none;
+  padding:22px 26px;border-radius:16px;margin:20px 0;
+}
+.quote-box .q{font-size:16.5px;line-height:1.85}
+.quote-box strong,.quote-box b{color:#ffd88a}
+.quote-box .who{margin-top:10px;font-size:13px;color:#9dc0ef}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;text-align:center;box-shadow:var(--shadow)}
+.stat .v{font-size:24px;font-weight:800;color:var(--accent-deep);line-height:1.3}
+.stat .k{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.55}
+@media(max-width:640px){.stats{grid-template-columns:1fr 1fr}}
+.steps{counter-reset:st;margin:18px 0}
+.step{position:relative;padding:0 0 18px 52px}
+.step::before{
+  counter-increment:st;content:counter(st);position:absolute;left:0;top:1px;width:34px;height:34px;border-radius:50%;
+  background:var(--accent);color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;
+}
+.step::after{content:"";position:absolute;left:16.5px;top:38px;bottom:2px;width:1.5px;background:var(--line)}
+.step:last-child::after{display:none}
+.step .s-t{font-weight:700;margin-bottom:4px;font-size:16px}
+.step p{font-size:15px;color:var(--ink-soft);margin-bottom:6px}
+.step .ai-badge{display:inline-block;font-size:11.5px;font-weight:700;background:var(--teal-soft);color:var(--teal);padding:2px 10px;border-radius:99px;margin-left:6px;vertical-align:2px}
+.practice{list-style:none;margin:14px 0}
+.practice li{position:relative;padding:0 0 10px 30px;font-size:15.5px}
+.practice li::before{content:"✦";position:absolute;left:4px;color:var(--accent);font-size:14px}
+details.rephrase{background:#f4f8fe;border:1px dashed #b9d0f2;border-radius:12px;padding:12px 18px;margin:12px 0}
+details.rephrase summary{cursor:pointer;font-size:14px;color:var(--accent-deep);font-weight:600}
+details.rephrase[open] summary{margin-bottom:8px}
+details.rephrase p{font-size:14.5px;color:var(--ink-soft);margin-bottom:8px}
+.glossary{display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;margin:16px 0;font-size:14.5px}
+.glossary dt{font-weight:700;color:var(--accent-deep);white-space:nowrap}
+.glossary dd{color:var(--ink-soft)}
+@media(max-width:640px){.glossary{grid-template-columns:1fr}.glossary dd{margin-bottom:8px}}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px 12px;margin:20px 0;box-shadow:var(--shadow)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--ink-faint);text-align:center;padding:10px 8px 6px;line-height:1.7}
+.final{
+  background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#dfeafc;border-radius:20px;
+  padding:34px 36px;margin-top:44px;
+}
+.final h2{color:#fff;font-size:21px;margin-bottom:12px}
+.final p{color:#cfe0f9;font-size:15px}
+footer{margin-top:26px;font-size:12.5px;color:var(--ink-faint);line-height:1.8;text-align:center}
+[data-anim]{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+[data-draw]{transition:stroke-dashoffset 1.1s ease .2s}
+@media(prefers-reduced-motion:reduce){
+  [data-anim]{opacity:1;transform:none;transition:none}
+  [data-draw]{transition:none;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+@media(max-width:640px){
+  body{font-size:16px}
+  .hero{padding:32px 24px}
+  .hero h1{font-size:24px}
+  .sec-h h2{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">FAANG × Vibe Coding</div>
+  <div class="st-sub">生产级 AI 编码工作流自述</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#why"><span class="n">01</span>为什么发这个帖</a></li>
+    <li><a href="#workflow"><span class="n">02</span>7 步工作流全览</a></li>
+    <li><a href="#results"><span class="n">03</span>效果:提速约 30%</a></li>
+    <li><a href="#glossary-sec"><span class="n">04</span>关键术语速查</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">r/vibecoding · 一线自述</div>
+  <h1>FAANG 是怎么 Vibe Coding 的</h1>
+  <div class="en">How we vibe code at a FAANG —— AI 写生产代码的完整流程,来自一位大厂 AI 工程师</div>
+  <div class="meta">
+    <span>✍️ u/TreeTopologyTroubado(Reddit)</span>
+    <span>👍 754 赞 · 2025-08-23</span>
+    <span>🔁 经 Rohan Paul 在 X 转发</span>
+    <span>🎓 Stanford CS146S · Week 3 读物</span>
+  </div>
+  <p class="lead">「AI 辅助编码不能用于生产代码」——这位有十多年经验、一半时间在 FAANG 的 AI 软件工程师说:<strong style="color:#fff">这根本不是事实</strong>。这篇高赞帖用 7 个步骤讲清他们团队怎么把 AI 引入生产级开发:重心依然在设计文档和评审上,AI 在写码环节做「战力倍增器」,而且<strong style="color:#fff">永远先写测试</strong>。最终效果:从功能提案到上线,整体提速约 30%。</p>
+</header>
+
+<!-- ================= 01 ================= -->
+<section id="why">
+  <div class="sec-h"><span class="ico">🎤</span><h2>为什么发这个帖</h2><span class="no">01</span></div>
+
+  <p>作者开门见山:发这个帖,是因为他见到太多人「开火」(flak)——不相信 AI 辅助编码能用在生产代码上。他的回应很直接:<span class="hl"><strong>这根本不是事实</strong></span>(This is simply not true)。</p>
+
+  <div class="card def">
+    <div class="d-title">👤 作者的背景(他自己给出的可信度依据)</div>
+    <ul class="practice">
+      <li>AI 方向的软件工程师(AI SWE),<strong>十年出头</strong>的从业经验,其中<strong>一半在 FAANG</strong>。</li>
+      <li>职业生涯前半段是<strong>系统工程师</strong>(Systems Engineer),不是开发;但写程序已有约 <strong>15 年</strong>。</li>
+    </ul>
+  </div>
+
+  <p>接下来,就是他所说的「我们正开始这样把 AI 用于生产代码」的完整流程。</p>
+
+  <details class="rephrase">
+    <summary>💬 背景补充:这帖子为什么值得一读?(增补说明)</summary>
+    <p>网络上关于 vibe coding 的争论常在两个极端:「AI 能替代工程师」vs「AI 代码全是垃圾」。这篇帖子的价值在于它是<strong>一线大厂工程师对真实生产流程的白描</strong>——它展示的既不是「无脑放手给 AI」,也不是「禁止 AI」,而是把 AI 嵌进一套本来就严谨的工程流程里。这也是它被斯坦福 CS146S 课程选为读物、被 AI 博主 Rohan Paul 转发的原因。(此段为帮助理解的增补,非原帖内容。)</p>
+  </details>
+</section>
+
+<!-- ================= 02 ================= -->
+<section id="workflow">
+  <div class="sec-h"><span class="ico">🛠️</span><h2>7 步工作流全览</h2><span class="no">02</span></div>
+
+  <p>注意一个关键事实:7 步里,<strong>AI 真正大显身手的是第 5 步(第 6 步初显潜力)</strong>;前 4 步——设计、评审、拆解——依然是「人类的主场」,而且作者说,<strong>大部分工作量就发生在第 1 步的设计文档里</strong>。</p>
+
+  <div class="figure" id="fig-workflow">
+    <svg viewBox="0 0 820 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FAANG 七步工作流:设计文档到生产上线">
+      <defs>
+        <marker id="arrw" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#2468e5"/></marker>
+      </defs>
+      <!-- 第一行 4 步 -->
+      <g data-anim>
+        <rect x="20" y="30" width="180" height="92" rx="12" fill="#e3edfd" stroke="#c4d9f9"/>
+        <text x="110" y="58" text-anchor="middle" font-size="13.5" font-weight="700" fill="#173f8f">① 技术设计文档</text>
+        <text x="110" y="80" text-anchor="middle" font-size="11" fill="#2d4f86">提案 → 架构与集成设计</text>
+        <text x="110" y="100" text-anchor="middle" font-size="11" fill="#2d4f86">大部分工作量在这里</text>
+      </g>
+      <path d="M203 76 L 223 76" fill="none" stroke="#2468e5" stroke-width="2.5" marker-end="url(#arrw)" data-draw/>
+      <g data-anim>
+        <rect x="226" y="30" width="180" height="92" rx="12" fill="#fdf3e0" stroke="#f0dcb4"/>
+        <text x="316" y="58" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7c5410">② 设计评审</text>
+        <text x="316" y="80" text-anchor="middle" font-size="11" fill="#96702a">资深工程师「撕碎」文档</text>
+        <text x="316" y="100" text-anchor="middle" font-size="11" fill="#96702a">把痛苦前置</text>
+      </g>
+      <path d="M409 76 L 429 76" fill="none" stroke="#2468e5" stroke-width="2.5" marker-end="url(#arrw)" data-draw/>
+      <g data-anim>
+        <rect x="432" y="30" width="180" height="92" rx="12" fill="#e3edfd" stroke="#c4d9f9"/>
+        <text x="522" y="58" text-anchor="middle" font-size="13.5" font-weight="700" fill="#173f8f">③ 子系统文档</text>
+        <text x="522" y="80" text-anchor="middle" font-size="11" fill="#2d4f86">开发启动后头几周</text>
+        <text x="522" y="100" text-anchor="middle" font-size="11" fill="#2d4f86">逐个子系统再写文档</text>
+      </g>
+      <path d="M615 76 L 635 76" fill="none" stroke="#2468e5" stroke-width="2.5" marker-end="url(#arrw)" data-draw/>
+      <g data-anim>
+        <rect x="638" y="30" width="162" height="92" rx="12" fill="#e3edfd" stroke="#c4d9f9"/>
+        <text x="719" y="58" text-anchor="middle" font-size="13.5" font-weight="700" fill="#173f8f">④ 排期拆任务</text>
+        <text x="719" y="80" text-anchor="middle" font-size="11" fill="#2d4f86">与 PM / TPM 一起</text>
+        <text x="719" y="100" text-anchor="middle" font-size="11" fill="#2d4f86">拆成离散任务+定顺序</text>
+      </g>
+      <!-- 换行连接 -->
+      <path d="M719 126 L 719 160 L 110 160 L 110 192" fill="none" stroke="#2468e5" stroke-width="2.5" marker-end="url(#arrw)" data-draw/>
+      <!-- 第二行 3 步 -->
+      <g data-anim>
+        <rect x="20" y="196" width="230" height="100" rx="12" fill="#e0f4f2" stroke="#b9e4e0"/>
+        <text x="135" y="224" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0b5d55">⑤ 软件开发 🤖 AI 主战场</text>
+        <text x="135" y="247" text-anchor="middle" font-size="11" fill="#177065">TDD:先让 AI 写测试</text>
+        <text x="135" y="267" text-anchor="middle" font-size="11" fill="#177065">再让 AI 实现功能</text>
+        <text x="135" y="287" text-anchor="middle" font-size="11" fill="#177065">AI = 战力倍增器</text>
+      </g>
+      <path d="M253 246 L 283 246" fill="none" stroke="#2468e5" stroke-width="2.5" marker-end="url(#arrw)" data-draw/>
+      <g data-anim>
+        <rect x="286" y="196" width="230" height="100" rx="12" fill="#e0f4f2" stroke="#b9e4e0"/>
+        <text x="401" y="224" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0b5d55">⑥ 代码评审 🤖 AI 辅助</text>
+        <text x="401" y="247" text-anchor="middle" font-size="11" fill="#177065">两名开发批准才能合入 main</text>
+        <text x="401" y="267" text-anchor="middle" font-size="11" fill="#177065">AI 辅助评审「前景很好」</text>
+      </g>
+      <path d="M519 246 L 549 246" fill="none" stroke="#2468e5" stroke-width="2.5" marker-end="url(#arrw)" data-draw/>
+      <g data-anim>
+        <rect x="552" y="196" width="248" height="100" rx="12" fill="#ebebfa" stroke="#cfcfee"/>
+        <text x="676" y="224" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3c3c9e">⑦ Staging 测试 → 上线</text>
+        <text x="676" y="247" text-anchor="middle" font-size="11" fill="#54549e">预发环境验证通过</text>
+        <text x="676" y="267" text-anchor="middle" font-size="11" fill="#54549e">推向生产(prod)</text>
+      </g>
+      <g data-anim>
+        <rect x="20" y="330" width="780" height="66" rx="12" fill="#fdf3e0" stroke="#f0dcb4"/>
+        <text x="410" y="358" text-anchor="middle" font-size="13" font-weight="700" fill="#7c5410">📐 重心分布:①–④ 人类主导(大部分工作量在①设计文档) · ⑤ AI 主战场 · ⑥ AI 辅助(潜力初显) · ⑦ 收口</text>
+        <text x="410" y="381" text-anchor="middle" font-size="12" fill="#96702a">从提案到上线整体提速 ~30%</text>
+      </g>
+    </svg>
+    <div class="fig-cap">图 1 · FAANG 七步生产流:AI 的「战力倍增」发生在第 ⑤⑥ 步,但整条流水线的地基仍是设计文档与评审</div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="s-t">技术设计文档(Technical Design Doc)</div>
+      <p>一切<strong>永远从技术设计文档开始</strong>——大部分工作量就发生在这里。文档先以<strong>提案(proposal doc)</strong>的形式出现;如果能让足够多的利益相关方(stakeholders)认同提案有价值,才进入<strong>系统设计</strong>本身的展开:完整架构、与其他团队的集成等等。</p>
+    </div>
+    <div class="step">
+      <div class="s-t">设计评审(Design Review)</div>
+      <p>在启动开发之前,先过设计评审:让团队的设计文档被资深工程师<strong>「彻底撕碎」</strong>(absolutely shredded)。作者说<strong>这是好事</strong>——他把这看作<span class="term">把痛苦前置</span>(front loading the pain)。</p>
+      <details class="rephrase">
+        <summary>💬 「把痛苦前置」是什么意思?(增补解释)</summary>
+        <p>设计里的错误越晚被发现,修复代价越高:评审阶段改一行文档,开发后期可能就是返工几千行代码。让最挑剔的人在动工前把问题全挑出来,等于把「将来必然要还的债」提前一次还清。(此为帮助理解的增补解释。)</p>
+      </details>
+    </div>
+    <div class="step">
+      <div class="s-t">子系统文档(Subsystem Documentation)</div>
+      <p>通过评审后正式启动开发。但<strong>头几周仍在写文档</strong>:对每一个将由各开发小组负责构建的子系统,再做一轮更细的文档。</p>
+    </div>
+    <div class="step">
+      <div class="s-t">排期与任务拆解(Backlog + Sprint Planning)</div>
+      <p>开发者与 <strong>PM(产品经理)和 TPM(技术项目经理)</strong>一起,把工作敲定成一个个<strong>离散任务</strong>(discrete tasks),并排定各个开发者处理它们的顺序。</p>
+    </div>
+    <div class="step">
+      <div class="s-t">软件开发 <span class="ai-badge">🤖 AI 主战场</span></div>
+      <p>终于,手可以放上键盘、开始「粉碎」任务工单了——<span class="hl"><strong>AI 在这一步是战力倍增器</strong>(force multiplier)</span>。他们采用<span class="term">测试驱动开发</span>(TDD):<strong>先让 AI 编码智能体为要构建的功能写测试;只有在这之后,才开始用智能体去实现功能本身</strong>。</p>
+    </div>
+    <div class="step">
+      <div class="s-t">代码提交评审(Code Submission Review) <span class="ai-badge">🤖 AI 辅助</span></div>
+      <p>代码要合入 main,必须经过<strong>两名开发者批准</strong>的评审流程。AI 在辅助评审方面也<strong>展现出很大的潜力</strong>。</p>
+    </div>
+    <div class="step">
+      <div class="s-t">Staging 测试 → 上线</div>
+      <p>在 <span class="term">staging</span>(预发环境)测试;staging 没问题,就推向生产环境(prod)。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 ================= -->
+<section id="results">
+  <div class="sec-h"><span class="ico">📈</span><h2>效果:从提案到上线,提速约 30%</h2><span class="no">03</span></div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">~30%</div><div class="k">从功能提案到上线生产<br>的整体提速</div></div>
+    <div class="stat"><div class="v">2 人</div><div class="k">代码合入 main 前<br>需要的开发者批准数</div></div>
+    <div class="stat"><div class="v">测试先行</div><div class="k">AI 智能体先写测试<br>再实现功能(TDD)</div></div>
+  </div>
+
+  <p>作者的原话:整体上,他们看到从功能提案到功能上线生产,速度提升了约 30%——<strong>「这对我们来说是巨大的」</strong>(This is huge for us)。</p>
+
+  <div class="quote-box">
+    <div class="q"><strong>TL;DR</strong>:永远从一份扎实的设计文档和架构开始。在此基础上<strong>分块构建</strong>(build from there in chunks)。<strong>永远先写测试</strong>。</div>
+    <div class="who">—— u/TreeTopologyTroubado,原帖收尾</div>
+  </div>
+
+  <div class="callout key">
+    <div class="c-t">🔗 与 Week 3 其他读物的呼应(增补观察)</div>
+    这套流程与同周读物 <a href="https://mingyuyang.com/articles/ai-notes-getting-ai-to-work-in-complex-codebases">《让 AI 在复杂代码库中真正干活》</a>的「研究/计划/实现」异曲同工:都把人类的精力压在<strong>上游高杠杆环节</strong>(设计文档=计划),都用结构化文档给 AI 提供稳定锚点,都强调测试与评审兜底。一个是创业团队的敏捷版,一个是大厂的流程化版。(此段为编者增补的关联提示,非原帖内容。)
+  </div>
+</section>
+
+<!-- ================= 04 ================= -->
+<section id="glossary-sec">
+  <div class="sec-h"><span class="ico">📚</span><h2>关键术语速查</h2><span class="no">04</span></div>
+  <div class="card">
+    <dl class="glossary">
+      <dt>Vibe coding</dt><dd>用自然语言与 AI 对话式地写代码的开发方式;本帖展示的是它在大厂生产环境里的「严肃版」。</dd>
+      <dt>FAANG</dt><dd>Facebook(Meta)、Apple、Amazon、Netflix、Google 五大科技公司的统称,泛指美国头部大厂。</dd>
+      <dt>设计文档 Design Doc</dt><dd>动工前写清「要建什么、为什么、怎么建」的技术文档;此流程中先是提案,获认同后展开为完整系统设计。</dd>
+      <dt>TDD</dt><dd>Test Driven Development,测试驱动开发:先写测试再写实现;此帖中测试由 AI 智能体先行编写。</dd>
+      <dt>PM / TPM</dt><dd>产品经理 / 技术项目经理;第 4 步与开发者一起拆任务、排顺序的角色。</dd>
+      <dt>Staging</dt><dd>预发环境:仿真生产的最后验证环境,通过后才推 prod(生产)。</dd>
+      <dt>Force multiplier</dt><dd>战力倍增器:不改变流程结构、但成倍放大执行效率的因素——作者对 AI 在开发环节作用的定位。</dd>
+    </dl>
+  </div>
+</section>
+
+<div class="final">
+  <h2>🧭 一句话带走</h2>
+  <p>FAANG 的 vibe coding 不是「跟 AI 聊出一个产品」,而是把 AI 嵌进一条本就严谨的流水线:<strong style="color:#fff">设计文档打地基、评审把痛苦前置、AI 先写测试再写码、两人评审 + staging 收口</strong>——流程没变软,速度却快了三成。</p>
+</div>
+
+<footer>
+  整理自 u/TreeTopologyTroubado 发布于 r/vibecoding 的帖子《<a href="https://www.reddit.com/r/vibecoding/comments/1myakhd/how_we_vibe_code_at_a_faang/">How we vibe code at a FAANG.</a>》(2025-08-23,754 赞)· 经 <a href="https://x.com/rohanpaul_ai/status/1959414096589422619">Rohan Paul 在 X 转发</a> · Stanford CS146S Week 3 指定读物<br>
+  处理方式:逐字整理 + 概念展开与可视化(正文中的解释性增补均已标注;导语、术语表与收尾为编者整理) · 生成于 2026-07-05
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+  var toc = document.getElementById('sideToc');
+  var btn = document.getElementById('tocBtn');
+  btn.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.closest('a') && window.innerWidth < 1180) toc.classList.remove('open'); });
+
+  var bar = document.getElementById('stBar'), pct = document.getElementById('stPct'), top = document.getElementById('topProgress');
+  var links = toc.querySelectorAll('li a');
+  var secs = [];
+  links.forEach(function(a){ var s = document.querySelector(a.getAttribute('href')); if(s) secs.push({a:a, s:s}); });
+
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? Math.min(100, Math.round(h.scrollTop / max * 100)) : 0;
+    bar.style.width = p + '%'; top.style.width = p + '%'; pct.textContent = p + '%';
+    var cur = secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].s.getBoundingClientRect().top < window.innerHeight*0.35) cur = secs[i]; }
+    links.forEach(function(a){ a.classList.remove('on'); });
+    if(cur) cur.a.classList.add('on');
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs = document.querySelectorAll('.figure');
+  if(reduced){ figs.forEach(function(f){ f.classList.add('in'); }); return; }
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(p){
+      try{ var L = p.getTotalLength(); p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; }catch(e){}
+    });
+    f.querySelectorAll('[data-anim]').forEach(function(el,i){ el.style.transitionDelay = (i*0.12)+'s'; });
+  });
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        e.target.querySelectorAll('[data-draw]').forEach(function(p){ p.style.strokeDashoffset = 0; });
+        io.unobserve(e.target);
+      }
+    });
+  },{threshold:0.25});
+  figs.forEach(function(f){ io.observe(f); });
+})();
+</script>
+</body>
+</html>
