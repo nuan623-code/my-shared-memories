@@ -9,8 +9,10 @@ export function ResourceMasonry({ resources }: { resources: Resource[] }) {
       </div>
     );
   }
+  // 网格而非 CSS 多列瀑布流:多列布局按「先竖后横」填充,时间倒序在视觉上会乱;
+  // 网格按行左→右排,与 fetch 的 published_at 倒序一致,新内容永远在左上。
   return (
-    <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+    <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {resources.map((r) => (
         <ResourceCard key={r.id} resource={r} />
       ))}

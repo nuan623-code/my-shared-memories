@@ -73,7 +73,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   if (r.type === "note") {
     return (
       <div
-        className="group relative mb-4 break-inside-avoid rounded-2xl border border-border/60 p-5 shadow-sm transition-all hover:shadow-md"
+        className="group relative rounded-2xl border border-border/60 p-5 shadow-sm transition-all hover:shadow-md"
         style={{ background: noteGradient(r.id) }}
       >
         {favOverlay}
@@ -89,7 +89,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   // LINK — external
   if (r.type === "link") {
     return (
-      <div className="group relative mb-4 break-inside-avoid">
+      <div className="group relative">
         {favOverlay}
         <a
           href={r.url ?? "#"}
@@ -127,7 +127,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   // FILE — download
   if (r.type === "file") {
     return (
-      <div className="group relative mb-4 break-inside-avoid">
+      <div className="group relative">
         {favOverlay}
         <a
           href={r.file_url ?? "#"}
@@ -206,7 +206,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
     );
 
     return (
-      <div className="group relative mb-4 break-inside-avoid">
+      <div className="group relative">
         {favOverlay}
         {r.slug ? (
           <Link
@@ -255,7 +255,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
   );
 
   return (
-    <div className="group relative mb-4 break-inside-avoid">
+    <div className="group relative">
       {favOverlay}
       {r.slug ? (
         <Link

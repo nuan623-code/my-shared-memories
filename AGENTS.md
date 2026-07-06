@@ -49,7 +49,9 @@
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
 | `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除;2026-07-05 AI 分区内再按子分类分组(智能体/大模型/AI 工程…,未知归「其他」);2026-07-06「近期亮点」升级为「最近更新」模块(3 亮点卡 + 第 4–10 条时间列表),卡片日期补年份,7 天内资源加「新」徽标。合并冲突时保留本端分区布局 |
 | `src/lib/resources.ts` | 2026-07-06 新增 `formatDate`(中文完整日期)与 `isNew`(7 天内为新)两个 helper,供首页/资源卡/文章页共用 |
-| `src/components/ResourceCard.tsx` | 2026-07-06 卡片头部(分类旁)对 7 天内资源加「新」徽标(日期原本就有,未动) |
+| `src/components/ResourceCard.tsx` | 2026-07-06 卡片头部(分类旁)对 7 天内资源加「新」徽标(日期原本就有,未动);卡片根元素去掉 `mb-4 break-inside-avoid`(改由网格 gap 控距) |
+| `src/components/ResourceMasonry.tsx` | 2026-07-06 CSS 多列瀑布流改常规网格:多列按「先竖后横」填充导致时间倒序视觉上乱序,网格按行左→右与 published_at 倒序一致 |
+| `src/routes/search.tsx` | 2026-07-06 结果列表容器同步改网格(仅 className,未碰既有类型告警行) |
 | `src/lib/data.ts` | 2026-07-05 AI 分类子分类扩充:新增 agent(智能体)、engineering(AI 工程),排序 agent/llm/engineering/notes/cv/experiment;存量文档已用 `supabase/patches/2026-07-05-ai-subcategories.sql` 重新归类 |
 | `src/lib/ai-gateway.server.ts` + `classify.functions.ts` | /admin 自动分类改用 **Claude**(`@ai-sdk/anthropic`,读 `ANTHROPIC_API_KEY`) |
 | `package.json` | 删 `@lovable.dev/cloud-auth-js`;**保留 `@lovable.dev/vite-tanstack-config`(这是构建工具,删了会炸)** |
