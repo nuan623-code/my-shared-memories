@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>好上下文产出好代码:StockApp 如何从零构建 AI-Native 工程文化</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1d2b3f; --ink-soft:#48607c; --ink-faint:#7a8ea6;
+  --accent:#2468e5; --accent-deep:#173f8f; --accent-soft:#e3edfd;
+  --teal:#0e9488; --teal-soft:#e0f4f2; --indigo:#5b5bd6; --indigo-soft:#ebebfa;
+  --gold:#b7791f; --gold-soft:#fdf3e0; --warn:#c2410c; --warn-soft:#fdeee4;
+  --line:#d8e4f2; --code-bg:#0f2038; --code-ink:#cfe1f7;
+  --hero1:#122a52; --hero2:#1d4d9e;
+  --radius:14px; --shadow:0 2px 14px rgba(23,63,143,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:17px; line-height:1.88;
+  -webkit-font-smoothing:antialiased;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));z-index:99}
+.side-toc{
+  position:fixed;left:18px;top:50%;transform:translateY(-50%);width:225px;z-index:90;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);
+  max-height:86vh;overflow-y:auto;
+}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep);letter-spacing:.02em}
+.st-sub{font-size:11.5px;color:var(--ink-faint);margin-bottom:10px}
+.st-progress{height:6px;background:var(--accent-soft);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:3px;transition:width .15s}
+.st-pct{font-size:11px;color:var(--ink-faint);text-align:right;margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{
+  display:flex;gap:7px;align-items:baseline;padding:4.5px 8px;border-radius:8px;
+  font-size:12.5px;color:var(--ink-soft);text-decoration:none;line-height:1.45;
+}
+.side-toc li a .n{font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;flex:none;width:16px}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.toc-btn{
+  position:fixed;left:14px;top:14px;z-index:95;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:17px;color:var(--accent-deep);cursor:pointer;display:none;
+  box-shadow:var(--shadow);
+}
+@media(max-width:1179px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:64px;transform:none;max-height:72vh}
+  .toc-btn{display:block}
+}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px 80px}
+@media(min-width:1180px){.wrap{margin-left:calc(50% - 330px)}}
+@media(max-width:1179px){.wrap{margin:0 auto;padding-top:8px}}
+.hero{
+  margin:26px 0 34px;border-radius:22px;padding:46px 44px 40px;color:#eaf2ff;
+  background:linear-gradient(135deg,var(--hero1) 0%,var(--hero2) 78%);
+  box-shadow:0 10px 34px rgba(18,42,82,.28);position:relative;overflow:hidden;
+}
+.hero::after{content:"";position:absolute;right:-70px;top:-70px;width:270px;height:270px;border-radius:50%;
+  background:radial-gradient(circle,rgba(120,180,255,.22),transparent 68%)}
+.hero .kicker{font-size:13px;letter-spacing:.14em;color:#9dc1f5;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-size:31px;line-height:1.42;letter-spacing:.01em;margin-bottom:10px}
+.hero .en{font-size:15px;color:#b9d3f8;margin-bottom:18px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px}
+.hero .meta span{font-size:12.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  padding:4px 12px;border-radius:99px;color:#dcE9fc}
+.hero p.lead{margin-top:18px;font-size:15.5px;line-height:1.85;color:#d7e6fb}
+section{margin:0 0 30px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:40px 0 16px}
+.sec-h .ico{font-size:22px;flex:none}
+.sec-h h2{font-size:23px;color:var(--accent-deep);line-height:1.5}
+.sec-h .no{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+h3{font-size:18.5px;color:var(--ink);margin:26px 0 10px}
+p{margin:0 0 14px}
+a{color:var(--accent);text-decoration:none;border-bottom:1px dashed rgba(36,104,229,.4)}
+a:hover{border-bottom-style:solid}
+strong{color:var(--ink)}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 7px;border-radius:6px;font-weight:600}
+ul.plain{margin:0 0 14px 1.35em}
+ul.plain li{margin-bottom:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.def{border-left:4px solid var(--accent)}
+.def .d-title{font-weight:700;font-size:16.5px;margin-bottom:10px;color:var(--accent-deep)}
+.def p{font-size:15.5px}
+.callout{border-radius:var(--radius);padding:16px 20px;margin:16px 0;font-size:15.5px;border:1px solid}
+.callout .c-t{font-weight:700;margin-bottom:6px;font-size:15px}
+.key{background:var(--accent-soft);border-color:#c4d9f9;color:#1c3a6e}
+.key-teal{background:var(--teal-soft);border-color:#b9e4e0;color:#0b5d55}
+.key-gold{background:var(--gold-soft);border-color:#f0dcb4;color:#7c5410}
+.warnbox{background:var(--warn-soft);border-color:#f4cdb4;color:#8a3009}
+.quote-box{
+  background:linear-gradient(135deg,#14294e,#1d4585);color:#dbe8fb;border:none;
+  padding:22px 26px;border-radius:16px;margin:20px 0;
+}
+.quote-box .q{font-size:16.5px;line-height:1.85}
+.quote-box strong,.quote-box b{color:#ffd88a}
+.quote-box .who{margin-top:10px;font-size:13px;color:#9dc0ef}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;text-align:center;box-shadow:var(--shadow)}
+.stat .v{font-size:24px;font-weight:800;color:var(--accent-deep);line-height:1.3}
+.stat .k{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.55}
+@media(max-width:640px){.stats{grid-template-columns:1fr 1fr}}
+.steps{counter-reset:st;margin:18px 0}
+.step{position:relative;padding:0 0 18px 52px}
+.step::before{
+  counter-increment:st;content:counter(st);position:absolute;left:0;top:1px;width:34px;height:34px;border-radius:50%;
+  background:var(--accent);color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;
+}
+.step::after{content:"";position:absolute;left:16.5px;top:38px;bottom:2px;width:1.5px;background:var(--line)}
+.step:last-child::after{display:none}
+.step .s-t{font-weight:700;margin-bottom:4px;font-size:16px}
+.step p{font-size:15px;color:var(--ink-soft);margin-bottom:6px}
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.case{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.case .c-h{font-weight:700;font-size:15px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.case.bad .c-h{color:var(--warn)} .case.good .c-h{color:var(--teal)}
+.case p,.case li{font-size:14.5px;color:var(--ink-soft)}
+.case ul{margin:0 0 0 1.2em}
+@media(max-width:640px){.cases{grid-template-columns:1fr}}
+.practice{list-style:none;margin:14px 0}
+.practice li{position:relative;padding:0 0 10px 30px;font-size:15.5px}
+.practice li::before{content:"✦";position:absolute;left:4px;color:var(--accent);font-size:14px}
+.glossary{display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;margin:16px 0;font-size:14.5px}
+.glossary dt{font-weight:700;color:var(--accent-deep);white-space:nowrap}
+.glossary dd{color:var(--ink-soft)}
+@media(max-width:640px){.glossary{grid-template-columns:1fr}.glossary dd{margin-bottom:8px}}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px 20px;font-size:13.5px;line-height:1.7;overflow-x:auto;margin:14px 0;font-family:"SF Mono",Menlo,Consolas,monospace}
+code.inline{background:#e6eefb;color:#173f8f;padding:1px 7px;border-radius:6px;font-size:14px;font-family:"SF Mono",Menlo,Consolas,monospace}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px 12px;margin:20px 0;box-shadow:var(--shadow)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--ink-faint);text-align:center;padding:10px 8px 6px;line-height:1.7}
+.src-fig{margin:16px 0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px;box-shadow:var(--shadow)}
+.src-fig img,.src-fig video{width:100%;display:block;border-radius:8px}
+.src-fig figcaption{font-size:12.5px;color:var(--ink-faint);text-align:center;padding:8px 4px 2px;line-height:1.6}
+.src-fig figcaption a{border-bottom:none}
+.final{
+  background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#dfeafc;border-radius:20px;
+  padding:34px 36px;margin-top:44px;
+}
+.final h2{color:#fff;font-size:21px;margin-bottom:12px}
+.final p{color:#cfe0f9;font-size:15px}
+.final strong{color:#ffd88a}
+footer{margin-top:26px;font-size:12.5px;color:var(--ink-faint);line-height:1.8;text-align:center}
+[data-anim]{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+[data-draw]{transition:stroke-dashoffset 1.1s ease .2s}
+@media(prefers-reduced-motion:reduce){
+  [data-anim]{opacity:1;transform:none;transition:none}
+  [data-draw]{transition:none;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+@media(max-width:640px){
+  body{font-size:16px}
+  .hero{padding:32px 24px}
+  .hero h1{font-size:24px}
+  .sec-h h2{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">Good Context, Good Code</div>
+  <div class="st-sub">StockApp 的 AI-Native 工程文化</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#tldr"><span class="n">01</span>TL;DR:五个改变</a></li>
+    <li><a href="#background"><span class="n">02</span>背景:2.5 倍从哪来</a></li>
+    <li><a href="#env"><span class="n">03</span>基础开发环境</a></li>
+    <li><a href="#p1"><span class="n">04</span>原则一:仓库是共享工作区</a></li>
+    <li><a href="#p2"><span class="n">05</span>原则二:分层开发攒上下文</a></li>
+    <li><a href="#p3"><span class="n">06</span>原则三:万事先问能不能用 AI</a></li>
+    <li><a href="#p4"><span class="n">07</span>原则四:MCP 与命令行</a></li>
+    <li><a href="#p5"><span class="n">08</span>原则五:集成胜过单体</a></li>
+    <li><a href="#footnote"><span class="n">09</span>数据脚注 + 术语表</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">StockApp Engineering · CS146S Week 4</div>
+  <h1>好上下文产出好代码:StockApp 如何从零构建 AI-Native 工程文化</h1>
+  <div class="en">Good context leads to good code: How we built an AI-Native Eng Culture</div>
+  <div class="meta">
+    <span>📅 2025-08-05 · 9 min read</span><span>✍️ Waleed Kadous 等 8 位作者</span><span>📈 ~2.5× 提效</span><span>🧪 附客观数据脚注</span>
+  </div>
+  <p class="lead">从第一天就围绕 AI-native 开发来设计整个工程文化,而不是把 AI 工具塞进既有流程——StockApp 团队的实测:这比手工开发高效约 2.5 倍,也比「老文化 + AI 增强」高效约 2 倍。核心洞见只有一句话:好代码是好上下文的副产品。</p>
+</div>
+
+<figure class="src-fig">
+  <img src="assets/good-context/hero.jpg" alt="Humans and agents working together" loading="lazy">
+  <figcaption>原文题图:Humans and agents working together(<a href="https://blog.stockapp.com/good-context-good-code/">原文出处</a>,原站已下线,图片取自 <a href="http://web.archive.org/web/20260115024417/https://blog.stockapp.com/good-context-good-code/">Wayback 存档</a>)</figcaption>
+</figure>
+
+<!-- ============ 01 ============ -->
+<section id="tldr">
+  <div class="sec-h"><span class="ico">⚡</span><h2>TL;DR:五个改变</h2><span class="no">01</span></div>
+  <p>创办 StockApp 给了团队一个从零构建 AI-native 开发文化的机会。他们的经验:这比手工开发的生产力高出实质性的一截(约 2.5 倍),也比「拿既有开发文化用 AI 增强」高效得多(约 2 倍)。<strong>AI-native 开发不是取代工程师,而是通过精心营造的共享上下文,建立系统化的人机协作。</strong>为此,他们做了这些改变:</p>
+  <ul class="practice">
+    <li><strong>把所有代码、技术文档和 agent 指南组织进一个 monorepo</strong>——它是人与 agent 的共享工作区。有了 agent,文档和代码一样重要。</li>
+    <li><strong>从高层设计开始,先和 agent 就设计对齐,再一路向下写到代码。</strong></li>
+    <li><strong>能用 agent 的地方尽量用、尽量频繁地用</strong>,但要监督和审计它们的工作,并持续把新规则沉淀进它们的指南。</li>
+    <li><strong>配置 MCP 服务器和命令行工具</strong>,给 AI 行动所需的上下文,让它以更高质量和信心行事;并把配置在团队内共享,提升所有人产出的一致性与质量。</li>
+    <li><strong>用多个不同的 agent 评审并预批工作,再交人类评审</strong>——「人类 + 多 agent」的集成(ensemble)稳定优于单 agent 或纯 agent 方案。</li>
+  </ul>
+</section>
+
+<!-- ============ 02 ============ -->
+<section id="background">
+  <div class="sec-h"><span class="ico">📈</span><h2>背景:2.5 倍从哪来</h2><span class="no">02</span></div>
+  <p>StockApp 于 2025 年 1 月启动,带着一个独特的机会:从第一天起就围绕 AI-native 开发来设计工程文化。他们没有把 AI 工具翻新改装进既有流程,而是把整个开发工作流架构成系统化的人机协作。</p>
+  <div class="stats">
+    <div class="stat"><div class="v">~2.5×</div><div class="k">相对手工开发的生产力增益(主观体验 + 客观测量支撑,见脚注)</div></div>
+    <div class="stat"><div class="v">30–50%</div><div class="k">他们此前在「部分采用 AI」的公司观察到的典型增益</div></div>
+    <div class="stat"><div class="v">~2×</div><div class="k">相对「既有文化 + AI 增强」的额外优势</div></div>
+  </div>
+  <p>衡量开发者生产力出了名地难,但他们的主观体验 + 客观测量(<a href="#footnote">脚注¹</a>)指向约 2.5 倍的增益——远超他们在别处的经历。团队里多位成员来自 Google 这类顶级工程组织,对「高水平开发长什么样」心里有数,而这是他们所有人经历过的最高产环境。而且这个增益还在变大:一方面模型在进步(如 <a href="https://www.anthropic.com/news/claude-opus-4-1">Claude 4.1</a> 发布带来的编码性能提升),另一方面人与 agent 的协作也在磨合。后者很关键:他们大量迭代实验协作方式,<strong>即使模型不变,更好的技巧(如下文这些)也带来了可测量的生产力提升</strong>。</p>
+  <div class="quote-box"><div class="q">核心洞见:<strong>好代码是好上下文的副产品。</strong>新的 AI-native 开发流程,讲的是人与 agent 如何一步步共同构建、共享上下文。做到位了,优秀的软件工件自然涌现。</div><div class="who">—— 原文核心论点(Good code is a side effect of good context.)</div></div>
+  <div class="callout warnbox"><div class="c-t">⚠️ 要强调:这需要更多的工程专业能力,不是更少</div>有效地定义上下文,技术难度至少不亚于写好代码:你得仔细想清楚什么信息最关键、agent 会怎么理解它——这两件事在「全装在自己脑子里」时根本不用操心。而且 agent 闯祸时的爆炸半径可能很大(<strong>行为不当的 agent 好几次干掉了他们的开发数据库</strong>);用 agent 时他们通常是全神贯注的。现阶段的 agent 完全可能把你带进沟里,需要一双警惕、专注、有经验的眼睛来拦住它们。</div>
+</section>
+
+<!-- ============ 03 ============ -->
+<section id="env">
+  <div class="sec-h"><span class="ico">🖥️</span><h2>基础开发环境</h2><span class="no">03</span></div>
+  <p>为了给后面的技术决策提供背景:Web 前端用 TypeScript,后端服务由 Python 和 TypeScript 分担,全部维护在<strong>一个 monorepo</strong> 里。日常编码辅助主力是 <span class="term">Claude Code</span>,多数队友把它跑在 <strong>Cursor</strong> 里以获得实时自动补全;Cursor 自带的 AI 很少用。他们也试过 VS Code、Windsurf 和 Gemini CLI,但这套组合被证明对他们的工作流最有效。</p>
+</section>
+
+<!-- ============ 04 ============ -->
+<section id="p1">
+  <div class="sec-h"><span class="ico">🗂️</span><h2>原则一:仓库是人与 agent 的共享工作区</h2><span class="no">04</span></div>
+  <p>五条原则同出一源:<strong>人与 agent 必须迭代地创建、打磨、消费共享上下文。</strong>做到这一点,伟大的软件就会涌现,代码本身反而成了中间工件——就像汇编语言位于高级语言和机器码之间那样。</p>
+  <p>他们的仓库是同时为机器和人组织的,因为 AI 的表现高度依赖「够得着的上下文」。这正是如今<span class="term">上下文工程</span>(context engineering)比提示工程更重要的原因,也是 monorepo 成为他们运营流程重要一环的原因。<strong>自然语言和编程语言同等关键</strong>——他们对待英文文档像对待 TypeScript 或 Python 一样用心。系统状态必须对人和 agent 都可见,所以他们有意往仓库里放比「纯人类团队」更多的东西:仓库不只给人用,也给机器用。</p>
+  <p>文档驱动的做法把自然语言工件当一等公民,关键上下文存放在:</p>
+  <div class="card def"><div class="d-title">📁 docs/designs/</div><p>产品需求、高层目标与 schema——这是「为什么」和「做什么」。</p></div>
+  <div class="card def"><div class="d-title">📁 docs/plans/</div><p>详细的分阶段实现计划,常由人与 agent 联合生成——这是「怎么做」。</p></div>
+  <div class="card def"><div class="d-title">📁 docs/guides/</div><p>API 和工具的教程,常由 agent 读完相关文档后起草。</p></div>
+  <div class="card def"><div class="d-title">📄 schema.sql</div><p>全项目单一、规范的 schema,数据结构的地面真值(ground truth)。</p></div>
+  <div class="card def"><div class="d-title">📄 README.md &amp; CLAUDE.md</div><p>散布在仓库各处,为在特定区域工作的人与 agent 提供局部指引。</p></div>
+</section>
+
+<!-- ============ 05 ============ -->
+<section id="p2">
+  <div class="sec-h"><span class="ico">🪜</span><h2>原则二:分层开发,逐级构建上下文</h2><span class="no">05</span></div>
+  <p>更好的上下文产出更好的代码,但创建上下文并不简单。他们自顶向下工作,每一层都是人机协作:</p>
+  <div class="figure" id="fig-hier">
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="分层开发循环">
+      <text x="410" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="#173f8f" data-anim>自顶向下六级:上下文逐层落地,最后回流</text>
+      <defs><marker id="arrh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2468e5"/></marker></defs>
+      <g data-anim><rect x="30" y="52" width="230" height="54" rx="10" fill="#e3edfd" stroke="#c4d9f9"/><text x="145" y="74" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">① 设计 Design</text><text x="145" y="94" text-anchor="middle" font-size="10.5" fill="#48607c">人给需求约束 · agent 起草 · 共同迭代</text></g>
+      <g data-anim><rect x="295" y="52" width="230" height="54" rx="10" fill="#e3edfd" stroke="#c4d9f9"/><text x="410" y="74" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">② 计划 Plan</text><text x="410" y="94" text-anchor="middle" font-size="10.5" fill="#48607c">agent 拆分阶段任务 · 人审批</text></g>
+      <g data-anim><rect x="560" y="52" width="230" height="54" rx="10" fill="#e3edfd" stroke="#c4d9f9"/><text x="675" y="74" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">③ 实现 Implement</text><text x="675" y="94" text-anchor="middle" font-size="10.5" fill="#48607c">agent 写大部分代码 · 人评审</text></g>
+      <g data-anim><rect x="560" y="160" width="230" height="54" rx="10" fill="#e0f4f2" stroke="#b9e4e0"/><text x="675" y="182" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0b5d55">④ 后盾 Backstop</text><text x="675" y="202" text-anchor="middle" font-size="10.5" fill="#48607c">测试等机制守住已建立的上下文</text></g>
+      <g data-anim><rect x="295" y="160" width="230" height="54" rx="10" fill="#e0f4f2" stroke="#b9e4e0"/><text x="410" y="182" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0b5d55">⑤ 评审 Review</text><text x="410" y="202" text-anchor="middle" font-size="10.5" fill="#48607c">人机终审 · 对照原设计目标</text></g>
+      <g data-anim><rect x="30" y="160" width="230" height="54" rx="10" fill="#fdf3e0" stroke="#f0dcb4"/><text x="145" y="182" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7c5410">⑥ 更新打磨 Update &amp; refine</text><text x="145" y="202" text-anchor="middle" font-size="10.5" fill="#8a6a2f">文档/CLAUDE.md/schema 更新</text></g>
+      <path d="M260 79 L 295 79" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arrh)" data-draw/>
+      <path d="M525 79 L 560 79" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arrh)" data-draw/>
+      <path d="M675 106 L 675 160" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arrh)" data-draw/>
+      <path d="M560 187 L 525 187" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arrh)" data-draw/>
+      <path d="M295 187 L 260 187" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arrh)" data-draw/>
+      <path d="M145 214 L 145 258 L 410 258 L 410 240" stroke="#0e9488" stroke-width="2" stroke-dasharray="6 4" fill="none" data-draw/>
+      <text x="410" y="278" text-anchor="middle" font-size="11.5" fill="#0e9488" data-anim>⑥ 的产出回流为未来 agent 的准确上下文 ↺</text>
+    </svg>
+    <div class="fig-cap">图 1 · 分层开发六级流程(六级内容出自原文,回流箭头是对原文「让未来 agent 继承准确上下文」的可视化)</div>
+  </div>
+  <ul class="practice">
+    <li><strong>设计(Design)</strong>——人提供关键需求与约束;agent 起草设计文档;双方迭代后提交入库。</li>
+    <li><strong>计划(Plan)</strong>——agent 把设计转成分阶段任务;人评审、批准。</li>
+    <li><strong>实现(Implement)</strong>——agent 承担大部分编码;人评审结果。</li>
+    <li><strong>后盾(Backstop)</strong>——测试等保障机制确保后续修改不会侵蚀来之不易的上下文。最明显的后盾是测试,但广义上包括一切能强制执行已建立上下文的机制。</li>
+    <li><strong>评审(Review)</strong>——人与 agent 对功能做最终评审,确保达成原设计文档定下的目标。</li>
+    <li><strong>更新与打磨(Update &amp; refine)</strong>——更新文档、CLAUDE.md、schema,让未来的 agent 继承准确的上下文。</li>
+  </ul>
+</section>
+
+<!-- ============ 06 ============ -->
+<section id="p3">
+  <div class="sec-h"><span class="ico">🤖</span><h2>原则三:万事先问「能不能用 AI」</h2><span class="no">06</span></div>
+  <p>他们几乎在工作的每个方面都用 agent,任何任务开工前先问一句「这能用 AI 做吗」。但如前所述,他们极少(如果有过的话)让 agent 无监督地掌方向盘:在按下回车前,他们会一丝不苟地检查 agent 做了什么、建议了什么。<strong>他们不搞「vibe code」。</strong>这种监督与检查,依然需要他们最深厚的技术专业能力。</p>
+  <p>一些也许不那么常规的 agent 用法(原文逐条):</p>
+  <div class="card def"><div class="d-title">💡 想法的回音壁 + 琐碎调研</div><p>agent 是极好的点子共鸣板,也能承担调研中较枯燥的部分,比如为某任务盘点可用的库。</p></div>
+  <div class="card def"><div class="d-title">✍️ commit 与 PR 消息</div><p>绝大多数 commit 和 PR 消息由 agent 撰写。</p></div>
+  <div class="card def"><div class="d-title">📄 让 agent 更新文档,而不是自己动手</div><p>上下文足够时,指示 agent 更新文档。例如人机共同完成大改动之后,信息已经足够让 agent 更新 README,设计有变时连设计文档一起更新。</p></div>
+  <div class="card def"><div class="d-title">🧾 让 agent 更新 CLAUDE.md</div><p>同样交给 agent 而不是自己编辑——<strong>它比我们更懂怎么指导它自己。</strong></p></div>
+  <div class="card def"><div class="d-title">🪄 不写提示词</div><p>他们不自己写 prompt,而是让 agent 结合上下文和他们的「元提示(meta prompt)」代写。</p></div>
+  <div class="card def"><div class="d-title">🧪 agent 写测试 + 改后更新测试</div><p>小心防范 agent 的「过度 mock」倾向;更重要的是要求它在改动后更新测试。测试在 AI-native 代码库里扮演更重要的角色,因为它是关键后盾:agent 的上下文窗口天然有限,<strong>很容易「局部解决问题、全局搞坏东西」</strong>,大量测试显著缓解了这个问题。</p></div>
+  <div class="card def"><div class="d-title">🐞 调试是人机联合作业</div><p>通常由人提出根因假设,再让 agent 验证——<strong>agent 验证假设的能力远强于自己提出假设</strong>;此外 agent 极擅长做那些人嫌太繁琐的插桩(instrumentation)。最大的收获之一是 AI 调试复杂跨库问题的效率:曾有个特别棘手的 bug,信息要在 LLM 与前端之间穿过四个库,他们让 AI 在所有库里(直接在 Python 库目录中)插入调试语句、分析日志、判断 bug 在哪个库。</p></div>
+  <div class="card def"><div class="d-title">🔍 主动找茬 + 顺手修掉</div><p>指示 agent 寻找代码改进点:重复代码、死代码、安全问题、隐私问题等,然后再让 agent 修掉。</p></div>
+  <div class="card def"><div class="d-title">🔀 极少手动解决合并冲突</div><p>大多数合并相对简单;复杂情形下,agent 也足够聪明,会停下来请求指引。</p></div>
+  <div class="callout key"><div class="c-t">🔑 自主度不是魔法</div>开发的每个阶段,他们都在尽可能多地用 agent。这种程度的 agent 自主性不是魔法,而是<strong>系统性投资于创建和维护共享上下文的直接结果</strong>——正因为有设计文档和计划,AI 才能写出漂亮的 commit 消息、写出比人更好的 prompt。</div>
+</section>
+
+<!-- ============ 07 ============ -->
+<section id="p4">
+  <div class="sec-h"><span class="ico">🔌</span><h2>原则四:MCP 与命令行让上下文更易得</h2><span class="no">07</span></div>
+  <p>他们大量使用 <span class="term">MCP</span>(Model Context Protocol)服务器,也给 AI 开放强大的命令行选项让它自己探索信息。新仓库初始化时会跑一个 <code class="inline">install_mcp.sh</code> 脚本安装常用 MCP 服务器——目前装大约 6 个,包括:</p>
+  <div class="card def"><div class="d-title">📋 Notion 与 Linear</div><p>既能为决策取上下文(如读 Linear 里的功能描述),也能写回信息——说一句「report that the issue we worked on is fixed」它就会更新 Linear。建 issue 也极其方便:它成了 Notion 高层设计与 Linear issue 之间的桥,一句「take the list of tasks at this page and add them to Linear」就搞定。</p></div>
+  <div class="card def"><div class="d-title">☁️ AWS 与 SQL 开发数据库</div><p>agent 可以直接读这些信息源来调试:从 AWS 拉服务器日志分析、核对开发数据库里存的数据是否正确。</p></div>
+  <div class="card def"><div class="d-title">🐙 Git 与 GitHub 命令</div><p>考古代码的历史版本、翻全部提交记录取上下文、建 PR、修仓库问题——<strong>agent 对 Git 的驾驭恐怕比大多数工程师还好。</strong></p></div>
+  <div class="callout key-teal"><div class="c-t">🌉 最令人兴奋的:桥接鸿沟</div>MCP 让那些原本很难做的「跨系统串联」变得轻而易举,比如一句话:「读一下 Linear 里的 bug 描述,然后翻最近 10 个 commit,找出最可能引入这个 bug 的那个。」</div>
+</section>
+
+<!-- ============ 08 ============ -->
+<section id="p5">
+  <div class="sec-h"><span class="ico">🗳️</span><h2>原则五:集成(ensemble)胜过单体</h2><span class="no">08</span></div>
+  <p>如果老派机器学习教会了我们一件事,那就是<strong>集成优于个体</strong>:随机森林、stacking、bagging、boosting——这些技术都构建多个分类器,再用某种投票机制汇总。只要分类器之间有足够的多样性,集成的结果通常显著好于任何单个个体。</p>
+  <p>他们手里最有意思的 MCP 服务器可能是 <a href="https://github.com/BeehiveInnovations/zen-mcp-server">Zen MCP server</a>:它让 Claude Code 能向 Gemini、o3 等其他 LLM 征求反馈。他们用它增强系统表现,发现<strong>不同 LLM 各有长短</strong>。这与前述开发流程结合使用——比如 Claude Code 写完一份设计后,再让 Gemini 评审一遍。这种多样性在很多地方有用,例如 <strong>Gemini 在预先识别安全问题上表现明显更好</strong>。</p>
+  <div class="cases">
+    <div class="case good"><div class="c-h">🔷 Gemini 的观点</div><p>强烈推荐 payload-based auth 作为首选,称其为「最务实、最可扩展的方案」,「在性能、可扩展性和可维护性之间取得了最佳平衡」。</p></div>
+    <div class="case good"><div class="c-h">🔶 o3 的观点</div><p>更谨慎:生产系统首推 per-user clients,理由是安全顾虑和 LLM 干扰;payload-based auth 排第二,但警告 token 泄漏风险与复杂度。</p></div>
+  </div>
+  <p style="font-size:14px;color:var(--ink-faint);margin-top:-6px">▲ 近期实例:为 MCP 服务器设计鉴权方案时,两个模型给出的不同意见(原文照录)。</p>
+  <div class="quote-box"><div class="q">最终,<strong>人与 agents 共同构成一个集成</strong>。让这个集成胜过任何单个成员的桥梁,是共享上下文。这就是为什么:投资上下文,是构建 AI-native 系统最重要的事。</div><div class="who">—— 原文结论</div></div>
+  <p><em>原文结尾附招聘信息:他们在找顶尖工程师,共同推进 AI-native 开发的边界,在 AI 与商业的交汇处构建产品(联系 careers@stockapp.com)。</em></p>
+</section>
+
+<!-- ============ 09 ============ -->
+<section id="footnote">
+  <div class="sec-h"><span class="ico">📊</span><h2>数据脚注 + 术语表</h2><span class="no">09</span></div>
+  <h3>脚注¹ · 开发指标(2025 年 Q2,原文照录)</h3>
+  <div class="stats">
+    <div class="stat"><div class="v">1,098</div><div class="k">13 周内交付的 PR 总数(84.5 PR/周)</div></div>
+    <div class="stat"><div class="v">10.6</div><div class="k">每位开发者每周的 PR 数</div></div>
+    <div class="stat"><div class="v">~1</div><div class="k">行业标准:每开发者每周 PR 数(LinearB 2025)</div></div>
+  </div>
+  <p>原文的诚实限定:开发者生产力指标应谨慎解读;且他们正处项目的「build」阶段——通常是最快的阶段——而行业标准是「build + maintain」的平均值。</p>
+
+  <h3>术语表(增补)</h3>
+  <dl class="glossary">
+    <dt>AI-native</dt><dd>从第一天就围绕人机协作设计流程,而非把 AI 塞进旧流程(retrofit)。</dd>
+    <dt>上下文工程</dt><dd>系统性地组织「AI 够得着的信息」(文档、schema、指南),原文认为它已比提示工程更重要。</dd>
+    <dt>monorepo</dt><dd>把全部代码+文档放进一个仓库,成为人与 agent 的单一共享工作区。</dd>
+    <dt>后盾(backstop)</dt><dd>防止后续修改侵蚀既有上下文的强制机制,测试是最典型的一种。</dd>
+    <dt>vibe coding</dt><dd>不看代码、光凭感觉放任 AI 生成的开发方式——本文团队明确拒绝这么干。</dd>
+    <dt>过度 mock(overmock)</dt><dd>测试里把真实依赖替换得太彻底,以致测试通过也证明不了系统真的能跑。</dd>
+    <dt>插桩(instrumentation)</dt><dd>在代码中加日志/探针以观察运行行为;agent 擅长做这类繁琐工作。</dd>
+    <dt>ensemble(集成)</dt><dd>机器学习术语:多个模型投票的组合,多样性足够时稳定优于单个模型;本文把「人 + 多个 LLM」也视为一种集成。</dd>
+    <dt>Zen MCP server</dt><dd>让 Claude Code 调用 Gemini、o3 等其他 LLM 做评审/参谋的开源 MCP 服务器。</dd>
+    <dt>元提示(meta prompt)</dt><dd>「关于如何写提示的提示」——团队用它让 agent 代写具体任务的 prompt。</dd>
+  </dl>
+</section>
+
+<div class="final">
+  <h2>一句话带走</h2>
+  <p><strong>好代码是好上下文的副产品。</strong>StockApp 的五条原则——monorepo 共享工作区、自顶向下分层开发、万事先问能不能用 AI(但绝不放任)、MCP 补给上下文、多模型集成评审——本质上是同一件事:把「让 agent 看得见、看得懂」当成工程本身来投资。而他们反复强调的另一半同样重要:这需要更深的工程功力,和一双时刻警惕的眼睛。</p>
+</div>
+
+<footer>
+  整理自 StockApp Engineering《Good context leads to good code: How we built an AI-Native Eng Culture》(Waleed Kadous 等 8 人,2025-08-05;<a href="https://blog.stockapp.com/good-context-good-code/">原文地址</a>已随原站下线,现存 <a href="http://web.archive.org/web/20260115024417/https://blog.stockapp.com/good-context-good-code/">Wayback 存档</a>)· Stanford CS146S Week 4 指定读物<br>
+  处理方式:逐字整理 + 概念展开与可视化 · 原文题图已本地化收录(经 Wayback 获取) · 生成于 2026-07-05
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+  var toc = document.getElementById('sideToc');
+  var btn = document.getElementById('tocBtn');
+  btn.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.closest('a') && window.innerWidth < 1180) toc.classList.remove('open'); });
+
+  var bar = document.getElementById('stBar'), pct = document.getElementById('stPct'), top = document.getElementById('topProgress');
+  var links = toc.querySelectorAll('li a');
+  var secs = [];
+  links.forEach(function(a){ var s = document.querySelector(a.getAttribute('href')); if(s) secs.push({a:a, s:s}); });
+
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? Math.min(100, Math.round(h.scrollTop / max * 100)) : 0;
+    bar.style.width = p + '%'; top.style.width = p + '%'; pct.textContent = p + '%';
+    var cur = secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].s.getBoundingClientRect().top < window.innerHeight*0.35) cur = secs[i]; }
+    links.forEach(function(a){ a.classList.remove('on'); });
+    if(cur) cur.a.classList.add('on');
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs = document.querySelectorAll('.figure');
+  if(reduced){ figs.forEach(function(f){ f.classList.add('in'); }); return; }
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(p){
+      try{ var L = p.getTotalLength(); p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; }catch(e){}
+    });
+    f.querySelectorAll('[data-anim]').forEach(function(el,i){ el.style.transitionDelay = (i*0.12)+'s'; });
+  });
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        e.target.querySelectorAll('[data-draw]').forEach(function(p){ p.style.strokeDashoffset = 0; });
+        io.unobserve(e.target);
+      }
+    });
+  },{threshold:0.25});
+  figs.forEach(function(f){ io.observe(f); });
+})();
+</script>
+</body>
+</html>

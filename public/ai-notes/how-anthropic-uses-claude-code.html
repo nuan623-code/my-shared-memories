@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anthropic 内部团队怎么用 Claude Code:10 个部门的一线实战</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1d2b3f; --ink-soft:#48607c; --ink-faint:#7a8ea6;
+  --accent:#2468e5; --accent-deep:#173f8f; --accent-soft:#e3edfd;
+  --teal:#0e9488; --teal-soft:#e0f4f2; --indigo:#5b5bd6; --indigo-soft:#ebebfa;
+  --gold:#b7791f; --gold-soft:#fdf3e0; --warn:#c2410c; --warn-soft:#fdeee4;
+  --line:#d8e4f2; --code-bg:#0f2038; --code-ink:#cfe1f7;
+  --hero1:#122a52; --hero2:#1d4d9e;
+  --radius:14px; --shadow:0 2px 14px rgba(23,63,143,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:17px; line-height:1.88;
+  -webkit-font-smoothing:antialiased;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));z-index:99}
+.side-toc{
+  position:fixed;left:18px;top:50%;transform:translateY(-50%);width:225px;z-index:90;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);
+  max-height:86vh;overflow-y:auto;
+}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep);letter-spacing:.02em}
+.st-sub{font-size:11.5px;color:var(--ink-faint);margin-bottom:10px}
+.st-progress{height:6px;background:var(--accent-soft);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:3px;transition:width .15s}
+.st-pct{font-size:11px;color:var(--ink-faint);text-align:right;margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{
+  display:flex;gap:7px;align-items:baseline;padding:4.5px 8px;border-radius:8px;
+  font-size:12.5px;color:var(--ink-soft);text-decoration:none;line-height:1.45;
+}
+.side-toc li a .n{font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;flex:none;width:16px}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.toc-btn{
+  position:fixed;left:14px;top:14px;z-index:95;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:17px;color:var(--accent-deep);cursor:pointer;display:none;
+  box-shadow:var(--shadow);
+}
+@media(max-width:1179px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:64px;transform:none;max-height:72vh}
+  .toc-btn{display:block}
+}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px 80px}
+@media(min-width:1180px){.wrap{margin-left:calc(50% - 330px)}}
+@media(max-width:1179px){.wrap{margin:0 auto;padding-top:8px}}
+.hero{
+  margin:26px 0 34px;border-radius:22px;padding:46px 44px 40px;color:#eaf2ff;
+  background:linear-gradient(135deg,var(--hero1) 0%,var(--hero2) 78%);
+  box-shadow:0 10px 34px rgba(18,42,82,.28);position:relative;overflow:hidden;
+}
+.hero::after{content:"";position:absolute;right:-70px;top:-70px;width:270px;height:270px;border-radius:50%;
+  background:radial-gradient(circle,rgba(120,180,255,.22),transparent 68%)}
+.hero .kicker{font-size:13px;letter-spacing:.14em;color:#9dc1f5;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-size:31px;line-height:1.42;letter-spacing:.01em;margin-bottom:10px}
+.hero .en{font-size:15px;color:#b9d3f8;margin-bottom:18px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px}
+.hero .meta span{font-size:12.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  padding:4px 12px;border-radius:99px;color:#dcE9fc}
+.hero p.lead{margin-top:18px;font-size:15.5px;line-height:1.85;color:#d7e6fb}
+section{margin:0 0 30px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:40px 0 16px}
+.sec-h .ico{font-size:22px;flex:none}
+.sec-h h2{font-size:23px;color:var(--accent-deep);line-height:1.5}
+.sec-h .no{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+h3{font-size:18.5px;color:var(--ink);margin:26px 0 10px}
+p{margin:0 0 14px}
+a{color:var(--accent);text-decoration:none;border-bottom:1px dashed rgba(36,104,229,.4)}
+a:hover{border-bottom-style:solid}
+strong{color:var(--ink)}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 7px;border-radius:6px;font-weight:600}
+.hl{background:linear-gradient(transparent 62%,#ffe9a8 62%)}
+ul.plain{margin:0 0 14px 1.35em}
+ul.plain li{margin-bottom:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.def{border-left:4px solid var(--accent)}
+.def .d-title{font-weight:700;font-size:16.5px;margin-bottom:10px;color:var(--accent-deep)}
+.def p{font-size:15.5px}
+.team-intro{border-left:4px solid var(--teal);background:var(--card)}
+.team-intro p{font-size:15.5px;margin:0;color:var(--ink-soft)}
+.callout{border-radius:var(--radius);padding:16px 20px;margin:16px 0;font-size:15.5px;border:1px solid}
+.callout .c-t{font-weight:700;margin-bottom:6px;font-size:15px}
+.key{background:var(--accent-soft);border-color:#c4d9f9;color:#1c3a6e}
+.key-teal{background:var(--teal-soft);border-color:#b9e4e0;color:#0b5d55}
+.key-gold{background:var(--gold-soft);border-color:#f0dcb4;color:#7c5410}
+.warnbox{background:var(--warn-soft);border-color:#f4cdb4;color:#8a3009}
+.quote-box{
+  background:linear-gradient(135deg,#14294e,#1d4585);color:#dbe8fb;border:none;
+  padding:22px 26px;border-radius:16px;margin:20px 0;
+}
+.quote-box .q{font-size:16.5px;line-height:1.85}
+.quote-box strong,.quote-box b{color:#ffd88a}
+.quote-box .who{margin-top:10px;font-size:13px;color:#9dc0ef}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;text-align:center;box-shadow:var(--shadow)}
+.stat .v{font-size:24px;font-weight:800;color:var(--accent-deep);line-height:1.3}
+.stat .k{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.55}
+@media(max-width:640px){.stats{grid-template-columns:1fr 1fr}}
+.practice{list-style:none;margin:14px 0}
+.practice li{position:relative;padding:0 0 10px 30px;font-size:15.5px}
+.practice li::before{content:"✦";position:absolute;left:4px;color:var(--accent);font-size:14px}
+details.rephrase{background:#f4f8fe;border:1px dashed #b9d0f2;border-radius:12px;padding:12px 18px;margin:12px 0}
+details.rephrase summary{cursor:pointer;font-size:14px;color:var(--accent-deep);font-weight:600}
+details.rephrase[open] summary{margin-bottom:8px}
+details.rephrase p{font-size:14.5px;color:var(--ink-soft);margin-bottom:8px}
+.glossary{display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;margin:16px 0;font-size:14.5px}
+.glossary dt{font-weight:700;color:var(--accent-deep);white-space:nowrap}
+.glossary dd{color:var(--ink-soft)}
+@media(max-width:640px){.glossary{grid-template-columns:1fr}.glossary dd{margin-bottom:8px}}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px 20px;font-size:13.5px;line-height:1.7;overflow-x:auto;margin:14px 0;font-family:"SF Mono",Menlo,Consolas,monospace}
+code.inline{background:#e6eefb;color:#173f8f;padding:1px 7px;border-radius:6px;font-size:14px;font-family:"SF Mono",Menlo,Consolas,monospace}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px 12px;margin:20px 0;box-shadow:var(--shadow)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--ink-faint);text-align:center;padding:10px 8px 6px;line-height:1.7}
+.final{
+  background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#dfeafc;border-radius:20px;
+  padding:34px 36px;margin-top:44px;
+}
+.final h2{color:#fff;font-size:21px;margin-bottom:12px}
+.final p{color:#cfe0f9;font-size:15px}
+.final strong{color:#ffd88a}
+footer{margin-top:26px;font-size:12.5px;color:var(--ink-faint);line-height:1.8;text-align:center}
+[data-anim]{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+[data-draw]{transition:stroke-dashoffset 1.1s ease .2s}
+@media(prefers-reduced-motion:reduce){
+  [data-anim]{opacity:1;transform:none;transition:none}
+  [data-draw]{transition:none;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+@media(max-width:640px){
+  body{font-size:16px}
+  .hero{padding:32px 24px}
+  .hero h1{font-size:24px}
+  .sec-h h2{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">Claude Code × Anthropic</div>
+  <div class="st-sub">10 个内部团队的一线实战</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#overview"><span class="n">01</span>导读与全景</a></li>
+    <li><a href="#t-data"><span class="n">02</span>数据基础设施</a></li>
+    <li><a href="#t-product"><span class="n">03</span>产品开发(CC 团队)</a></li>
+    <li><a href="#t-security"><span class="n">04</span>安全工程</a></li>
+    <li><a href="#t-inference"><span class="n">05</span>推理</a></li>
+    <li><a href="#t-datasci"><span class="n">06</span>数据科学与可视化</a></li>
+    <li><a href="#t-api"><span class="n">07</span>API</a></li>
+    <li><a href="#t-growth"><span class="n">08</span>增长营销</a></li>
+    <li><a href="#t-design"><span class="n">09</span>产品设计</a></li>
+    <li><a href="#t-rl"><span class="n">10</span>强化学习工程</a></li>
+    <li><a href="#t-legal"><span class="n">11</span>法务</a></li>
+    <li><a href="#patterns"><span class="n">12</span>共性模式与术语表</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">Anthropic Official · CS146S Week 4</div>
+  <h1>Anthropic 内部团队怎么用 Claude Code:10 个部门的一线实战</h1>
+  <div class="en">How Anthropic teams use Claude Code</div>
+  <div class="meta">
+    <span>📄 官方 PDF · 23 页</span><span>🏢 10 个团队访谈</span><span>🧭 用例 · 影响 · 建议</span><span>👩‍💻 覆盖非技术岗位</span>
+  </div>
+  <p class="lead">Anthropic 的内部团队正在用 Claude Code 重塑他们的工作流:让开发者和非技术员工都能搞定复杂项目、自动化任务、弥合过去限制生产力的技能鸿沟。这份报告来自对内部 Claude Code 重度用户的访谈,汇总了各部门如何使用它、它对工作的影响,以及给其他考虑引入的组织的建议。</p>
+</div>
+
+<!-- ================= 01 导读与全景 ================= -->
+<section id="overview">
+  <div class="sec-h"><span class="ico">🗺️</span><h2>导读与全景</h2><span class="no">01</span></div>
+  <p>这份官方 PDF 是「吃自己狗粮」的第一手记录:<strong>10 个团队</strong>逐一讲了自己的主要用例、量化影响和实操建议。既有推理、RL、API 这样的硬核工程团队,也有增长营销(全组就一个人、不写代码)、产品设计、法务这样的非传统开发角色——这正是它作为「agent 自主度管理」教材的价值:同一个工具,不同团队给出的放手程度完全不同。</p>
+
+  <div class="figure" id="fig-overview">
+    <svg viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="10 个团队全景">
+      <text x="410" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#173f8f" data-anim>10 个团队 · 一张图看全</text>
+      <!-- 工程团队 -->
+      <g data-anim>
+        <rect x="20" y="46" width="484" height="12" rx="6" fill="#e3edfd"/>
+        <text x="30" y="76" font-size="12.5" font-weight="700" fill="#2468e5">工程 / 技术团队</text>
+      </g>
+      <g data-anim><rect x="20" y="88" width="150" height="62" rx="10" fill="#eef4fd" stroke="#c4d9f9"/><text x="95" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">🗄️ 数据基础设施</text><text x="95" y="132" text-anchor="middle" font-size="11" fill="#48607c">数据工程自动化</text></g>
+      <g data-anim><rect x="186" y="88" width="150" height="62" rx="10" fill="#eef4fd" stroke="#c4d9f9"/><text x="261" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">🛠️ 产品开发</text><text x="261" y="132" text-anchor="middle" font-size="11" fill="#48607c">用 CC 开发 CC 本身</text></g>
+      <g data-anim><rect x="352" y="88" width="150" height="62" rx="10" fill="#eef4fd" stroke="#c4d9f9"/><text x="427" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">🛡️ 安全工程</text><text x="427" y="132" text-anchor="middle" font-size="11" fill="#48607c">事故排查 · TDD</text></g>
+      <g data-anim><rect x="20" y="162" width="150" height="62" rx="10" fill="#eef4fd" stroke="#c4d9f9"/><text x="95" y="186" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">⚙️ 推理</text><text x="95" y="206" text-anchor="middle" font-size="11" fill="#48607c">弥合 ML 知识缺口</text></g>
+      <g data-anim><rect x="186" y="162" width="150" height="62" rx="10" fill="#eef4fd" stroke="#c4d9f9"/><text x="261" y="186" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">📊 数据科学与可视化</text><text x="261" y="206" text-anchor="middle" font-size="11" fill="#48607c">不懂 JS 也建看板</text></g>
+      <g data-anim><rect x="352" y="162" width="150" height="62" rx="10" fill="#eef4fd" stroke="#c4d9f9"/><text x="427" y="186" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">🔌 API</text><text x="427" y="206" text-anchor="middle" font-size="11" fill="#48607c">陌生代码库导航</text></g>
+      <g data-anim><rect x="20" y="236" width="150" height="62" rx="10" fill="#eef4fd" stroke="#c4d9f9"/><text x="95" y="260" text-anchor="middle" font-size="12.5" font-weight="700" fill="#173f8f">🎰 强化学习工程</text><text x="95" y="280" text-anchor="middle" font-size="11" fill="#48607c">检查点式自主开发</text></g>
+      <!-- 非传统开发角色 -->
+      <g data-anim>
+        <rect x="540" y="46" width="260" height="12" rx="6" fill="#fdf3e0"/>
+        <text x="550" y="76" font-size="12.5" font-weight="700" fill="#b7791f">非传统开发角色</text>
+      </g>
+      <g data-anim><rect x="540" y="88" width="260" height="62" rx="10" fill="#fdf8ec" stroke="#f0dcb4"/><text x="670" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7c5410">📈 增长营销(一人团队)</text><text x="670" y="132" text-anchor="middle" font-size="11" fill="#8a6a2f">广告创意流水线自动化</text></g>
+      <g data-anim><rect x="540" y="162" width="260" height="62" rx="10" fill="#fdf8ec" stroke="#f0dcb4"/><text x="670" y="186" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7c5410">🎨 产品设计</text><text x="670" y="206" text-anchor="middle" font-size="11" fill="#8a6a2f">设计师直接改前端代码</text></g>
+      <g data-anim><rect x="540" y="236" width="260" height="62" rx="10" fill="#fdf8ec" stroke="#f0dcb4"/><text x="670" y="260" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7c5410">⚖️ 法务</text><text x="670" y="280" text-anchor="middle" font-size="11" fill="#8a6a2f">无障碍工具与流程原型</text></g>
+    </svg>
+    <div class="fig-cap">图 1 · 报告覆盖的 10 个团队(增补整理:按「工程团队 / 非传统开发角色」分组,分组为本文档归纳,原文按章节顺序平铺)</div>
+  </div>
+
+  <p>先看几个最抓眼的数字,后面各章会给出完整上下文:</p>
+  <div class="stats">
+    <div class="stat"><div class="v">80%↓</div><div class="k">推理团队查 ML 概念的时间(1 小时 → 10–20 分钟)</div></div>
+    <div class="stat"><div class="v">70%</div><div class="k">Vim mode 功能中由 Claude 自主完成的代码占比</div></div>
+    <div class="stat"><div class="v">约 1/3</div><div class="k">RL 团队「一把过」成功率——所以要配检查点工作流</div></div>
+    <div class="stat"><div class="v">2h→15min</div><div class="k">增长营销团队做一批广告文案的耗时</div></div>
+    <div class="stat"><div class="v">10×</div><div class="k">投放创意产出量(Figma 插件批量生成)</div></div>
+    <div class="stat"><div class="v">5000 行</div><div class="k">数据科学团队在几乎不会 TS 的情况下写出的看板应用</div></div>
+  </div>
+
+  <div class="callout key-gold">
+    <div class="c-t">🧭 怎么读这份文档</div>
+    每章都是「团队定位 → 主要用例 → 团队影响 → 给其他团队的建议」四段式,与原 PDF 结构一一对应。如果你只想抄作业,直接看每章最后的「建议」;如果你在思考该给 agent 放多大权限,重点看 <a href="#patterns">第 12 章共性模式</a> 的自主度光谱(增补总结)。
+  </div>
+</section>
+
+<!-- ================= 02 数据基础设施 ================= -->
+<section id="t-data">
+  <div class="sec-h"><span class="ico">🗄️</span><h2>数据基础设施团队</h2><span class="no">02 · Data Infrastructure</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>为全公司各团队组织所有业务数据。他们用 Claude Code 自动化例行数据工程任务、排查复杂基础设施问题,并创建文档化的工作流,让技术和非技术成员都能独立访问和操作数据。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">📸 用截图调试 Kubernetes</div>
+    <p>Kubernetes 集群宕机、不再调度新 pod 时,团队把仪表盘截图直接喂给 Claude Code 诊断。它带着他们在 Google Cloud 的 UI 里一个菜单一个菜单地排查,最终找到「pod IP 地址耗尽」的警告,然后给出创建新 IP 池并挂到集群上的确切命令——<strong>全程没有惊动网络专家</strong>。</p></div>
+  <div class="card def"><div class="d-title">📝 给财务团队的纯文本工作流</div>
+    <p>他们教财务同事把数据工作流写成纯文本文件,丢进 Claude Code 就能全自动执行。完全不会写代码的员工只要描述「查这个仪表盘、取信息、跑这些查询、输出 Excel」这样的步骤,Claude Code 就会执行整条工作流,还会主动询问日期之类的必填输入。</p></div>
+  <div class="card def"><div class="d-title">🧭 新人代码库导航</div>
+    <p>新数据科学家入职时,直接被引导用 Claude Code 探索庞大的代码库:它读团队的 Claude.md 文档、为具体任务定位相关文件、解释数据管道的依赖关系、帮新人搞清哪些上游数据源喂给了哪些仪表盘——<strong>取代了传统的数据目录和可发现性工具</strong>。</p></div>
+  <div class="card def"><div class="d-title">📋 会话结束时更新文档</div>
+    <p>每个任务收尾时,团队会让 Claude Code 总结本次会话完成的工作并提出改进建议。这形成一个持续改进循环:基于真实使用情况不断打磨 Claude.md 文档和工作流说明,让后续迭代越来越顺。</p></div>
+  <div class="card def"><div class="d-title">🔀 多实例并行任务管理</div>
+    <p>做长耗时数据任务时,他们在不同仓库为不同项目开多个 Claude Code 实例。每个实例保有完整上下文,哪怕几小时、几天后切回来,Claude Code 仍记得当时做到哪了——实现了真正的并行工作流管理,不丢上下文。</p></div>
+
+  <h3>团队影响</h3>
+  <ul class="practice">
+    <li><strong>不靠专家也能解决基础设施问题</strong>——过去要拉系统或网络团队的人一起看的 Kubernetes 集群故障,现在用 Claude Code 诊断并拿到确切修复方案。</li>
+    <li><strong>入职提速</strong>——新数据分析师和成员不需要大量带教,就能快速理解复杂系统、做出实际贡献。</li>
+    <li><strong>支持工作流增强</strong>——能处理大得多的数据量、发现人工根本查不过来的异常(比如监控 200 个仪表盘)。</li>
+    <li><strong>跨团队自助服务</strong>——零编码经验的财务团队现在能独立执行复杂数据工作流。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">✍️ 把 Claude.md 写详细</div>工作流、工具、预期在 Claude.md 里记录得越好,Claude Code 表现越好。这让它在「照既有模式新建数据管道」这类例行任务上表现出色。</div>
+  <div class="callout key-teal"><div class="c-t">🔐 敏感数据走 MCP 服务器,别走 CLI</div>他们建议用 MCP 服务器而不是 BigQuery CLI,以便更好地控制 Claude Code 能访问什么——尤其是需要留痕(logging)或有隐私顾虑的敏感数据。</div>
+  <div class="callout key-gold"><div class="c-t">👥 组织团队用法分享会</div>团队成员互相演示各自的 Claude Code 工作流,传播最佳实践,也让大家看到自己没发现的用法。</div>
+</section>
+
+<!-- ================= 03 产品开发 ================= -->
+<section id="t-product">
+  <div class="sec-h"><span class="ico">🛠️</span><h2>产品开发团队(Claude Code 团队)</h2><span class="no">03 · Product Development</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>Claude Code 团队用自己的产品来开发 Claude Code 的更新,扩展产品的企业级能力和 agentic loop(智能体循环)功能。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">⚡ auto-accept 模式快速原型</div>
+    <p>工程师开启 <span class="term">auto-accept 模式</span>(shift+tab),搭起自主循环:Claude 写代码、跑测试、持续迭代。他们把自己不熟悉的抽象问题交给它自主处理,然后<strong>验收那份「完成度 80%」的方案</strong>,再接手做最后打磨。团队强调:从干净的 git 状态出发、定期提交检查点,这样 Claude 跑偏时可以轻松回滚。</p></div>
+  <div class="card def"><div class="d-title">🎯 核心功能同步编码</div>
+    <p>对触及应用业务逻辑的关键功能,团队与 Claude Code <strong>同步工作</strong>:给出带具体实现指令的详细提示,实时盯着过程,确保代码质量、风格规范和架构合理,同时让 Claude 承担重复性的编码劳动。</p></div>
+  <div class="card def"><div class="d-title">⌨️ 实战案例:Vim mode</div>
+    <p>他们最成功的异步项目之一是给 Claude Code 实现 Vim 键位绑定。他们让 Claude 完整构建这个功能(尽管它并非优先级项目),最终实现里<strong>约 70% 来自 Claude 的自主工作</strong>,只经过几轮迭代就完成了。</p></div>
+  <div class="card def"><div class="d-title">🧪 测试生成与 bug 修复</div>
+    <p>功能实现后让 Claude Code 写全面的测试,并处理 PR 评审里发现的简单 bug。他们还借助 GitHub Actions 集成,让 Claude 自动响应 PR 评论——比如格式问题、函数改名这类修改。</p></div>
+  <div class="card def"><div class="d-title">🧭 代码库探索</div>
+    <p>面对不熟悉的代码库(比如 monorepo 或 API 侧),团队用 Claude Code 快速理解系统如何运作。不用在 Slack 里等同事回复,直接问 Claude 要解释和代码引用,省下大量上下文切换时间。</p></div>
+
+  <h3>团队影响</h3>
+  <ul class="practice">
+    <li><strong>功能交付更快</strong>——像 Vim mode 这样的复杂功能,70% 代码由 Claude 自主完成。</li>
+    <li><strong>开发速度提升</strong>——可以快速做原型、迭代想法,不被实现细节拖住。</li>
+    <li><strong>自动化测试保质量</strong>——Claude 生成全面测试、处理例行 bug 修复,在降低人工投入的同时维持高标准。</li>
+    <li><strong>代码库探索更顺</strong>——不用等同事回复,就能快速理解 monorepo 里不熟的部分。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🔄 搭建自给自足的循环</div>让 Claude 自动跑构建、测试、lint 来验证自己的工作。这样它能自主工作更久、自己抓住自己的错误——尤其是当你让它先写测试再写代码时,效果最好。</div>
+  <div class="callout key-teal"><div class="c-t">🧠 培养任务分类直觉</div>学会区分哪些任务适合异步放手(外围功能、原型),哪些需要同步盯着(核心业务逻辑、关键修复)。产品边缘的抽象任务可以交给 auto-accept 模式,核心功能则需要更紧的监督。</div>
+  <div class="callout key-gold"><div class="c-t">✍️ 写清晰、详细的提示</div>当组件名字或功能相近时,要求要极其具体。提示写得越好越细,你就越能信任 Claude 独立工作,而不担心它改错代码库里的地方。</div>
+</section>
+
+<!-- ================= 04 安全工程 ================= -->
+<section id="t-security">
+  <div class="sec-h"><span class="ico">🛡️</span><h2>安全工程团队</h2><span class="no">04 · Security Engineering</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>负责软件开发生命周期安全、供应链安全和开发环境安全。他们大量用 Claude Code 写代码和调试。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">🚨 复杂基础设施调试</div>
+    <p>处理事故时,把堆栈跟踪和文档喂给 Claude Code,让它顺着代码库追踪控制流。这显著缩短了生产问题的解决时间:过去要 <strong>10–15 分钟</strong>人工扫代码才能理解的问题,现在约 <strong>5 分钟</strong>搞定。</p></div>
+  <div class="card def"><div class="d-title">🏗️ Terraform 代码审查</div>
+    <p>对需要安全审批的基础设施变更,他们把 Terraform 计划复制进 Claude Code,问它:<em>「这会干什么?我会后悔吗?」</em>这带来更紧的反馈循环,让安全团队能快速审阅、批准基础设施变更,减少开发流程中的卡点。</p></div>
+  <div class="card def"><div class="d-title">📚 文档整合与 runbook</div>
+    <p>让 Claude Code 消化多个文档源,产出 markdown 格式的 runbook、排障指南和综述,再把这些浓缩文档当作调试真实问题时的上下文——比在完整知识库里翻找高效得多。</p></div>
+  <div class="card def"><div class="d-title">🧪 测试驱动开发(TDD)工作流</div>
+    <p>过去的模式是「设计文档 → 糊弄代码 → 重构 → 放弃写测试」;现在他们让 Claude Code 先给伪代码,引导它走测试驱动开发,卡住时定期介入把它带回正轨,产出更可靠、可测试的代码。</p></div>
+  <div class="card def"><div class="d-title">🔀 上下文切换与项目上手</div>
+    <p>参与既有项目(比如安全审批工作流 web 应用「dependant」)时,他们用 Claude Code 编写、评审并执行存放在代码库里的 markdown 规格说明,<strong>几天内就能做出有意义的贡献,而不是几周</strong>。</p></div>
+
+  <h3>团队影响</h3>
+  <div class="stats">
+    <div class="stat"><div class="v">10–15min→5min</div><div class="k">基础设施问题的人工排查时间</div></div>
+    <div class="stat"><div class="v">周→天</div><div class="k">跨职能项目做出实际贡献所需的上手时间</div></div>
+    <div class="stat"><div class="v">更快</div><div class="k">Terraform 安全审查周期,消除开发者等待安全审批的阻塞</div></div>
+  </div>
+  <ul class="practice">
+    <li><strong>文档工作流更好</strong>——从多个来源合成的排障指南和 runbook,让调试流程更高效。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">⌨️ 大量使用自定义斜杠命令</div>整个 monorepo 里 <strong>50% 的自定义斜杠命令实现出自安全工程团队</strong>。这些自定义命令让特定工作流更顺、重复任务更快。</div>
+  <div class="callout key-teal"><div class="c-t">🗣️ 让 Claude 先动手</div>与其为了要代码片段而问一堆定向问题,不如告诉 Claude Code「边做边提交你的工作」,让它自主干活、你定期检查——得到的方案更完整。</div>
+  <div class="callout key-gold"><div class="c-t">📄 用它做文档</div>写代码之外,Claude Code 特别擅长整合文档、产出结构化内容。给它写作范例和格式偏好,就能拿到可直接用于 Slack、Google Docs 等工具的文档,避免来回切界面的疲劳。</div>
+</section>
+
+<!-- ================= 05 推理 ================= -->
+<section id="t-inference">
+  <div class="sec-h"><span class="ico">⚙️</span><h2>推理团队</h2><span class="no">05 · Inference</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>管理 Claude 读取提示和生成回复时存储信息的内存系统。团队成员——尤其是机器学习新手——大量使用 Claude Code 来弥合知识缺口、加速工作。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">🧭 代码库理解与入职</div>
+    <p>加入复杂代码库时,团队重度依赖 Claude Code 快速理解架构。不用手动翻 GitHub 仓库,直接问 Claude 哪些文件调用了特定功能,<strong>几秒钟出结果</strong>,不必问同事或人肉搜索。</p></div>
+  <div class="card def"><div class="d-title">🧪 带边界情况的单元测试生成</div>
+    <p>写完核心功能后让 Claude 写全面的单元测试。它会自动补上被漏掉的边界情况,把原本很耗心力的活儿在几分钟内完成,像一个可供审阅的编码助手。</p></div>
+  <div class="card def"><div class="d-title">🎓 机器学习概念讲解</div>
+    <p>没有 ML 背景的成员靠 Claude 解释模型相关的函数和设置。过去要花一小时 Google 搜索、读文档才能搞懂的东西,现在 10–20 分钟搞定,<strong>研究时间减少 80%</strong>。</p></div>
+  <div class="card def"><div class="d-title">🔁 跨语言代码翻译</div>
+    <p>需要在别的编程语言里测试功能时,他们说明想测什么,Claude 就用目标语言(比如 Rust)写出逻辑——不必为了测试专门学一门新语言。</p></div>
+  <div class="card def"><div class="d-title">💻 命令回忆与 Kubernetes 管理</div>
+    <p>不用记复杂的 Kubernetes 命令,直接问 Claude 正确语法(比如「怎么列出所有 pod 或部署状态」),就能拿到基础设施工作所需的确切命令。</p></div>
+
+  <h3>团队影响</h3>
+  <ul class="practice">
+    <li><strong>ML 概念学习提速</strong>——研究时间减少 80%:过去一小时的 Google 搜索,现在 10–20 分钟。</li>
+    <li><strong>代码库导航更快</strong>——几秒内找到相关文件、理解系统架构,不用问同事。</li>
+    <li><strong>测试覆盖更全</strong>——Claude 自动生成带边界情况的单元测试,减轻心智负担的同时保住代码质量。</li>
+    <li><strong>语言壁垒消失</strong>——不用学 Rust 也能用 Rust 实现功能。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🔍 先测测它当知识库好不好用</div>多问几类问题,看 Claude 是否答得比 Google 搜索更快更准。如果是,它就是你工作流里实打实的省时工具。</div>
+  <div class="callout key-teal"><div class="c-t">🚀 从代码生成开始建立信任</div>给 Claude 具体指令让它写逻辑,然后验证正确性。这有助于先建立对工具能力的信任,再交给它更复杂的任务。</div>
+  <div class="callout key-gold"><div class="c-t">🧪 用它写测试</div>让 Claude 写单元测试能大幅减轻日常开发压力。用好这一点,不必人工想遍所有测试用例也能维持代码质量。</div>
+</section>
+
+<!-- ================= 06 数据科学与可视化 ================= -->
+<section id="t-datasci">
+  <div class="sec-h"><span class="ico">📊</span><h2>数据科学与可视化团队</h2><span class="no">06 · Data Science &amp; Visualization</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>数据科学和 ML 工程团队需要复杂的可视化工具来理解模型表现,但构建这些工具往往要求掌握他们不熟悉的语言和框架。Claude Code 让这些团队不必变成全栈开发者,也能构建生产级的分析看板。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">🖥️ 用 JS/TS 构建看板应用</div>
+    <p>尽管「几乎不会 JavaScript 和 TypeScript」,团队仍用 Claude Code 构建完整的 React 应用来可视化 RL 模型表现和训练数据。他们放手让 Claude 从零写整个应用——比如一个 <strong>5000 行的 TypeScript 应用</strong>——自己不需要读懂代码。这可行的关键在于:可视化应用上下文相对少、不要求理解整个 monorepo,因此能快速做出理解「训练与评估期间模型表现」的工具原型。</p></div>
+  <div class="card def"><div class="d-title">🎰 处理重复性重构:「老虎机」打法</div>
+    <p>遇到合并冲突或「编辑器宏搞不定、又不值得立大项目」的半复杂文件重构时,他们把 Claude Code 当<span class="term">老虎机</span>用:先提交当前状态,让 Claude 自主跑 30 分钟,结果要么直接采纳,要么推倒重来——不纠缠着改。</p></div>
+  <div class="card def"><div class="d-title">📈 持久化分析工具,替代一次性 notebook</div>
+    <p>不再写用完即弃的 Jupyter notebook,而是让 Claude 构建可在未来模型评估中复用的永久性 React 看板。这很重要,因为理解 Claude 的表现是「团队最重要的事情之一」——他们需要理解模型在训练和评估中的表现,而这「其实并不简单,盯着一个数字往上走的简陋工具拿不到多少信号」。</p></div>
+  <div class="card def"><div class="d-title">🤝 零依赖任务委托</div>
+    <p>对完全陌生的代码库或语言里的任务,他们把整个实现委托给 Claude Code,利用它从 monorepo 收集上下文并执行任务的能力,全程不参与实际编码。这让他们在专业领域之外也有产出,而不是花时间学新技术。</p></div>
+
+  <h3>团队影响</h3>
+  <ul class="practice">
+    <li><strong>2–4 倍时间节省</strong>——过去乏味但尚可手工完成的例行重构任务,现在快得多。</li>
+    <li><strong>用陌生语言构建复杂应用</strong>——JS/TS 经验极少,却写出了 5000 行的 TypeScript 应用。</li>
+    <li><strong>从一次性工具转向持久工具</strong>——不再用完即弃的 Jupyter notebook,改建可复用的 React 模型分析看板。</li>
+    <li><strong>反哺模型改进</strong>——第一手的 Claude Code 使用体验,直接为下一代模型的内存系统和 UX 改进提供输入。</li>
+    <li><strong>可视化驱动决策</strong>——借助高级数据可视化工具,更好地理解 Claude 在训练和评估中的表现。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🎰 把它当老虎机</div>放手前先保存状态,让 Claude 跑 30 分钟,然后要么采纳结果、要么推倒重来——别跟它的错误纠缠。<strong>重来往往比修修补补成功率更高。</strong></div>
+  <div class="callout key-teal"><div class="c-t">✂️ 该打断就打断,要求更简单的方案</div>盯着它干活时,别犹豫,直接叫停并问「你为什么这么做?试试更简单的方案」。模型默认倾向于更复杂的解法,但对「简化」的要求响应很好。</div>
+  <div class="quote-box"><div class="q">"Why are you doing this? Try something simpler." —— <strong>打断的勇气</strong>,是监督式用法里最便宜、收益最高的操作。</div><div class="who">—— 数据科学与 ML 工程团队的实操建议(引文为原文,评语为增补)</div></div>
+</section>
+
+<!-- ================= 07 API ================= -->
+<section id="t-api">
+  <div class="sec-h"><span class="ico">🔌</span><h2>API 团队(API Knowledge)</h2><span class="no">07 · API</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>负责 PDF 支持、引用(citations)、网页搜索等把额外知识带进 Claude 上下文窗口的功能。跨大型复杂代码库工作,意味着不断遭遇陌生代码区、花大量时间搞清「这个任务该看哪些文件」、在动手前先攒上下文。Claude Code 改善了这种体验:它像一个向导,帮他们理解系统架构、定位相关文件、解释复杂的交互。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">🚏 任何任务的「第一站」</div>
+    <p>团队把 Claude Code 当作所有任务的「第一站」:让它指出修 bug、做功能或做分析该看哪些文件。这取代了传统上开工前手动翻代码库、攒上下文的耗时过程。</p></div>
+  <div class="card def"><div class="d-title">🐛 跨代码库独立调试</div>
+    <p>团队现在有信心处理代码库中不熟悉部分的 bug,而不是求助他人。他们直接问 Claude「你觉得你能修这个 bug 吗?我看到的现象是这样的」,往往立刻取得进展——以前考虑到时间成本,这根本不可行。</p></div>
+  <div class="card def"><div class="d-title">🧫 靠吃狗粮测试模型迭代</div>
+    <p>Claude Code 自动使用最新的研究模型快照,这成了他们体验模型变化的主要方式,让他们在开发周期中直接感知模型行为变化——这在以前的发布中从未体验过。</p></div>
+  <div class="card def"><div class="d-title">🧠 消除上下文切换开销</div>
+    <p>不再一边复制代码片段、把文件拖进 Claude.ai,一边大费口舌解释问题——直接在 Claude Code 里提问,无需额外收集上下文,大幅降低心智负担。</p></div>
+
+  <h3>团队影响</h3>
+  <ul class="practice">
+    <li><strong>敢碰不熟的领域</strong>——成员能独立调试陌生代码库里的 bug、调查事故。</li>
+    <li><strong>攒上下文的时间大幅节省</strong>——不再复制片段、拖文件进 Claude.ai,减少心智上下文切换负担。</li>
+    <li><strong>轮岗上手更快</strong>——轮换到新团队的工程师能快速导航陌生代码库并做出实际贡献,不必大量请教同事。</li>
+    <li><strong>开发者更快乐</strong>——团队反馈日常工作流阻力变小,人更开心、更高产。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🔁 当迭代伙伴,别当一发入魂的解题机</div>不要指望 Claude 立刻解决问题,把它当作可以来回迭代的协作者。这比追求首次就拿到完美方案效果更好。</div>
+  <div class="callout key-teal"><div class="c-t">💪 用它在陌生领域建立信心</div>别犹豫去碰专业之外的 bug 或事故——Claude Code 让你能独立处理那些原本需要长期积累上下文的领域。</div>
+  <div class="callout key-gold"><div class="c-t">🌱 从最少的信息开始</div>先只给你手头最基本的信息,让 Claude 引导你走流程,而不是一开始就灌进大段解释。</div>
+</section>
+
+<!-- ================= 08 增长营销 ================= -->
+<section id="t-growth">
+  <div class="sec-h"><span class="ico">📈</span><h2>增长营销团队</h2><span class="no">08 · Growth Marketing</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>负责搭建付费搜索、付费社交、移动应用商店、邮件营销和 SEO 等效果营销渠道。作为一个<strong>非技术背景的一人团队</strong>,他们用 Claude Code 自动化重复性营销任务、构建原本需要大量工程资源的 agentic 工作流。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">📢 Google Ads 广告创意自动生成</div>
+    <p>他们搭了一条 agentic 工作流:处理包含数百条既有广告及其效果指标的 CSV 文件,找出表现不佳、需要迭代的广告,生成符合严格字数限制(<strong>标题 30 字符、描述 90 字符</strong>)的新变体。系统用两个专门的子智能体(一个管标题、一个管描述),几分钟就能生成数百条新广告,不必再在多个广告系列里手工创建。这让他们能够规模化地测试和迭代——以前要做到这一点要花非常多的时间。</p></div>
+  <div class="card def"><div class="d-title">🖼️ Figma 插件量产创意素材</div>
+    <p>付费社交广告的静态图,过去要手动复制再逐张改;现在他们开发了一个 Figma 插件,自动识别画框(frame)、通过替换标题和描述程序化生成<strong>最多 100 个广告变体</strong>,把几个小时的复制粘贴压缩到<strong>每批半秒</strong>。这带来 10 倍的创意产出,能在关键社交渠道测试多得多的创意变体。</p></div>
+  <div class="card def"><div class="d-title">📊 Meta Ads MCP 服务器做投放分析</div>
+    <p>他们创建了一个对接 Meta Ads API 的 MCP 服务器,直接在 Claude Desktop 应用里查询广告系列表现、花费数据和广告效果,不用再在多个平台间切换做效果分析——对「每一点效率都折算成 ROI」的岗位来说,这省下的是关键时间。</p></div>
+  <div class="card def"><div class="d-title">🧠 带记忆系统的进阶提示工程</div>
+    <p>他们实现了一个简易记忆系统,跨广告迭代记录假设和实验;生成新变体时,系统能把以往测试结果拉进上下文,形成一个<strong>自我改进的测试框架</strong>。这种系统化实验靠人工记录根本做不到。</p></div>
+
+  <h3>团队影响</h3>
+  <div class="stats">
+    <div class="stat"><div class="v">2h→15min</div><div class="k">一批广告文案的制作时间,省出来的时间投入战略工作</div></div>
+    <div class="stat"><div class="v">10×</div><div class="k">创意产出量——自动生成 + Figma 集成,测试量大增</div></div>
+    <div class="stat"><div class="v">1 人</div><div class="k">团队规模——却能干传统上需要专职工程资源的活</div></div>
+  </div>
+  <ul class="practice">
+    <li><strong>重心转向战略</strong>——时间花在整体策略和搭建 agentic 自动化上,而不是手工执行。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🔎 找出「有 API 的重复任务」</div>盯住那些涉及重复操作、且工具带 API 的工作流(广告平台、设计工具、分析平台)。它们是自动化的头号候选,也是 Claude Code 价值最大的地方。</div>
+  <div class="callout key-teal"><div class="c-t">🧩 把复杂工作流拆成专门的子智能体</div>别试图在一个提示或工作流里搞定一切;为具体任务建独立 agent(比如他们的标题 agent 和描述 agent)。面对复杂需求时,这让调试更容易、输出质量更高。</div>
+  <div class="callout key-gold"><div class="c-t">🗺️ 写代码前先充分头脑风暴和提示规划</div>先在 Claude.ai 里花足时间把整条工作流想透,再让 Claude.ai 产出一份完整的提示和代码结构,供 Claude Code 参照。另外,一步一步来,别要求一步到位的方案——避免 Claude 被复杂任务压垮。</div>
+</section>
+
+<!-- ================= 09 产品设计 ================= -->
+<section id="t-design">
+  <div class="sec-h"><span class="ico">🎨</span><h2>产品设计团队</h2><span class="no">09 · Product Design</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>支持 Claude Code、Claude.ai 和 Anthropic API,专注于打造 AI 产品。即便不是开发者,也能用 Claude Code 弥合设计与工程之间的传统鸿沟,直接落地自己的设计愿景,不必与工程师反复拉扯。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">✨ 前端细节打磨与状态管理修改</div>
+    <p>视觉微调(字体、颜色、间距)不再需要写冗长的设计文档、跟工程师来回过几轮反馈——设计师直接用 Claude Code 实现这些修改。工程师注意到他们在做「你通常不会看到设计师做的大型状态管理修改」,让他们能达到自己设想的精确质量。</p></div>
+  <div class="card def"><div class="d-title">🎫 GitHub Actions 自动处理工单</div>
+    <p>借助 Claude Code 的 GitHub 集成,只需提 issue/工单描述需要的修改,Claude 就会自动提出代码方案——甚至不用打开 Claude Code。这为他们长期积压的打磨类任务建立了顺滑的修 bug、调功能工作流。</p></div>
+  <div class="card def"><div class="d-title">⚡ 快速交互原型</div>
+    <p>把设计稿(mockup)图片直接粘进 Claude Code,就能生成完全可用的原型,工程师立刻就能理解并接着迭代——取代了「静态 Figma 稿 + 大量解释 + 人工翻译成代码」的传统循环。</p></div>
+  <div class="card def"><div class="d-title">🔍 边界情况发现与系统架构理解</div>
+    <p>他们用 Claude Code 画出错误状态、逻辑流和各种系统状态,在<strong>设计阶段</strong>就识别出边界情况,而不是等到开发后期才发现——从根本上提升了初版设计的质量。</p></div>
+  <div class="card def"><div class="d-title">⚖️ 复杂文案修改与法务合规</div>
+    <p>比如把「research preview」的表述从整个代码库里移除:他们用 Claude Code 找到所有出现位置、审阅上下文文案、与法务实时协调修改并落地——整个过程只用了<strong>两通 30 分钟的电话</strong>,而不是一周的来回拉扯。</p></div>
+
+  <h3>团队影响</h3>
+  <ul class="practice">
+    <li><strong>核心工作流被重塑</strong>——Claude Code 成为主力设计工具,80% 的时间里 Figma 和 Claude Code 同时开着。</li>
+    <li><strong>执行快 2–3 倍</strong>——过去要跟工程师反复沟通的视觉与状态管理修改,现在直接落地。</li>
+    <li><strong>周期从数周缩到数小时</strong>——像 GA 发布文案这种要协调一周的复杂项目,两通 30 分钟电话完成。</li>
+    <li><strong>改善设计-工程协作</strong>——设计师预先理解系统约束和可能性,沟通更好、问题解决更快。</li>
+  </ul>
+
+  <div class="quote-box"><div class="q">两种截然不同的用户体验:开发者得到的是<strong>「增强工作流」</strong>(执行更快);非技术用户得到的是<strong>「天哪,我居然会开发了」的工作流</strong>(以前完全不可能的全新能力)。</div><div class="who">—— 产品设计团队(原文:"augmented workflow" vs "holy crap, I'm a developer workflow")</div></div>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🤝 让工程师帮你完成初始配置</div>请工程同事帮忙做仓库初始配置和权限设置——技术上手对非开发者不容易,但一旦配好,它对日常工作流是革命性的。</div>
+  <div class="callout key-teal"><div class="c-t">🧾 用自定义记忆文件引导 Claude 的行为</div>写明「我是设计师、编码经验少、需要详细解释和更小的增量修改」,能显著提升 Claude 回复的质量,也让工具不那么吓人。</div>
+  <div class="callout key-gold"><div class="c-t">🖼️ 用好图片粘贴做原型</div>用 Command+V 把截图直接粘进 Claude Code——它非常擅长读懂设计稿并生成可运行代码,是把静态 mockup 变成工程师能直接理解和接手的交互原型的利器。</div>
+</section>
+
+<!-- ================= 10 RL 工程 ================= -->
+<section id="t-rl">
+  <div class="sec-h"><span class="ico">🎰</span><h2>强化学习工程团队</h2><span class="no">10 · RL Engineering</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>专注 RL 中的高效采样和跨集群权重传输。他们主要用 Claude Code 写中小型功能、调试、理解复杂代码库,采用一种包含频繁检查点和回滚的迭代式打法。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">👀 监督式自主的功能开发</div>
+    <p>中小型功能让 Claude Code 写大部分代码、自己提供监督——比如为权重传输组件实现鉴权机制。他们以交互方式工作:让 Claude 打头阵,跑偏时再把它拉回来。</p></div>
+  <div class="card def"><div class="d-title">🧪 测试生成与代码评审</div>
+    <p>自己实现修改后,让 Claude Code 补测试或评审代码。这条自动化测试工作流在例行但重要的质量保障工作上省下大量时间。</p></div>
+  <div class="card def"><div class="d-title">🐞 调试与错误排查(效果不一)</div>
+    <p>用 Claude Code 调试错误的结果好坏参半——有时它立刻定位问题并补上相关测试,有时则理解不了问题;但总体而言,能用的时候价值很大。</p></div>
+  <div class="card def"><div class="d-title">📚 代码库理解与调用栈分析</div>
+    <p>工作流里最大的变化之一:用 Claude Code 快速拿到相关组件和调用栈的摘要,替代人工读代码或生成大量调试输出。</p></div>
+  <div class="card def"><div class="d-title">☸️ Kubernetes 操作指导</div>
+    <p>经常向 Claude Code 询问原本要大量 Google 搜索的 Kubernetes 操作,即时获得配置和部署问题的答案。</p></div>
+
+  <h3>对开发工作流的影响</h3>
+  <ul class="practice">
+    <li><strong>实验式开发成为可能</strong>——采用「尝试-回滚」方法论:频繁提交检查点,先测试 Claude 的自主实现,不行就回退。</li>
+    <li><strong>文档加速</strong>——Claude Code 自动补充有用的注释,省下大量文档时间;不过他们也指出它有时把注释加在奇怪的位置、代码组织方式值得商榷。</li>
+    <li><strong>提速但有边界</strong>——Claude Code 能在他们「投入相对少的时间」下完成中小型 PR,但<strong>一次通过率只有约三分之一</strong>,其余情况需要追加引导或人工介入。</li>
+  </ul>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🧾 针对具体模式定制 Claude.md</div>把防止重复犯错的指令写进 Claude.md,比如「用 pytest 而不是 run;别乱 cd,直接用正确路径」。这显著改善了一致性。</div>
+  <div class="callout key-teal"><div class="c-t">📌 采用检查点密集的工作流</div>Claude 改代码的过程中定期提交,实验不成随时回滚。这让开发可以更大胆地实验而没有风险。</div>
+  <div class="callout key-gold"><div class="c-t">🎯 先试一把梭,不行再协作</div>先丢个快速提示让 Claude 尝试完整实现。成了(约 1/3 概率)就省下大把时间;不成再切换到更紧密的引导式协作。</div>
+</section>
+
+<!-- ================= 11 法务 ================= -->
+<section id="t-legal">
+  <div class="sec-h"><span class="ico">⚖️</span><h2>法务团队</h2><span class="no">11 · Legal</span></div>
+  <div class="card team-intro"><p><strong>团队定位:</strong>法务团队通过自发尝试、以及想深入了解 Anthropic 产品的愿望,发现了 Claude Code 的潜力。此外,一位成员有个与家人相关的个人需求——制作无障碍辅助工具;这些工作中的原型展示了这项技术对非开发者的力量。</p></div>
+
+  <h3>主要用例</h3>
+  <div class="card def"><div class="d-title">💬 给家人的定制无障碍方案</div>
+    <p>团队成员为因医疗诊断而有言语障碍的家人构建了沟通辅助工具:<strong>只用一小时</strong>,做出一个预测文本应用——用原生语音转文字,推荐回应内容,再通过语音库(voice bank)朗读出来,填补了言语治疗师推荐的现有无障碍工具的空白。</p></div>
+  <div class="card def"><div class="d-title">📞 法务部门工作流自动化</div>
+    <p>他们做了「电话树」(phone tree)原型系统,帮同事找到 Anthropic 内对口的律师——展示了法务部门不靠传统开发资源也能为常见事务构建自定义工具。</p></div>
+  <div class="card def"><div class="d-title">🗂️ 团队协调工具</div>
+    <p>管理者构建了 G Suite 应用,自动化每周团队进展更新、跨产品追踪法务审查状态——律师点个按钮就能标记待审事项,不用再管理电子表格。</p></div>
+  <div class="card def"><div class="d-title">🧪 快速原型验证想法</div>
+    <p>他们用 Claude Code 快速做出能跑的原型,拿给领域专家看(比如把无障碍工具展示给 UCSF 的专家),在投入更多时间之前验证想法、确认是否已有现成方案。</p></div>
+
+  <h3>工作风格与影响</h3>
+  <ul class="practice">
+    <li><strong>在 Claude.ai 里规划,在 Claude Code 里构建</strong>——两步流程:先与 Claude.ai 头脑风暴和规划,再转到 Claude Code 实现,并要求它放慢速度、一步步来,而不是一次吐出全部。</li>
+    <li><strong>视觉优先</strong>——频繁用截图告诉 Claude Code 想要的界面长什么样,再基于视觉反馈迭代,而不是用文字描述功能。</li>
+    <li><strong>原型驱动创新</strong>——强调要克服「不好意思分享『傻』原型、『玩具』原型」的心理,因为这些演示能启发别人看到他们没想过的可能性。</li>
+  </ul>
+
+  <h3>安全与合规意识</h3>
+  <div class="callout warnbox"><div class="c-t">⚠️ MCP 集成的隐忧</div>作为产品律师,他们一眼就看出深度 MCP 集成的安全影响:随着 AI 工具接入越来越多敏感系统,保守的安全姿态将成为障碍。</div>
+  <div class="callout warnbox"><div class="c-t">🧰 合规工具要趁早</div>他们主张随着 AI 能力扩张要尽快构建合规工具,在创新与风险管理之间找平衡。</div>
+
+  <h3>给其他团队的建议</h3>
+  <div class="callout key"><div class="c-t">🗺️ 先在 Claude.ai 里充分规划</div>用对话界面把整个想法捋清楚,再让 Claude 把一切总结成一份「按步骤执行」的实现提示。</div>
+  <div class="callout key-teal"><div class="c-t">🪜 增量式、可视化地工作</div>让 Claude Code 放慢、一步一步实现,你可以边复制粘贴边跟上,不被淹没。大量用截图表达你想要的界面。</div>
+  <div class="callout key-gold"><div class="c-t">🚀 别等完美再分享原型</div>克服藏起「玩具」项目或半成品的冲动——分享原型能让别人看到可能性,在平时不打交道的部门之间激发创新。</div>
+</section>
+
+<!-- ================= 12 共性模式 ================= -->
+<section id="patterns">
+  <div class="sec-h"><span class="ico">🧩</span><h2>共性模式与术语表(增补总结)</h2><span class="no">12</span></div>
+  <p><em>本章为整理时的增补归纳:原 PDF 到法务团队即止,没有总结章。以下模式全部来自上文 10 个团队的原始表述,只是把散落各章的做法排到一起。</em></p>
+
+  <h3>模式一:自主度是一根滑杆,不是开关</h3>
+  <p>产品开发团队的「任务分类直觉」、RL 团队的「监督式自主」、数据科学团队的「老虎机」,说的其实是同一件事:<strong>按任务风险决定放手程度</strong>。这也正是本周课程主题「管理 agent 自主度」的一线注脚。</p>
+  <div class="figure" id="fig-spectrum">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="自主度光谱">
+      <text x="410" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#173f8f" data-anim>放手程度光谱:从同步监督到异步自主</text>
+      <defs>
+        <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#c2410c"/><stop offset="0.5" stop-color="#b7791f"/><stop offset="1" stop-color="#0e9488"/>
+        </linearGradient>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#48607c"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="60" y="118" width="700" height="10" rx="5" fill="url(#spec)"/>
+        <path d="M40 123 L 60 123" stroke="#48607c" stroke-width="2" fill="none" marker-start="url(#arr)"/>
+        <path d="M760 123 L 780 123" stroke="#48607c" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      </g>
+      <g data-anim>
+        <text x="70" y="70" font-size="13" font-weight="700" fill="#c2410c">🔒 同步监督</text>
+        <text x="70" y="90" font-size="11.5" fill="#48607c">核心业务逻辑 · 关键修复</text>
+        <text x="70" y="152" font-size="11.5" fill="#48607c">详细提示 + 实时盯</text>
+        <text x="70" y="170" font-size="11.5" fill="#7a8ea6">产品开发「同步编码」</text>
+      </g>
+      <g data-anim>
+        <text x="330" y="70" font-size="13" font-weight="700" fill="#b7791f">🎚️ 监督式自主</text>
+        <text x="330" y="90" font-size="11.5" fill="#48607c">中小型功能 · 打头阵+纠偏</text>
+        <text x="330" y="152" font-size="11.5" fill="#48607c">检查点 commit + 回滚</text>
+        <text x="330" y="170" font-size="11.5" fill="#7a8ea6">RL 工程 · 一次通过率约 1/3</text>
+      </g>
+      <g data-anim>
+        <text x="580" y="70" font-size="13" font-weight="700" fill="#0e9488">🚀 异步自主</text>
+        <text x="580" y="90" font-size="11.5" fill="#48607c">外围功能 · 原型 · 低上下文应用</text>
+        <text x="580" y="152" font-size="11.5" fill="#48607c">auto-accept / 老虎机 30 分钟</text>
+        <text x="580" y="170" font-size="11.5" fill="#7a8ea6">Vim mode 70% · 5000 行看板</text>
+      </g>
+      <text x="410" y="222" text-anchor="middle" font-size="12" fill="#7a8ea6" data-anim>任务越靠近核心业务逻辑 ← 越要人盯 · 越外围越抽象 → 越能放手</text>
+    </svg>
+    <div class="fig-cap">图 2 · 自主度光谱(增补归纳:三档定位与示例均出自原文各团队的表述)</div>
+  </div>
+
+  <h3>模式二:检查点循环,让「放手」变得安全</h3>
+  <p>至少三个团队(产品开发、数据科学、RL 工程)不约而同采用同一套安全网:<strong>干净状态起步 → 放手跑 → 频繁 commit 检查点 → 验收 → 采纳或回滚重来</strong>。数据科学团队甚至总结出「重来比修补成功率更高」。</p>
+  <div class="figure" id="fig-loop">
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="检查点循环">
+      <text x="410" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#173f8f" data-anim>检查点式自主循环</text>
+      <defs><marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2468e5"/></marker></defs>
+      <g data-anim><rect x="30" y="110" width="150" height="64" rx="12" fill="#e3edfd" stroke="#c4d9f9"/><text x="105" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#173f8f">① 干净 git 状态</text><text x="105" y="156" text-anchor="middle" font-size="11" fill="#48607c">先提交当前进度</text></g>
+      <g data-anim><rect x="230" y="110" width="160" height="64" rx="12" fill="#e3edfd" stroke="#c4d9f9"/><text x="310" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#173f8f">② 放手让 Claude 跑</text><text x="310" y="156" text-anchor="middle" font-size="11" fill="#48607c">auto-accept · 写码跑测试</text></g>
+      <g data-anim><rect x="440" y="110" width="160" height="64" rx="12" fill="#e3edfd" stroke="#c4d9f9"/><text x="520" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#173f8f">③ 检查点 commit</text><text x="520" y="156" text-anchor="middle" font-size="11" fill="#48607c">边做边提交</text></g>
+      <g data-anim><rect x="650" y="110" width="140" height="64" rx="12" fill="#fdf3e0" stroke="#f0dcb4"/><text x="720" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#7c5410">④ 人工验收</text><text x="720" y="156" text-anchor="middle" font-size="11" fill="#8a6a2f">80% 完成度方案</text></g>
+      <g data-anim><rect x="480" y="228" width="150" height="46" rx="10" fill="#e0f4f2" stroke="#b9e4e0"/><text x="555" y="256" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0b5d55">✅ 采纳 + 打磨收尾</text></g>
+      <g data-anim><rect x="180" y="228" width="180" height="46" rx="10" fill="#fdeee4" stroke="#f4cdb4"/><text x="270" y="256" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8a3009">↩️ 回滚,重来一把</text></g>
+      <path d="M180 142 L 230 142" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arr2)" data-draw/>
+      <path d="M390 142 L 440 142" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arr2)" data-draw/>
+      <path d="M600 142 L 650 142" stroke="#2468e5" stroke-width="2" fill="none" marker-end="url(#arr2)" data-draw/>
+      <path d="M700 174 L 640 240 L 630 245" stroke="#0e9488" stroke-width="2" fill="none" marker-end="url(#arr2)" data-draw/>
+      <path d="M680 174 L 680 251 L 360 251" stroke="#c2410c" stroke-width="2" fill="none" marker-end="url(#arr2)" data-draw/>
+      <path d="M270 228 L 270 190 L 310 190 L 310 174" stroke="#c2410c" stroke-width="2" stroke-dasharray="5 4" fill="none" marker-end="url(#arr2)" data-draw/>
+    </svg>
+    <div class="fig-cap">图 3 · 检查点式自主循环(增补归纳:综合产品开发「干净 git 状态 + 定期检查点」、数据科学「老虎机」、RL 工程「尝试-回滚」三处原文)</div>
+  </div>
+
+  <h3>模式三:上下文写下来,能力就能复制</h3>
+  <ul class="practice">
+    <li><strong>Claude.md 是杠杆</strong>——数据基础设施团队(写详细工作流)、RL 团队(写防错指令)、产品设计团队(写「我是设计师」的自我介绍)都在同一个地方下功夫:把上下文固化成文件。</li>
+    <li><strong>先规划再动手</strong>——增长营销和法务两个非技术团队独立发现了同一套流程:先在 Claude.ai 里把想法聊透,再让它总结成分步提示交给 Claude Code。</li>
+    <li><strong>分享即放大</strong>——数据基础设施团队的「用法分享会」和法务团队的「别藏玩具原型」,都是把个人经验变成组织能力。</li>
+  </ul>
+
+  <h3>术语表</h3>
+  <dl class="glossary">
+    <dt>Claude Code</dt><dd>Anthropic 的终端编码智能体:在命令行里读写代码、执行命令、自主完成多步任务。</dd>
+    <dt>auto-accept 模式</dt><dd>按 shift+tab 开启,Claude 的每步修改不再逐一等人确认,可自主连续工作。</dd>
+    <dt>Claude.md / CLAUDE.md</dt><dd>放在仓库里的说明文件,Claude Code 每次会话自动读取,用于承载工作流、规范与注意事项。</dd>
+    <dt>MCP</dt><dd>Model Context Protocol,让 Claude 安全对接外部工具与数据源的开放协议;文中用于 BigQuery 管控和 Meta Ads 查询。</dd>
+    <dt>子智能体(sub-agent)</dt><dd>被主任务拆分出来、只负责一小块职责的专门 agent,如「标题 agent」「描述 agent」。</dd>
+    <dt>自定义斜杠命令</dt><dd>Claude Code 中用户自建的 /命令,把常用工作流固化成一句话触发。</dd>
+    <dt>monorepo</dt><dd>把多个项目放进同一个代码仓库的组织方式,规模大、上下文多。</dd>
+    <dt>检查点(checkpoint)</dt><dd>用 git commit 固定的中间状态,放手实验的「存档点」,失败即回滚。</dd>
+    <dt>TDD</dt><dd>测试驱动开发:先写测试、再写实现,保证代码可验证。</dd>
+    <dt>runbook</dt><dd>操作手册:针对特定故障或流程的分步处置指南。</dd>
+    <dt>Terraform</dt><dd>把云基础设施写成代码的工具,变更前会生成可审查的「计划(plan)」。</dd>
+    <dt>语音库(voice bank)</dt><dd>预先录制或合成的个人语音样本集,供辅助沟通工具用本人声音朗读文字。</dd>
+  </dl>
+</section>
+
+<div class="final">
+  <h2>一句话带走</h2>
+  <p>10 个团队讲的其实是同一个方法论:<strong>把任务按风险分层,给 agent 匹配对应的自主度,用检查点让放手变得可回滚,再把经验写进 Claude.md 里复利</strong>。工程团队省下的是攒上下文的时间;而对营销、设计、法务这样的角色,它给的是「以前根本不可能」的全新能力。</p>
+</div>
+
+<footer>
+  整理自 Anthropic 官方报告《How Anthropic teams use Claude Code》(<a href="https://www-cdn.anthropic.com/58284b19e702b49db9302d5b6f135ad8871e7658.pdf">PDF 原文</a>)· Stanford CS146S Week 4 指定读物<br>
+  处理方式:逐字整理 + 概念展开与可视化 · 原文为纯文本 PDF、无配图,文中 3 张示意图与第 12 章为增补归纳(已逐一标注)· 生成于 2026-07-05
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+  var toc = document.getElementById('sideToc');
+  var btn = document.getElementById('tocBtn');
+  btn.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.closest('a') && window.innerWidth < 1180) toc.classList.remove('open'); });
+
+  var bar = document.getElementById('stBar'), pct = document.getElementById('stPct'), top = document.getElementById('topProgress');
+  var links = toc.querySelectorAll('li a');
+  var secs = [];
+  links.forEach(function(a){ var s = document.querySelector(a.getAttribute('href')); if(s) secs.push({a:a, s:s}); });
+
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? Math.min(100, Math.round(h.scrollTop / max * 100)) : 0;
+    bar.style.width = p + '%'; top.style.width = p + '%'; pct.textContent = p + '%';
+    var cur = secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].s.getBoundingClientRect().top < window.innerHeight*0.35) cur = secs[i]; }
+    links.forEach(function(a){ a.classList.remove('on'); });
+    if(cur) cur.a.classList.add('on');
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs = document.querySelectorAll('.figure');
+  if(reduced){ figs.forEach(function(f){ f.classList.add('in'); }); return; }
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(p){
+      try{ var L = p.getTotalLength(); p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; }catch(e){}
+    });
+    f.querySelectorAll('[data-anim]').forEach(function(el,i){ el.style.transitionDelay = (i*0.12)+'s'; });
+  });
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        e.target.querySelectorAll('[data-draw]').forEach(function(p){ p.style.strokeDashoffset = 0; });
+        io.unobserve(e.target);
+      }
+    });
+  },{threshold:0.25});
+  figs.forEach(function(f){ io.observe(f); });
+})();
+</script>
+</body>
+</html>
