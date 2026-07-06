@@ -1,10 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ArrowLeft, CalendarDays, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { fetchResourceBySlug, fetchResources } from "@/lib/resources";
+import { fetchResourceBySlug, fetchResources, formatDate } from "@/lib/resources";
 import { fetchAdjacentArticles, fetchRelatedArticles } from "@/lib/related";
 import { useAuth } from "@/hooks/use-auth";
 import { trackView } from "@/lib/views";
@@ -303,6 +303,15 @@ function ArticleDetailPage() {
             </Link>
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" /> 约 {mins} 分钟
+            </span>
+            {/* 收录/更新时间(同日只显示收录) */}
+            <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex">
+              <CalendarDays className="h-3.5 w-3.5" />
+              收录于 {formatDate(article.published_at)}
+              {article.updated_at &&
+                article.updated_at.slice(0, 10) !== article.published_at.slice(0, 10) && (
+                  <> · 更新于 {formatDate(article.updated_at)}</>
+                )}
             </span>
             <LikeButton resourceId={article.id} />
           </div>

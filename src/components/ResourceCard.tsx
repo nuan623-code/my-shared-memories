@@ -12,6 +12,7 @@ import {
   type Resource,
   formatBytes,
   hostnameOf,
+  isNew,
   noteGradient,
 } from "@/lib/resources";
 import { getCategory } from "@/lib/data";
@@ -50,6 +51,11 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
       <span className="inline-flex items-center gap-1.5">
         <Icon className="h-3.5 w-3.5" />
         {cat?.label ?? r.type}
+        {isNew(r.published_at) && (
+          <span className="rounded-full bg-primary px-1.5 py-px text-[10px] font-semibold text-primary-foreground">
+            新
+          </span>
+        )}
       </span>
       <span>{new Date(r.published_at).toISOString().slice(0, 10)}</span>
     </div>

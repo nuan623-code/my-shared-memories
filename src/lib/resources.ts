@@ -57,6 +57,23 @@ export async function fetchResourceBySlug(slug: string): Promise<Resource | null
   return data as Resource | null;
 }
 
+/** 中文完整日期,如 2026年7月6日 */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+/** 发布/更新时间在 N 天内视为「新」(默认 7 天),用于新徽标 */
+export function isNew(iso: string | null | undefined, days = 7): boolean {
+  if (!iso) return false;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) && Date.now() - t < days * 86_400_000;
+}
+
 export function formatBytes(bytes: number | null): string {
   if (!bytes) return "";
   const u = ["B", "KB", "MB", "GB"];

@@ -11,7 +11,7 @@ import {
   Compass,
   Mail,
 } from "lucide-react";
-import { fetchResources, type Resource } from "@/lib/resources";
+import { fetchResources, isNew, type Resource } from "@/lib/resources";
 import { categories } from "@/lib/data";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { useQuery } from "@tanstack/react-query";
@@ -59,6 +59,8 @@ function HomePage() {
   );
 
   const featured = useMemo(() => resources.slice(0, 3), [resources]);
+  // 最近更新列表:第 4–10 条(前 3 条已是上方亮点卡),fetch 本身按 published_at 倒序
+  const recentList = useMemo(() => resources.slice(3, 10), [resources]);
 
   const topTags = useMemo(() => {
     const m = new Map<string, number>();
@@ -175,10 +177,10 @@ function HomePage() {
             <div className="mb-5 flex items-end justify-between">
               <div>
                 <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  最近更新
+                  <Clock className="h-3.5 w-3.5" />
+                  按时间倒序 · 最新在前
                 </div>
-                <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">近期亮点</h2>
+                <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">最近更新</h2>
               </div>
               <Link
                 to="/resources"
@@ -215,6 +217,11 @@ function HomePage() {
                           )}
                           {cat?.label ?? "未分类"}
                         </span>
+                        {isNew(r.published_at) && (
+                          <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                            新
+                          </span>
+                        )}
                       </div>
                       <h3 className="line-clamp-2 text-lg font-semibold text-foreground transition group-hover:text-primary">
                         {r.title || "未命名资源"}
@@ -228,6 +235,7 @@ function HomePage() {
                     <div className="relative mt-4 flex items-center justify-between text-xs text-muted-foreground">
                       <span>
                         {new Date(r.published_at).toLocaleDateString("zh-CN", {
+                          year: "numeric",
                           month: "short",
                           day: "numeric",
                         })}
@@ -250,6 +258,51 @@ function HomePage() {
                 );
               })}
             </div>
+
+            {/* 最近更新时间列表:第 4–10 条,日期 + 分类色点 + 标题,7 天内标「新」 */}
+            {recentList.length > 0 && (
+              <ol className="mt-5 divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card">
+                {recentList.map((r) => {
+                  const cat = categories.find((c) => c.id === r.category);
+                  const href = resourceHref(r);
+                  const isExternal = href.startsWith("http");
+                  const row = (
+                    <span className="flex items-center gap-3 px-4 py-2.5 transition group-hover:bg-muted/40">
+                      <span className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {new Date(r.published_at).toLocaleDateString("zh-CN", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                        })}
+                      </span>
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: cat?.color ?? "currentColor" }}
+                      />
+                      <span className="line-clamp-1 flex-1 text-sm text-foreground transition group-hover:text-primary">
+                        {r.title || "未命名资源"}
+                      </span>
+                      {isNew(r.published_at) && (
+                        <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                          新
+                        </span>
+                      )}
+                    </span>
+                  );
+                  return (
+                    <li key={r.id} className="group">
+                      {isExternal ? (
+                        <a href={href} target="_blank" rel="noreferrer">
+                          {row}
+                        </a>
+                      ) : (
+                        <Link to={href}>{row}</Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
           </div>
         </section>
       )}
@@ -322,12 +375,17 @@ function HomePage() {
                   <article className="group flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
                     <div>
                       <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>
+                        <span className="inline-flex items-center gap-1.5">
                           {new Date(r.published_at).toLocaleDateString("zh-CN", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
                           })}
+                          {isNew(r.published_at) && (
+                            <span className="rounded-full bg-primary px-1.5 py-px text-[10px] font-semibold text-primary-foreground">
+                              新
+                            </span>
+                          )}
                         </span>
                         <span className="inline-flex items-center gap-1 text-primary opacity-0 transition group-hover:opacity-100">
                           阅读
