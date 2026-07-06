@@ -63,7 +63,7 @@ export const Route = createFileRoute("/articles/$slug")({
   ),
 });
 
-type TocItem = { id: string; text: string; level: number; no?: string };
+type TocItem = { id: string; text: string; level: number; no?: string; parent?: string };
 
 // 站点目录统一格式:去掉文档标题里的 emoji 和各家自带编号(01 / ① / 一、 / SECTION 1 / Part 1 …),
 // 编号改由外壳按 h2 顺序统一生成,保证 30+ 篇来源各异的文档目录观感一致。
@@ -176,18 +176,23 @@ function ArticleDetailPage() {
         const headings = Array.from(doc.querySelectorAll("h2, h3"));
         const items: TocItem[] = [];
         let h2Count = 0;
+        let lastH2Id: string | undefined;
         headings.forEach((h, i) => {
           const id = h.id || `heading-${i}`;
           if (!h.id) h.id = id;
           const level = h.tagName === "H2" ? 2 : 3;
           const text = cleanTocText(h.textContent ?? "");
           if (!text) return; // 清洗后为空(纯 emoji/编号标题)不进目录
-          if (level === 2) h2Count++;
+          if (level === 2) {
+            h2Count++;
+            lastH2Id = id;
+          }
           items.push({
             id,
             text,
             level,
             no: level === 2 ? String(h2Count).padStart(2, "0") : undefined,
+            parent: level === 3 ? lastH2Id : undefined,
           });
         });
         setToc(items);
@@ -407,7 +412,20 @@ function ArticleDetailPage() {
                 </button>
               </div>
               <ul className="space-y-0.5">
-                {toc.map((item) => (
+                {(() => {
+                  // 简化目录:h2 常驻;h3 只在「当前阅读的章节」下展开(手风琴),
+                  // 避免长文档目录全量平铺过长。无 h2 的文档退回全量显示。
+                  const active = toc.find((t) => t.id === activeId);
+                  const activeParent = active
+                    ? active.level === 2
+                      ? active.id
+                      : active.parent
+                    : toc.find((t) => t.level === 2)?.id;
+                  const hasH2 = toc.some((t) => t.level === 2);
+                  return toc.filter(
+                    (t) => t.level === 2 || !hasH2 || t.parent === activeParent,
+                  );
+                })().map((item) => (
                   <li key={item.id}>
                     <button
                       type="button"
