@@ -63,7 +63,25 @@ export const Route = createFileRoute("/articles/$slug")({
   ),
 });
 
-type TocItem = { id: string; text: string; level: number };
+type TocItem = { id: string; text: string; level: number; no?: string };
+
+// 站点目录统一格式:去掉文档标题里的 emoji 和各家自带编号(01 / ① / 一、 / SECTION 1 / Part 1 …),
+// 编号改由外壳按 h2 顺序统一生成,保证 30+ 篇来源各异的文档目录观感一致。
+function cleanTocText(raw: string): string {
+  let t = raw.replace(/\s+/g, " ").trim();
+  // emoji(含变体选择符/零宽连接符/杂项符号区)
+  t = t.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{2460}-\u{24FF}]/gu, " ");
+  t = t.replace(/\s+/g, " ").trim();
+  // 明确的编号前缀才剥离;纯数字开头的正文(如「30 秒速览」)不受影响
+  t = t.replace(/^(?:section|part)\s*\d+\s*[·.、::–—-]?\s*/i, "");
+  t = t.replace(/^0\d\s*[·.、::–—-]?\s*/, "");
+  t = t.replace(/^\d{1,2}\s*[·.、::]\s*/, "");
+  t = t.replace(/^[一二三四五六七八九十]+[、.]\s*/, "");
+  t = t.replace(/^第[一二三四五六七八九十0-9]+[章节部分]\s*[::·]?\s*/, "");
+  // 残留的孤立分隔符
+  t = t.replace(/^[\s·•::–—-]+/, "").trim();
+  return t;
+}
 
 function ArticleDetailPage() {
   const { article } = Route.useLoaderData();
@@ -139,7 +157,7 @@ function ArticleDetailPage() {
           const style = doc.createElement("style");
           style.id = "__host-hide-chrome";
           style.textContent = [
-            ".side-toc,.toc-toggle,.top-progress{display:none!important}",
+            ".side-toc,.toc-toggle,.toc-btn,.top-progress{display:none!important}",
             // 老文章给自带悬浮目录预留的 margin-left(calc/262px/300px/330px 等),
             // 目录被隐藏后会变成纯留白把正文挤窄——嵌入时统一居中。
             // 大屏时文章内列统一放宽:多数老文档自限 1050px 以内,在 1600px 外壳里显小。
@@ -157,13 +175,19 @@ function ArticleDetailPage() {
 
         const headings = Array.from(doc.querySelectorAll("h2, h3"));
         const items: TocItem[] = [];
+        let h2Count = 0;
         headings.forEach((h, i) => {
           const id = h.id || `heading-${i}`;
           if (!h.id) h.id = id;
+          const level = h.tagName === "H2" ? 2 : 3;
+          const text = cleanTocText(h.textContent ?? "");
+          if (!text) return; // 清洗后为空(纯 emoji/编号标题)不进目录
+          if (level === 2) h2Count++;
           items.push({
             id,
-            text: h.textContent?.trim() ?? "",
-            level: h.tagName === "H2" ? 2 : 3,
+            text,
+            level,
+            no: level === 2 ? String(h2Count).padStart(2, "0") : undefined,
           });
         });
         setToc(items);
@@ -396,6 +420,11 @@ function ArticleDetailPage() {
                       }`}
                       title={item.text}
                     >
+                      {item.no && (
+                        <span className="mr-1.5 text-[10px] tabular-nums text-muted-foreground/70">
+                          {item.no}
+                        </span>
+                      )}
                       {item.text}
                     </button>
                   </li>
