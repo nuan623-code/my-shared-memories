@@ -47,7 +47,7 @@
 | `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动;段落批注层 enabled 恢复为 annotationsOn;2026-07-06 顶栏「约 X 分钟」旁显示「收录于/更新于」日期(≥sm 显示,同日只显示收录);2026-07-06 外壳目录统一格式:`cleanTocText` 去 emoji + 剥离各文档自带编号(01/①/一、/SECTION/Part),h2 由外壳按序补 01 02 编号,清洗后为空的标题不进目录;目录手风琴化:h2 常驻、h3 只在当前活跃章节下展开(无 h2 的文档全量显示);iframe 隐藏清单加 `.toc-btn`(新批次文档的 ☰ 按钮)。合并冲突时保留本端 |
 | `src/components/ParagraphCommentLayer.tsx` | 修复批注标记定位(原先全挤右上角):标记坐标加 iframe.offsetTop、跳过 0 高度元素、ResizeObserver 盯正文任何布局变化重扫(替代一次性延时)。合并冲突时保留本端 |
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
-| `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除;2026-07-05 AI 分区内再按子分类分组(智能体/大模型/AI 工程…,未知归「其他」);2026-07-06「近期亮点」升级为「最近更新」模块(3 亮点卡 + 第 4–10 条时间列表),卡片日期补年份,7 天内资源加「新」徽标。合并冲突时保留本端分区布局 |
+| `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除;2026-07-05 AI 分区内再按子分类分组(智能体/大模型/AI 工程…,未知归「其他」);2026-07-06「近期亮点」升级为「最近更新」模块(3 亮点卡 + 第 4–10 条时间列表),卡片日期补年份,7 天内资源加「新」徽标;2026-07-07 新增「工具」分区(数据驱动的 `TOOLS` 数组,链到 `public/projects` 下的独立静态应用如 `/projects/wechat-md/`,用 `<a>` 非 `<Link>`)。合并冲突时保留本端分区布局 |
 | `src/lib/resources.ts` | 2026-07-06 新增 `formatDate`(中文完整日期)与 `isNew`(7 天内为新)两个 helper,供首页/资源卡/文章页共用 |
 | `src/components/ResourceCard.tsx` | 2026-07-06 卡片头部(分类旁)对 7 天内资源加「新」徽标(日期原本就有,未动);卡片根元素去掉 `mb-4 break-inside-avoid`(改由网格 gap 控距) |
 | `src/components/ResourceMasonry.tsx` | 2026-07-06 CSS 多列瀑布流改常规网格:多列按「先竖后横」填充导致时间倒序视觉上乱序,网格按行左→右与 published_at 倒序一致 |
