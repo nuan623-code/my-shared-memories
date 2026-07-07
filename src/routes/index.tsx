@@ -10,6 +10,7 @@ import {
   Tag,
   Compass,
   Mail,
+  Wrench,
 } from "lucide-react";
 import { fetchResources, isNew, type Resource } from "@/lib/resources";
 import { categories } from "@/lib/data";
@@ -22,6 +23,17 @@ const resourcesQO = queryOptions({
   queryKey: ["resources", "home"],
   queryFn: () => fetchResources({ limit: 60 }),
 });
+
+// 我自己做的小工具。它们是 public/projects 下的独立静态应用(在 React Router 之外),
+// 所以用普通 <a href> 而不是 <Link>。以后新增工具往这个数组里加即可。
+const TOOLS: { title: string; href: string; desc: string; tags: string[] }[] = [
+  {
+    title: "公众号 Markdown 排版",
+    href: "/projects/wechat-md/",
+    desc: "把 Markdown 一键转成微信公众号可直接粘贴的排版样式，实时预览、多主题，写完即排。",
+    tags: ["Markdown", "公众号", "排版"],
+  },
+];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -303,6 +315,56 @@ function HomePage() {
                 })}
               </ol>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* 小工具:我自己做的小工具,链接到 public/projects 下的独立应用 */}
+      {TOOLS.length > 0 && (
+        <section className="border-b border-border/50 px-4 py-12">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-6">
+              <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
+                <Wrench className="h-3.5 w-3.5" />
+                我自己做的小工具
+              </div>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">工具</h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {TOOLS.map((t) => (
+                <a key={t.href} href={t.href} target="_blank" rel="noreferrer">
+                  <article className="group flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
+                    <div>
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 transition group-hover:bg-primary/20">
+                          <Wrench className="h-4 w-4 text-primary" />
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-xs text-primary opacity-0 transition group-hover:opacity-100">
+                          打开
+                          <ArrowUpRight className="h-3 w-3" />
+                        </span>
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground transition group-hover:text-primary">
+                        {t.title}
+                      </h3>
+                      <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{t.desc}</p>
+                    </div>
+                    {t.tags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {t.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                </a>
+              ))}
+            </div>
           </div>
         </section>
       )}
