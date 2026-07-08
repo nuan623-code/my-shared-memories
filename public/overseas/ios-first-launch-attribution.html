@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iOS App 第一次出海:归因与投放接入入门指南</title>
+<style>
+:root{
+  --bg:#f4f8fd; --card:#ffffff; --ink:#1a2b47; --ink-soft:#43516b;
+  --line:#dce6f2; --accent:#1a63ff; --accent-soft:#e8f0ff;
+  --hero1:#0b1f3f; --hero2:#123a7a;
+  --teal:#0d9488; --teal-soft:#e0f6f3;
+  --gold:#b8860b; --gold-soft:#fbf1d8;
+  --warn:#c2410c; --warn-soft:#fdece3;
+  --indigo:#4f46e5; --indigo-soft:#eceafe;
+  --shadow:0 2px 14px rgba(20,50,110,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px; line-height:1.88;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#1a63ff,#4f46e5);z-index:120;transition:width .1s}
+.wrap{max-width:920px;margin:0 auto;padding:0 22px}
+
+/* hero */
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;padding:70px 0 60px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-80px;top:-60px;width:340px;height:340px;border-radius:50%;background:rgba(90,150,255,.14)}
+.hero .wrap{position:relative;z-index:2}
+.hero .badge{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:5px 14px;border-radius:999px;font-size:13px;letter-spacing:.5px;margin-bottom:20px}
+.hero h1{font-size:38px;line-height:1.3;margin:0 0 16px;font-weight:800}
+.hero p{font-size:18px;color:#c9dbf5;margin:0;max-width:660px}
+.hero .meta{margin-top:26px;font-size:14px;color:#8fabd6}
+
+/* toc floating */
+.side-toc{position:fixed;top:0;left:0;height:100vh;width:250px;padding:26px 18px;overflow-y:auto;
+  background:rgba(244,248,253,.82);backdrop-filter:blur(10px);border-right:1px solid var(--line);z-index:90;display:none}
+.st-brand{font-weight:800;font-size:15px;color:var(--ink)}
+.st-sub{font-size:12px;color:var(--ink-soft);margin:2px 0 16px}
+.st-progress{font-size:12px;color:var(--accent);margin-bottom:6px;font-weight:600}
+.st-bar{height:5px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:18px}
+.st-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#1a63ff,#4f46e5);transition:width .1s}
+.side-toc ol{list-style:none;margin:0;padding:0;counter-reset:t}
+.side-toc li{counter-increment:t;margin:2px 0}
+.side-toc a{display:block;padding:7px 10px 7px 34px;border-radius:8px;color:var(--ink-soft);text-decoration:none;font-size:13.5px;position:relative;line-height:1.5}
+.side-toc a::before{content:counter(t,decimal-leading-zero);position:absolute;left:10px;top:7px;font-size:11px;color:#9db4d6;font-weight:700}
+.side-toc a:hover{background:var(--accent-soft);color:var(--accent)}
+.side-toc a.active{background:var(--accent);color:#fff}
+.side-toc a.active::before{color:#cfe0ff}
+.toc-toggle{position:fixed;top:14px;left:14px;z-index:95;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:20px;cursor:pointer;box-shadow:var(--shadow)}
+@media(min-width:1180px){.side-toc{display:block}.toc-toggle{display:none}.page{margin-left:250px}}
+
+/* sections */
+main{padding:16px 0 60px}
+section{padding:44px 0 8px;scroll-margin-top:20px}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.sec-num{flex:none;width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:15px;display:grid;place-items:center}
+h2{font-size:27px;margin:0;font-weight:800;line-height:1.35}
+.lead{color:var(--ink-soft);margin:6px 0 22px;font-size:16px}
+h3{font-size:20px;margin:34px 0 12px;font-weight:700;display:flex;align-items:center;gap:8px}
+p{margin:14px 0}
+.term{background:linear-gradient(transparent 62%,#cfe0ff 62%);padding:0 2px;font-weight:600;color:#123a7a}
+
+/* def card (三段式) */
+.def{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:18px 0;box-shadow:var(--shadow)}
+.def h4{margin:0 0 12px;font-size:17.5px}
+.def .row{display:flex;gap:10px;margin:10px 0;align-items:flex-start}
+.tag{flex:none;font-size:12px;font-weight:700;padding:2px 10px;border-radius:6px;margin-top:4px;white-space:nowrap}
+.tag-what{background:var(--accent-soft);color:var(--accent)}
+.tag-why{background:var(--teal-soft);color:var(--teal)}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .row p{margin:0}
+
+/* callouts */
+.callout{border-radius:12px;padding:16px 20px;margin:18px 0;border-left:5px solid;font-size:15.5px}
+.key{background:var(--accent-soft);border-color:var(--accent)}
+.key-teal{background:var(--teal-soft);border-color:var(--teal)}
+.key-gold{background:var(--gold-soft);border-color:var(--gold)}
+.warn{background:var(--warn-soft);border-color:var(--warn)}
+.callout strong{color:var(--ink)}
+.callout .ct{font-weight:800;margin-bottom:4px;display:block}
+
+/* steps */
+.steps{margin:20px 0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:4px 0 20px 48px;border-left:2px solid var(--line);margin-left:16px}
+.steps li:last-child{border-left-color:transparent}
+.steps li::before{content:counter(s);position:absolute;left:-16px;top:0;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center}
+.steps b{display:block;font-size:16.5px;margin-bottom:2px}
+.steps span{color:var(--ink-soft);font-size:15px}
+
+/* practice list */
+.practice{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:18px 0;box-shadow:var(--shadow)}
+.practice ul{margin:0;padding:0;list-style:none}
+.practice li{padding:8px 0 8px 30px;position:relative;border-bottom:1px dashed var(--line)}
+.practice li:last-child{border-bottom:none}
+.practice li::before{content:"✓";position:absolute;left:0;top:8px;color:var(--teal);font-weight:800}
+
+/* compare table */
+.tablewrap{overflow-x:auto;margin:18px 0;border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:560px;background:#fff;font-size:14.5px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:#eef4fd;color:var(--ink);font-weight:700}
+tbody tr:nth-child(even){background:#f8fbff}
+td.hl{color:var(--accent);font-weight:700}
+
+/* analogy */
+.analogy{background:linear-gradient(135deg,#eef4fd,#e8f0ff);border-radius:14px;padding:18px 22px 18px 24px;margin:18px 0;position:relative;border-left:5px solid var(--indigo)}
+.analogy .lab{font-size:12px;font-weight:800;color:var(--indigo);letter-spacing:.5px;margin-bottom:6px}
+
+/* rephrase */
+details.rephrase{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:16px 0;box-shadow:var(--shadow)}
+details.rephrase summary{cursor:pointer;padding:13px 18px;font-weight:700;font-size:15px;color:var(--accent);list-style:none}
+details.rephrase summary::-webkit-details-marker{display:none}
+details.rephrase[open] summary{border-bottom:1px solid var(--line)}
+details.rephrase .body{padding:14px 18px;color:var(--ink-soft);font-size:15px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:26px;color:var(--accent);font-weight:800}
+.stat span{font-size:13px;color:var(--ink-soft)}
+@media(max-width:640px){.stats{grid-template-columns:1fr}}
+
+/* figure */
+.figure{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 18px 14px;margin:22px 0;box-shadow:var(--shadow);opacity:0;transform:translateY(16px);transition:opacity .7s,transform .7s}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{text-align:center;color:var(--ink-soft);font-size:13.5px;margin-top:12px}
+[data-anim]{opacity:0}
+.figure.in [data-anim]{animation:pop .5s forwards}
+@keyframes pop{to{opacity:1}}
+[data-draw]{stroke-dasharray:var(--len,400);stroke-dashoffset:var(--len,400)}
+.figure.in [data-draw]{animation:draw 1s .2s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+/* glossary */
+.glossary{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:18px 0;box-shadow:var(--shadow);overflow:hidden}
+.glossary .g-row{display:flex;border-bottom:1px solid var(--line)}
+.glossary .g-row:last-child{border-bottom:none}
+.glossary .g-term{flex:none;width:150px;padding:11px 16px;font-weight:700;color:var(--accent);background:#f8fbff;font-size:14.5px}
+.glossary .g-def{padding:11px 16px;font-size:14.5px;color:var(--ink-soft)}
+@media(max-width:640px){.glossary .g-row{flex-direction:column}.glossary .g-term{width:auto}}
+
+/* final */
+.final{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;border-radius:16px;padding:34px 30px;margin:40px 0 10px}
+.final h3{color:#fff;margin-top:0}
+.final ul{margin:10px 0 0;padding-left:20px;color:#cfe0ff}
+.final li{margin:6px 0}
+
+footer{color:var(--ink-soft);font-size:13px;text-align:center;padding:30px 0 50px;border-top:1px solid var(--line);margin-top:30px}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .figure{opacity:1;transform:none}[data-anim]{opacity:1}[data-draw]{stroke-dashoffset:0}
+}
+@media(max-width:640px){.hero h1{font-size:29px}h2{font-size:22px}body{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topbar"></div>
+<button class="toc-toggle" id="tocBtn">☰</button>
+
+<nav class="side-toc" id="toc">
+  <div class="st-brand">iOS 出海归因入门</div>
+  <div class="st-sub">第一次把 App 推向海外的接入指南</div>
+  <div class="st-progress" id="pctText">阅读进度 0%</div>
+  <div class="st-bar"><i id="pctBar"></i></div>
+  <ol>
+    <li><a href="#intro">先搞懂:归因到底在解决什么</a></li>
+    <li><a href="#ecosystem">iOS 生态与 ATT / SKAN 基础</a></li>
+    <li><a href="#att">ATT 最佳实践:要不要弹窗</a></li>
+    <li><a href="#appsetting">Adjust 应用设置与归因窗口</a></li>
+    <li><a href="#channels">主流渠道接入:Google / Meta / TikTok</a></li>
+    <li><a href="#skan">SKAdNetwork 配置方案</a></li>
+    <li><a href="#metrics">数据与效果:该看哪些指标</a></li>
+    <li><a href="#checklist">首次出海接入清单</a></li>
+  </ol>
+</nav>
+
+<div class="page">
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">给第一次出海的 iOS 开发者 / 增长负责人</span>
+    <h1>iOS App 第一次出海:<br>归因与投放接入入门指南</h1>
+    <p>你写好了 App、准备去海外买量,却发现 iOS 上"钱花了、人来了、但不知道是哪条广告带来的"。这份文档从零讲清楚:iOS 归因为什么这么难、ATT 和 SKAN 是什么、以及用 Adjust 把 Google / Meta / TikTok 接起来的完整路径。</p>
+    <div class="meta">整理自 Adjust 线上课堂《iOS App 增长与归因实施指南》· 面向新手补充原理与背景</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- 0 -->
+<section id="intro">
+  <div class="sec-head"><div class="sec-num">01</div><h2>🧭 先搞懂:归因到底在解决什么</h2></div>
+  <p class="lead">在碰 ATT、SKAN 这些术语之前,先花两分钟理解"归因"这件事本身。想明白了,后面所有配置都有了落脚点。</p>
+
+  <p>假设你的 App 上线了,你在 Google、TikTok、Meta 三个平台各投了一笔广告。一周后来了 <strong>1 万</strong>个新用户。问题来了:这 1 万人里,<strong>谁是被哪条广告带来的?谁是自己搜到的?</strong>如果答不上来,你就没法判断哪个渠道值得加预算、哪个在烧钱。</p>
+
+  <div class="def">
+    <h4>📌 归因(Attribution)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>把一次"安装/激活"这个结果,追溯并归功于此前某一次广告"点击"或"展示"的过程。简单说,就是回答"这个用户是从哪来的"。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>因为你的钱分散在多个渠道,只有把用户和来源对应起来,才能算出每个渠道的成本和回报,进而决定预算怎么分。没有归因,买量就是盲投。</p></div>
+    <div class="row"><span class="tag tag-eg">例子</span><p>用户 A 在 TikTok 刷到你的广告 → 点击 → 跳转 App Store → 下载 → 打开。归因系统识别出"这次安装来自 TikTok 的某条广告",于是这一个用户就算在 TikTok 头上。</p></div>
+  </div>
+
+  <h3>🏢 MMP:为什么需要 Adjust 这样的第三方</h3>
+  <p>你可能会问:Google、Meta 自己不就能告诉我效果吗?能,但每个平台都只会说"你的用户都是我带来的"——它们各自统计、口径不一、还可能重复邀功。你需要一个<strong>中立的第三方裁判</strong>,把所有渠道的数据汇总到一个后台、用统一口径归因,这就是 <span class="term">MMP(Mobile Measurement Partner,移动测量合作伙伴)</span>。Adjust、AppsFlyer 都属于这一类。</p>
+
+  <div class="analogy">
+    <div class="lab">🔗 打个比方</div>
+    <p>如果说各个广告平台是"每家店铺自己报的销售额",那 MMP 就是那位<strong>拿着统一账本、坐在收银总台的会计</strong>。他不偏向任何一家店,只按同一套规则记账,最后告诉你每家店真实贡献了多少。iOS 上,这位会计的工作因为苹果的隐私政策变得格外复杂——这正是后面几章要展开的。</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="ecosystem">
+  <div class="sec-head"><div class="sec-num">02</div><h2>📱 iOS 生态与 ATT / SKAN 基础认知</h2></div>
+  <p class="lead">iOS 归因难,难在苹果 2021 年(iOS 14.5)推出的隐私新政。理解两个核心框架——ATT 和 SKAdNetwork——是一切的前提。</p>
+
+  <h3>🕰️ 背景:IDFA 从"默认可用"变成"要用户同意"</h3>
+  <p>过去,每台 iPhone 有一个广告标识符叫 <span class="term">IDFA</span>(相当于设备的广告身份证),App 可以直接读取它,归因就靠它精确匹配"点击的人"和"安装的人"是不是同一台设备。<strong>iOS 14.5 之后,苹果规定:想读 IDFA,必须先弹窗征得用户同意。</strong>而大部分用户会点"拒绝"。于是那个曾经好用的"身份证"大面积失效了。</p>
+
+  <p>为了应对这个变化,你需要认识苹果给出的两套机制:一套是"问用户要不要授权"(ATT),另一套是"就算不授权也能做的隐私归因"(SKAdNetwork)。</p>
+
+  <div class="def">
+    <h4>🔐 ATT(App Tracking Transparency,应用追踪透明度)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>苹果规定的一个授权框架。App 想跨应用追踪用户(读取 IDFA),必须弹出一个标准弹窗问用户"是否允许追踪"。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>把选择权交还用户,是苹果隐私战略的核心。用户同意了,你才拿得到 IDFA,才能做传统的精确归因;用户拒绝了,你就只能靠其他手段。</p></div>
+    <div class="row"><span class="tag tag-eg">例子</span><p>就是你在很多 App 首次打开时见到的那个弹窗:"允许 XX 追踪你在其他公司 App 和网站上的活动吗?"下面两个选项:"要求 App 不追踪" / "允许"。</p></div>
+  </div>
+
+  <div class="def">
+    <h4>🛡️ SKAdNetwork(简称 SKAN)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>苹果官方提供的一套<strong>隐私保护的归因框架</strong>。它不依赖 IDFA、不识别具体某个人,而是由苹果系统层面统计"某条广告带来了多少安装",再以聚合、延迟、加了噪声的方式回传给广告平台。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>因为用户大量拒绝 ATT 授权后,总得有一条"不侵犯隐私也能衡量广告效果"的路。SKAN 就是苹果给的官方答案——牺牲了精细度,换来了合规。</p></div>
+    <div class="row"><span class="tag tag-eg">例子</span><p>你在 SKAN 后台看到的不是"用户 A 来自广告 X",而是"广告系列 X 这个周期带来了约 500 次安装,转化值分布如下"——只有群体数据,没有个人。</p></div>
+  </div>
+
+  <h3>⚖️ 关键:SKAN 和 ATT 是两套独立框架,别混为一谈</h3>
+  <p>新手最常见的困惑,是把 ATT 和 SKAN 当成一回事。它们其实是<strong>并行、独立</strong>的两套机制,监测和报告归因的方式都不同。你需要理解各自的原理和限制,然后针对不同的分析和优化目标,使用不同来源的数据。<span class="term">这些框架之间的关键差异,可能会导致两边看到的安装量对不上</span>——这是正常现象,不是数据错了。</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>对比维度</th><th>安装(SKAdNetwork)</th><th>安装(ATT)</th></tr></thead>
+    <tbody>
+      <tr><td>归因精度</td><td class="hl">始终为精确归因</td><td>在 ATT 政策允许的情况下,可通过概率模型进行归因</td></tr>
+      <tr><td>受用户授权影响</td><td>用户 ATT 状态不影响归因</td><td>按 ATT 政策,未授权用户的归因会受到限制</td></tr>
+      <tr><td>归因窗口</td><td>固定归因窗口</td><td>可自定义,或与 SKAN 窗口不同,取决于 Adjust 后台的应用配置</td></tr>
+      <tr><td>可归因的来源</td><td>除 SKAN 注册合作伙伴外,不会归因到自然流量、自有渠道、网络红人等来源</td><td>可以针对任意来源归因并报告</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <!-- user -->
+      <rect data-anim x="20" y="120" width="130" height="60" rx="12" fill="var(--accent-soft)" stroke="var(--accent)"/>
+      <text data-anim x="85" y="147" text-anchor="middle" font-size="14" font-weight="700" fill="#123a7a">用户点击广告</text>
+      <text data-anim x="85" y="167" text-anchor="middle" font-size="12" fill="#43516b">→ 下载 → 打开</text>
+      <!-- split arrows -->
+      <path data-draw style="--len:180" d="M150 150 L250 90" stroke="var(--teal)" stroke-width="2.5" fill="none" marker-end="url(#a1)"/>
+      <path data-draw style="--len:180" d="M150 150 L250 210" stroke="var(--accent)" stroke-width="2.5" fill="none" marker-end="url(#a2)"/>
+      <!-- ATT branch -->
+      <rect data-anim x="255" y="55" width="240" height="72" rx="12" fill="var(--teal-soft)" stroke="var(--teal)"/>
+      <text data-anim x="375" y="82" text-anchor="middle" font-size="14" font-weight="800" fill="var(--teal)">ATT 路径(问用户)</text>
+      <text data-anim x="375" y="104" text-anchor="middle" font-size="12" fill="#43516b">同意→精确/概率归因 到任意来源</text>
+      <!-- SKAN branch -->
+      <rect data-anim x="255" y="175" width="240" height="72" rx="12" fill="var(--accent-soft)" stroke="var(--accent)"/>
+      <text data-anim x="375" y="202" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent)">SKAN 路径(不问也行)</text>
+      <text data-anim x="375" y="224" text-anchor="middle" font-size="12" fill="#43516b">苹果聚合回传,只有群体数据</text>
+      <!-- merge -->
+      <path data-draw style="--len:200" d="M495 91 L610 150" stroke="var(--teal)" stroke-width="2.5" fill="none"/>
+      <path data-draw style="--len:200" d="M495 211 L610 150" stroke="var(--accent)" stroke-width="2.5" fill="none"/>
+      <rect data-anim x="615" y="118" width="185" height="64" rx="12" fill="var(--hero1)"/>
+      <text data-anim x="707" y="145" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">Adjust 后台</text>
+      <text data-anim x="707" y="165" text-anchor="middle" font-size="12" fill="#cfe0ff">两套数据分开呈现</text>
+      <defs>
+        <marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--teal)"/></marker>
+        <marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="var(--accent)"/></marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">同一次广告点击,会同时走 ATT 和 SKAN 两条独立的归因链路,最终在 Adjust 后台分开呈现——所以两边数字对不上很正常。</div>
+  </figure>
+</section>
+
+<!-- 2 -->
+<section id="att">
+  <div class="sec-head"><div class="sec-num">03</div><h2>🔓 ATT 最佳实践:要不要弹窗、怎么接</h2></div>
+  <p class="lead">第一次出海,你要在 App 里做两件事:加对框架、弹好那个授权窗。这一章讲清楚具体怎么做。</p>
+
+  <h3>🧩 第一步:在 Adjust SDK 中添加对应框架</h3>
+  <p>光装 Adjust SDK 还不够,要让它能读到设备标识、能弹 ATT 窗,你得在 Xcode 里额外引入苹果的两个系统框架:</p>
+
+  <div class="def">
+    <h4>📦 AdSupport.framework</h4>
+    <div class="row"><span class="tag tag-what">作用</span><p>允许读取设备 IDFA。对于操作系统为 iOS 14 及更早版本的设备,添加该框架也会允许读取 LAT(限制广告追踪)信息。</p></div>
+  </div>
+  <div class="def">
+    <h4>📦 App Tracking Transparency.framework</h4>
+    <div class="row"><span class="tag tag-what">作用</span><p>允许 Adjust SDK 包装用户 ATT 许可对话框,并读取 iOS 14 或更新系统设备的许可响应(用户点了同意还是拒绝)。</p></div>
+  </div>
+  <p style="font-size:14px;color:var(--ink-soft)">📎 两个框架的接入文档:<code>https://dev.adjust.com/zh/sdk/ios#add-ios-frameworks</code></p>
+
+  <h3>💬 第二步:启用 ATT 许可弹窗</h3>
+  <p>如果你要记录设备的广告主 ID(即 IDFA),就<strong>需要先展示弹窗获得用户的授权</strong>。要达到这个目的,你需要在应用中添加 Apple 的 ATT 框架(就是上面那个)。<span class="term">Adjust SDK 会存储用户的授权状态,并在每次请求中把该信息发送至 Adjust 服务器。</span></p>
+
+  <div class="callout key">
+    <span class="ct">💡 新手常见疑问:用户都会拒绝,还弹它干嘛?</span>
+    弹窗值得做。因为<strong>只要有一部分用户点了"允许"</strong>,你就能对这部分用户做精确归因、拿到 IDFA 级别的数据,归因质量会明显更好。弹窗文案、弹出时机(比如先给用户一个"前置说明页"解释为什么要授权)都会影响同意率——这是出海运营里一个专门的优化课题。而没授权的用户,还有下面的概率模型和 SKAN 兜底,不至于完全"看不见"。
+  </div>
+
+  <details class="rephrase">
+    <summary>💬 一句话理清 IDFA / ATT / AdSupport 的关系</summary>
+    <div class="body">
+      <strong>IDFA</strong> 是那个你想拿到的"设备广告身份证";<strong>ATT</strong> 是苹果设的"门禁",不刷卡(不弹窗获同意)就不让你拿 IDFA;<strong>AdSupport.framework</strong> 和 <strong>ATT.framework</strong> 是你必须先装好的"读卡器"。三者缺一,IDFA 就到不了你手上。
+    </div>
+  </details>
+</section>
+
+<!-- 3 -->
+<section id="appsetting">
+  <div class="sec-head"><div class="sec-num">04</div><h2>⚙️ Adjust 应用设置与归因窗口</h2></div>
+  <p class="lead">SDK 装好后,后台还有几个关键开关要设。设错了,数据要么归不上、要么和渠道对不齐。</p>
+
+  <h3>🎚️ 归因设置的三个层级</h3>
+  <p>Adjust 允许你在三个层级做自定义归因设置:<span class="term">应用层级、合作伙伴层级、跟踪链接层级</span>。它们有优先级——越具体的越优先:</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 130" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+      <rect data-anim x="30" y="45" width="200" height="50" rx="10" fill="var(--accent-soft)" stroke="var(--accent)"/>
+      <text data-anim x="130" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#123a7a">应用层级</text>
+      <text data-anim x="130" y="86" text-anchor="middle" font-size="11" fill="#43516b">优先级最低(兜底)</text>
+      <text data-anim x="248" y="76" text-anchor="middle" font-size="20" fill="var(--ink-soft)">&lt;</text>
+      <rect data-anim x="268" y="45" width="200" height="50" rx="10" fill="var(--teal-soft)" stroke="var(--teal)"/>
+      <text data-anim x="368" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="var(--teal)">合作伙伴层级</text>
+      <text data-anim x="368" y="86" text-anchor="middle" font-size="11" fill="#43516b">覆盖应用层级</text>
+      <text data-anim x="486" y="76" text-anchor="middle" font-size="20" fill="var(--ink-soft)">&lt;</text>
+      <rect data-anim x="506" y="45" width="284" height="50" rx="10" fill="var(--indigo-soft)" stroke="var(--indigo)"/>
+      <text data-anim x="648" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="var(--indigo)">跟踪链接层级</text>
+      <text data-anim x="648" y="86" text-anchor="middle" font-size="11" fill="#43516b">优先级最高,最终生效</text>
+    </svg>
+    <div class="fig-cap">优先级:应用层级 &lt; 合作伙伴层级 &lt; 跟踪链接层级。同一项设置,越具体的层级会覆盖越宽泛的层级。</div>
+  </figure>
+
+  <h3>🎲 关键建议:iOS 应用请启用"概率模型"匹配</h3>
+  <div class="def">
+    <h4>概率模型(Probabilistic Model)匹配</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>当拿不到 IDFA 做精确匹配时,用一组非隐私敏感的信号(如 IP、设备型号、系统版本、时间等)来"大概率推断"某次点击和某次安装是不是同一个用户。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>ATT 大量拒绝后,精确匹配覆盖不到的用户,靠概率模型补上一块,能显著提高可归因的比例。所以<strong>推广 iOS 应用时,建议启用概率模型匹配</strong>。</p></div>
+    <div class="row"><span class="tag tag-eg">例子</span><p>后台"安装设置 → 基于点击的归因"里,把"启用概率模型"打开,设一个归因窗口(如 6 小时,可选 1–24 小时)。设备匹配的点击归因窗口另设(如 7 天,可选 1–30 天)。</p></div>
+  </div>
+
+  <h3>📏 归因窗口:尽量和各渠道对齐</h3>
+  <div class="def">
+    <h4>归因窗口(Attribution Window)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>一次点击/展示之后,多长时间内发生的安装,还算这次广告的功劳。比如"点击后 7 天内安装才归因"。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>不同渠道(SAN,自归因渠道)自己用的窗口长度不一样。如果你 Adjust 这边设的窗口和渠道那边对不上,两边算出的安装量就会差一截。</p></div>
+  </div>
+
+  <p>下面是几个主流渠道(SAN)公开文档里的归因窗口,供接入时对齐参考:</p>
+  <div class="tablewrap">
+  <table>
+    <thead>
+      <tr><th rowspan="2">渠道</th><th colspan="2">点击归因</th><th colspan="2">展示归因</th></tr>
+      <tr><th>设备匹配窗口</th><th>概率模型窗口</th><th>设备匹配窗口</th><th>概率模型窗口</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Meta</td><td>7d</td><td>1d(AEM)</td><td>1d</td><td>6h</td></tr>
+      <tr><td>Google</td><td>30d</td><td>1d(ICM)</td><td>1d</td><td>6h</td></tr>
+      <tr><td>TikTok For Business(SAN)</td><td>7d</td><td>6h</td><td>1d</td><td>6h</td></tr>
+      <tr><td>Snapchat</td><td>28d</td><td>6h</td><td>1d</td><td>6h</td></tr>
+      <tr><td>Apple Search Ads</td><td>30d</td><td>6h</td><td>1d</td><td>6h</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout warn">
+    <span class="ct">⚠️ 官方建议</span>
+    Adjust 归因窗口期尽量与各 SAN 渠道的归因窗口<strong>保持一致</strong>,以降低数据差异。以上窗口期设置来自渠道公开文档,<strong>具体设置请与媒体侧对接并进行确认</strong>(数值可能随渠道政策变化)。
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="channels">
+  <div class="sec-head"><div class="sec-num">05</div><h2>🔌 主流渠道接入:Google / Meta / TikTok</h2></div>
+  <p class="lead">出海第一站通常就是这三家。核心动作都是一件事:把 Adjust 的转化数据"回传"给渠道,让它们的算法能优化你的广告。</p>
+
+  <h3>🟦 Google:数据分享 + ICM</h3>
+  <p><strong>必要步骤:</strong>启用 Google Ads 数据分享,把 Adjust 的 <code>first_open</code>(首次打开)转化数据导入 Google Ads。这样 Google 才知道你的广告带来了哪些安装,进而优化投放。</p>
+
+  <div class="def" id="icm">
+    <h4>Google ICM(Integrated Conversion Measurement,整合转化衡量)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>Adjust × Google 的一项能力,用来<strong>弥合 Google App Campaign 中的 SKAN 报告缺口</strong>。它基于端侧(on-device)转化衡量技术,用去标识化的 App 事件数据,在保护隐私的前提下实时捕获并回传转化。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>在 IDFA 受限后,可直接观测到的转化数量大幅减少,你看到的数据不一定代表真实的转化全貌。开启 ICM 后,可以显著提升对 iOS 14.5 及以上设备转化用户的识别能力,揭示大量原本不可见的转化行为。</p></div>
+  </div>
+
+  <div class="practice">
+    <p style="margin-top:0;font-weight:700">ICM 相比标准 SKAN 的四个优势</p>
+    <ul>
+      <li><strong>全面的数据报告</strong>:补足标准 iOS 衡量方案留下的空白,覆盖点击、互动展示(Engaged Views)以及再安装(Reinstalls)等关键行为。</li>
+      <li><strong>以隐私为核心</strong>:基于端侧转化衡量技术,通过去标识化的 App 事件数据提升可观测转化量,全程不牺牲用户隐私。</li>
+      <li><strong>无数据延迟</strong>:广告主可实时获取效果数据、即时优化决策,无需等待 SKAN / AdAttributionKit 常见的延迟回传。</li>
+      <li><strong>事件级洞察</strong>:不再只局限于聚合数据摘要,提供更细粒度的事件级数据,支持更深入的分析与优化。</li>
+    </ul>
+  </div>
+
+  <p style="font-weight:700;margin-bottom:6px">获取 ICM 数据的必须步骤:</p>
+  <ol class="steps">
+    <li><b>升级 Adjust SDK 至 V5.4.1 或以上版本</b><span>下载地址:github.com/adjust/ios_sdk/releases</span></li>
+    <li><b>接入 Adjust ODM 插件</b><span>文档:dev.adjust.com/zh/sdk/ios/plugins/google-odm</span></li>
+    <li><b>接入 Firebase SDK V11.14.0 或以上版本</b><span>或接入独立的 Google ODM SDK。</span></li>
+    <li><b>在 Adjust 后台的 Google Ads ACI 中启用"设备匹配"和"概率匹配"</b><span>在链接层级设置,会覆盖应用层级归因设置。</span></li>
+  </ol>
+
+  <h3>🟦 Meta(Facebook):数据分享 + MAE / AEM</h3>
+  <p>启用 Facebook 数据分享。<span class="term">Adjust 的 Meta 集成自动支持 MAI 推广活动</span>(Mobile App Install,以安装为目标)。如果你想开展 <strong>MAE 推广活动</strong>(Mobile App Engagement,以应用内互动/事件为目标),则需要完成下列两个额外步骤:</p>
+  <ol class="steps">
+    <li><b>配置应用 Scheme 并在应用中启用通用链接(Universal Links)</b><span>iOS 9 及更高版本所需的 Apple 特定深度链接协议,需先在 Apple Developer 账户和 Xcode 中配置好。</span></li>
+    <li><b>打开"为 MAE 启用 AEM"开关</b><span>AEM = Aggregated Event Measurement,Meta 版的聚合事件衡量。</span></li>
+  </ol>
+  <div class="callout key-teal">
+    <span class="ct">🧩 Meta AEM 设置示例(设置深度链接弹窗里)</span>
+    填入 <strong>App ID prefix(即 team id)</strong> → 输入 <strong>App scheme</strong>。这一步就是为了支持 Meta MAE 的广告类型。示例格式:应用 ID 前缀如 <code>123ABC45DE</code>,应用 scheme 如 <code>yourapp://</code>。
+  </div>
+
+  <h3>⬛ TikTok:数据分享 + SAN 设置</h3>
+  <p>启用 TikTok 数据分享,并设置 <span class="term">TikTok For Business(SAN)</span>。在数据分享配置里,可以选择"仅归因至 TikTok For Business 的数据",并按需勾选要分享的数据类型(如会话、应用内收入等),再把你的 App 事件映射到 TikTok 的合作伙伴事件(例如把"Buy 1-month subscription"映射成 <code>Subscribe</code>)。</p>
+
+  <div class="callout key">
+    <span class="ct">🔁 三家渠道的共同套路</span>
+    抛开各家名词差异,接入逻辑是同一个:<strong>① 在 Adjust 开启对该渠道的"数据分享" → ② 把你关心的 App 事件映射成渠道认识的事件 → ③ 视需要做深度链接 / 端侧衡量的额外配置。</strong>先理解这条主线,再看每家的细节就不会晕。
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="skan">
+  <div class="sec-head"><div class="sec-num">06</div><h2>🛡️ SKAdNetwork 配置方案</h2></div>
+  <p class="lead">前面 ATT 那条线是"尽量拿到用户授权"。这条 SKAN 线是"就算没授权,也能通过苹果官方框架衡量效果"。两条都要配。</p>
+
+  <h3>📦 第一步:在 Adjust SDK 中添加 StoreKit.framework</h3>
+  <p>若要允许 Adjust 处理 iOS 14 或更新系统设备上与 SKAdNetwork 的通讯,那么<strong>必须添加 StoreKit.framework</strong>。这是 SKAN 能跑起来的前提。</p>
+  <p style="font-size:14px;color:var(--ink-soft)">📎 文档:<code>dev.adjust.com/zh/sdk/ios#add-ios-frameworks</code></p>
+
+  <h3>🔗 第二步:关联投放账户与 SKAdNetwork 数据服务</h3>
+  <p>在 Adjust 左侧菜单进入 <span class="term">DataWorks</span>,点击"关联"。然后点右上角"+ 新关联"添加。在弹窗里选择合作伙伴(如 Adwords / Google Ads),服务勾选 <strong>SKAN</strong>(下拉里还有 Ad Spend、Audience Builder、Bids/Budgets、CV Mapping Sharing、Offline Conversions 等可选),再按提示用对应渠道的登录方式完成授权关联。</p>
+
+  <h3>🎯 第三步:配置 SKAN Conversion Hub(转化值管理)</h3>
+  <div class="def">
+    <h4>转化值(Conversion Value)与 Conversion Hub</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>SKAN 里,苹果只允许你回传一个很小的"转化值"(有粗粒度和细粒度之分)来间接表达"这个用户做了什么"。<strong>Conversion Hub 是 Adjust 提供的、创建转化值映射的一站式平台</strong>,帮你快速设置自定义转化值。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>SKAN 不回传具体事件,只回传这个编码后的值。你得提前设计好"值 = 什么行为"的映射表(比如注册=1、付费=2……),渠道才能据此优化。这就是转化值管理要做的事。</p></div>
+  </div>
+
+  <p style="font-weight:700;margin-bottom:6px">通过 Adjust 管理转化值,需要:</p>
+  <ol class="steps">
+    <li><b>适配 SDK</b><span>Adjust iOS SDK 在 4.33.0 以上。</span></li>
+    <li><b>完成 iOS 应用 ID 验证</b><span>要求管理员或编辑员权限。在 DataWorks 关联页面选择"iOS 应用验证"作为服务并关联至 App Store Connect;或在 AppView → 选择应用 → 平台 → 找到应用 ID 字段 → 选"请求验证" → 弹窗确认。Adjust 确认无误后通过验证,后台状态会变为"已验证"。</span></li>
+    <li><b>在 Conversion Hub 中进行转化值管理配置</b><span>入口一:左侧 AppView → 所有应用 / SKAdNetwork Conversion Hub 进入。入口二:所有应用列表里选中应用后点"映射转化值"。选好要设置的应用,点击"映射转化值"即可开始配置。</span></li>
+  </ol>
+</section>
+
+<!-- 6 -->
+<section id="metrics">
+  <div class="sec-head"><div class="sec-num">07</div><h2>📊 数据与效果:该看哪些指标</h2></div>
+  <p class="lead">配置都做完、量也跑起来了,你要在后台看什么?ATT 和 SKAN 两条线各有一套指标,分开看。</p>
+
+  <h3>🔓 ATT 授权相关指标</h3>
+  <p>在 Adjust 里搜 "ATT" 就能找到这组 <span class="term">AppTrackingTransparency(ATT)</span> 指标,状态可筛选 Authorized(授权)/ Denied(拒绝)/ Not Determined(待定)/ Restricted(受限):</p>
+  <div class="glossary">
+    <div class="g-row"><div class="g-term">ATT–授权用户</div><div class="g-def">ATT 状态为"已授权"的用户数量。</div></div>
+    <div class="g-row"><div class="g-term">ATT–待定用户</div><div class="g-def">ATT 状态为"待定"的用户数量(还没做选择)。</div></div>
+    <div class="g-row"><div class="g-term">ATT–拒绝用户</div><div class="g-def">ATT 状态为"拒绝"的用户数量。</div></div>
+    <div class="g-row"><div class="g-term">ATT–受限用户</div><div class="g-def">ATT 状态为"受限"的用户数量(如家长控制等情形)。</div></div>
+    <div class="g-row"><div class="g-term">ATT 许可率</div><div class="g-def">= ATT 授权用户数量 ÷(ATT 授权用户 + ATT 拒绝用户)。衡量你的授权弹窗做得好不好的核心指标。</div></div>
+  </div>
+  <p style="font-size:14.5px;color:var(--ink-soft)">这些指标可以按渠道源(Organic、Apple、Google Ads 等)拆分查看,帮你判断哪个渠道来的用户更愿意授权。</p>
+
+  <h3>🛡️ SKAN 相关指标</h3>
+  <p>SKAN 侧的指标分成四组,理解它们你才能读懂 SKAN 报表:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>指标组</th><th>包含什么</th></tr></thead>
+    <tbody>
+      <tr><td class="hl">SKAN 转化</td><td>安装、重装;SKAN 转化总计;有效转化(转化值大于 0);转化值 null 及 null 率。</td></tr>
+      <tr><td class="hl">转化值</td><td>转化比特值 / 转化值;粗颗粒度转化值;SKAN 收入;ARPU。</td></tr>
+      <tr><td class="hl">ROAS</td><td>ROAS(广告支出回报率)= 总收入(平均/最低/最高)× 安装量 ÷(广告支出(SKAN)× 有效转化);ROI(投资回报率)= ROAS − 1。</td></tr>
+      <tr><td class="hl">支出和成本</td><td>同期群投资回报率;广告支出(SKAN)—渠道 API 拉取;eCPI(有效单次安装成本)。</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout key-gold">
+    <span class="ct">🧮 举个实际报表的样子</span>
+    在 SKAN4 Value Mapping 报表里,你会看到按"渠道源 × 推广活动"拆分的行,每行给出转化总计(SKAN)、广告支出(SKAN)、eCPI(SKAN)、ROAS、转化值 0、CV 大于 0 等列。例如某表汇总行:转化总计 <strong>88,872</strong>、广告支出 <strong>242,259.00</strong>、eCPI <strong>2.8317</strong>、ROAS <strong>9.59%</strong>——这就是你判断"哪个活动值得追加预算"的依据。
+  </div>
+
+  <div class="analogy">
+    <div class="lab">🔗 怎么理解 ROAS 和 ROI</div>
+    <p><strong>ROAS = 赚回来的 ÷ 花出去的。</strong>比如 ROAS 是 120%,意味着每花 1 块钱,带回来 1.2 块的收入。<strong>ROI = ROAS − 1</strong>,也就是净赚的部分:ROAS 120% 对应 ROI 20%,是真正的净回报。ROAS 低于 100%(ROI 为负)就是在亏钱买量。</p>
+  </div>
+</section>
+
+<!-- checklist -->
+<section id="checklist">
+  <div class="sec-head"><div class="sec-num">08</div><h2>✅ 首次出海接入清单</h2></div>
+  <p class="lead">把前面所有环节收成一张可执行的清单。第一次出海,照着这个顺序走基本不会漏。</p>
+
+  <ol class="steps">
+    <li><b>集成 Adjust SDK,并加齐三个系统框架</b><span>AdSupport(读 IDFA)+ App Tracking Transparency(弹 ATT 窗)+ StoreKit(跑 SKAN)。</span></li>
+    <li><b>接入并优化 ATT 授权弹窗</b><span>设计好文案和弹出时机,尽量提高 ATT 许可率——授权用户越多,精确归因覆盖越广。</span></li>
+    <li><b>后台开启概率模型匹配</b><span>推广 iOS 应用建议开,补上精确匹配覆盖不到的那部分用户。</span></li>
+    <li><b>对齐归因窗口</b><span>Adjust 侧窗口尽量与各 SAN 渠道公开窗口一致,并与媒体侧确认。</span></li>
+    <li><b>逐个接入渠道</b><span>Google(数据分享+ICM)、Meta(数据分享+MAE/AEM)、TikTok(数据分享+SAN),核心都是开数据分享 + 映射事件。</span></li>
+    <li><b>配置 SKAN 链路</b><span>DataWorks 关联投放账户与 SKAN 服务 → 完成应用 ID 验证 → 在 Conversion Hub 设计并配置转化值映射。</span></li>
+    <li><b>搭好看数据的习惯</b><span>ATT 侧盯许可率与各状态用户数;SKAN 侧盯转化、转化值、ROAS/eCPI,按渠道和活动拆分看,指导预算分配。</span></li>
+  </ol>
+
+  <div class="final">
+    <h3>🚀 一句话总结</h3>
+    <p style="color:#dbe8fb">iOS 出海归因,本质是在苹果的隐私框架下,同时经营好<strong>两条数据链路</strong>:</p>
+    <ul>
+      <li><strong>ATT 线</strong>:尽量拿到用户授权 + 概率模型兜底,追求"看得更细"。</li>
+      <li><strong>SKAN 线</strong>:用苹果官方框架 + 转化值映射,保证"合规也能看"。</li>
+    </ul>
+    <p style="color:#dbe8fb;margin-bottom:0">两条线各配一套、各看一套指标,再把 Google / Meta / TikTok 按同一套"数据分享 + 事件映射"的套路接进来,你的第一次出海就有了可信的效果衡量基础。</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  内容整理自 Adjust 线上课堂《iOS App 增长与归因实施指南 / Adjust 携手 Google 详解 iOS 端优化增长》(2026.06)<br>
+  处理方式:以原课程为骨架,面向出海新手补充背景、原理与可视化 · 具体配置数值请以 Adjust 官方文档与各渠道最新政策为准
+</footer>
+</div>
+
+<script>
+// progress + toc highlight
+const bar=document.getElementById('topbar'),pctBar=document.getElementById('pctBar'),pctText=document.getElementById('pctText');
+const secs=[...document.querySelectorAll('section')],links=[...document.querySelectorAll('.side-toc a')];
+function onScroll(){
+  const h=document.documentElement,st=h.scrollTop,sh=h.scrollHeight-h.clientHeight;
+  const p=sh>0?Math.min(100,Math.round(st/sh*100)):0;
+  bar.style.width=p+'%';if(pctBar)pctBar.style.width=p+'%';if(pctText)pctText.textContent='阅读进度 '+p+'%';
+  let cur=secs[0];for(const s of secs){if(s.getBoundingClientRect().top<=120)cur=s;}
+  links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur.id));
+}
+document.addEventListener('scroll',onScroll,{passive:true});window.addEventListener('load',onScroll);
+
+// toc toggle (mobile)
+const toc=document.getElementById('toc'),tocBtn=document.getElementById('tocBtn');
+tocBtn.addEventListener('click',()=>{toc.style.display=toc.style.display==='block'?'none':'block';});
+links.forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<1180)toc.style.display='none';}));
+
+// figure in-view animation
+const figs=document.querySelectorAll('.figure');
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){
+  const f=e.target;
+  f.querySelectorAll('[data-anim]').forEach((el,i)=>{el.style.animationDelay=(i*0.06)+'s';});
+  f.querySelectorAll('[data-draw]').forEach(p=>{try{const L=p.getTotalLength();p.style.setProperty('--len',L);}catch(x){}});
+  f.classList.add('in');io.unobserve(f);
+}});},{threshold:.25});
+figs.forEach(f=>io.observe(f));
+</script>
+</body>
+</html>
