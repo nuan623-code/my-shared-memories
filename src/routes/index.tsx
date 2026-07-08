@@ -24,7 +24,7 @@ const resourcesQO = queryOptions({
   queryFn: () => fetchResources({ limit: 60 }),
 });
 
-// 我自己做的小工具。它们是 public/projects 下的独立静态应用(在 React Router 之外),
+// 我自己做的小工具。它们是 public/ 下的独立静态页面(projects/、ai-daily/ 等,在 React Router 之外),
 // 所以用普通 <a href> 而不是 <Link>。以后新增工具往这个数组里加即可。
 const TOOLS: { title: string; href: string; desc: string; tags: string[] }[] = [
   {
@@ -32,6 +32,12 @@ const TOOLS: { title: string; href: string; desc: string; tags: string[] }[] = [
     href: "/projects/wechat-md/",
     desc: "把 Markdown 一键转成微信公众号可直接粘贴的排版样式，实时预览、多主题，写完即排。",
     tags: ["Markdown", "公众号", "排版"],
+  },
+  {
+    title: "AI 每日简报",
+    href: "/ai-daily/",
+    desc: "每天自动精选一个 AI 主题生成深度简报，按日归档。由 Cowork 定时任务生成、本机自动部署。",
+    tags: ["AI", "每日更新", "自动化"],
   },
 ];
 

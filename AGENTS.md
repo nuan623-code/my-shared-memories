@@ -47,11 +47,12 @@
 | `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动;段落批注层 enabled 恢复为 annotationsOn;2026-07-06 顶栏「约 X 分钟」旁显示「收录于/更新于」日期(≥sm 显示,同日只显示收录);2026-07-06 外壳目录统一格式:`cleanTocText` 去 emoji + 剥离各文档自带编号(01/①/一、/SECTION/Part),h2 由外壳按序补 01 02 编号,清洗后为空的标题不进目录;目录手风琴化:h2 常驻、h3 只在当前活跃章节下展开(无 h2 的文档全量显示);iframe 隐藏清单加 `.toc-btn`(新批次文档的 ☰ 按钮)。合并冲突时保留本端 |
 | `src/components/ParagraphCommentLayer.tsx` | 修复批注标记定位(原先全挤右上角):标记坐标加 iframe.offsetTop、跳过 0 高度元素、ResizeObserver 盯正文任何布局变化重扫(替代一次性延时)。合并冲突时保留本端 |
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
-| `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除;2026-07-05 AI 分区内再按子分类分组(智能体/大模型/AI 工程…,未知归「其他」);2026-07-06「近期亮点」升级为「最近更新」模块(3 亮点卡 + 第 4–10 条时间列表),卡片日期补年份,7 天内资源加「新」徽标;2026-07-07 新增「工具」分区(数据驱动的 `TOOLS` 数组,链到 `public/projects` 下的独立静态应用如 `/projects/wechat-md/`,用 `<a>` 非 `<Link>`)。合并冲突时保留本端分区布局 |
+| `src/routes/index.tsx` | 首页改「分类分区」布局:按 lib/data 的 categories 上下分块(AI 学习在上、公众号文章在下,空分类不显示),卡片纯文字不放封面图;hero 统计卡点击滚动到分区;原类型筛选条/瀑布流已移除;2026-07-05 AI 分区内再按子分类分组(智能体/大模型/AI 工程…,未知归「其他」);2026-07-06「近期亮点」升级为「最近更新」模块(3 亮点卡 + 第 4–10 条时间列表),卡片日期补年份,7 天内资源加「新」徽标;2026-07-07 新增「工具」分区(数据驱动的 `TOOLS` 数组,链到 `public/` 下的独立静态页面如 `/projects/wechat-md/`,用 `<a>` 非 `<Link>`);2026-07-08 TOOLS 加「AI 每日简报」入口(`/ai-daily/`)。合并冲突时保留本端分区布局 |
 | `src/lib/resources.ts` | 2026-07-06 新增 `formatDate`(中文完整日期)与 `isNew`(7 天内为新)两个 helper,供首页/资源卡/文章页共用 |
 | `src/components/ResourceCard.tsx` | 2026-07-06 卡片头部(分类旁)对 7 天内资源加「新」徽标(日期原本就有,未动);卡片根元素去掉 `mb-4 break-inside-avoid`(改由网格 gap 控距) |
 | `src/components/ResourceMasonry.tsx` | 2026-07-06 CSS 多列瀑布流改常规网格:多列按「先竖后横」填充导致时间倒序视觉上乱序,网格按行左→右与 published_at 倒序一致 |
 | `src/routes/search.tsx` | 2026-07-06 结果列表容器同步改网格(仅 className,未碰既有类型告警行) |
+| `public/ai-daily/` | 2026-07-08 新增「AI 每日简报」独立静态栏目:**内容由 claude.ai Cowork 定时任务「Daily ai briefing」通过 GitHub API 直接提交到 prod**(每日 `YYYY-MM-DD.html` + 维护 `index.html` 归档列表,列表有 `AI-DAILY-LIST-START/END` 标记);本机 launchd 任务 `com.mingyuyang.ai-daily-deploy` 定时拉取并跑 `publish.sh --deploy-only` 上线(包装脚本在仓库外 `~/.ms-ai-daily-deploy.sh`,**只有远端新提交全部落在 `public/ai-daily/` 内才自动部署**,否则跳过留人工)。该目录**不进 `resources` 表**(sync 脚本不扫它),入口是首页工具分区。合并冲突时保留本端 |
 | `src/lib/data.ts` | 2026-07-05 AI 分类子分类扩充:新增 agent(智能体)、engineering(AI 工程),排序 agent/llm/engineering/notes/cv/experiment;存量文档已用 `supabase/patches/2026-07-05-ai-subcategories.sql` 重新归类 |
 | `src/lib/ai-gateway.server.ts` + `classify.functions.ts` | /admin 自动分类改用 **Claude**(`@ai-sdk/anthropic`,读 `ANTHROPIC_API_KEY`) |
 | `package.json` | 删 `@lovable.dev/cloud-auth-js`;**保留 `@lovable.dev/vite-tanstack-config`(这是构建工具,删了会炸)** |
@@ -84,6 +85,7 @@
 - **写凭证**:service_role key,只存 **仓库外 `~/.ms-supabase-admin`(chmod 600,绝不进 git、绝不打包/内联)**。缺这个文件脚本自动跳过、不阻断部署。**这是唯一能写 `resources` 的凭证**(`.env` 里的 publishable key 对该表只读;管理员登录后经 RLS 也可删/改,见 `supabase/patches/`)。
 - **删静态文档**:在 /admin 资料管理里删掉库中行后,只要 HTML 还在 `public/`,下次部署会被同步脚本重新插回 —— 要么删掉 HTML 文件,要么在 `scripts/resources.manifest.json` 给该 slug 设 `"skip": true`。
 - 已废弃:一次性 `supabase/seed-*.sql`(改由脚本统一管理)。
+- **例外:`public/ai-daily/` 不入库** —— 它是自成一体的静态栏目(自带 index.html 归档页),sync 脚本只扫 `ai-notes/`、`overseas/`、根目录,天然不含它;别把它加进 SCAN,否则每日一条会淹掉资料库列表。
 
 ## 测试深度(默认最轻,省 token)
 - **默认**:构建过 + `tsc --noEmit` 过 + curl `/`、`/auth`、一篇文章 = 200 + REST 探针确认相关表在。
