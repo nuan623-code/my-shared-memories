@@ -26,9 +26,11 @@ const PUBLIC = join(ROOT, "public");
 const ADMIN_KEY_FILE = join(homedir(), ".ms-supabase-admin");
 
 // 扫描这些目录(及其默认分类)。约定:slug = 目录前缀 + 文件名。
+// preferTitleTag:该目录的文档 <h1> 常带 emoji/拼接副标题,标题优先取更干净的 <title>。
 const SCAN = [
   { dir: "ai-notes", prefix: "ai-notes-", category: "ai", subcategory: "notes", tags: ["AI"] },
   { dir: "overseas", prefix: "overseas-", category: "article", subcategory: "industry", tags: ["移动广告"] },
+  { dir: "ai-daily", prefix: "ai-daily-", category: "ai", subcategory: "daily", tags: ["AI 简报"], preferTitleTag: true },
   { dir: "", prefix: "", category: "ai", subcategory: null, tags: ["AI"] }, // public/ 根
 ];
 
@@ -75,6 +77,11 @@ function pick(html, tag) {
   if (!m) return null;
   return m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() || null;
 }
+// 去掉生成器常拼在标题尾部的装饰(如「— 深度学习文档」)
+function cleanTitle(t) {
+  if (!t) return null;
+  return t.replace(/\s*[—–-]\s*深度学习(文档)?\s*$/, "").trim() || null;
+}
 
 // ---- 收集本地静态文档 ----------------------------------------------------
 const rows = [];
@@ -83,16 +90,20 @@ for (const s of SCAN) {
   if (!existsSync(abs)) continue;
   for (const name of readdirSync(abs)) {
     if (!name.endsWith(".html")) continue;
+    if (name === "index.html") continue; // 目录自带的归档/索引页,不是文档
     const base = name.replace(/\.html$/, "");
     const slug = s.prefix + base;
     const o = manifest[slug] || {};
     if (o.skip) continue;
     const urlPath = "/" + (s.dir ? `${s.dir}/` : "") + name;
     const html = readFileSync(join(abs, name), "utf8");
+    const rawTitle = s.preferTitleTag
+      ? pick(html, "title") || pick(html, "h1")
+      : pick(html, "h1") || pick(html, "title");
     rows.push({
       slug,
       type: "article",
-      title: o.title || pick(html, "h1") || pick(html, "title") || base,
+      title: o.title || cleanTitle(rawTitle) || base,
       summary: o.summary ?? null,
       category: o.category || s.category,
       subcategory: o.subcategory ?? s.subcategory,

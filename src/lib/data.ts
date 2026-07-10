@@ -35,6 +35,7 @@ export const categories: Category[] = [
       { id: "agent", label: "智能体" },
       { id: "llm", label: "大模型" },
       { id: "engineering", label: "AI 工程" },
+      { id: "daily", label: "每日简报" },
       { id: "notes", label: "学习笔记" },
       { id: "cv", label: "计算机视觉" },
       { id: "experiment", label: "实验" },
