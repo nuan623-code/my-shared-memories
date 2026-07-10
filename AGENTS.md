@@ -43,7 +43,7 @@
 | 文件 | 我做的事 |
 |---|---|
 | `src/routes/auth.tsx` | Google 登录用原生 `supabase.auth.signInWithOAuth`(不是 `lovable.auth`) |
-| `src/routes/__root.tsx` | 去掉 `reportLovableError`,meta 改本站 |
+| `src/routes/__root.tsx` | 去掉 `reportLovableError`,meta 改本站;2026-07-10 接入 GA4(衡量 ID `G-3GRX3Y2VQJ`):head 注入 gtag.js(`send_page_view:false`),RootComponent 首屏发一次 page_view 并订阅 router `onResolved`(pathChanged 时)补发 SPA 页面浏览 |
 | `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动;段落批注层 enabled 恢复为 annotationsOn;2026-07-06 顶栏「约 X 分钟」旁显示「收录于/更新于」日期(≥sm 显示,同日只显示收录);2026-07-06 外壳目录统一格式:`cleanTocText` 去 emoji + 剥离各文档自带编号(01/①/一、/SECTION/Part),h2 由外壳按序补 01 02 编号,清洗后为空的标题不进目录;目录手风琴化:h2 常驻、h3 只在当前活跃章节下展开(无 h2 的文档全量显示);iframe 隐藏清单加 `.toc-btn`(新批次文档的 ☰ 按钮)。合并冲突时保留本端 |
 | `src/components/ParagraphCommentLayer.tsx` | 修复批注标记定位(原先全挤右上角):标记坐标加 iframe.offsetTop、跳过 0 高度元素、ResizeObserver 盯正文任何布局变化重扫(替代一次性延时)。合并冲突时保留本端 |
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
@@ -53,6 +53,7 @@
 | `src/components/ResourceMasonry.tsx` | 2026-07-06 CSS 多列瀑布流改常规网格:多列按「先竖后横」填充导致时间倒序视觉上乱序,网格按行左→右与 published_at 倒序一致 |
 | `src/routes/search.tsx` | 2026-07-06 结果列表容器同步改网格(仅 className,未碰既有类型告警行) |
 | `public/ai-daily/` | 2026-07-08 新增「AI 每日简报」独立静态栏目:**内容由 claude.ai Cowork 定时任务「Daily ai briefing」通过 GitHub API 直接提交到 prod**(每日 `YYYY-MM-DD.html` + 维护 `index.html` 归档列表,列表有 `AI-DAILY-LIST-START/END` 标记);本机 launchd 任务 `com.mingyuyang.ai-daily-deploy` 定时拉取并跑 `publish.sh --deploy-only` 上线(包装脚本在仓库外 `~/.ms-ai-daily-deploy.sh`,**只有远端新提交全部落在 `public/ai-daily/` 内才自动部署**,否则跳过留人工)。该目录**不进 `resources` 表**(sync 脚本不扫它),入口是首页工具分区。合并冲突时保留本端 |
+| `public/projects/wechat-md/index.html`、`public/ai-daily/index.html` | 2026-07-10 两个独立静态入口页 head 加 GA4 gtag 片段(同 ID `G-3GRX3Y2VQJ`)。wechat-md 的**源项目** `~/Claude 学习/wechat-md/index.html` 也已同步加(否则重新构建会冲掉);ai-daily 的每日页(`YYYY-MM-DD.html`)由 Cowork 云任务生成、暂无 GA,要统计需改云任务 prompt |
 | `src/lib/data.ts` | 2026-07-05 AI 分类子分类扩充:新增 agent(智能体)、engineering(AI 工程),排序 agent/llm/engineering/notes/cv/experiment;存量文档已用 `supabase/patches/2026-07-05-ai-subcategories.sql` 重新归类 |
 | `src/lib/ai-gateway.server.ts` + `classify.functions.ts` | /admin 自动分类改用 **Claude**(`@ai-sdk/anthropic`,读 `ANTHROPIC_API_KEY`) |
 | `package.json` | 删 `@lovable.dev/cloud-auth-js`;**保留 `@lovable.dev/vite-tanstack-config`(这是构建工具,删了会炸)** |

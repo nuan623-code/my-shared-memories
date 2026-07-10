@@ -10,11 +10,19 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+
+const GA_MEASUREMENT_ID = "G-3GRX3Y2VQJ";
+
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
 
 function NotFoundComponent() {
   return (
@@ -94,6 +102,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "apple-touch-icon", href: "/favicon.svg" },
     ],
+    scripts: [
+      {
+        src: `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`,
+        async: true,
+      },
+      {
+        children: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});`,
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -117,6 +134,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  // gtag config 关闭了自动 page_view(SPA 下只会记首次进入),
+  // 这里首屏发一次,之后跟随路由变化补发
+  useEffect(() => {
+    const sendPageView = () => {
+      window.gtag?.("event", "page_view", {
+        page_path: window.location.pathname + window.location.search,
+        page_location: window.location.href,
+        page_title: document.title,
+      });
+    };
+    sendPageView();
+    return router.subscribe("onResolved", (event) => {
+      if (event.pathChanged) sendPageView();
+    });
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>
