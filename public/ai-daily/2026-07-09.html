@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多智能体编排(Multi-Agent Orchestration)深度学习</title>
+<style>
+:root{
+  --bg:#f0f6ff; --hero:#0f2d5c; --hero2:#16407f; --accent:#2f7cf6; --accent-soft:#e3efff;
+  --text:#1a2333; --muted:#5a6b85; --card:#ffffff; --border:#d7e4f7; --warn:#b4530a;
+  --warn-bg:#fff4e6; --key:#0a5fb4; --key-bg:#e8f2ff; --quote:#4a5a75; --good:#0f8a5f;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:17px;line-height:1.88}
+.progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--accent),#7db4ff);width:0;z-index:100;transition:width .1s}
+header.hero{background:linear-gradient(135deg,var(--hero),var(--hero2));color:#fff;padding:64px 24px 54px;text-align:center}
+header.hero .kicker{display:inline-block;background:rgba(255,255,255,.15);padding:5px 15px;border-radius:20px;font-size:13.5px;letter-spacing:1px;margin-bottom:16px}
+header.hero h1{margin:0 0 14px;font-size:33px;line-height:1.35}
+header.hero p{margin:0 auto;max-width:680px;color:#cfe0f7;font-size:17px}
+.layout{display:flex;max-width:1180px;margin:0 auto;padding:0 20px;gap:32px}
+nav.toc{position:sticky;top:24px;align-self:flex-start;width:236px;flex:0 0 236px;background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:14px;padding:18px 16px;margin-top:34px;max-height:calc(100vh - 60px);overflow:auto}
+nav.toc h4{margin:0 0 10px;font-size:13px;color:var(--muted);letter-spacing:1px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;font-size:14px;padding:6px 9px;border-radius:8px;margin-bottom:2px;transition:.15s;border-left:2px solid transparent}
+nav.toc a:hover{background:var(--accent-soft);color:var(--accent)}
+nav.toc a.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent);font-weight:600}
+main{flex:1;min-width:0;padding:34px 0 60px}
+section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:30px 30px 24px;margin-bottom:26px;scroll-margin-top:20px}
+section h2{margin:0 0 6px;font-size:24px;color:var(--hero)}
+section h2 .em{font-size:22px;margin-right:8px}
+.sub{color:var(--muted);font-size:14.5px;margin:0 0 20px;border-bottom:1px dashed var(--border);padding-bottom:14px}
+h3{font-size:19px;color:var(--key);margin:26px 0 10px}
+p{margin:12px 0}
+a.src{color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent);font-size:14px}
+a.src:hover{background:var(--accent-soft)}
+.def{background:var(--key-bg);border:1px solid #bcdcff;border-radius:12px;padding:16px 18px;margin:18px 0}
+.def .t{font-weight:700;color:var(--key);margin-bottom:4px}
+.callout{border-radius:12px;padding:15px 18px;margin:18px 0;border-left:4px solid}
+.callout.key{background:var(--key-bg);border-color:var(--key)}
+.callout.warn{background:var(--warn-bg);border-color:var(--warn)}
+.callout.quote{background:#f3f6fb;border-color:var(--quote);font-style:italic;color:#3b4a63}
+.callout .lb{font-weight:700;display:block;margin-bottom:4px;font-style:normal}
+.callout.warn .lb{color:var(--warn)}
+.callout.key .lb{color:var(--key)}
+.steps{counter-reset:s;margin:18px 0;padding:0;list-style:none}
+.steps li{position:relative;padding:12px 12px 12px 46px;background:#f7fafe;border:1px solid var(--border);border-radius:10px;margin-bottom:10px}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:12px;top:12px;width:24px;height:24px;background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:24px;font-size:14px;font-weight:700}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:15px}
+th,td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);color:var(--hero);font-weight:700}
+tr:nth-child(even) td{background:#fafcff}
+.stats{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0}
+.stat{flex:1;min-width:150px;background:linear-gradient(135deg,#fff,#eef5ff);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat .n{font-size:26px;font-weight:800;color:var(--accent)}
+.stat .l{font-size:13.5px;color:var(--muted);margin-top:2px}
+.figure{margin:24px 0;text-align:center}
+.fig-cap{font-size:13.5px;color:var(--muted);margin-top:8px}
+.analogy{background:#eefaf3;border:1px solid #bfe9d2;border-radius:12px;padding:15px 18px;margin:18px 0}
+.analogy .t{font-weight:700;color:var(--good);margin-bottom:3px}
+pre{background:#0f1b2e;color:#d6e6ff;border-radius:10px;padding:15px 16px;overflow:auto;font-size:13.5px;line-height:1.6}
+code{font-family:"SF Mono",Menlo,Consolas,monospace}
+p code,li code{background:#e6eefb;color:#0a4a9c;padding:1px 6px;border-radius:5px;font-size:14px}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:10px;background:var(--accent-soft);color:var(--accent);margin-right:6px}
+footer{background:var(--hero);color:#cfe0f7;padding:34px 24px;font-size:14px;line-height:1.7}
+footer .wrap{max-width:900px;margin:0 auto}
+footer h4{color:#fff;margin:0 0 10px}
+footer a{color:#9ec7ff;word-break:break-all}
+footer ol{padding-left:20px}
+@media(max-width:860px){nav.toc{display:none}.layout{padding:0 14px}section{padding:22px 18px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.4s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.fadein{opacity:0;transform:translateY(12px);animation:fade .7s ease forwards}
+@keyframes fade{to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="pg"></div>
+<header class="hero">
+  <span class="kicker">AI 每日 · 深度学习 · 2026-07-09</span>
+  <h1>多智能体编排 Multi-Agent Orchestration<br>让一群 AI 分工协作,把大任务做完</h1>
+  <p>当今天 Anthropic 说"工程师正从实现者变成编排者"、业界说"多数 Agent 失败其实是交接点的编排问题",这份文档带你搞懂:多个智能体到底怎么协同、什么时候该用、又有哪些坑。</p>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>目录</h4>
+  <a href="#intro">30 秒速览</a>
+  <a href="#why">背景:为什么需要它</a>
+  <a href="#what">核心概念:是什么</a>
+  <a href="#patterns">两大编排范式</a>
+  <a href="#how">怎么用:动手搭一个</a>
+  <a href="#cases">什么场景用</a>
+  <a href="#compare">和单智能体怎么比</a>
+  <a href="#pitfalls">有什么坑</a>
+  <a href="#today">和今日新闻的关系</a>
+  <a href="#resources">学习资源</a>
+</nav>
+
+<main>
+
+<section id="intro" class="fadein">
+  <h2><span class="em">🚀</span>30 秒速览</h2>
+  <p class="sub">先给你一张全景图,后面每章再逐层加深。任何一章停下来,你都能带走一个完整(虽然粗)的理解。</p>
+  <p><b>一句话:</b>多智能体编排,就是把一个大任务拆给"一位主管 + 若干名专职助手"去做——主管负责拆解任务、分派、汇总,助手各自埋头搞定自己那块,互不打扰。这套"主管-工人"(orchestrator-worker)结构是目前生产环境里最主流的多智能体架构。<a class="src" href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank">[Anthropic 工程博客]</a></p>
+
+  <div class="figure">
+  <svg viewBox="0 0 720 260" width="100%" style="max-width:660px" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="多智能体编排定位图:用户请求交给主管,主管并行派发给多个子智能体,再汇总为答案">
+    <rect x="20" y="110" width="120" height="46" rx="10" fill="#e3efff" stroke="#2f7cf6"/>
+    <text x="80" y="132" text-anchor="middle" font-size="14" fill="#0f2d5c">用户复杂请求</text>
+    <text x="80" y="149" text-anchor="middle" font-size="11" fill="#5a6b85">(研究/多步骤)</text>
+    <rect x="200" y="105" width="120" height="56" rx="10" fill="#0f2d5c"/>
+    <text x="260" y="130" text-anchor="middle" font-size="14" fill="#fff">主管 Agent</text>
+    <text x="260" y="148" text-anchor="middle" font-size="11" fill="#9ec7ff">拆解·分派·汇总</text>
+    <rect x="420" y="30" width="120" height="40" rx="9" fill="#fff" stroke="#2f7cf6"/>
+    <text x="480" y="55" text-anchor="middle" font-size="13" fill="#16407f">子智能体 A</text>
+    <rect x="420" y="112" width="120" height="40" rx="9" fill="#fff" stroke="#2f7cf6"/>
+    <text x="480" y="137" text-anchor="middle" font-size="13" fill="#16407f">子智能体 B</text>
+    <rect x="420" y="194" width="120" height="40" rx="9" fill="#fff" stroke="#2f7cf6"/>
+    <text x="480" y="219" text-anchor="middle" font-size="13" fill="#16407f">子智能体 C</text>
+    <rect x="600" y="112" width="100" height="40" rx="9" fill="#eefaf3" stroke="#0f8a5f"/>
+    <text x="650" y="137" text-anchor="middle" font-size="13" fill="#0f8a5f">整合答案</text>
+    <g stroke="#2f7cf6" stroke-width="2" fill="none">
+      <path class="draw" d="M140 133 H200"/>
+      <path class="draw" d="M320 122 C370 100 380 55 420 50"/>
+      <path class="draw" d="M320 133 H420"/>
+      <path class="draw" d="M320 144 C370 166 380 210 420 214"/>
+      <path class="draw" d="M540 50 C575 60 580 105 600 128"/>
+      <path class="draw" d="M540 132 H600"/>
+      <path class="draw" d="M540 214 C575 205 580 160 600 140"/>
+    </g>
+  </svg>
+  <div class="fig-cap">图:多智能体编排的基本形状——主管把任务并行分给多个子智能体,再汇总。图源:据 Anthropic 多智能体研究系统架构绘制。</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">+90.2%</div><div class="l">Anthropic 多智能体研究系统<br>相对单个 Opus 4 的评测提升</div></div>
+    <div class="stat"><div class="n">~15×</div><div class="l">多智能体相比普通对话<br>的 token 消耗倍数</div></div>
+    <div class="stat"><div class="n">32.3%</div><div class="l">多智能体失败中<br>"智能体间不对齐"占比</div></div>
+  </div>
+  <p style="font-size:13px;color:var(--muted)">数据来源见下文对应章节与文末来源清单。多智能体是把双刃剑:用对了大幅提升,用错了成本爆炸、还更容易失败。</p>
+</section>
+
+<section id="why" class="fadein">
+  <h2><span class="em">🧭</span>背景:单个 Agent 撞到了什么墙</h2>
+  <p class="sub">先讲痛点,你才知道多智能体是来解决什么的。</p>
+  <p>先说清楚"Agent(智能体)"是什么:它就是一个能<b>自己循环思考、调用工具、根据结果决定下一步</b>的 AI 程序——不是回答一句就停,而是"想→做→看结果→再想",直到把任务办完。</p>
+  <p>单个 Agent 很能干,但做又长又杂的任务时会撞三堵墙:</p>
+  <ul>
+    <li><b>上下文窗口装不下。</b>一个模型一次能"记住"的内容有上限(上下文窗口)。要读几十份资料、跑几十步的任务,信息量早就超了,越到后面它越容易"忘记前面"。</li>
+    <li><b>串行太慢。</b>一个 Agent 一次只能干一件事。要调研 5 个方向,它只能一个一个来,时间线性叠加。</li>
+    <li><b>什么都自己扛,容易乱。</b>让一个 Agent 同时管一堆互不相关的复杂工具(日历、邮件、数据库、代码……),它的"注意力"被摊薄,选错工具、串味的概率上升。</li>
+  </ul>
+  <p>多智能体的思路很朴素:<b>既然一个人忙不过来,那就组个团队。</b>主管把大任务切成互相独立的小块,分给几个只专注一块、各自拥有<b>全新干净上下文</b>的助手,还能<b>同时开工</b>。这正是 Anthropic 让研究系统提速的核心——子智能体并行探索不同方向,每人一个新的上下文窗口。<a class="src" href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank">[Anthropic]</a></p>
+  <div class="analogy">
+    <div class="t">🍜 类比:一个厨子 vs 一个后厨</div>
+    <p style="margin:4px 0 0">一个厨子做满汉全席,只能一道接一道慢慢来,还得记住每道菜进度。换成一个后厨:主厨(主管)看菜单拆单,凉菜、热炒、汤锅各有专人(子智能体)同时开火,最后主厨摆盘上桌(汇总)。快,而且每个人只需盯住自己那口锅。</p>
+  </div>
+</section>
+
+<section id="what" class="fadein">
+  <h2><span class="em">📖</span>核心概念:到底什么是"多智能体编排"</h2>
+  <p class="sub">把几个关键词一次讲透,后面就不再卡壳。</p>
+  <div class="def">
+    <div class="t">多智能体编排(Multi-Agent Orchestration)</div>
+    <div>用一个协调机制,把多个各有分工的智能体组织起来协作完成一个任务的做法。"编排"指的就是<b>谁在什么时候做什么、信息怎么传、结果怎么合</b>这套调度逻辑。</div>
+  </div>
+  <p>拆开看几个必懂术语:</p>
+  <table>
+    <tr><th>术语</th><th>人话解释</th></tr>
+    <tr><td><b>主管 / 编排者</b><br>(Orchestrator / Supervisor / Lead Agent)</td><td>拿到用户请求的那个"总指挥"。它分析任务、制定策略、把子任务分派下去、最后把结果拼成答案。全局视野在它手里。<a class="src" href="https://callsphere.ai/blog/langgraph-supervisor-multi-agent-orchestration-2026" target="_blank">[CallSphere]</a></td></tr>
+    <tr><td><b>子智能体 / 工人</b><br>(Subagent / Worker)</td><td>只负责一小块的专职助手。Anthropic 的设计里,每个子智能体拿到一份<b>自包含</b>的任务说明、期望的输出格式和一个<b>全新上下文</b>——它<b>不知道其他子智能体的存在,也不能中途和它们商量</b>。<a class="src" href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank">[Anthropic]</a></td></tr>
+    <tr><td><b>交接 / 移交</b><br>(Handoff)</td><td>一个智能体把"控制权"或任务转交给另一个的动作。有的框架里交接会把<b>完整对话历史</b>一并传过去,接手方看到的就像自己从头参与过。<a class="src" href="https://openai.github.io/openai-agents-python/handoffs/" target="_blank">[OpenAI Agents SDK]</a></td></tr>
+    <tr><td><b>护栏</b><br>(Guardrails)</td><td>套在每次智能体交互上的输入/输出检查,防止跑偏或输出不该输出的东西。<a class="src" href="https://openai.github.io/openai-agents-python/" target="_blank">[OpenAI Agents SDK]</a></td></tr>
+  </table>
+  <div class="callout key"><span class="lb">关键点</span>子智能体"互不知情、各拿干净上下文"是特意设计的:这样它们不会互相干扰、能真正并行。代价是——它们也无法互相纠偏,一致性全靠主管的任务拆解质量来兜底。这条设计取舍,是后面"坑"那一章的伏笔。</div>
+</section>
+
+<section id="patterns" class="fadein">
+  <h2><span class="em">🔀</span>两大编排范式:Supervisor 还是 Handoff</h2>
+  <p class="sub">读到这里你会问:多个智能体具体怎么"连线"?主流就两种连法。</p>
+  <p>OpenAI Agents SDK 把它总结为两个广泛适用的模式,理解了这两个,市面上大部分多智能体系统你都能看懂:<a class="src" href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank">[OpenAI Agents SDK]</a></p>
+
+  <h3>范式一:Manager / Supervisor(把子智能体当"工具"用)</h3>
+  <p>一个中央主管始终掌控整场对话,需要时把某个专职子智能体<b>当作一个工具去调用</b>,拿回结果后自己继续。控制权<b>从不真正离开</b>主管。适合"专家只帮我搞定一小段、但别抢过对话主导权"的情况。这也是 LangGraph 生产部署里<b>最常用</b>的架构。<a class="src" href="https://callsphere.ai/blog/langgraph-supervisor-multi-agent-orchestration-2026" target="_blank">[CallSphere]</a></p>
+
+  <h3>范式二:Handoff(平级智能体"交棒")</h3>
+  <p>智能体之间是平级的,一个把控制权<b>整个交给</b>另一个专家,由后者接管接下来的对话。这是<b>去中心化</b>的——路由本身就是流程的一部分。适合"根据用户意图,直接把他转给对的专家窗口"的情况,比如客服先分诊再转接。<a class="src" href="https://developers.openai.com/api/docs/guides/agents/orchestration" target="_blank">[OpenAI API 文档]</a></p>
+
+  <div class="figure">
+  <svg viewBox="0 0 720 250" width="100%" style="max-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="两种范式对比:左边 Supervisor 主管始终居中调度并回收控制权;右边 Handoff 智能体平级交棒控制权转移">
+    <text x="180" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2d5c">范式一 · Supervisor</text>
+    <text x="180" y="42" text-anchor="middle" font-size="11.5" fill="#5a6b85">控制权始终在主管手里</text>
+    <circle cx="180" cy="105" r="34" fill="#0f2d5c"/><text x="180" y="110" text-anchor="middle" font-size="12" fill="#fff">主管</text>
+    <rect x="40" y="180" width="80" height="34" rx="8" fill="#fff" stroke="#2f7cf6"/><text x="80" y="202" text-anchor="middle" font-size="12" fill="#16407f">专家A</text>
+    <rect x="140" y="180" width="80" height="34" rx="8" fill="#fff" stroke="#2f7cf6"/><text x="180" y="202" text-anchor="middle" font-size="12" fill="#16407f">专家B</text>
+    <rect x="240" y="180" width="80" height="34" rx="8" fill="#fff" stroke="#2f7cf6"/><text x="280" y="202" text-anchor="middle" font-size="12" fill="#16407f">专家C</text>
+    <g stroke="#2f7cf6" stroke-width="1.8" fill="none" marker-end="url(#ar)">
+      <path d="M160 132 L88 180"/><path d="M180 140 L180 180"/><path d="M200 132 L272 180"/>
+    </g>
+    <g stroke="#8fb8f0" stroke-width="1.4" stroke-dasharray="4 3" fill="none" marker-end="url(#ar2)">
+      <path d="M92 180 L166 134"/><path d="M188 180 L188 142"/><path d="M268 180 L206 134"/>
+    </g>
+    <line x1="360" y1="20" x2="360" y2="230" stroke="#d7e4f7" stroke-width="2"/>
+    <text x="540" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2d5c">范式二 · Handoff</text>
+    <text x="540" y="42" text-anchor="middle" font-size="11.5" fill="#5a6b85">控制权交棒后就转移了</text>
+    <rect x="410" y="90" width="90" height="40" rx="9" fill="#e3efff" stroke="#2f7cf6"/><text x="455" y="115" text-anchor="middle" font-size="12" fill="#16407f">分诊 Agent</text>
+    <rect x="560" y="55" width="110" height="40" rx="9" fill="#fff" stroke="#2f7cf6"/><text x="615" y="80" text-anchor="middle" font-size="12" fill="#16407f">退款专家</text>
+    <rect x="560" y="140" width="110" height="40" rx="9" fill="#fff" stroke="#2f7cf6"/><text x="615" y="165" text-anchor="middle" font-size="12" fill="#16407f">技术支持</text>
+    <g stroke="#0f8a5f" stroke-width="2" fill="none" marker-end="url(#arg)">
+      <path d="M500 105 C535 100 540 80 560 76"/>
+      <path d="M500 118 C535 140 540 158 560 160"/>
+    </g>
+    <text x="540" y="212" text-anchor="middle" font-size="11" fill="#0f8a5f">↑ 交棒后由专家接管整段对话</text>
+    <defs>
+      <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2f7cf6"/></marker>
+      <marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#8fb8f0"/></marker>
+      <marker id="arg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0f8a5f"/></marker>
+    </defs>
+  </svg>
+  <div class="fig-cap">图:Supervisor(实线派发、虚线回收,控制权不离主管)vs Handoff(控制权交棒转移)。图源:据 OpenAI Agents SDK 文档概念绘制。</div>
+  </div>
+
+  <div class="callout key"><span class="lb">怎么选</span>专家只该帮一个"有边界的小忙"、不该接管用户对话 → 用 <b>agents-as-tools(Supervisor)</b>;当"路由本身就是任务"、你希望被选中的专家接手后面整段交互 → 用 <b>Handoff</b>。<a class="src" href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank">[OpenAI]</a></div>
+</section>
+
+<section id="how" class="fadein">
+  <h2><span class="em">🛠️</span>怎么用:动手搭一个(以主流框架为例)</h2>
+  <p class="sub">这里给两条最常见的落地路径。代码为示意骨架,具体 API 以官方最新文档为准。</p>
+
+  <h3>路径 A:LangGraph 的 Supervisor 模式</h3>
+  <p>LangGraph 里,智能体之间通过<b>基于工具的交接机制</b>沟通,主管根据当前上下文决定该调哪个工人;还能加短期/长期记忆,甚至让一个主管去管多个下级主管,搭出<b>多层级</b>结构。<a class="src" href="https://reference.langchain.com/python/langgraph-supervisor" target="_blank">[LangChain Reference]</a></p>
+  <div class="callout key"><span class="lb">官方建议</span>LangChain 多智能体指南建议:多数场景<b>直接用"工具调用"的方式手写 Supervisor</b>,而不是套用专门的封装库——这样对上下文工程的控制力更强。<a class="src" href="https://www.langchain.com/blog/how-and-when-to-build-multi-agent-systems" target="_blank">[LangChain Blog]</a></div>
+  <pre><code># 示意骨架(LangGraph Supervisor 思路)
+supervisor = create_supervisor(
+    agents=[calendar_agent, email_agent, crm_agent],
+    model="claude-…",
+    prompt="你是主管。根据用户请求,把子任务派给合适的专家,再汇总结果。"
+)
+# 主管收到请求 → 选专家(以工具形式调用)→ 收回结果 → 继续/汇总</code></pre>
+  <p style="font-size:13px;color:var(--muted)">上面是概念示意,用于说明"主管持有一组专家、按需以工具形式调用"的结构;实际函数名与参数请对照 LangGraph 当前文档。</p>
+
+  <h3>路径 B:OpenAI Agents SDK 的四件套</h3>
+  <p>OpenAI 在 2026 年初开源的 Agents SDK,把多智能体系统抽象成四个基本积木:<span class="tag">Agents</span><span class="tag">Tools</span><span class="tag">Handoffs</span><span class="tag">Guardrails</span>,用很少的样板代码就能拼出复杂工作流。用 <code>handoff()</code> 函数指定交接目标,还能配置输入过滤器;交接时<b>完整消息历史</b>会一起传给接手方。<a class="src" href="https://openai.github.io/openai-agents-python/handoffs/" target="_blank">[OpenAI Agents SDK]</a></p>
+  <ol class="steps">
+    <li><b>定义每个 Agent</b>:给它名字、指令(system prompt)、可用工具。</li>
+    <li><b>声明关系</b>:是把子 Agent 作为工具挂给主管(Manager 模式),还是用 <code>handoff()</code> 配置平级交棒(Handoff 模式)。</li>
+    <li><b>加护栏</b>:给输入/输出套 Guardrails,拦掉越界请求或不合规输出。</li>
+    <li><b>跑起来看轨迹</b>:观察每次调用/交接,定位问题多半出在"交接点"而非模型本身。</li>
+  </ol>
+  <div class="callout warn"><span class="lb">别忽略可观测性</span>业界共识:多数所谓"Agent 失败"其实是<b>编排与上下文传递</b>在交接点出的问题,不是模型能力不行。所以从第一天就把日志、correlation ID、结构化轨迹(带 agent_id / task_id / 时间戳)埋进架构,而不是事后补。<a class="src" href="https://www.infoworld.com/article/4154570/best-practices-for-building-agentic-systems.html" target="_blank">[InfoWorld]</a></div>
+</section>
+
+<section id="cases" class="fadein">
+  <h2><span class="em">🎯</span>什么场景用:三类"值得组团"的任务</h2>
+  <p class="sub">不是所有任务都该上多智能体。它的甜区很明确。</p>
+  <p>研究与实践都指向:多智能体架构<b>专门擅长</b>三类任务——需要大量并行、信息量超出单个上下文窗口、以及要对接一大堆复杂工具。<a class="src" href="https://dev.to/tuomo_pisama/do-you-actually-need-a-multi-agent-system-3a3j" target="_blank">[DEV]</a></p>
+  <table>
+    <tr><th>场景</th><th>为什么适合多智能体</th><th>真实例子</th></tr>
+    <tr><td><b>深度research / 情报调研</b></td><td>要同时探索多个独立方向,信息量远超单窗口</td><td>Anthropic 的 Claude Research:主管规划,并行开 3–5 个子智能体各查一个方向,再由独立的"引用核对"环节收尾;相对单 Agent 提升 90.2%。<a class="src" href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank">[Anthropic]</a></td></tr>
+    <tr><td><b>多领域个人助理</b></td><td>日历、邮件、CRM、数据库各自有一堆工具和逻辑,分给专家更清爽</td><td>Supervisor 统一路由,子智能体不直接和用户对话——LangGraph 推荐的典型用法。<a class="src" href="https://docs.langchain.com/oss/python/langchain/multi-agent/subagents-personal-assistant" target="_blank">[LangChain Docs]</a></td></tr>
+    <tr><td><b>客服 / 工单分诊</b></td><td>路由本身是流程,不同意图交给不同专家窗口</td><td>Handoff 模式:分诊 Agent 判断意图后,把整段对话交棒给退款、技术支持等专家。<a class="src" href="https://developers.openai.com/api/docs/guides/agents/orchestration" target="_blank">[OpenAI]</a></td></tr>
+  </table>
+  <div class="callout key"><span class="lb">判断口诀</span>任务能不能<b>切成互相独立、可并行</b>的小块?信息是否<b>超出单个上下文</b>?如果两个"是",多智能体值得考虑;如果任务高度环环相扣、每步都依赖上一步的细节,反而更适合单智能体(见下一章)。</div>
+</section>
+
+<section id="compare" class="fadein">
+  <h2><span class="em">⚖️</span>和单智能体怎么比:一场真实的行业争论</h2>
+  <p class="sub">这不是"多智能体一定更好"。业界对此有过公开对撞,值得你两边都听。</p>
+  <p>2025 年 6 月 12 日,Cognition 发了篇著名的<b>《Don't Build Multi-Agents(别搭多智能体)》</b>,立场很硬:并行子智能体架构<b>天生脆弱</b>,因为上下文被隔离,导致各自做出<b>互相冲突的隐含决策</b>,拼起来就是一团乱。<a class="src" href="https://cognition.com/blog/dont-build-multi-agents" target="_blank">[Cognition]</a></p>
+  <div class="callout quote"><span class="lb">Cognition 的"Flappy Bird"例子</span>让两个子智能体分别做一个游戏的部件:一个画出了"超级马里奥"风格的背景,另一个画的鸟根本不像游戏素材——因为谁都不知道对方做了什么、各自的审美与边界决策相互打架。结论:多智能体经常违反两条原则——"要共享上下文,而且要共享<b>完整的智能体轨迹</b>,不只是零散消息"、"每个动作都携带隐含决策,冲突的决策带来糟糕的结果"。</div>
+  <p>Cognition 的解法是:优先用<b>单线程、线性</b>的智能体,换取可靠性。</p>
+  <p>另一边,Anthropic 用数据反驳:它的 Claude Research 用多个智能体并行探索,内部评测<b>比单智能体基线高 90.2%</b>。差别在哪?Anthropic 和 Cosine 这类系统都用一个<b>主管来维持全局视野</b>,确保子智能体在"共享的大目标"下对齐,而不是放任它们各自为战。<a class="src" href="https://cognition.com/blog/dont-build-multi-agents" target="_blank">[对比综述]</a></p>
+  <table>
+    <tr><th>维度</th><th>单智能体(线性)</th><th>多智能体(编排)</th></tr>
+    <tr><td>一致性</td><td>高:全程一个上下文,决策连贯</td><td>要靠主管兜底,子智能体间易不对齐</td></tr>
+    <tr><td>并行/速度</td><td>串行,慢</td><td>可并行,快</td></tr>
+    <tr><td>可处理规模</td><td>受单窗口限制</td><td>能突破单窗口,吞更大信息量</td></tr>
+    <tr><td>成本</td><td>约为对话的 4×</td><td>约为对话的 15×<a class="src" href="https://www.augmentcode.com/guides/multi-agent-cost-compounding" target="_blank">[Augment]</a></td></tr>
+    <tr><td>适合</td><td>环环相扣、强依赖上一步的任务</td><td>可并行、超大信息量、多复杂工具</td></tr>
+  </table>
+  <div class="callout key"><span class="lb">结论</span>没有银弹。有趣的是有分析指出:多智能体的性能提升,<b>约 80% 的方差可由"花了多少 token"解释</b>——也就是说它很大程度上是"因为舍得花算力"才更强,而非"协调得多聪明"。所以选型前先问:这个任务的收益,配得上 15× 的成本吗?<a class="src" href="https://whitepapers.gravity7.com/notes/multi-agent-research-performance-is-primarily-a-token-spending-function-token-us/" target="_blank">[Gravity7]</a></div>
+</section>
+
+<section id="pitfalls" class="fadein">
+  <h2><span class="em">🕳️</span>有什么坑:上手前先知道这几件事</h2>
+  <p class="sub">这些是社区和研究里反复出现的高频问题,不是危言耸听。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">41–87%</div><div class="l">跨 7 个主流框架,<br>多智能体任务失败率区间</div></div>
+    <div class="stat"><div class="n">32.3%</div><div class="l">失败中"智能体间不对齐"占比<br>(单智能体不会有这类失败)</div></div>
+    <div class="stat"><div class="n">$40+</div><div class="l">重试循环可在几分钟内<br>烧掉的 API 费用(还没产出)</div></div>
+  </div>
+  <p style="font-size:13px;color:var(--muted)">数据来源:多智能体扩展性研究综述。<a class="src" href="https://www.digitalocean.com/community/conceptual-articles/what-breaks-when-multi-agent-systems-scale" target="_blank">[DigitalOcean]</a> <a class="src" href="https://www.augmentcode.com/guides/multi-agent-cost-compounding" target="_blank">[Augment]</a></p>
+
+  <h3>坑一:成本非线性膨胀</h3>
+  <p>不是"3 个智能体 = 3 倍成本"。编排开销、反复的上下文传递、验证层、重试循环、协调税,会在<b>每一次交接</b>处层层叠加,导致成本<b>非线性</b>暴涨。失控的重试循环几分钟就能烧掉 $40+ 还没有可用产出。<a class="src" href="https://www.augmentcode.com/guides/multi-agent-cost-compounding" target="_blank">[Augment Code]</a></p>
+
+  <h3>坑二:智能体间不对齐(最独特的失败)</h3>
+  <p>当任务扇出给并行子智能体,每个只看到任务的<b>局部视角</b>,各自对风格、边界情况、语义做出隐含判断,这些判断互相打架——就是前面那只"四不像"的鸟。这类失败在单智能体里根本不存在,占多智能体失败的约三分之一。<a class="src" href="https://cognition.com/blog/dont-build-multi-agents" target="_blank">[Cognition]</a></p>
+
+  <h3>坑三:该共享的上下文没共享够</h3>
+  <p>Cognition 的核心告诫:要共享的是<b>完整的智能体轨迹</b>(它到底看了什么、做了什么),而不只是最后几条零散消息。上下文给不足,子智能体就在"信息残缺"下做决定。设计时要在"隔离换并行"和"共享保一致"之间找平衡。<a class="src" href="https://cognition.com/blog/dont-build-multi-agents" target="_blank">[Cognition]</a></p>
+
+  <h3>坑四:把简单任务硬做成多智能体</h3>
+  <p>需要强共享上下文、或子任务间依赖很多的任务,<b>不适合</b>多智能体。硬上只会引入协调复杂度、成本和新的失败类别。先问自己:单智能体真的搞不定吗?<a class="src" href="https://dev.to/tuomo_pisama/do-you-actually-need-a-multi-agent-system-3a3j" target="_blank">[DEV]</a></p>
+
+  <div class="callout warn"><span class="lb">一句话避坑</span>多智能体是"用成本和复杂度,换并行与规模"。当且仅当任务真的能并行拆分、且信息量撑破单窗口时,这笔交易才划算。否则,一个设计良好的单智能体往往更稳、更省。</div>
+</section>
+
+<section id="today" class="fadein">
+  <h2><span class="em">📰</span>和今日新闻的关系:为什么现在讲这个</h2>
+  <p class="sub">把今天的情报和这个主题连起来,你会更明白它的当下意义。</p>
+  <ul>
+    <li><b>Anthropic:"工程师从实现者变编排者"。</b>其 2026 Agentic Coding 趋势报告指出,工程师的价值正转向系统设计、Agent 协调与质量评估——多智能体编排正是这项新技能的核心。<a class="src" href="https://resources.anthropic.com/hubfs/2026%20Agentic%20Coding%20Trends%20Report.pdf" target="_blank">[Anthropic 趋势报告]</a></li>
+    <li><b>MCP 2026-07-28 规范(RC)新增 Tasks 扩展。</b>长时任务从实验特性升为正式扩展,<code>tools/call</code> 可返回 task handle,由 <code>tasks/get</code>/<code>update</code>/<code>cancel</code> 驱动——这正好给"主管派发长任务、子智能体异步跑"提供了标准协议支撑。<a class="src" href="https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/" target="_blank">[MCP Blog]</a></li>
+    <li><b>MCP Apps 扩展带来交互式 UI。</b>子智能体的工具可以声明 UI 模板、在沙箱 iframe 里渲染界面,让多智能体协作的中间产物可视化。<a class="src" href="https://stacktr.ee/blog/mcp-2026-spec-changes" target="_blank">[Stacktree]</a></li>
+  </ul>
+  <p>换句话说:今天的行业趋势(编排者角色)、协议进展(MCP Tasks/Apps)、和这份文档讲的架构方法,是同一件事的三个侧面。</p>
+</section>
+
+<section id="resources" class="fadein">
+  <h2><span class="em">📚</span>学习资源清单</h2>
+  <p class="sub">想继续深入,从这几个一手来源开始最靠谱。</p>
+  <ul>
+    <li><b>Anthropic《How we built our multi-agent research system》</b>(orchestrator-worker 一手实践、90.2% 数据出处)— <a class="src" href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank">anthropic.com/engineering/multi-agent-research-system</a></li>
+    <li><b>Cognition《Don't Build Multi-Agents》</b>(反方视角,必读的对照)— <a class="src" href="https://cognition.com/blog/dont-build-multi-agents" target="_blank">cognition.com/blog/dont-build-multi-agents</a></li>
+    <li><b>LangChain《How and when to build multi-agent systems》</b>(何时该用、官方建议)— <a class="src" href="https://www.langchain.com/blog/how-and-when-to-build-multi-agent-systems" target="_blank">langchain.com/blog</a></li>
+    <li><b>OpenAI Agents SDK · Multi-agent / Handoffs 文档</b>(四件套与两大范式)— <a class="src" href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank">openai.github.io/openai-agents-python</a></li>
+    <li><b>LangGraph Supervisor 参考</b>(Supervisor 落地)— <a class="src" href="https://reference.langchain.com/python/langgraph-supervisor" target="_blank">reference.langchain.com/python/langgraph-supervisor</a></li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <h4>关于这份文档</h4>
+    <p>调研时间:2026-07-09。本文围绕"多智能体编排"覆盖了五个维度:是什么、怎么用、什么场景用、和单智能体怎么比、有什么坑。信息较薄弱之处:各框架的具体 API 迭代快,代码为示意骨架,落地请以官方最新文档为准;性能数字(如 90.2%、15×、41–87%)来自各来源自述的评测/统计口径,存在测量条件差异,引用时已标注出处。区分:Anthropic/OpenAI/LangChain 官方文档为权威事实,博客与评测为社区观点,已在正文措辞中区分。</p>
+    <h4>主要来源清单</h4>
+    <ol>
+      <li>Anthropic Engineering — How we built our multi-agent research system:https://www.anthropic.com/engineering/multi-agent-research-system</li>
+      <li>Cognition — Don't Build Multi-Agents(2025-06-12):https://cognition.com/blog/dont-build-multi-agents</li>
+      <li>LangChain — How and when to build multi-agent systems:https://www.langchain.com/blog/how-and-when-to-build-multi-agent-systems</li>
+      <li>OpenAI Agents SDK — Multi-agent / Handoffs:https://openai.github.io/openai-agents-python/multi_agent/ ; https://openai.github.io/openai-agents-python/handoffs/</li>
+      <li>OpenAI API — Orchestration and handoffs:https://developers.openai.com/api/docs/guides/agents/orchestration</li>
+      <li>LangGraph Supervisor 参考 / CallSphere 解读:https://reference.langchain.com/python/langgraph-supervisor ; https://callsphere.ai/blog/langgraph-supervisor-multi-agent-orchestration-2026</li>
+      <li>InfoWorld — Best practices for building agentic systems:https://www.infoworld.com/article/4154570/best-practices-for-building-agentic-systems.html</li>
+      <li>Augment Code — Multi-Agent Cost Compounding:https://www.augmentcode.com/guides/multi-agent-cost-compounding</li>
+      <li>DigitalOcean — What Breaks When Multi-Agent Systems Scale:https://www.digitalocean.com/community/conceptual-articles/what-breaks-when-multi-agent-systems-scale</li>
+      <li>Gravity7 — 多智能体性能与 token 花费的关系:https://whitepapers.gravity7.com/notes/multi-agent-research-performance-is-primarily-a-token-spending-function-token-us/</li>
+      <li>MCP Blog / Stacktree — 2026-07-28 规范 RC(Tasks & Apps 扩展):https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/ ; https://stacktr.ee/blog/mcp-2026-spec-changes</li>
+    </ol>
+    <p style="margin-top:14px;color:#8fb0d8">生成于 mingyu 的每日 AI 情报助手 · 内容基于公开搜索,已尽力交叉验证并标注来源。</p>
+  </div>
+</footer>
+
+<script>
+const pg=document.getElementById('pg');
+const links=[...document.querySelectorAll('nav.toc a')];
+const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+function onScroll(){
+  const h=document.documentElement;
+  const sc=h.scrollTop,max=h.scrollHeight-h.clientHeight;
+  pg.style.width=(max>0?sc/max*100:0)+'%';
+  let idx=0;
+  secs.forEach((s,i)=>{if(s&&s.getBoundingClientRect().top<140)idx=i;});
+  links.forEach((a,i)=>a.classList.toggle('active',i===idx));
+}
+document.addEventListener('scroll',onScroll,{passive:true});onScroll();
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.style.animationPlayState='running';io.unobserve(e.target);}})},{threshold:.12});
+document.querySelectorAll('.fadein').forEach(el=>{el.style.animationPlayState='paused';io.observe(el);});
+</script>
+</body>
+</html>
