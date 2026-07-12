@@ -77,10 +77,13 @@ function pick(html, tag) {
   if (!m) return null;
   return m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() || null;
 }
-// 去掉生成器常拼在标题尾部的装饰(如「— 深度学习文档」)
+// 去掉生成器常拼在标题尾部的装饰(如「— 深度学习文档 · 2026-07-12」):先剥尾部日期,再剥「深度学习(文档)」
 function cleanTitle(t) {
   if (!t) return null;
-  return t.replace(/\s*[—–-]\s*深度学习(文档)?\s*$/, "").trim() || null;
+  return t
+    .replace(/\s*[·|—–-]?\s*\d{4}-\d{2}-\d{2}\s*$/, "")
+    .replace(/\s*[·|—–-]?\s*深度学习(文档)?\s*$/, "")
+    .trim() || null;
 }
 
 // ---- 收集本地静态文档 ----------------------------------------------------
