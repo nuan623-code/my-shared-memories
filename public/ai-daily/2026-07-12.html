@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 记忆系统:让智能体「记住并持续变强」— 深度学习 2026-07-12</title>
+<style>
+  :root{
+    --bg:#eef4fb; --ink:#16324f; --ink2:#3a5a7a; --muted:#6b829b;
+    --hero1:#12386b; --hero2:#1f5aa8; --accent:#2f7bf6; --accent2:#54a0ff;
+    --card:#ffffff; --line:#d6e2f0; --soft:#f3f8fe;
+    --warn-bg:#fff5ec; --warn-line:#f0b878; --warn-ink:#8a5316;
+    --key-bg:#eaf3ff; --key-line:#8fbaf5;
+    --quote-bg:#f4f0ff; --quote-line:#b9a6ee;
+    --ok:#1f9d63;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.88;-webkit-font-smoothing:antialiased}
+  .progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:99;
+    background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  /* hero */
+  .hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;
+    padding:64px 24px 54px;text-align:center}
+  .hero .kicker{font-size:14px;letter-spacing:2px;opacity:.85;margin-bottom:14px}
+  .hero h1{font-size:34px;line-height:1.35;margin:0 0 16px;font-weight:800}
+  .hero p{max-width:720px;margin:0 auto;font-size:17px;opacity:.94}
+  .hero .meta{margin-top:20px;font-size:13px;opacity:.8}
+  /* layout */
+  .wrap{max-width:1160px;margin:0 auto;padding:0 20px;display:flex;gap:28px}
+  .toc{position:sticky;top:20px;align-self:flex-start;width:230px;flex:0 0 230px;
+    margin-top:34px;background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+    border:1px solid var(--line);border-radius:16px;padding:16px 14px;max-height:88vh;overflow:auto}
+  .toc h4{margin:4px 8px 10px;font-size:13px;color:var(--muted);letter-spacing:1px}
+  .toc a{display:block;padding:7px 10px;border-radius:9px;color:var(--ink2);
+    text-decoration:none;font-size:14px;line-height:1.4;transition:.15s}
+  .toc a:hover{background:var(--soft);color:var(--accent)}
+  .toc a.active{background:var(--key-bg);color:var(--hero2);font-weight:700}
+  main{flex:1;min-width:0;padding:34px 0 80px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:30px 30px 26px;margin-bottom:26px;box-shadow:0 2px 14px rgba(20,60,95,.05)}
+  section h2{font-size:25px;margin:0 0 8px;color:var(--hero1);font-weight:800}
+  section h2 .n{color:var(--accent);font-weight:800;margin-right:10px}
+  section h3{font-size:19px;margin:26px 0 8px;color:var(--hero2)}
+  .lead{color:var(--ink2);font-size:16px;margin:2px 0 14px}
+  p{margin:12px 0}
+  a.ref{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent2)}
+  a.ref:hover{opacity:.8}
+  code{background:var(--soft);border:1px solid var(--line);border-radius:6px;
+    padding:1px 6px;font-size:14px;font-family:"SF Mono",Menlo,Consolas,monospace;color:#b0347a}
+  pre{background:#0f2137;color:#d7e6fb;border-radius:12px;padding:16px 18px;overflow:auto;
+    font-size:13.5px;line-height:1.7;font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre .c{color:#7fa6cc}
+  /* components */
+  .def{border:1px solid var(--key-line);background:var(--key-bg);border-radius:14px;
+    padding:16px 18px;margin:18px 0}
+  .def b{color:var(--hero1)}
+  .callout{border-radius:14px;padding:15px 18px;margin:18px 0;border:1px solid}
+  .callout.key{background:var(--key-bg);border-color:var(--key-line)}
+  .callout.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+  .callout.quote{background:var(--quote-bg);border-color:var(--quote-line);font-style:italic}
+  .callout .t{font-weight:800;display:block;margin-bottom:5px}
+  .analogy{background:linear-gradient(135deg,#f0f7ff,#eaf1ff);border:1px dashed var(--accent2);
+    border-radius:14px;padding:15px 18px;margin:18px 0}
+  .analogy .t{font-weight:800;color:var(--hero2)}
+  .steps{counter-reset:s;margin:16px 0;padding:0;list-style:none}
+  .steps li{position:relative;padding:12px 14px 12px 52px;margin:10px 0;background:var(--soft);
+    border:1px solid var(--line);border-radius:12px}
+  .steps li::before{counter-increment:s;content:counter(s);position:absolute;left:14px;top:12px;
+    width:26px;height:26px;background:var(--accent);color:#fff;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:15px}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:var(--key-bg);color:var(--hero1);font-weight:700}
+  tr:nth-child(even) td{background:var(--soft)}
+  .figure{margin:22px 0;text-align:center}
+  .figure svg{max-width:100%;height:auto}
+  .fig-cap{font-size:13.5px;color:var(--muted);margin-top:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+  .mini{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .mini h4{margin:0 0 6px;color:var(--hero2);font-size:16px}
+  .tag{display:inline-block;background:var(--key-bg);border:1px solid var(--key-line);
+    color:var(--hero2);border-radius:20px;padding:2px 11px;font-size:13px;margin:3px 4px 0 0}
+  .srclist{font-size:14px;line-height:1.9}
+  .srclist a{color:var(--accent);word-break:break-all}
+  footer{color:var(--muted);font-size:13.5px;text-align:center;padding:26px 20px 60px}
+  .tocbtn{display:none;position:fixed;top:14px;left:14px;z-index:100;background:var(--hero1);
+    color:#fff;border:none;border-radius:10px;width:44px;height:40px;font-size:20px;cursor:pointer}
+  @media(max-width:900px){
+    .toc{position:fixed;top:0;left:0;height:100vh;width:80vw;max-width:300px;z-index:98;
+      border-radius:0;transform:translateX(-105%);transition:.25s;margin-top:0;padding-top:60px}
+    .toc.open{transform:none}
+    .tocbtn{display:block}
+    .wrap{padding:0 14px}
+    main{padding-top:56px}
+    section{padding:22px 18px}
+    .hero h1{font-size:26px}
+    .grid2{grid-template-columns:1fr}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  [data-anim]{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+  [data-anim].in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="progress" id="pg"></div>
+<button class="tocbtn" id="tb">☰</button>
+
+<div class="hero">
+  <div class="kicker">深度学习文档 · Agent 工程</div>
+  <h1>Agent 记忆系统(Agent Memory)<br>让智能体「记住并持续变强」</h1>
+  <p>为什么给 LLM 接个向量库还不够?短期便签、任务记忆、长期知识该怎么分层?向量记忆和图记忆到底谁更好?这篇带你把 2026 年 Agent 记忆这门「工程学科」从头捋清楚。</p>
+  <div class="meta">调研时间:2026-07-12 · 面向零基础但有技术常识的读者 · 全文约 25 分钟</div>
+</div>
+
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <h4>目录</h4>
+    <a href="#s1">1 · 为什么需要「记忆」</a>
+    <a href="#s2">2 · 记忆到底指什么</a>
+    <a href="#s3">3 · 分层记忆架构</a>
+    <a href="#s4">4 · 向量记忆 vs 图记忆</a>
+    <a href="#s5">5 · 怎么落地(Letta 示例)</a>
+    <a href="#s6">6 · 主流方案对比</a>
+    <a href="#s7">7 · 使用场景</a>
+    <a href="#s8">8 · 常见坑与限制</a>
+    <a href="#s9">9 · 学习资源</a>
+    <a href="#s10">10 · 来源清单</a>
+  </nav>
+
+  <main>
+
+  <section id="s1" data-anim>
+    <h2><span class="n">01</span>先问一句:LLM 不是「无状态」的吗?</h2>
+    <p class="lead">要懂记忆,得先看清没有记忆时,Agent 有多「健忘」。</p>
+    <p>大语言模型本质上是一个<strong>无状态(stateless)</strong>的函数:你给它一段输入(prompt),它算一段输出,算完就忘。它唯一「知道」的东西,就是你这次塞进上下文窗口(context window)里的文字。上一轮对话说过什么、上周帮你定过什么规矩、你叫什么名字——只要不在这次的输入里,模型一概不知。</p>
+    <p>那 ChatGPT 为什么能记住我们刚才聊的内容?答案朴素得有点扫兴:<strong>应用层每次都把历史对话重新拼回输入里再发给模型</strong>。模型没记住,是程序在帮它「补课」。</p>
+    <div class="analogy">
+      <span class="t">🎬 一个类比:《记忆碎片》里的主角</span>
+      <p>电影《记忆碎片》的主角有短期失忆症,每隔几分钟就忘光。他靠什么生活?靠往身上纹字、往拍立得照片上记笔记——把关键信息写在「身体外部」,下次再读一遍。LLM 就是这个主角,而<strong>记忆系统就是那些纹身和便利贴</strong>:一套决定「什么该记下来、记在哪、下次什么时候再读回来」的机制。</p>
+    </div>
+    <p>问题来了:最笨的办法是「把所有历史全拼回去」。但上下文窗口有上限(哪怕 2026 年旗舰模型动辄百万级 token),而且塞得越满,<strong>又慢、又贵、还越容易分心</strong>——研究和工程界都反复观察到,无关内容堆在上下文里会稀释模型注意力(俗称「上下文腐烂 / context rot」)。于是真正的问题不是「能不能记」,而是<strong>「该记什么、丢什么、什么时候把哪条捞回来」——这就是 Agent 记忆系统要解决的事。</strong></p>
+    <div class="callout key">
+      <span class="t">一句话抓住重点</span>
+      Agent 记忆系统 = 在有限的上下文窗口之外,替智能体管理一套「外部存储 + 取用策略」,让它跨对话、跨任务地记住该记的东西,并在需要时精准地捞回来。
+    </div>
+  </section>
+
+  <section id="s2" data-anim>
+    <h2><span class="n">02</span>「记忆」到底指哪几种?</h2>
+    <p class="lead">这个词被用得很泛。先把它拆成几种,后面才不会越看越糊。</p>
+    <p>业界常借用<strong>认知心理学</strong>对人类记忆的分类来给 Agent 记忆命名。别被术语吓到,每个都对应你熟悉的日常经验:</p>
+
+    <div class="grid2">
+      <div class="mini"><h4>🧾 工作记忆 / 短期记忆</h4>当前这一轮任务正在用的信息,像你脑子里临时记着的电话号码。对应 Agent 里的<b>当前上下文窗口</b>,任务一结束基本就清空。</div>
+      <div class="mini"><h4>📚 情景记忆(Episodic)</h4>「某时某地发生过某事」的经历。对 Agent 来说就是<b>过往的对话/操作轨迹</b>:上周三你让它把报告改成正式语气,这条经历。</div>
+      <div class="mini"><h4>🧠 语义记忆(Semantic)</h4>抽象的事实与知识,不绑定具体时间。比如「用户叫 mingyu、偏好中文、在做 AI 情报助手」——这类<b>关于世界和用户的稳定事实</b>。</div>
+      <div class="mini"><h4>🛠️ 程序记忆(Procedural)</h4>「怎么做某件事」的技能与流程,像你不用想就会骑车。对 Agent 来说是<b>固化下来的工作流/规则/技能</b>(和 system prompt、工具用法有交叠)。</div>
+    </div>
+
+    <div class="callout warn">
+      <span class="t">别把它和 RAG 混为一谈</span>
+      很多人以为「Agent 记忆 = RAG(检索增强生成)」。有重叠,但不等价。<strong>RAG 是从一堆固定文档里检索知识</strong>(比如查产品手册);<strong>记忆更强调「Agent 自己在交互中产生、更新、遗忘的信息」</strong>,而且要处理时间、来源、冲突(上周的偏好这周被推翻了怎么办)。RAG 偏「读一个静态知识库」,记忆偏「维护一个会长大的、属于这个 Agent 的私人档案」。
+    </div>
+
+    <div class="figure" data-anim>
+      <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="四种记忆类型按时间跨度与稳定度分布图">
+        <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#2f7bf6"/></marker></defs>
+        <line x1="60" y1="200" x2="680" y2="200" stroke="#3a5a7a" stroke-width="2" marker-end="url(#ah)"/>
+        <line x1="60" y1="200" x2="60" y2="30" stroke="#3a5a7a" stroke-width="2" marker-end="url(#ah)"/>
+        <text x="690" y="205" font-size="12" fill="#3a5a7a" text-anchor="end">保留时间越长 →</text>
+        <text x="66" y="26" font-size="12" fill="#3a5a7a">越稳定/越抽象 ↑</text>
+        <g font-size="13" font-weight="700">
+          <rect x="90" y="150" width="130" height="40" rx="9" fill="#eaf3ff" stroke="#8fbaf5"/>
+          <text x="155" y="175" text-anchor="middle" fill="#16324f">工作/短期记忆</text>
+          <rect x="250" y="115" width="130" height="40" rx="9" fill="#eaf3ff" stroke="#8fbaf5"/>
+          <text x="315" y="140" text-anchor="middle" fill="#16324f">情景记忆</text>
+          <rect x="410" y="75" width="130" height="40" rx="9" fill="#e7f7ee" stroke="#7fcfa0"/>
+          <text x="475" y="100" text-anchor="middle" fill="#16324f">语义记忆</text>
+          <rect x="545" y="45" width="135" height="40" rx="9" fill="#f4f0ff" stroke="#b9a6ee"/>
+          <text x="612" y="70" text-anchor="middle" fill="#16324f">程序记忆</text>
+        </g>
+      </svg>
+      <div class="fig-cap">四种记忆按「保留时长 × 稳定度」大致分布。工作记忆瞬时易失,程序记忆最稳定持久。(示意图,依据认知记忆分类整理)</div>
+    </div>
+  </section>
+
+  <section id="s3" data-anim>
+    <h2><span class="n">03</span>核心架构:为什么大家都在做「分层记忆」</h2>
+    <p class="lead">2026 年的行业共识不是「上更花哨的数据库」,而是先把记忆分成几层。</p>
+    <p>据 mem0 的《2026 Agent 记忆现状》和多篇工程博客,当下最标准的起手式是<strong>分层(tiered)记忆</strong>——不是什么高级技巧,而是默认起点。它把记忆按「多快过期、要不要主动保留」切成几档:</p>
+
+    <ul class="steps">
+      <li><b>短期便签(scratchpad):</b>只服务当前这一个任务,任务做完就<b>整块擦掉</b>。用来放中间推理、临时变量。</li>
+      <li><b>中期任务记忆:</b>跨几轮但不永久。特点是<b>「会衰减」——如果一段时间没被再次用到,就自动淡出</b>;被反复调用则强化。</li>
+      <li><b>长期记忆:</b>要进这一层,通常需要<b>显式「提升(promotion)」</b>——即明确判断「这条值得永久记住」才写进去,避免长期库被垃圾信息淹没。</li>
+    </ul>
+
+    <div class="figure" data-anim>
+      <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="分层记忆架构:上下文窗口与外部记忆之间的读写与提升遗忘流程">
+        <defs><marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#2f7bf6"/></marker></defs>
+        <rect x="40" y="30" width="250" height="120" rx="14" fill="#12386b"/>
+        <text x="165" y="58" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">上下文窗口(RAM)</text>
+        <text x="165" y="82" text-anchor="middle" fill="#cfe0f7" font-size="12">system prompt · 当前对话</text>
+        <text x="165" y="104" text-anchor="middle" fill="#cfe0f7" font-size="12">工作/短期记忆(便签)</text>
+        <text x="165" y="126" text-anchor="middle" fill="#9fc0ec" font-size="11">容量有限,又贵又易分心</text>
+
+        <rect x="430" y="20" width="250" height="66" rx="12" fill="#eaf3ff" stroke="#8fbaf5"/>
+        <text x="555" y="46" text-anchor="middle" fill="#16324f" font-size="14" font-weight="700">中期任务记忆</text>
+        <text x="555" y="68" text-anchor="middle" fill="#3a5a7a" font-size="11.5">跨轮·长期不用则衰减遗忘</text>
+
+        <rect x="430" y="110" width="250" height="66" rx="12" fill="#e7f7ee" stroke="#7fcfa0"/>
+        <text x="555" y="136" text-anchor="middle" fill="#16324f" font-size="14" font-weight="700">长期记忆(Disk)</text>
+        <text x="555" y="158" text-anchor="middle" fill="#3a5a7a" font-size="11.5">语义事实·情景·需显式提升</text>
+
+        <rect x="430" y="200" width="250" height="60" rx="12" fill="#fff5ec" stroke="#f0b878"/>
+        <text x="555" y="226" text-anchor="middle" fill="#8a5316" font-size="14" font-weight="700">检索层(向量/图)</text>
+        <text x="555" y="247" text-anchor="middle" fill="#8a5316" font-size="11.5">按相关性把该记的捞回上下文</text>
+
+        <line x1="290" y1="70" x2="428" y2="52" stroke="#2f7bf6" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="360" y="52" font-size="11" fill="#2f7bf6">写入</text>
+        <line x1="555" y1="200" x2="555" y2="178" stroke="#2f7bf6" stroke-width="2" marker-end="url(#a2)"/>
+        <path d="M430,235 C300,250 250,200 250,152" fill="none" stroke="#1f9d63" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="300" y="215" font-size="11" fill="#1f9d63">检索并注入回上下文</text>
+        <text x="290" y="300" font-size="12" fill="#6b829b">核心循环:每一轮 —— 决定写什么进记忆 · 决定捞什么回上下文 · 让没用的自然衰减</text>
+      </svg>
+      <div class="fig-cap">分层记忆的读写循环:上下文窗口像 RAM(快但小),外部记忆像磁盘(大但需检索),检索层负责在两者间搬运。(依据 mem0 / Letta / Fountain City 工程博客整理)</div>
+    </div>
+
+    <div class="callout key">
+      <span class="t">MemGPT 的灵魂比喻:LLM 即操作系统</span>
+      这套「上下文=内存、外部记忆=磁盘、系统负责在两者间调度」的思路,最有名的表述来自 2023 年的 <b>MemGPT</b> 论文(后来演化成 Letta 框架)。它的洞见是:操作系统当年就是用「虚拟内存」制造了「内存无限大」的错觉,那 Agent 也可以用同样的分层调度,在固定上下文里制造「记忆无限」的错觉。
+    </div>
+    <p>值得注意的一个 2026 年趋势:<strong>遗忘正在被当成一等公民设计</strong>。据 Mem0 的研究表述,好的记忆系统会内置「类人遗忘机制」——被回忆到就强化、长期不用就自然衰减。因为一个只增不减的记忆库,最终会变成又慢又吵的负担。</p>
+  </section>
+
+  <section id="s4" data-anim>
+    <h2><span class="n">04</span>捞回记忆的两条路:向量 vs 图</h2>
+    <p class="lead">存下来只是第一步,「怎么按需捞回来」才是记忆系统的技术分水岭。</p>
+    <p>2026 年一个重要转变是:<strong>记忆检索正从「纯向量相似度」走向「向量 + 图」的组合</strong>。这两种方式各解决一类问题,理解它们的差别,你就理解了大半个记忆生态。</p>
+
+    <h3>路线一:向量记忆(语义相似度)</h3>
+    <div class="def">
+      <b>是什么:</b>把每条记忆变成一串数字(向量 / embedding),含义相近的记忆在数学空间里靠得近。检索时把「当前问题」也变成向量,找空间里最近的几条捞回来。<br>
+      <b>大白话:</b>就像按「意思像不像」找东西。你问「他上次点的咖啡」,它能捞回「用户喜欢燕麦拿铁」——哪怕没有一个词完全对上,因为意思接近。
+    </div>
+    <p><b>强在哪:</b>模糊语义匹配、上手快、生态成熟。<b>弱在哪:</b>不擅长「关系」和「多跳推理」。你问「我同事的老板叫什么」,向量搜索很难顺着「我→同事→老板」这条链走。</p>
+
+    <h3>路线二:图记忆(实体与关系)</h3>
+    <div class="def">
+      <b>是什么:</b>把记忆组织成一张<b>知识图谱</b>——节点是实体(人、项目、公司),边是关系(「就职于」「负责」「偏好」)。检索时顺着节点和边走。<br>
+      <b>大白话:</b>像人脑里的关系网。知道「A 是 B 的下属」「B 负责项目 C」,就能推出「A 参与了 C」——沿着关系链一路问下去。
+    </div>
+    <p><b>强在哪:</b>多跳关系、结构化事实、随时间演化的信息(谁在什么时候换了工作)。代表项目有 <code>Zep / Graphiti</code>。<b>弱在哪:</b>构建和维护更重,要先抽取实体和关系。</p>
+
+    <div class="figure" data-anim>
+      <svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="向量检索与图检索对比示意">
+        <text x="180" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#12386b">向量记忆:找最近的点</text>
+        <circle cx="180" cy="130" r="6" fill="#2f7bf6"/>
+        <text x="180" y="118" text-anchor="middle" font-size="11" fill="#3a5a7a">查询</text>
+        <circle cx="120" cy="90" r="5" fill="#8fbaf5"/><circle cx="230" cy="100" r="5" fill="#8fbaf5"/>
+        <circle cx="150" cy="180" r="5" fill="#8fbaf5"/><circle cx="250" cy="165" r="5" fill="#8fbaf5"/>
+        <circle cx="90" cy="150" r="5" fill="#cfe0f7"/><circle cx="270" cy="60" r="5" fill="#cfe0f7"/>
+        <line x1="180" y1="130" x2="120" y2="90" stroke="#2f7bf6" stroke-dasharray="3 3"/>
+        <line x1="180" y1="130" x2="230" y2="100" stroke="#2f7bf6" stroke-dasharray="3 3"/>
+        <line x1="180" y1="130" x2="150" y2="180" stroke="#2f7bf6" stroke-dasharray="3 3"/>
+
+        <line x1="380" y1="30" x2="380" y2="220" stroke="#d6e2f0" stroke-width="2"/>
+        <text x="560" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#12386b">图记忆:顺关系链走</text>
+        <g font-size="11.5" fill="#16324f" text-anchor="middle">
+          <circle cx="470" cy="80" r="24" fill="#eaf3ff" stroke="#8fbaf5"/><text x="470" y="84">我</text>
+          <circle cx="600" cy="80" r="24" fill="#eaf3ff" stroke="#8fbaf5"/><text x="600" y="84">同事</text>
+          <circle cx="600" cy="180" r="24" fill="#e7f7ee" stroke="#7fcfa0"/><text x="600" y="184">老板</text>
+          <line x1="494" y1="80" x2="576" y2="80" stroke="#3a5a7a" stroke-width="1.6"/>
+          <text x="535" y="72" font-size="10" fill="#6b829b">同事</text>
+          <line x1="600" y1="104" x2="600" y2="156" stroke="#3a5a7a" stroke-width="1.6"/>
+          <text x="622" y="134" font-size="10" fill="#6b829b">上级</text>
+        </g>
+      </svg>
+      <div class="fig-cap">向量按「语义距离」捞相近记忆;图按「实体—关系」做多跳推理。2026 年主流做法是两者混用。(示意图)</div>
+    </div>
+    <div class="callout quote">
+      <span class="t">一句社区共识</span>
+      「Graph-style memory 通过实体和关系检索事实。两者都有用,单靠谁都不够。」——mem0《Agent 记忆现状 2026》的表述,点破了「向量 or 图」是个伪二选一。
+    </div>
+  </section>
+
+  <section id="s5" data-anim>
+    <h2><span class="n">05</span>怎么落地:以 Letta(MemGPT)为例</h2>
+    <p class="lead">概念说够了,看一个真实框架长什么样、你要写什么。</p>
+    <p><b>Letta</b>(前身即 MemGPT)是一个开源的<strong>有状态(stateful)Agent 框架</strong>。它最有代表性的设计是:<strong>让 Agent 自己用「工具调用」来管理自己的记忆</strong>——模型在正常对话循环里,像调用别的工具一样,主动调用「编辑记忆」的工具来增删改自己的记忆块。</p>
+    <p>Letta 的记忆按 OS 隐喻分三层(据 Letta 官方博客):</p>
+    <table>
+      <tr><th>层级</th><th>类比</th><th>作用</th></tr>
+      <tr><td><b>Main context</b>(核心/主上下文)</td><td>RAM</td><td>当前直接可见的内容,含可被模型自己编辑的「记忆块(memory blocks)」,如用户画像、当前任务规则</td></tr>
+      <tr><td><b>Recall storage</b>(回忆存储)</td><td>近期归档</td><td>完整的历史对话记录,需要时检索调回</td></tr>
+      <tr><td><b>Archival storage</b>(归档存储)</td><td>磁盘</td><td>无上限的长期外部存储,放大量事实/文档,靠检索取用</td></tr>
+    </table>
+    <p>关键点在于:模型不是被动地被塞记忆,而是<strong>被赋予一组记忆管理工具</strong>,自己决定「这条重要,写进核心记忆块」或「这段太长,归档到 archival」。下面是这种「自管理记忆」的示意流程(概念示意,非某一版精确 API):</p>
+    <pre><span class="c"># 概念示意:Agent 在对话循环里自己管理记忆(伪代码)</span>
+用户: 以后所有报告都用正式书面语,别用口语。
+
+<span class="c"># 模型判断:这是一条应长期保留的偏好 → 主动调用记忆工具</span>
+core_memory_append(
+    block = "user_preferences",
+    content = "报告一律用正式书面语,避免口语化表达"
+)
+
+<span class="c"># 下一次、哪怕几天后新开一轮对话,这条偏好仍在 main context 的</span>
+<span class="c"># user_preferences 块里,模型无需用户重复就会遵守。</span></pre>
+    <div class="callout key">
+      <span class="t">上手路径(据官方资料)</span>
+      Letta 是开源的,可自建;想系统学,DeepLearning.AI 有一门与 Letta 合作、由 MemGPT 作者 Charles Packer 和 Sarah Wooders 讲授的免费短课《LLMs as Operating Systems: Agent Memory》,是目前最对口的入门材料。另有社区整理的 30 个可运行 Jupyter notebook(NirDiamant/Agent_Memory_Techniques)覆盖向量、图、MemGPT、Mem0、Zep 等各类技术。
+    </div>
+    <div class="callout warn">
+      <span class="t">提醒:以官方最新文档为准</span>
+      记忆框架迭代很快(Letta 自己就写过《Rearchitecting Letta's Agent Loop》博客重构了 Agent 循环)。上面的 API 名称仅为讲解示意,真正动手时请以官方当前文档为准,不要照抄。
+    </div>
+  </section>
+
+  <section id="s6" data-anim>
+    <h2><span class="n">06</span>生态盘点:主流方案怎么选</h2>
+    <p class="lead">2026 年这个赛道已经从「学术玩具」长成「有托管服务」的市场。</p>
+    <table>
+      <tr><th>方案</th><th>定位</th><th>特点 / 适合场景</th></tr>
+      <tr><td><b>Letta(MemGPT)</b></td><td>开源有状态 Agent 框架</td><td>OS 式分层 + Agent 自管理记忆块;想要完全掌控、自建有状态 Agent</td></tr>
+      <tr><td><b>Mem0</b></td><td>面向生产的记忆层</td><td>主打可扩展长期记忆 + 类人遗忘/衰减机制;想给现有 Agent「外挂」一层记忆</td></tr>
+      <tr><td><b>Zep / Graphiti</b></td><td>时序知识图谱记忆</td><td>强在实体关系 + 随时间演化的事实;需要多跳推理、结构化记忆</td></tr>
+      <tr><td><b>AWS Bedrock AgentCore Memory</b></td><td>云托管(已 GA/预览)</td><td>已在 AWS 生态里,想要托管、免自己运维</td></tr>
+      <tr><td><b>Google Vertex AI Memory Bank</b></td><td>云托管</td><td>Google Cloud / Vertex 用户的托管记忆</td></tr>
+      <tr><td><b>Cloudflare Agent Memory</b></td><td>云托管(2026 年 4 月私测)</td><td>边缘部署的 Agent 记忆,较新</td></tr>
+    </table>
+    <div class="callout key">
+      <span class="t">选型的一句话判断</span>
+      想<b>完全自控、深度定制</b> → Letta 这类开源框架;想<b>快速给已有 Agent 加记忆</b> → Mem0 这类记忆层;记忆<b>关系复杂、需推理</b> → Zep/Graphiti 图记忆;<b>不想运维</b> → 三大云的托管服务。多数团队最后是「混搭」:向量做主、图补关系、托管省事。
+    </div>
+    <p class="lead" style="margin-top:18px">怎么知道哪个更好?看基准。</p>
+    <p>这个领域已经有专门的评测基准,最常被引用的是 <b>LoCoMo</b>(长对话记忆基准)。它用超长的多轮对话考察 Agent 能否在很久之后仍答对早先提过的信息。Mem0 等厂商会拿它做对比报告。<strong>但要留意:厂商自测的基准数字要打折看</strong>——这是记忆赛道尚不成熟的信号之一,后面「坑」一节还会提。</p>
+  </section>
+
+  <section id="s7" data-anim>
+    <h2><span class="n">07</span>什么场景真正需要它</h2>
+    <p class="lead">不是每个 Agent 都需要复杂记忆。看这几类它明显值回票价的场景。</p>
+    <div class="grid2">
+      <div class="mini"><h4>🤝 个人助理 / 长期陪伴</h4>跨天、跨周记住你的名字、偏好、正在做的项目。今天的 <b>Claude 月度回顾</b>功能就明确「需开启 Memory」——回顾你聊过的主题、活跃时段,正是记忆能力的产品化。</div>
+      <div class="mini"><h4>💼 企业工作 Agent</h4>把散落在团队工具里的上下文沉淀下来。<b>OpenAI ChatGPT Work</b> 的核心卖点——「汇聚团队工具上下文、把零散笔记变成成品」——本质就是一套工作记忆。</div>
+      <div class="mini"><h4>🎧 客服 / 长会话</h4>用户跨多次会话来找,不用每次重述历史;超长购物/工单轨迹(arXiv 上已有专门论文研究「超长购物轨迹」的记忆)。</div>
+      <div class="mini"><h4>🔬 自我改进 Agent</h4>把「上次这么做失败了」的经历(情景记忆)攒下来,下次别再犯——这正是 Stanford CS329A《Self-Improving AI Agents》和 MemRL 等论文的方向:用记忆驱动持续变强。</div>
+    </div>
+    <div class="callout quote">
+      <span class="t">反过来说</span>
+      如果你的 Agent 是「一次性、无状态」的(比如一次翻译、一次代码格式化),硬加记忆只会增加成本和出错面。<strong>先问「跨会话记住东西能带来价值吗」,答案是否,就别上。</strong>
+    </div>
+  </section>
+
+  <section id="s8" data-anim>
+    <h2><span class="n">08</span>常见坑与现实限制</h2>
+    <p class="lead">这是 2026 年从业者反复踩到的地方,提前知道能省很多时间。</p>
+    <div class="callout warn">
+      <span class="t">坑 1 · 只增不减 = 越用越笨</span>
+      不设遗忘/衰减机制,记忆库会无限膨胀,检索又慢又吵,相关性下降。这也是「类人遗忘」被当成核心设计的原因。
+    </div>
+    <div class="callout warn">
+      <span class="t">坑 2 · 记忆冲突与陈旧</span>
+      用户上周说喜欢 A、这周改说喜欢 B,系统若不处理时间与来源,就会又拿旧偏好去回答。有论文专门研究长期 Agent 的「来源—角色坍塌(provenance-role collapse)」——记不清一条信息是谁、什么时候说的,是真实难题。
+    </div>
+    <div class="callout warn">
+      <span class="t">坑 3 · 基准数字要打折</span>
+      记忆赛道尚早,很多亮眼数字来自厂商自测。研究界的共识是这个领域「进展快但仍很早期」,选型别只看一张对比图,尽量看第三方复现。
+    </div>
+    <div class="callout warn">
+      <span class="t">坑 4 · 隐私与安全</span>
+      记忆把用户数据长期留存,天然涉及隐私、合规、数据删除(「被遗忘权」)。生产系统要考虑谁能读、能不能跨用户共享(别把 A 的记忆检索给 B)、如何应用户要求清除。
+    </div>
+    <div class="callout warn">
+      <span class="t">坑 5 · 别为了记忆而记忆</span>
+      过度工程化很常见。「两层分层(短期便签 + 长期库)」对大多数应用已经够用,不必一上来就上多图数据库。据工程博客,分层是起点而非终点,按需再加复杂度。
+    </div>
+  </section>
+
+  <section id="s9" data-anim>
+    <h2><span class="n">09</span>想继续深入的学习资源</h2>
+    <div class="grid2">
+      <div class="mini"><h4>📖 官方 / 框架</h4>Letta 博客《Agent Memory》与《Rearchitecting Letta's Agent Loop》;Mem0 官方博客与论文。</div>
+      <div class="mini"><h4>🎓 课程</h4>DeepLearning.AI《LLMs as Operating Systems: Agent Memory》(与 Letta 合作,MemGPT 作者授课);Stanford CS329A(自我改进 Agent,含记忆章节)。</div>
+      <div class="mini"><h4>📄 论文</h4>MemGPT(LLMs as OS 的源头);Mem0 论文(arXiv 2504.19413);Agent-Memory 论文清单(GitHub: Shichun-Liu/Agent-Memory-Paper-List)。</div>
+      <div class="mini"><h4>🧪 动手</h4>GitHub: NirDiamant/Agent_Memory_Techniques —— 30 个可运行 notebook,覆盖向量、图、MemGPT、Mem0、Zep、LoCoMo 基准。</div>
+    </div>
+    <div class="callout key">
+      <span class="t">一条最短上手路径</span>
+      看完 DeepLearning.AI 那门短课 → 跑一遍 NirDiamant 仓库里的向量记忆和 MemGPT 两个 notebook → 用 Mem0 或 Letta 给你自己的一个小 Agent 加上「记住用户偏好」这一个功能。先做出「跨会话记住一件事」,比读十篇综述都管用。
+    </div>
+  </section>
+
+  <section id="s10" data-anim>
+    <h2><span class="n">10</span>来源清单</h2>
+    <p class="lead">本文关键事实来自以下调研来源(2026-07-12 检索)。记忆框架 API 迭代快,动手时请以官方最新文档为准。</p>
+    <div class="srclist">
+      • mem0《The State of AI Agent Memory 2026》— <a class="ref" href="https://mem0.ai/blog/state-of-ai-agent-memory-2026">mem0.ai/blog/state-of-ai-agent-memory-2026</a><br>
+      • Fountain City《How to Build and Operate AI Agent Memory in 2026》— <a class="ref" href="https://fountaincity.tech/resources/blog/how-to-build-and-operate-ai-agent-memory-in-2026/">fountaincity.tech</a><br>
+      • Letta《Agent Memory: How to Build Agents That Learn and Remember》— <a class="ref" href="https://www.letta.com/blog/agent-memory/">letta.com/blog/agent-memory</a><br>
+      • Letta《Rearchitecting Letta's Agent Loop》— <a class="ref" href="https://www.letta.com/blog/letta-v1-agent">letta.com/blog/letta-v1-agent</a><br>
+      • MemGPT: Towards LLMs as Operating Systems(论文解读)— <a class="ref" href="https://www.leoniemonigatti.com/papers/memgpt.html">leoniemonigatti.com/papers/memgpt.html</a><br>
+      • DeepLearning.AI《LLMs as Operating Systems: Agent Memory》— <a class="ref" href="https://www.deeplearning.ai/courses/llms-as-operating-systems-agent-memory">deeplearning.ai</a><br>
+      • Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory(arXiv 2504.19413)— <a class="ref" href="https://arxiv.org/pdf/2504.19413">arxiv.org/pdf/2504.19413</a><br>
+      • Agent-Memory-Paper-List(《Memory in the Age of AI Agents: A Survey》)— <a class="ref" href="https://github.com/Shichun-Liu/Agent-Memory-Paper-List">github.com/Shichun-Liu/Agent-Memory-Paper-List</a><br>
+      • NirDiamant/Agent_Memory_Techniques(30 个 notebook)— <a class="ref" href="https://github.com/NirDiamant/Agent_Memory_Techniques">github.com/NirDiamant/Agent_Memory_Techniques</a><br>
+      • The 6 Best AI Agent Memory Frameworks 2026 — <a class="ref" href="https://machinelearningmastery.com/the-6-best-ai-agent-memory-frameworks-you-should-try-in-2026/">machinelearningmastery.com</a><br>
+      • Stanford CS329A《Self-Improving AI Agents》— <a class="ref" href="https://cs329a.stanford.edu/">cs329a.stanford.edu</a><br>
+      • 相关背景:Anthropic Newsroom(Claude 月度回顾需 Memory)— <a class="ref" href="https://www.anthropic.com/news">anthropic.com/news</a>;OpenAI ChatGPT Work — <a class="ref" href="https://www.axios.com/2026/07/09/ai-openai-gpt-release">axios.com</a>
+    </div>
+  </section>
+
+  <footer>
+    调研时间:2026-07-12 · 本文为「每日 AI 情报助手」自动生成的深度学习文档 · 事实以标注来源为准,观点已与官方/社区区分 · 记忆框架迭代快,动手请核对官方最新文档
+  </footer>
+  </main>
+</div>
+
+<script>
+  // progress bar
+  var pg=document.getElementById('pg');
+  window.addEventListener('scroll',function(){
+    var h=document.documentElement,b=document.body;
+    var st=h.scrollTop||b.scrollTop;
+    var sh=(h.scrollHeight||b.scrollHeight)-h.clientHeight;
+    pg.style.width=(sh>0?(st/sh*100):0)+'%';
+  });
+  // toc toggle (mobile)
+  var toc=document.getElementById('toc'),tb=document.getElementById('tb');
+  tb.addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open');});});
+  // scrollspy + reveal
+  var secs=[].slice.call(document.querySelectorAll('main section'));
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        var id=e.target.id;
+        links.forEach(function(l){l.classList.toggle('active',l.getAttribute('href')==='#'+id);});
+      }
+    });
+  },{threshold:.15,rootMargin:'-10% 0px -55% 0px'});
+  secs.forEach(function(s){io.observe(s);});
+</script>
+</body>
+</html>
