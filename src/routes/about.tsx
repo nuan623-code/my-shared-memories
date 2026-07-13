@@ -60,16 +60,13 @@ function AboutPage() {
             <span className="text-3xl font-bold text-primary">MY</span>
           </div>
           <h1 className="text-3xl font-bold text-foreground">Mingyu Yang</h1>
-          <p className="mt-2 text-lg text-muted-foreground">
-            广告技术解决方案负责人
-          </p>
         </div>
 
         {/* Bio */}
         <div className="mb-12 rounded-2xl border border-border bg-card p-8">
           <h2 className="mb-4 text-xl font-semibold text-foreground">简介</h2>
           <p className="leading-relaxed text-muted-foreground">
-            拥有 10 余年移动互联网行业经验，现任广告技术解决方案负责人。
+            拥有 10 余年移动互联网行业经验。
             关注 AI 技术发展、软件开发实践、数据分析方法与产品管理。
             业余时间热爱探索新技术，从 Web 开发到游戏制作，从大模型学习到独立内容创作。
             相信持续学习和记录是成长的最好方式。
