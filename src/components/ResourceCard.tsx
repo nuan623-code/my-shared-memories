@@ -17,6 +17,8 @@ import {
 } from "@/lib/resources";
 import { getCategory } from "@/lib/data";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
+import { useReadingMap } from "@/hooks/use-reading-status";
 
 const TYPE_ICON = {
   article: FileText,
@@ -29,6 +31,9 @@ const TYPE_ICON = {
 export function ResourceCard({ resource: r }: { resource: Resource }) {
   const Icon = TYPE_ICON[r.type];
   const cat = getCategory(r.category);
+  // 登录用户的私有阅读状态(未登录时查询不启用,徽章不显示)
+  const { data: readingMap } = useReadingMap();
+  const reading = readingMap?.get(r.id) ?? null;
 
   const tagPills = (
     <div className="mt-3 flex flex-wrap gap-1">
@@ -56,6 +61,16 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
             新
           </span>
         )}
+        {reading === "to_read" && (
+          <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
+            待读
+          </span>
+        )}
+        {reading === "read" && (
+          <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-semibold text-muted-foreground">
+            已读
+          </span>
+        )}
       </span>
       <span>{new Date(r.published_at).toISOString().slice(0, 10)}</span>
     </div>
@@ -63,7 +78,8 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
 
   const favOverlay = (
     <div className="pointer-events-none absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-      <div className="pointer-events-auto rounded-md bg-card/90 shadow-sm backdrop-blur-sm">
+      <div className="pointer-events-auto flex items-center gap-0.5 rounded-md bg-card/90 shadow-sm backdrop-blur-sm">
+        <ReadingStatusButtons resourceId={r.id} />
         <FavoriteButton resourceId={r.id} />
       </div>
     </div>

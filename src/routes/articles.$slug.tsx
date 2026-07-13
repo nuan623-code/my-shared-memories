@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
@@ -343,6 +344,7 @@ function ArticleDetailPage() {
                 )}
             </span>
             <LikeButton resourceId={article.id} />
+            <ReadingStatusButtons resourceId={article.id} showLabel />
           </div>
 
           <div className="flex items-center gap-3">

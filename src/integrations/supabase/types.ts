@@ -164,6 +164,38 @@ export type Database = {
           },
         ]
       }
+      reading_status: {
+        Row: {
+          id: string
+          resource_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          resource_id: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          resource_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_status_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       highlights: {
         Row: {
           anchor_id: string

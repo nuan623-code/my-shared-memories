@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Shield, LogOut, Settings, Mail, Calendar } from "lucide-react";
+import { useState } from "react";
+import { Bookmark, BookOpen, Shield, LogOut, Settings, Mail, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdminStatus } from "@/hooks/use-is-admin";
 import { fetchFavoriteResources } from "@/hooks/use-favorites";
+import { fetchReadingResources } from "@/hooks/use-reading-status";
+import { fetchResources } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
@@ -19,6 +22,7 @@ function AccountPage() {
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminStatus();
   const navigate = useNavigate();
+  const [readingTab, setReadingTab] = useState<"to_read" | "read" | "unread">("to_read");
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -39,6 +43,25 @@ function AccountPage() {
     enabled: !!user,
     queryFn: fetchFavoriteResources,
   });
+
+  // 阅读进度(私有):待读 / 已读来自 reading_status,未读 = 全库减去两者
+  const { data: toRead } = useQuery({
+    queryKey: ["reading-status", "resources", "to_read", user?.id ?? null],
+    enabled: !!user,
+    queryFn: () => fetchReadingResources("to_read"),
+  });
+  const { data: readDone } = useQuery({
+    queryKey: ["reading-status", "resources", "read", user?.id ?? null],
+    enabled: !!user,
+    queryFn: () => fetchReadingResources("read"),
+  });
+  const { data: allResources } = useQuery({
+    queryKey: ["resources", "account-all"],
+    enabled: !!user,
+    queryFn: () => fetchResources({}),
+  });
+  const marked = new Set([...(toRead ?? []), ...(readDone ?? [])].map((r) => r.id));
+  const unread = (allResources ?? []).filter((r) => !marked.has(r.id));
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -118,6 +141,63 @@ function AccountPage() {
       </header>
 
       <ProfileEditor />
+
+      <section className="mb-10">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
+          <BookOpen className="h-4 w-4 text-primary" />
+          阅读进度
+        </h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          只有你自己能看到。在资源卡片或文章页顶栏点「待读 / 已读」来标记。
+        </p>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(
+            [
+              ["to_read", "待读", toRead?.length],
+              ["read", "已读", readDone?.length],
+              ["unread", "未读", allResources ? unread.length : undefined],
+            ] as const
+          ).map(([key, label, count]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setReadingTab(key)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                readingTab === key
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card text-foreground hover:border-primary/40"
+              }`}
+            >
+              {label}
+              {count !== undefined && <span className="ml-1 tabular-nums">{count}</span>}
+            </button>
+          ))}
+        </div>
+        {readingTab === "to_read" &&
+          ((toRead?.length ?? 0) > 0 ? (
+            <ResourceMasonry resources={toRead!} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
+              还没有待读文章——把想看的标成「待读」,它们会在这里排队
+            </div>
+          ))}
+        {readingTab === "read" &&
+          ((readDone?.length ?? 0) > 0 ? (
+            <ResourceMasonry resources={readDone!} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
+              还没有已读记录——读完一篇就点「已读」记下来
+            </div>
+          ))}
+        {readingTab === "unread" &&
+          (unread.length > 0 ? (
+            <ResourceMasonry resources={unread} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
+              全部读完了,厉害
+            </div>
+          ))}
+      </section>
 
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
