@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warp VS Claude Code:一场来自 Warp 工程师的正面对比实测</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1d2b3f; --ink-soft:#48607c; --ink-faint:#7a8ea6;
+  --accent:#2468e5; --accent-deep:#173f8f; --accent-soft:#e3edfd;
+  --teal:#0e9488; --teal-soft:#e0f4f2; --indigo:#5b5bd6; --indigo-soft:#ebebfa;
+  --gold:#b7791f; --gold-soft:#fdf3e0; --warn:#c2410c; --warn-soft:#fdeee4;
+  --line:#d8e4f2; --code-bg:#0f2038; --code-ink:#cfe1f7;
+  --hero1:#122a52; --hero2:#1d4d9e;
+  --radius:14px; --shadow:0 2px 14px rgba(23,63,143,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:17px; line-height:1.88;
+  -webkit-font-smoothing:antialiased;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));z-index:99}
+.side-toc{
+  position:fixed;left:18px;top:50%;transform:translateY(-50%);width:225px;z-index:90;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:16px;padding:16px 14px;box-shadow:var(--shadow);
+  max-height:86vh;overflow-y:auto;
+}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep);letter-spacing:.02em}
+.st-sub{font-size:11.5px;color:var(--ink-faint);margin-bottom:10px}
+.st-progress{height:6px;background:var(--accent-soft);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:3px;transition:width .15s}
+.st-pct{font-size:11px;color:var(--ink-faint);text-align:right;margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{
+  display:flex;gap:7px;align-items:baseline;padding:4.5px 8px;border-radius:8px;
+  font-size:12.5px;color:var(--ink-soft);text-decoration:none;line-height:1.45;
+}
+.side-toc li a .n{font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;flex:none;width:16px}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.toc-btn{
+  position:fixed;left:14px;top:14px;z-index:95;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:17px;color:var(--accent-deep);cursor:pointer;display:none;
+  box-shadow:var(--shadow);
+}
+@media(max-width:1179px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:64px;transform:none;max-height:72vh}
+  .toc-btn{display:block}
+}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px 80px}
+@media(min-width:1180px){.wrap{margin-left:calc(50% - 330px)}}
+@media(max-width:1179px){.wrap{margin:0 auto;padding-top:8px}}
+.hero{
+  margin:26px 0 34px;border-radius:22px;padding:46px 44px 40px;color:#eaf2ff;
+  background:linear-gradient(135deg,var(--hero1) 0%,var(--hero2) 78%);
+  box-shadow:0 10px 34px rgba(18,42,82,.28);position:relative;overflow:hidden;
+}
+.hero::after{content:"";position:absolute;right:-70px;top:-70px;width:270px;height:270px;border-radius:50%;
+  background:radial-gradient(circle,rgba(120,180,255,.22),transparent 68%)}
+.hero .kicker{font-size:13px;letter-spacing:.14em;color:#9dc1f5;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-size:31px;line-height:1.42;letter-spacing:.01em;margin-bottom:10px}
+.hero .en{font-size:15px;color:#b9d3f8;margin-bottom:18px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px}
+.hero .meta span{font-size:12.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  padding:4px 12px;border-radius:99px;color:#dcE9fc}
+.hero p.lead{margin-top:18px;font-size:15.5px;line-height:1.85;color:#d7e6fb}
+section{margin:0 0 30px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:40px 0 16px}
+.sec-h .ico{font-size:22px;flex:none}
+.sec-h h2{font-size:23px;color:var(--accent-deep);line-height:1.5}
+.sec-h .no{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+h3{font-size:18.5px;color:var(--ink);margin:26px 0 10px}
+p{margin:0 0 14px}
+a{color:var(--accent);text-decoration:none;border-bottom:1px dashed rgba(36,104,229,.4)}
+a:hover{border-bottom-style:solid}
+strong{color:var(--ink)}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 7px;border-radius:6px;font-weight:600}
+ul.plain{margin:0 0 14px 1.35em}
+ul.plain li{margin-bottom:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.def{border-left:4px solid var(--accent)}
+.def .d-title{font-weight:700;font-size:16.5px;margin-bottom:10px;color:var(--accent-deep)}
+.def p{font-size:15.5px}
+.callout{border-radius:var(--radius);padding:16px 20px;margin:16px 0;font-size:15.5px;border:1px solid}
+.callout .c-t{font-weight:700;margin-bottom:6px;font-size:15px}
+.key{background:var(--accent-soft);border-color:#c4d9f9;color:#1c3a6e}
+.key-teal{background:var(--teal-soft);border-color:#b9e4e0;color:#0b5d55}
+.key-gold{background:var(--gold-soft);border-color:#f0dcb4;color:#7c5410}
+.warnbox{background:var(--warn-soft);border-color:#f4cdb4;color:#8a3009}
+.quote-box{
+  background:linear-gradient(135deg,#14294e,#1d4585);color:#dbe8fb;border:none;
+  padding:22px 26px;border-radius:16px;margin:20px 0;
+}
+.quote-box .q{font-size:16.5px;line-height:1.85}
+.quote-box strong,.quote-box b{color:#ffd88a}
+.quote-box .who{margin-top:10px;font-size:13px;color:#9dc0ef}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;text-align:center;box-shadow:var(--shadow)}
+.stat .v{font-size:24px;font-weight:800;color:var(--accent-deep);line-height:1.3}
+.stat .k{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.55}
+@media(max-width:640px){.stats{grid-template-columns:1fr 1fr}}
+.steps{counter-reset:st;margin:18px 0}
+.step{position:relative;padding:0 0 18px 52px}
+.step::before{
+  counter-increment:st;content:counter(st);position:absolute;left:0;top:1px;width:34px;height:34px;border-radius:50%;
+  background:var(--accent);color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;
+}
+.step::after{content:"";position:absolute;left:16.5px;top:38px;bottom:2px;width:1.5px;background:var(--line)}
+.step:last-child::after{display:none}
+.step .s-t{font-weight:700;margin-bottom:4px;font-size:16px}
+.step p{font-size:15px;color:var(--ink-soft);margin-bottom:6px}
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.case{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.case .c-h{font-weight:700;font-size:15px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.case.bad .c-h{color:var(--warn)} .case.good .c-h{color:var(--teal)}
+.case.cc .c-h{color:var(--indigo)} .case.wp .c-h{color:var(--teal)}
+.case p,.case li{font-size:14.5px;color:var(--ink-soft)}
+.case ul{margin:0 0 0 1.2em}
+@media(max-width:640px){.cases{grid-template-columns:1fr}}
+.practice{list-style:none;margin:14px 0}
+.practice li{position:relative;padding:0 0 10px 30px;font-size:15.5px}
+.practice li::before{content:"✦";position:absolute;left:4px;color:var(--accent);font-size:14px}
+.glossary{display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;margin:16px 0;font-size:14.5px}
+.glossary dt{font-weight:700;color:var(--accent-deep);white-space:nowrap}
+.glossary dd{color:var(--ink-soft)}
+@media(max-width:640px){.glossary{grid-template-columns:1fr}.glossary dd{margin-bottom:8px}}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px 20px;font-size:13.5px;line-height:1.7;overflow-x:auto;margin:14px 0;font-family:"SF Mono",Menlo,Consolas,monospace}
+code.inline{background:#e6eefb;color:#173f8f;padding:1px 7px;border-radius:6px;font-size:14px;font-family:"SF Mono",Menlo,Consolas,monospace}
+.tblwrap{overflow-x:auto;margin:16px 0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+table.tbl{width:100%;border-collapse:collapse;font-size:14.5px;min-width:560px}
+table.tbl th{background:var(--accent-soft);color:var(--accent-deep);text-align:left;padding:10px 14px;font-size:13.5px}
+table.tbl td{padding:10px 14px;border-top:1px solid var(--line);color:var(--ink-soft);vertical-align:top;line-height:1.7}
+table.tbl td:first-child{color:var(--ink);font-weight:600;white-space:nowrap}
+.src-fig{margin:16px 0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px;box-shadow:var(--shadow)}
+.src-fig figcaption{font-size:12.5px;color:var(--ink-faint);text-align:center;padding:8px 4px 2px;line-height:1.6}
+.src-fig figcaption a{border-bottom:none}
+.video-embed{position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0f2038}
+.video-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px 12px;margin:20px 0;box-shadow:var(--shadow)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--ink-faint);text-align:center;padding:10px 8px 6px;line-height:1.7}
+.final{
+  background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#dfeafc;border-radius:20px;
+  padding:34px 36px;margin-top:44px;
+}
+.final h2{color:#fff;font-size:21px;margin-bottom:12px}
+.final p{color:#cfe0f9;font-size:15px}
+.final strong{color:#ffd88a}
+footer{margin-top:26px;font-size:12.5px;color:var(--ink-faint);line-height:1.8;text-align:center}
+[data-anim]{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+[data-draw]{transition:stroke-dashoffset 1.1s ease .2s}
+@media(prefers-reduced-motion:reduce){
+  [data-anim]{opacity:1;transform:none;transition:none}
+  [data-draw]{transition:none;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+@media(max-width:640px){
+  body{font-size:16px}
+  .hero{padding:32px 24px}
+  .hero h1{font-size:24px}
+  .sec-h h2{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">Warp VS Claude Code</div>
+  <div class="st-sub">Warp 工程师的正面对比实测</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#tldr"><span class="n">01</span>TL;DR:官方摘要</a></li>
+    <li><a href="#basics"><span class="n">02</span>两款工具的基本盘</a></li>
+    <li><a href="#diff"><span class="n">03</span>维度一:Diff 与代码审查</a></li>
+    <li><a href="#plan"><span class="n">04</span>维度二:计划模式</a></li>
+    <li><a href="#context"><span class="n">05</span>维度三:上下文收集</a></li>
+    <li><a href="#model"><span class="n">06</span>维度四:模型选择</a></li>
+    <li><a href="#config"><span class="n">07</span>维度五:配置与权限</a></li>
+    <li><a href="#manage"><span class="n">08</span>维度六:多 Agent 管理</a></li>
+    <li><a href="#bench"><span class="n">09</span>实测:Sentry Issue 修复</a></li>
+    <li><a href="#verdict"><span class="n">10</span>结论:怎么选</a></li>
+    <li><a href="#gloss"><span class="n">11</span>术语表 + 转录勘误</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">Warp University · CS146S Week 5</div>
+  <h1>Warp VS Claude Code:一场来自 Warp 工程师的正面对比实测</h1>
+  <div class="en">Warp VS Claude Code — by Ben Holmes, Product Engineer @ Warp</div>
+  <div class="meta">
+    <span>🎬 视频转录 · 8 分 48 秒</span><span>✍️ Ben Holmes(Warp 产品工程师)</span><span>🧪 Sentry issue 实测 ×3 轮</span><span>🤖 附 GPT-5 加试</span>
+  </div>
+  <p class="lead">Warp 官方出品的对比视频:把 Claude Code CLI 和 Warp 内置编码 agent 放在一起,从文件操作、代码 diff、上下文收集、模型选择到配置项逐一对比,最后用一个真实的 Sentry issue 让两边各跑三轮实测。结论并不是一边倒——两边各有明确的适用人群。注意作者立场:这是 Warp 工程师做的评测,视角坦诚但立场可留意。</p>
+</div>
+
+<figure class="src-fig">
+  <div class="video-embed">
+    <iframe src="https://www.youtube-nocookie.com/embed/NUVftxAqZQo" title="Warp VS Claude Code(Ben Holmes)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+  <figcaption>原视频:《Warp VS Claude Code》(Ben Holmes,Warp 官方频道,8 分 48 秒)· 如无法加载可直接打开 <a href="https://www.youtube.com/watch?v=NUVftxAqZQo">YouTube 链接</a>;下文为完整字幕的逐字整理与讲解</figcaption>
+</figure>
+
+<!-- ============ 01 ============ -->
+<section id="tldr">
+  <div class="sec-h"><span class="ico">⚡</span><h2>TL;DR:官方页面摘要</h2><span class="no">01</span></div>
+  <p>原视频页给出的官方摘要,信息密度很高,先照录如下:</p>
+  <div class="card def">
+    <div class="d-title">📄 页面简介(原文转述)</div>
+    <p>这是一支全方位的对比视频,从多个维度考察 <span class="term">Claude Code CLI</span> 与 <span class="term">Warp 内置编码 agent</span>。Ben Holmes 演示了两款工具在<strong>文件操作、代码 diff、上下文收集、模型选择、配置项</strong>上的能力。用一个 Sentry issue 做性能测试,两边完成时间接近(2–4 分钟),都成功定位并修复了根因。对比显示:<strong>Claude Code 的强项在终端为中心的工作流和 sub-agent(子智能体)</strong>;<strong>Warp 的强项在 UI 功能</strong>——内置文件树、diff 编辑、以及包含 GPT-5 在内的多模型支持。</p>
+  </div>
+  <div class="callout key"><div class="c-t">🎯 这篇值得看什么</div>这不是营销稿式的「我全赢」,而是一份维度拆得很细的工程师视角对比。哪怕你两款工具都不用,它也是一份「评价 AI 编码工具应该看哪些维度」的清单:diff 处理、审查流、上下文引用、模型池、权限配置、多任务管理、真实 issue 实测。</div>
+</section>
+
+<!-- ============ 02 ============ -->
+<section id="basics">
+  <div class="sec-h"><span class="ico">🧰</span><h2>两款工具的基本盘</h2><span class="no">02</span></div>
+  <div class="cases">
+    <div class="case cc">
+      <div class="c-h">⌨️ Claude Code:CLI 工具</div>
+      <ul>
+        <li>是一个 <strong>CLI 工具</strong>:需要先有一个终端(比如 Warp 本身),再安装 Claude CLI;</li>
+        <li>运行 <code class="inline">claude</code> 即可开始向编码 agent 提问,在输入框里敲 prompt,让它自己干活;</li>
+        <li>能<strong>读文件、按关键词搜索代码库</strong>,收集到足够上下文后代你生成 diff;</li>
+        <li>视频演示:编辑 README 文件——它先呈现一个 diff 供你手动审查,或按 <code class="inline">Shift+Tab</code> 在本次会话内自动接受后续所有编辑;</li>
+        <li>有<strong>规划模式(planning mode)</strong>:先做研究、给出一份 Markdown 计划,再动手改代码。</li>
+      </ul>
+    </div>
+    <div class="case wp">
+      <div class="c-h">🖥️ Warp:内置在终端里的 agent</div>
+      <ul>
+        <li>编码 agent <strong>直接内置在 Warp 里</strong>:如果你日常已经用 Warp 当终端,直接提交一条 AI query 即可;</li>
+        <li>输入内容「看起来像 AI 问题」时,Warp 会<strong>智能地把你切到 agent 模式</strong>;也可随时用快捷键或 agent 按钮手动进入;</li>
+        <li>提交 query 后启动一个 Warp 编码任务:同样能读文件、搜代码库、生成代码 diff,与 Claude Code 类似。</li>
+      </ul>
+    </div>
+  </div>
+  <p>起点相似——都能读、能搜、能改。真正的分野在接下来的几个维度。</p>
+</section>
+
+<!-- ============ 03 ============ -->
+<section id="diff">
+  <div class="sec-h"><span class="ico">📝</span><h2>维度一:Diff 处理与代码审查</h2><span class="no">03</span></div>
+  <h3>关键差异 ①:对 diff 能做什么</h3>
+  <p>两边都支持「接受 / 本会话内自动批准」。但 Warp 额外允许你<strong>直接编辑 agent 给出的 diff</strong>:内置编辑器可以手动改 diff、删掉 agent 顺手加的注释等;而且点接受时,Warp 会<strong>把你的人工修改通知给 agent</strong>,避免它在会话后面把你的改动又覆盖掉。</p>
+  <h3>关键差异 ②:审查全部改动</h3>
+  <p>Claude Code 审查改动要借助 <span class="term">git CLI</span> 或 VS Code 这类外部工具;Warp 则有<strong>内置按钮</strong>——会话结束时点「review changes」(或点界面上的小图标),直接得到一个代码 diff 视图,看到 agent 这个会话做的全部改动。做多步 PR 时,还能<strong>与主线(mainline)对比</strong>,看这个会话累计改了什么。</p>
+  <div class="callout key-teal"><div class="c-t">💡 为什么「通知 agent 你改过 diff」重要</div>agent 的后续操作基于它对文件当前状态的认知。如果你悄悄改了代码而 agent 不知道,它可能在下一步按旧状态生成补丁,把你的修改冲掉。Warp 把「人工编辑」纳入 agent 的上下文,本质是在解决人机协作里的<strong>状态同步</strong>问题。(此段为帮助理解的增补)</div>
+</section>
+
+<!-- ============ 04 ============ -->
+<section id="plan">
+  <div class="sec-h"><span class="ico">🗺️</span><h2>维度二:计划模式</h2><span class="no">04</span></div>
+  <p>Claude Code 的规划模式前面说过:研究 → 出 Markdown 计划 → 再动工。Warp 的做法是:当一条 query <strong>听起来足够重</strong>时,提供「让 agent 先向你请示一份计划」的选项。视频里的例子就触发了计划请示——你可以选择不出计划直接干,也可以让它用 <strong>Claude 4 Opus</strong> 做研究,产出一份与 Claude Code 类似的 Markdown 计划。</p>
+</section>
+
+<!-- ============ 05 ============ -->
+<section id="context">
+  <div class="sec-h"><span class="ico">🔍</span><h2>维度三:上下文收集</h2><span class="no">05</span></div>
+  <div class="cases">
+    <div class="case cc">
+      <div class="c-h">⌨️ Claude Code</div>
+      <ul>
+        <li>自动爬取代码库,判断哪些上下文可能相关;</li>
+        <li>用 <code class="inline">@</code> 显式添加上下文:弹出当前目录全部文件的<strong>文件选择器</strong>,引用后可直接就这些文件提问。</li>
+      </ul>
+    </div>
+    <div class="case wp">
+      <div class="c-h">🖥️ Warp</div>
+      <ul>
+        <li>同样支持 <code class="inline">@</code> 引用当前项目的文件;</li>
+        <li>还能 <strong>@ 引用符号(symbol)</strong>:指定某个函数或对象时,会内联写入<strong>函数名、所属文件、精确行号</strong>,便于问更具体的问题(视频作者称这「非常强大」);</li>
+        <li>另有 <span class="term">project explorer</span>:一个简洁的文件树;点击文件可打开内联编辑器,既能直接改文件,也能把文件的特定片段作为上下文引用进 LLM query——同样会自动带上行号和文件名,让 agent 知道往哪看。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 ============ -->
+<section id="model">
+  <div class="sec-h"><span class="ico">🧠</span><h2>维度四:模型选择</h2><span class="no">06</span></div>
+  <p>Claude Code 从斜杠菜单进入 <code class="inline">/model</code>,可在 <strong>Claude 系模型</strong>之间切换:Claude 4 Sonnet、Opus,以及用于研究型任务的 Opus 计划模式。</p>
+  <p>Warp 则点模型下拉框选择,模型池更宽:<strong>Claude 与 Claude 4 Opus 之外,还有 Gemini 和 GPT-5 系列</strong>,GPT-5 还可选不同的推理强度(reasoning level)。</p>
+  <div class="callout key-gold"><div class="c-t">⚖️ 一句话对比</div>Claude Code 深绑 Claude 全家桶;Warp 是多模型自助餐——这也是后面实测里 Warp 能单方面加试 GPT-5 的原因。</div>
+</section>
+
+<!-- ============ 07 ============ -->
+<section id="config">
+  <div class="sec-h"><span class="ico">⚙️</span><h2>维度五:配置与权限</h2><span class="no">07</span></div>
+  <h3>Claude Code:一切从斜杠命令出发</h3>
+  <ul class="plain">
+    <li>查看当前状态(status);</li>
+    <li>模型切换器;</li>
+    <li><strong>权限菜单</strong>:精细选择哪些工具允许 / 拒绝;</li>
+    <li><strong>agents 创建器</strong>:为特定编码任务孵化 <span class="term">sub-agent</span>(子智能体)。</li>
+  </ul>
+  <h3>Warp:斜杠命令 + 设置菜单双入口</h3>
+  <ul class="plain">
+    <li>斜杠命令可添加 <strong>MCP 工具、prompts、全局 rules</strong>;</li>
+    <li>规则作用域不同:Claude Code 把 rules 绑定在具体 git 仓库上,Warp 支持<strong>全局 rules 目录</strong>,统一描述所有项目应有的行为;</li>
+    <li><strong>代码库索引(codebase indexing)</strong>:一键为代码库建 embedding,提升文件搜索;</li>
+    <li>agent 行为用 <span class="term">profiles</span> 配置:视频作者设了一个默认 profile(带基础规划与读写权限),另设一个更宽松的 profile(代码 diff 一律免人工审查直接放行)。</li>
+  </ul>
+  <div class="callout key"><div class="c-t">🏅 作者的裁定</div>两款工具都对「agent 被允许做什么」提供了充分的配置能力,但作者把这一维度的<strong>优势判给 Claude Code</strong>——因为它还支持 <strong>sub-agents 和 hooks</strong>。</div>
+</section>
+
+<!-- ============ 08 ============ -->
+<section id="manage">
+  <div class="sec-h"><span class="ico">📡</span><h2>维度六:长时间管理多个 Agent</h2><span class="no">08</span></div>
+  <p>Claude Code 是 CLI 工具,你需要<strong>盯着那个 CLI 标签页</strong>才能发现 agent 是否被卡住(需要人工介入);不过它会更新标签页描述,显示 agent 当前在做什么。</p>
+  <p>Warp 因为 agent 内置,能给出更多状态信息:</p>
+  <ul class="plain">
+    <li><strong>状态指示器</strong>:显示 agent 当前进行到哪一步;</li>
+    <li>工具提示(tooltip)里有<strong>更详细的任务描述</strong>;</li>
+    <li>agent 被阻塞时弹 <strong>toast 通知</strong>,你可以立刻跳到那个标签页处理;</li>
+    <li>还可选开<strong>桌面通知</strong>,带声音或不带声音均可。</li>
+  </ul>
+</section>
+
+<!-- ============ 09 ============ -->
+<section id="bench">
+  <div class="sec-h"><span class="ico">🧪</span><h2>实测:同一个 Sentry Issue,各跑三轮</h2><span class="no">09</span></div>
+  <h3>测试设置</h3>
+  <div class="steps">
+    <div class="step"><div class="s-t">左边 Warp,右边 Claude Code</div><p>给两边同一个 <span class="term">Sentry issue</span>,只贴 URL,几乎不给额外指示。</p></div>
+    <div class="step"><div class="s-t">每边各跑 3 轮</div><p>考察两点:代码质量、耗时。主力模型均为 Claude 4 Sonnet。</p></div>
+    <div class="step"><div class="s-t">额外加试(wild card)</div><p>在 Warp 里用 GPT-5(低推理档)再跑——这在 Claude Code 里做不到,作者也承认这不算严格的直接对比。</p></div>
+  </div>
+
+  <div class="figure" aria-label="实测流程图">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img">
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#2468e5" stroke-width="1.6"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="20" y="90" width="150" height="66" rx="12" fill="#e3edfd" stroke="#2468e5" stroke-width="1.5"/>
+        <text x="95" y="118" text-anchor="middle" font-size="14" fill="#173f8f" font-weight="700">Sentry issue</text>
+        <text x="95" y="139" text-anchor="middle" font-size="12" fill="#48607c">只给 URL,不给指示</text>
+      </g>
+      <path d="M170 105 L 240 62" fill="none" stroke="#2468e5" stroke-width="1.6" marker-end="url(#arr)" data-draw/>
+      <path d="M170 140 L 240 182" fill="none" stroke="#2468e5" stroke-width="1.6" marker-end="url(#arr)" data-draw/>
+      <g data-anim>
+        <rect x="245" y="26" width="180" height="66" rx="12" fill="#e0f4f2" stroke="#0e9488" stroke-width="1.5"/>
+        <text x="335" y="54" text-anchor="middle" font-size="14" fill="#0b5d55" font-weight="700">Warp Code ×3</text>
+        <text x="335" y="75" text-anchor="middle" font-size="12" fill="#48607c">Claude 4 Sonnet</text>
+      </g>
+      <g data-anim>
+        <rect x="245" y="152" width="180" height="66" rx="12" fill="#ebebfa" stroke="#5b5bd6" stroke-width="1.5"/>
+        <text x="335" y="180" text-anchor="middle" font-size="14" fill="#3c3c9e" font-weight="700">Claude Code ×3</text>
+        <text x="335" y="201" text-anchor="middle" font-size="12" fill="#48607c">Claude 4 Sonnet</text>
+      </g>
+      <g data-anim>
+        <rect x="245" y="104" width="180" height="40" rx="10" fill="#fdf3e0" stroke="#b7791f" stroke-width="1.3" stroke-dasharray="4 3"/>
+        <text x="335" y="129" text-anchor="middle" font-size="12.5" fill="#7c5410" font-weight="600">加试:Warp + GPT-5(低推理)</text>
+      </g>
+      <path d="M425 59 L 500 105" fill="none" stroke="#2468e5" stroke-width="1.6" marker-end="url(#arr)" data-draw/>
+      <path d="M425 185 L 500 140" fill="none" stroke="#2468e5" stroke-width="1.6" marker-end="url(#arr)" data-draw/>
+      <path d="M425 124 L 500 123" fill="none" stroke="#b7791f" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arr)" data-draw/>
+      <g data-anim>
+        <rect x="505" y="80" width="295" height="88" rx="12" fill="#ffffff" stroke="#d8e4f2" stroke-width="1.5"/>
+        <text x="652" y="108" text-anchor="middle" font-size="14" fill="#173f8f" font-weight="700">对比:耗时 + 研究质量 + 代码质量</text>
+        <text x="652" y="130" text-anchor="middle" font-size="12" fill="#48607c">双方 2–4 分钟,均定位并修复根因</text>
+        <text x="652" y="150" text-anchor="middle" font-size="12" fill="#48607c">平均耗时 Claude Code 略占优</text>
+      </g>
+    </svg>
+    <div class="fig-cap">实测设计:同一个 Sentry issue 喂给两边各跑 3 轮(均用 Claude 4 Sonnet),另在 Warp 侧用 GPT-5 加试一组。</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">2–4 分钟</div><div class="k">两款工具每轮完成时间(Claude 4 Sonnet),平均耗时 Claude Code 略占优</div></div>
+    <div class="stat"><div class="v">3 + 3 轮</div><div class="k">每边各跑三轮,考察耗时与代码质量</div></div>
+    <div class="stat"><div class="v">1'12"–1'20"</div><div class="k">GPT-5(低推理档)在 Warp 里的稳定耗时,且输出高质量</div></div>
+  </div>
+
+  <h3>研究阶段:两边水平相当</h3>
+  <ul class="plain">
+    <li>双方都能识别并调用 <span class="term">Sentry MCP server</span>;只有 Claude Code 有一轮用了 fetch 请求代替——明确要求它用 MCP server 后就回到正轨;</li>
+    <li>双方都定位到了根因:<code class="inline">renderKeyboardShortcut</code> 函数——这个工具函数假设快捷键总是已绑定,但用户其实可以在设置里解绑它。</li>
+  </ul>
+
+  <h3>代码产出:细看各有毛病</h3>
+  <div class="cases">
+    <div class="case cc">
+      <div class="c-h">⌨️ Claude Code 的方案:「喜忧参半」</div>
+      <ul>
+        <li>三轮全部能跑通;</li>
+        <li>但在快捷键不可用时<strong>渲染了一段空 UI 占位</strong>——更好的做法是压根不调用这个渲染函数;</li>
+        <li>它「识别对了一半」:在调用前加了检查,却又在下面加了一个<strong>多余的重复检查</strong>。</li>
+      </ul>
+    </div>
+    <div class="case wp">
+      <div class="c-h">🖥️ Warp 的方案:三轮三个解法,全部可编译可运行</div>
+      <ul>
+        <li>最佳一轮:让渲染函数返回<strong>可选类型(optional)</strong>,由调用方决定是否使用结果——作者称这是全部实验里他最喜欢的方案(不过他自己写会用 if 检查);</li>
+        <li>也有一轮翻车:渲染了一个带莫名 margin 值的空 flex row,作者原话:「我都不知道这个值哪来的——Claude 并不总是可预测的。」</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>GPT-5 加试:又快又稳</h3>
+  <p>用低推理档的 GPT-5 跑同一任务,得到「非常棒的结果」:<strong>每轮稳定在 1 分 12 秒到 1 分 20 秒</strong>,输出质量高,全部编译运行无问题,而且每轮答案高度一致。方案是渲染空 UI 占位——如作者前面所说,这不是他本人偏好的解法,但胜在简洁且能用。作者的建议:既然 Warp 里有多模型,值得试试 GPT 或 Gemini 在你的代码库上表现如何。</p>
+  <div class="callout warnbox"><div class="c-t">⚠️ 读数据时留意</div>GPT-5 加试只在 Warp 一侧进行(Claude Code 无法选用 GPT-5),作者自己也说「也许算不上直接对比」。同时别忘了整场评测出自 Warp 工程师之手——结论方向可信,但细节权重自己掂量。</div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="verdict">
+  <div class="sec-h"><span class="ico">🏁</span><h2>结论:怎么选</h2><span class="no">10</span></div>
+
+  <div class="figure" aria-label="选择分叉图">
+    <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img">
+      <defs>
+        <marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#2468e5" stroke-width="1.6"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="290" y="20" width="240" height="58" rx="12" fill="#e3edfd" stroke="#2468e5" stroke-width="1.5"/>
+        <text x="410" y="45" text-anchor="middle" font-size="14" fill="#173f8f" font-weight="700">你更看重什么?</text>
+        <text x="410" y="66" text-anchor="middle" font-size="12" fill="#48607c">Warp Code or Claude Code?</text>
+      </g>
+      <path d="M350 78 L 220 118" fill="none" stroke="#2468e5" stroke-width="1.6" marker-end="url(#arr2)" data-draw/>
+      <path d="M470 78 L 600 118" fill="none" stroke="#2468e5" stroke-width="1.6" marker-end="url(#arr2)" data-draw/>
+      <g data-anim>
+        <rect x="60" y="124" width="320" height="92" rx="12" fill="#ebebfa" stroke="#5b5bd6" stroke-width="1.5"/>
+        <text x="220" y="150" text-anchor="middle" font-size="14" fill="#3c3c9e" font-weight="700">选 Claude Code</text>
+        <text x="220" y="173" text-anchor="middle" font-size="12" fill="#48607c">· 认定要用 Claude 系模型</text>
+        <text x="220" y="193" text-anchor="middle" font-size="12" fill="#48607c">· 偏好纯终端环境而非 UI</text>
+      </g>
+      <g data-anim>
+        <rect x="440" y="124" width="320" height="92" rx="12" fill="#e0f4f2" stroke="#0e9488" stroke-width="1.5"/>
+        <text x="600" y="150" text-anchor="middle" font-size="14" fill="#0b5d55" font-weight="700">选 Warp Code</text>
+        <text x="600" y="173" text-anchor="middle" font-size="12" fill="#48607c">· 看重文件树上下文、diff 编辑等 UI 功能</text>
+        <text x="600" y="193" text-anchor="middle" font-size="12" fill="#48607c">· 想自由选模型(含 GPT-5、Gemini)</text>
+      </g>
+    </svg>
+    <div class="fig-cap">作者给出的选择分叉:模型忠诚度 + 终端偏好 → Claude Code;UI 功能 + 多模型 → Warp Code。</div>
+  </div>
+
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>维度</th><th>Claude Code</th><th>Warp</th></tr>
+    <tr><td>形态</td><td>CLI 工具,装在任意终端里</td><td>agent 内置于 Warp 终端</td></tr>
+    <tr><td>Diff 处理</td><td>审查 / 自动接受</td><td>审查 / 自动接受 + 直接编辑 diff,人工修改会同步给 agent</td></tr>
+    <tr><td>改动审查</td><td>借助 git CLI 或 VS Code</td><td>内置 review changes 按钮,可对比主线</td></tr>
+    <tr><td>计划模式</td><td>研究后出 Markdown 计划</td><td>重任务时请示计划(Claude 4 Opus 研究)</td></tr>
+    <tr><td>上下文引用</td><td>@ 文件选择器</td><td>@ 文件 + 符号(含行号);project explorer 文件树</td></tr>
+    <tr><td>模型池</td><td>Claude 系(4 Sonnet / Opus / Opus 计划模式)</td><td>Claude、Claude 4 Opus、Gemini、GPT-5 系列(可调推理档)</td></tr>
+    <tr><td>规则作用域</td><td>绑定具体 git 仓库</td><td>支持全局 rules 目录</td></tr>
+    <tr><td>其他配置</td><td>权限菜单、sub-agents、hooks(此维度作者判 Claude Code 胜)</td><td>MCP / prompts / 全局 rules、代码库 embedding 索引、agent profiles</td></tr>
+    <tr><td>多 agent 状态</td><td>盯 CLI 标签页(有标签描述更新)</td><td>状态指示器 + tooltip + toast + 桌面通知</td></tr>
+    <tr><td>实测(Sentry issue)</td><td>2–4 分钟,平均略快;方案质量喜忧参半</td><td>2–4 分钟;三个方案均可跑,最佳方案作者最喜欢,亦有一轮翻车</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="gloss">
+  <div class="sec-h"><span class="ico">📖</span><h2>术语表 + 转录勘误</h2><span class="no">11</span></div>
+  <h3>术语表(增补)</h3>
+  <dl class="glossary">
+    <dt>Sentry</dt><dd>错误监控平台;一条 Sentry issue 即一份线上报错记录,含堆栈与上下文,常被当作「给 agent 修 bug」的天然任务单。</dd>
+    <dt>MCP server</dt><dd>Model Context Protocol 服务器,让 agent 以标准协议调用外部工具/数据源(如 Sentry、Linear)。</dd>
+    <dt>sub-agent</dt><dd>Claude Code 里为特定任务孵化的子智能体,可有独立的提示与工具集。</dd>
+    <dt>hooks</dt><dd>在 agent 工作流的特定节点自动执行的自定义命令(如每次编辑后跑 linter)。</dd>
+    <dt>codebase indexing</dt><dd>为代码库生成 embedding 向量索引,提升语义化文件搜索的召回。</dd>
+    <dt>agent profile</dt><dd>Warp 里一组可切换的 agent 行为配置(权限、是否免审查放行 diff 等)。</dd>
+    <dt>reasoning level</dt><dd>GPT-5 系列可选的推理强度档位,低档更快、高档更深思。</dd>
+  </dl>
+  <h3>转录勘误说明</h3>
+  <p>本文正文依据 YouTube 自动字幕(ASR)整理,原始转录存在少量语音识别错拼,整理时已按上下文回正,主要包括:<code class="inline">claw code / clawed code / cla</code> → Claude Code / Claude;<code class="inline">Cloud Force Sonnet</code> → Claude 4 Sonnet;<code class="inline">Claude Forson opus</code> → Claude 4 Sonnet、Opus;<code class="inline">GBD5</code> → GPT-5;<code class="inline">Warp Day today</code> → 日常使用 Warp(day-to-day)。除此之外未对原意做任何改动。</p>
+</section>
+
+<div class="final">
+  <h2>一句话带走</h2>
+  <p><strong>这场对比没有全胜者,只有适配问题。</strong>要 Claude 全家桶和纯终端工作流(外加 sub-agents 和 hooks),选 Claude Code;要文件树、可编辑 diff、内置审查和 GPT-5/Gemini 多模型池,选 Warp。真实 Sentry issue 实测里两边都能在 2–4 分钟内定位并修复根因——差异不在「能不能」,而在「以哪种方式、用哪些模型」。</p>
+</div>
+
+<footer>
+  整理自 Warp University 视频《Warp VS Claude Code》(Ben Holmes,Warp 产品工程师;8 分 48 秒)· Stanford CS146S Week 5 指定读物<br>
+  原页 <a href="https://www.warp.dev/university/getting-started/warp-vs-claude-code">warp.dev/university/getting-started/warp-vs-claude-code</a> 已随 Warp 文档改版下线,页面快照取自 <a href="https://web.archive.org/web/20251017165930/https://www.warp.dev/university/getting-started/warp-vs-claude-code">Wayback 2025-10-17 存档</a>;视频见 <a href="https://www.youtube.com/watch?v=NUVftxAqZQo">YouTube(Warp 官方频道)</a><br>
+  处理方式:视频完整字幕转录逐字整理(ASR 错拼已按上下文回正并附勘误)+ 概念展开与可视化 · 本篇为视频内容,无原文配图 · 生成于 2026-07-14
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+  var toc = document.getElementById('sideToc');
+  var btn = document.getElementById('tocBtn');
+  btn.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.closest('a') && window.innerWidth < 1180) toc.classList.remove('open'); });
+
+  var bar = document.getElementById('stBar'), pct = document.getElementById('stPct'), top = document.getElementById('topProgress');
+  var links = toc.querySelectorAll('li a');
+  var secs = [];
+  links.forEach(function(a){ var s = document.querySelector(a.getAttribute('href')); if(s) secs.push({a:a, s:s}); });
+
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? Math.min(100, Math.round(h.scrollTop / max * 100)) : 0;
+    bar.style.width = p + '%'; top.style.width = p + '%'; pct.textContent = p + '%';
+    var cur = secs[0];
+    for(var i=0;i<secs.length;i++){ if(secs[i].s.getBoundingClientRect().top < window.innerHeight*0.35) cur = secs[i]; }
+    links.forEach(function(a){ a.classList.remove('on'); });
+    if(cur) cur.a.classList.add('on');
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs = document.querySelectorAll('.figure');
+  if(reduced){ figs.forEach(function(f){ f.classList.add('in'); }); return; }
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(p){
+      try{ var L = p.getTotalLength(); p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; }catch(e){}
+    });
+    f.querySelectorAll('[data-anim]').forEach(function(el,i){ el.style.transitionDelay = (i*0.12)+'s'; });
+  });
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        e.target.querySelectorAll('[data-draw]').forEach(function(p){ p.style.strokeDashoffset = 0; });
+        io.unobserve(e.target);
+      }
+    });
+  },{threshold:0.25});
+  figs.forEach(function(f){ io.observe(f); });
+})();
+</script>
+</body>
+</html>
