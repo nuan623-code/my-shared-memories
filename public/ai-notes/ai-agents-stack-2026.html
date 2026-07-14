@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 技术栈(2026 版)—— LLM 与生产级 Agent 之间的六层基础设施</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1c2b3a; --ink-soft:#4a5b6e; --ink-faint:#7b8a9c;
+  --accent:#2469d4; --accent-deep:#173e7c; --accent-soft:#e3edfb; --accent-line:#bcd3f2;
+  --teal:#0e8a83; --teal-soft:#e0f4f2; --indigo:#5348c7; --indigo-soft:#e9e7fa;
+  --gold:#b07a12; --gold-soft:#fdf3dd; --warn:#c0392b; --warn-soft:#fdeae7;
+  --hero1:#12294f; --hero2:#1d4d9e; --radius:14px;
+  --shadow:0 2px 14px rgba(23,62,124,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.88}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 60px}
+
+/* ---------- top progress (narrow screens) ---------- */
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));z-index:999}
+
+/* ---------- side TOC ---------- */
+.side-toc{position:fixed;left:18px;top:50%;transform:translateY(-50%);width:212px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--accent-line);border-radius:16px;padding:16px 14px;z-index:900;box-shadow:var(--shadow);max-height:86vh;overflow-y:auto}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep)}
+.st-sub{font-size:11.5px;color:var(--ink-faint);margin-bottom:10px}
+.st-progress{height:6px;background:var(--accent-soft);border-radius:3px;margin-bottom:4px;overflow:hidden}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:3px;transition:width .15s}
+.st-pct{font-size:11px;color:var(--ink-faint);text-align:right;margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{display:flex;gap:7px;align-items:baseline;padding:4.5px 8px;border-radius:8px;font-size:12.5px;color:var(--ink-soft);text-decoration:none;line-height:1.45}
+.side-toc li a .n{font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;flex:0 0 16px}
+.side-toc li a:hover{background:var(--accent-soft)}
+.side-toc li a.on{background:var(--accent);color:#fff}
+.side-toc li a.on .n{color:rgba(255,255,255,.75)}
+.toc-btn{display:none;position:fixed;left:14px;top:14px;z-index:950;width:42px;height:42px;border-radius:12px;border:1px solid var(--accent-line);background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:18px;color:var(--accent-deep);cursor:pointer;box-shadow:var(--shadow)}
+@media (max-width:1179px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:66px;transform:none;max-height:74vh}
+  .toc-btn{display:block}
+}
+@media (min-width:1180px){.top-progress{display:none}}
+
+/* ---------- hero ---------- */
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;border-radius:0 0 26px 26px;padding:58px 22px 46px;margin:0 -22px 34px;text-align:center}
+.hero .kicker{display:inline-block;font-size:13px;letter-spacing:.14em;background:rgba(255,255,255,.14);padding:4px 14px;border-radius:99px;margin-bottom:16px}
+.hero h1{font-size:30px;line-height:1.4;margin-bottom:12px}
+.hero p.sub{font-size:15.5px;color:rgba(255,255,255,.82);max-width:620px;margin:0 auto}
+.hero .meta{margin-top:18px;font-size:13px;color:rgba(255,255,255,.6)}
+
+/* ---------- sections & cards ---------- */
+section{margin-bottom:44px;scroll-margin-top:24px}
+h2{font-size:23px;color:var(--accent-deep);margin-bottom:6px;line-height:1.5}
+.h2-sub{font-size:14px;color:var(--ink-faint);margin-bottom:16px}
+h3{font-size:18px;color:var(--accent-deep);margin:26px 0 10px}
+p{margin-bottom:14px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin-bottom:16px}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 7px;border-radius:6px;font-weight:600}
+.hl{background:linear-gradient(transparent 62%,#ffe9a8 62%);font-weight:600}
+ul.plain{margin:0 0 14px 1.3em}
+ul.plain li{margin-bottom:8px}
+
+/* def card (是什么/为什么/例子) */
+.def{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:16px;border-left:4px solid var(--accent)}
+.def h4{font-size:16.5px;color:var(--accent-deep);margin-bottom:10px}
+.def .row{display:flex;gap:10px;margin-bottom:9px;align-items:flex-start}
+.def .tag{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;margin-top:5px;white-space:nowrap}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--teal-soft);color:var(--teal)}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .row p{margin:0;font-size:15.5px}
+
+/* callouts */
+.callout{border-radius:var(--radius);padding:16px 20px;margin:16px 0;font-size:15.5px}
+.callout b.cap{display:block;font-size:14px;margin-bottom:5px}
+.co-key{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.co-key b.cap{color:var(--accent-deep)}
+.co-teal{background:var(--teal-soft);border-left:4px solid var(--teal)}
+.co-teal b.cap{color:var(--teal)}
+.co-gold{background:var(--gold-soft);border-left:4px solid var(--gold)}
+.co-gold b.cap{color:var(--gold)}
+.co-warn{background:var(--warn-soft);border-left:4px solid var(--warn)}
+.co-warn b.cap{color:var(--warn)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.stats .s{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 14px;text-align:center}
+.stats .s .v{font-size:24px;font-weight:800;color:var(--accent)}
+.stats .s .k{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-top:4px}
+@media (max-width:640px){.stats{grid-template-columns:1fr}}
+
+/* eval grid: 每层三问评分 */
+.eval3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.eval3 .e{background:var(--card);border:1px solid var(--accent-line);border-radius:12px;padding:12px 14px}
+.eval3 .e .q{font-size:12px;color:var(--ink-faint);margin-bottom:3px}
+.eval3 .e .a{font-size:14px;font-weight:700;color:var(--accent-deep)}
+.eval3 .e .d{font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:3px}
+@media (max-width:680px){.eval3{grid-template-columns:1fr}}
+
+/* steps */
+.steps{list-style:none;margin:16px 0;position:relative}
+.steps li{position:relative;padding:0 0 18px 46px}
+.steps li::before{content:attr(data-n);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps li::after{content:"";position:absolute;left:14px;top:32px;bottom:2px;width:2px;background:var(--accent-line)}
+.steps li:last-child::after{display:none}
+.steps li b{display:block;font-size:15.5px;color:var(--accent-deep)}
+.steps li span{font-size:14.5px;color:var(--ink-soft)}
+
+/* analogy */
+.analogy{display:flex;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:16px 0}
+.analogy .side{flex:0 0 auto;writing-mode:vertical-rl;background:var(--indigo);color:#fff;font-size:12.5px;letter-spacing:.2em;padding:12px 8px;display:flex;align-items:center}
+.analogy .bd{background:var(--indigo-soft);padding:16px 20px;font-size:15px;flex:1}
+.analogy .bd p{margin-bottom:8px}
+.analogy .bd p:last-child{margin-bottom:0}
+
+/* rephrase */
+details.rephrase{background:var(--card);border:1px dashed var(--accent-line);border-radius:12px;margin:12px 0;overflow:hidden}
+details.rephrase summary{cursor:pointer;padding:11px 16px;font-size:14px;font-weight:600;color:var(--accent);list-style:none}
+details.rephrase summary::-webkit-details-marker{display:none}
+details.rephrase[open] summary{border-bottom:1px dashed var(--accent-line)}
+details.rephrase .bd{padding:12px 18px;font-size:14.5px;color:var(--ink-soft)}
+
+/* cases / compare */
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.cases .c{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px}
+.cases .c h5{font-size:15px;margin-bottom:8px}
+.cases .c.bad h5{color:var(--warn)}
+.cases .c.good h5{color:var(--teal)}
+.cases .c p{font-size:14px;color:var(--ink-soft);margin-bottom:6px}
+@media (max-width:640px){.cases{grid-template-columns:1fr}}
+
+/* practice list */
+.practice{list-style:none;margin:12px 0}
+.practice li{padding:7px 0 7px 2px;font-size:15.5px;display:flex;gap:10px;align-items:flex-start}
+.practice li .ic{flex:0 0 auto}
+
+/* table */
+.tbl-wrap{overflow-x:auto;margin:16px 0;border-radius:var(--radius);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px;min-width:640px}
+th{background:var(--accent-deep);color:#fff;padding:10px 12px;text-align:left;font-size:13.5px;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #edf2f8;vertical-align:top;line-height:1.7}
+tr:last-child td{border-bottom:none}
+td b{color:var(--accent-deep)}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:99px;white-space:nowrap}
+.p-low{background:var(--teal-soft);color:var(--teal)}
+.p-mid{background:var(--gold-soft);color:var(--gold)}
+.p-high{background:var(--warn-soft);color:var(--warn)}
+
+/* figure */
+.figure{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 18px 12px;margin:18px 0;opacity:0;transform:translateY(18px);transition:opacity .7s,transform .7s}
+.figure.shown{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--ink-faint);text-align:center;padding:10px 8px 6px;line-height:1.6}
+svg [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .55s,transform .55s}
+svg [data-anim].in{opacity:1;transform:none}
+svg [data-draw]{transition:stroke-dashoffset 1s ease}
+
+/* src-fig: 原文配图(本地化) */
+.src-fig{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 16px 10px;margin:18px 0}
+.src-fig img{max-width:100%;height:auto;display:block;border-radius:8px;margin:0 auto}
+.src-fig .fig-cap a{color:var(--accent);text-decoration:none}
+.quote-box strong{color:#ffd88a}
+
+/* quote / final */
+.quote-box{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;border-radius:var(--radius);padding:22px 26px;margin:18px 0;font-size:16.5px;line-height:1.9}
+.quote-box .who{font-size:13px;color:rgba(255,255,255,.65);margin-top:8px}
+footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--accent-line);font-size:13px;color:var(--ink-faint);line-height:1.9}
+@media (max-width:640px){
+  body{font-size:16px}
+  .hero h1{font-size:24px}
+  h2{font-size:20px}
+  .card,.def{padding:18px 16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .figure{opacity:1;transform:none;transition:none}
+  svg [data-anim]{opacity:1;transform:none;transition:none}
+  svg [data-draw]{transition:none;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-btn" id="tocBtn" aria-label="目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">🧱 AI Agent 技术栈 2026</div>
+  <div class="st-sub">六层基础设施 · 逐层拆解</div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#intro"><span class="n">01</span>为什么要重画这张图</a></li>
+    <li><a href="#mapping"><span class="n">02</span>我们到底在画什么</a></li>
+    <li><a href="#evaluate"><span class="n">03</span>评估每一层的三问</a></li>
+    <li><a href="#layer1"><span class="n">04</span>第 1 层:模型与推理</a></li>
+    <li><a href="#layer2"><span class="n">05</span>第 2 层:协议与工具</a></li>
+    <li><a href="#layer3"><span class="n">06</span>第 3 层:记忆与知识</a></li>
+    <li><a href="#layer4"><span class="n">07</span>第 4 层:框架与 SDK</a></li>
+    <li><a href="#layer5"><span class="n">08</span>第 5 层:评估与可观测</a></li>
+    <li><a href="#layer6"><span class="n">09</span>第 6 层:护栏与安全</a></li>
+    <li><a href="#building"><span class="n">10</span>你在造哪种 Agent</a></li>
+    <li><a href="#coding"><span class="n">11</span>Coding Agent 全栈实战</a></li>
+    <li><a href="#cheatsheet"><span class="n">12</span>速查表</a></li>
+    <li><a href="#bigpicture"><span class="n">13</span>更大的图景</a></li>
+    <li><a href="#sources"><span class="n">14</span>来源清单</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="kicker">O'REILLY RADAR · 深度整理</span>
+  <h1>🧱 AI Agent 技术栈(2026 版)</h1>
+  <p class="sub">在你的 LLM 和一个真正能上生产环境的 Agent 之间,隔着六层基础设施。这篇文章逐层拆解:每层是什么、2024 到 2026 发生了什么、以及最重要的——你的项目到底需要哪几层。</p>
+  <div class="meta">作者 Paolo Perrone · 2026-06-08 · 原载于 The AI Engineer Substack,经授权转载于 O'Reilly Radar · 原文约 17 分钟阅读</div>
+</header>
+
+<!-- ================================================== 01 -->
+<section id="intro">
+  <h2>📌 01 · 为什么要重画这张图</h2>
+  <div class="h2-sub">一个真实的过度设计案例 + 一张过时了 14 个月的参考图</div>
+
+  <div class="card">
+    <p>文章开篇讲了一个典型场景:你的团队为一个<strong>客服聊天机器人</strong>选了 LangGraph。三周之后,你们已经搭出了一张有 <span class="hl">14 个节点的状态图</span>、一个往 Redis 写数据的自定义 checkpointer,还有一套为「一周才失败一次」的工具调用准备的重试逻辑。而这个 Agent 做的事情是:回答退款问题,调用一个 API。</p>
+    <p>作者的判断很直接:<strong>一个基于 OpenAI SDK 的 50 行脚本,外加两个 MCP server,就能做到同样的事。</strong>问题出在哪?——<span class="hl">没有人事先梳理过这个问题真正需要哪几层基础设施</span>。</p>
+  </div>
+
+  <p>再看参考系的问题。2024 年 11 月,<span class="term">Letta</span> 发布了一张 AI Agent 技术栈图,后来成了作者接触的工程团队里约一半人的默认参考——如果你在 LinkedIn 上刷到过、或在 Slack 频道里见人钉过一张「Agent 分层图」,大概率就源自那篇文章。</p>
+
+  <p>但那张图到写作时已经 <strong>14 个月</strong> 了,期间变化巨大:</p>
+  <ul class="practice">
+    <li><span class="ic">🔌</span><span>当时 <strong>MCP 还不存在</strong>;</span></li>
+    <li><span class="ic">🧠</span><span>记忆(Memory)还被当成<strong>向量数据库的附属品</strong>来处理;</span></li>
+    <li><span class="ic">📦</span><span>还没有任何厂商在出<strong>官方原生的 Agent SDK</strong>;</span></li>
+    <li><span class="ic">📏</span><span><strong>评估(Eval)压根不在图上</strong>。</span></li>
+  </ul>
+
+  <div class="callout co-key"><b class="cap">🎯 这篇文章要做的事</b>2026 年的技术栈有六层,其中至少三层在 Letta 画原图时还不是独立品类。所以作者选择从零重画一张——这就是「2026 版」。</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-3.png" alt="The minimum viable agent stack in 2026" loading="lazy"><div class="fig-cap">原文配图 · 2026 年的最小可行 Agent 栈(The minimum viable agent stack in 2026) · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+  <div class="callout co-gold"><b class="cap">⚡ TL;DR(原文的一句话结论)</b>文中给出了一张「最小可行 Agent 栈」作为起点,核心原则是:<strong>先用最小栈起步;只在某个具体的东西坏掉时才增加复杂度,而不是提前堆料。</strong></div>
+</section>
+
+<!-- ================================================== 02 -->
+<section id="mapping">
+  <h2>🗺️ 02 · 我们到底在画什么</h2>
+  <div class="h2-sub">先定义原子单位:think–act–observe 循环;再划清边界:Agent 栈 ≠ LLM 栈</div>
+
+  <p>在画栈之前,先回到一个循环。作者在其早前文章《What Is an AI Agent?》中把 Agent 定义为 <span class="term">think–act–observe(思考–行动–观察)循环</span>:模型对任务进行推理,采取一个行动(调用工具、写入记忆),观察结果,然后循环往复,直到任务完成。<strong>这个循环是原子单位</strong>——本文讲的所有东西,都是让这个循环能在生产环境中可靠、规模化运转的基础设施。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" aria-label="think-act-observe 循环">
+      <defs>
+        <marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="330" y="20" width="160" height="58" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="410" y="45" text-anchor="middle" font-size="16" font-weight="700" fill="var(--accent-deep)">🧠 思考 Think</text>
+        <text x="410" y="66" text-anchor="middle" font-size="12" fill="var(--ink-soft)">模型对任务进行推理</text>
+      </g>
+      <g data-anim>
+        <rect x="560" y="180" width="180" height="58" rx="12" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+        <text x="650" y="205" text-anchor="middle" font-size="16" font-weight="700" fill="var(--teal)">🛠️ 行动 Act</text>
+        <text x="650" y="226" text-anchor="middle" font-size="12" fill="var(--ink-soft)">调用工具 / 写入记忆</text>
+      </g>
+      <g data-anim>
+        <rect x="80" y="180" width="180" height="58" rx="12" fill="var(--indigo-soft)" stroke="var(--indigo)" stroke-width="1.5"/>
+        <text x="170" y="205" text-anchor="middle" font-size="16" font-weight="700" fill="var(--indigo)">👁️ 观察 Observe</text>
+        <text x="170" y="226" text-anchor="middle" font-size="12" fill="var(--ink-soft)">读取行动的结果</text>
+      </g>
+      <path data-draw d="M 495 62 Q 630 90 655 175" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar1)"/>
+      <path data-draw d="M 555 212 L 268 212" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar1)"/>
+      <path data-draw d="M 163 175 Q 190 90 325 60" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar1)"/>
+      <g data-anim>
+        <text x="410" y="160" text-anchor="middle" font-size="13" fill="var(--ink-faint)">↺ 循环直到任务完成</text>
+      </g>
+    </svg>
+    <div class="fig-cap">图 1 · Agent 的原子单位:think–act–observe 循环。整套六层技术栈的意义,就是让这个循环在生产环境中可靠地跑起来。</div>
+  </div>
+
+  <h3>🚧 Agent 栈不是 LLM 栈</h3>
+  <div class="card">
+    <p>一个<strong>聊天机器人</strong>需要的是推理服务,可能再加上 RAG。而一个 <strong>Agent</strong> 需要的是:跨多步执行的<strong>状态管理</strong>、由<strong>协议约束的工具访问</strong>、<strong>跨会话持久化的记忆</strong>、<strong>自主推理循环</strong>,以及<strong>实时约束行为的护栏</strong>。作者强调:这是一组<span class="hl">从根本上不同的基础设施问题</span>。</p>
+    <p>边界说明:本文映射的是「你的 LLM 与生产级 Agent 之间的六层」,<strong>不覆盖</strong>训练基础设施、数据管线、模型微调——那些是相邻的栈。RAG 在作者的 Issue #5 里已深入讲过,本文只是拉远镜头,展示 RAG 在大图景里的位置。</p>
+  </div>
+
+  <h3>🔄 2024 → 2026:重画地图的三件事</h3>
+  <ol class="steps">
+    <li data-n="1"><b>MCP 标准化了工具连接</b><span>整个「工具层」都是因它而生的新品类。</span></li>
+    <li data-n="2"><b>推理模型改变了 Agent 的自主能力边界</b><span>单次推理调用的 Agent 开始取代一部分多步链条。</span></li>
+    <li data-n="3"><b>记忆成为一等公民的架构原语</b><span>不再是「拴在向量数据库上的事后补丁」。</span></li>
+  </ol>
+</section>
+
+<!-- ================================================== 03 -->
+<section id="evaluate">
+  <h2>⚖️ 03 · 评估每一层的三个问题</h2>
+  <div class="h2-sub">全文的分析框架:每一层都用这三把尺子量一遍</div>
+
+  <p>在每一层做技术选型时,作者建议问三个问题:</p>
+
+  <div class="eval3">
+    <div class="e"><div class="q">问题 ①</div><div class="a">🧳 需要管理多少状态?</div><div class="d">一个无状态的工具调用器,和一个跨会话持续学习的 Agent,是两种不同的工程问题。状态管理最难的层(记忆、框架)正是大多数团队卡住的地方。</div></div>
+    <div class="e"><div class="q">问题 ②</div><div class="a">🔒 能容忍多少厂商锁定?</div><div class="d">MCP 是开放标准,厂商 SDK 不是。每一个工具选择,都在增加或减少你下一次迁移的痛苦程度。</div></div>
+    <div class="e"><div class="q">问题 ③</div><div class="a">🕳️ 从 demo 到生产有多难?</div><div class="d">有的层(模型服务)几乎没有鸿沟,有的层(评估、护栏)鸿沟巨大。你在哪一层最能感受到这条鸿沟,就该最先投资哪一层。</div></div>
+  </div>
+
+  <div class="callout co-teal"><b class="cap">🧭 阅读顺序</b>下面按<strong>自底向上</strong>的顺序过这六层:从最稳定的一层开始,到最不成熟的一层结束。</div>
+</section>
+
+<!-- ================================================== 04 -->
+<section id="layer1">
+  <h2>🖥️ 04 · 第 1 层:模型与推理(Models &amp; Inference)</h2>
+  <div class="h2-sub">怎么运行驱动 Agent 的那个模型:调 API、用托管开源权重服务,还是自建部署</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-4.png" alt="Models & inference: key players" loading="lazy"><div class="fig-cap">原文配图 · 第 1 层「模型与推理」的主要玩家(key players) · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+
+  <div class="card">
+    <p>这一层的变化<strong>「语气大于实质」</strong>。两件事改变了格局:</p>
+    <p>其一,<span class="term">推理模型</span>(reasoning models)——o1、o3、DeepSeek R1、带扩展思考(extended thinking)的 Claude——改变了 Agent 能规划和执行的边界:<span class="hl">以前需要多步链条才能解决的问题,现在一次推理调用就能解决</span>。</p>
+    <p>其二,<span class="term">开源权重模型</span>(open weight)——Llama 3.3、DeepSeek V3、Qwen 2.5——大幅缩小了质量差距,「永远用最大的闭源模型」不再是默认建议。正在形成的模式是:<strong>用闭源模型做原型,用开源权重模型上生产</strong>。</p>
+  </div>
+
+  <div class="callout co-gold"><b class="cap">💬 作者的诚实结论(The honest take)</b>这一层正在<strong>商品化</strong>。模型之间的差异一个季度比一个季度更不重要。真正的决策是<strong>成本与延迟的权衡</strong>,而不是哪个模型「最聪明」。</div>
+
+  <div class="eval3">
+    <div class="e"><div class="q">状态管理</div><div class="a">无</div><div class="d">API 调用是无状态的:发请求、收响应,没有东西需要管理。</div></div>
+    <div class="e"><div class="q">锁定风险</div><div class="a">闭源高 / 开源低</div><div class="d">闭源 API 风险高——每个模型的推理方式不同,换厂商意味着重新调 prompt、适应不同的失败模式、重跑整套评估。开源权重风险低——换模型、留基建。</div></div>
+    <div class="e"><div class="q">demo→生产鸿沟</div><div class="a">全栈最小</div><div class="d">你 demo 里的 API 调用和生产里的 API 调用是同一个调用。</div></div>
+  </div>
+
+  <div class="callout co-key"><b class="cap">🏠 什么时候该自建(self-host)?</b>当你的 Agent 调用量大到 API 定价难以为继,或者你需要 API 往返延迟给不了的 <strong>100 毫秒以内</strong>响应时。</div>
+</section>
+
+<!-- ================================================== 05 -->
+<section id="layer2">
+  <h2>🔌 05 · 第 2 层:协议与工具(Protocols &amp; Tools)</h2>
+  <div class="h2-sub">Agent 怎么调用外部工具和 API:MCP server、浏览器自动化,或 agent 间协议</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-5.png" alt="Protocols & tools: key players" loading="lazy"><div class="fig-cap">原文配图 · 第 2 层「协议与工具」的主要玩家 · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+
+  <div class="card">
+    <p><span class="hl">这一层在 2024 年根本不是一个独立品类</span>——当时每个框架都有自己的一套工具定义 JSON schema。现在 <span class="term">MCP</span>(Model Context Protocol)已经是标准:</p>
+    <ul class="practice">
+      <li><span class="ic">📈</span><span>SDK <strong>月下载量 9700 万</strong>;</span></li>
+      <li><span class="ic">🤝</span><span>被 <strong>OpenAI、Google、Microsoft</strong> 采纳;</span></li>
+      <li><span class="ic">🏛️</span><span>已捐赠给 <strong>Linux 基金会</strong>。</span></li>
+    </ul>
+    <p>与此并行,<span class="term">Browser Use</span>(浏览器自动化)爆发式增长——不到一年拿下 <strong>7.8 万 GitHub star</strong>;而 2024 年还没有任何人把浏览器 Agent 放到生产环境。</p>
+    <p>Agent 之间也开始互相对话了:<strong>IBM 推出了 ACP,Google 推出了 A2A</strong>。两者都还不是标准,但它们要解决的问题(Agent 与 Agent 的协作)真实存在且在增长。</p>
+  </div>
+
+  <div class="callout co-warn"><b class="cap">⚠️ 安全是这层的未解难题</b>Endor Labs 分析了 <strong>2,614 个 MCP server</strong>,发现 <strong>82% 存在路径遍历(path traversal)风险</strong>、<strong>67% 存在代码注入(code injection)风险</strong>。</div>
+
+  <details class="rephrase"><summary>💬 没接触过这两类漏洞?点这里换种说法</summary><div class="bd">这是帮助理解的增补,非原文内容:「路径遍历」大意是攻击者诱导程序去读写本不该被访问的文件路径(比如借 <code>../../</code> 之类的相对路径爬出授权目录);「代码注入」大意是把恶意代码混进输入,让系统当成正常指令执行。放在 MCP 场景下:一个工具服务器如果不校验输入,Agent 帮攻击者「动手」的风险就是真实的。</div></details>
+
+  <div class="callout co-gold"><b class="cap">💬 作者的诚实结论</b>协议之争<strong>已经结束,MCP 赢了</strong>。剩下唯一的问题是:在有人利用漏洞之前,你怎么把自己的 MCP server 锁牢。</div>
+
+  <div class="eval3">
+    <div class="e"><div class="q">状态管理</div><div class="a">不存在</div><div class="d">Agent 调工具、拿响应、结束。没有会话,调用之间没有记忆。</div></div>
+    <div class="e"><div class="q">锁定风险</div><div class="a">低</div><div class="d">MCP 是开放标准:你建好的 MCP server,任何兼容 MCP 的 Agent 都能用。</div></div>
+    <div class="e"><div class="q">demo→生产鸿沟</div><div class="a">中</div><div class="d">demo 里的 MCP server 一直能跑——直到有人发来一条恶意的工具描述。<strong>安全与治理就是这条鸿沟</strong>。</div></div>
+  </div>
+
+  <div class="callout co-key"><b class="cap">🧩 一个重要的边界</b>MCP 标准化的是「Agent 怎么用工具」,它<strong>完全没有规定「Agent 之间怎么对话」</strong>。ACP 和 A2A 想解决这个问题,但都还没达到临界规模。如果你今天就需要多 Agent 协调,你只能<strong>自己在框架层造</strong>。(作者在 Issue #4 深入讲过 MCP。)</div>
+</section>
+
+<!-- ================================================== 06 -->
+<section id="layer3">
+  <h2>🧠 06 · 第 3 层:记忆与知识(Memory &amp; Knowledge)</h2>
+  <div class="h2-sub">Agent 怎么存储和检索它知道的东西:上下文内状态、向量检索,或跨会话持久记忆</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-6.png" alt="Memory & knowledge: key players" loading="lazy"><div class="fig-cap">原文配图 · 第 3 层「记忆与知识」的主要玩家 · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+
+  <div class="card">
+    <p>2024 年,「记忆」的意思就是<strong>「挑一个向量数据库,然后做 RAG」</strong>。2026 年,记忆是一个<span class="hl">一等公民的架构原语,分成三个明确的层级(tier)</span>,而三个层级最终都汇入同一个地方:<strong>Agent 每次调用时看到的上下文窗口</strong>。</p>
+    <p>上下文窗口本身也变得巨大:<strong>Gemini 达到 100 万+ token,Claude 达到 20 万</strong>。但更大的窗口<strong>并没有消灭对记忆的需求</strong>——它改变的是权衡:<span class="hl">什么东西直接塞进上下文,什么东西按需检索?</span></p>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg" aria-label="记忆三层级汇入上下文窗口">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--teal)"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="30" y="30" width="230" height="76" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="145" y="60" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent-deep)">Tier 1 · 上下文内状态</text>
+        <text x="145" y="84" text-anchor="middle" font-size="12" fill="var(--ink-soft)">memory blocks · 每轮可读可改写</text>
+      </g>
+      <g data-anim>
+        <rect x="295" y="30" width="230" height="76" rx="12" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+        <text x="410" y="60" text-anchor="middle" font-size="15" font-weight="700" fill="var(--teal)">Tier 2 · 向量检索</text>
+        <text x="410" y="84" text-anchor="middle" font-size="12" fill="var(--ink-soft)">pgvector · GraphRAG/Neo4j</text>
+      </g>
+      <g data-anim>
+        <rect x="560" y="30" width="230" height="76" rx="12" fill="var(--indigo-soft)" stroke="var(--indigo)" stroke-width="1.5"/>
+        <text x="675" y="60" text-anchor="middle" font-size="15" font-weight="700" fill="var(--indigo)">Tier 3 · 跨会话持久记忆</text>
+        <text x="675" y="84" text-anchor="middle" font-size="12" fill="var(--ink-soft)">Letta · Zep · Mem0 · 睡眠时计算</text>
+      </g>
+      <path data-draw d="M 145 112 Q 160 190 360 218" fill="none" stroke="var(--teal)" stroke-width="2" marker-end="url(#ar2)"/>
+      <path data-draw d="M 410 112 L 410 210" fill="none" stroke="var(--teal)" stroke-width="2" marker-end="url(#ar2)"/>
+      <path data-draw d="M 675 112 Q 660 190 460 218" fill="none" stroke="var(--teal)" stroke-width="2" marker-end="url(#ar2)"/>
+      <g data-anim>
+        <rect x="250" y="222" width="320" height="72" rx="14" fill="var(--accent-deep)"/>
+        <text x="410" y="252" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">🪟 上下文窗口</text>
+        <text x="410" y="276" text-anchor="middle" font-size="12" fill="rgba(255,255,255,.75)">Agent 每次调用时实际「看到」的全部信息</text>
+      </g>
+    </svg>
+    <div class="fig-cap">图 2 · 记忆的三个层级(原文明确指出):三个 tier 最终都汇入同一个地方——Agent 每次调用所见的上下文窗口。</div>
+  </div>
+
+  <h3>🧩 这层出现的几个新事物</h3>
+  <div class="def" id="ctx-eng">
+    <h4>📐 Context Engineering(上下文工程)</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>它取代了「prompt engineering」成为核心学科:不再是写一个更好的 prompt,而是<strong>架构性地设计 Agent 每次调用应该看到什么信息</strong>。</p></div>
+    <div class="row"><span class="tag tag-why">为什么</span><p>当记忆分成三个层级、窗口大小有限而信息无限时,「放什么进窗口」本身就成了一个需要设计的系统问题,而不是一句话措辞问题。</p></div>
+    <div class="row"><span class="tag tag-eg">例子</span><p>原文给的具体机制是 <span class="term">memory blocks</span>:上下文窗口里的<strong>命名、结构化字段</strong>,Agent 每一轮都可以读取和改写——不再把所有东西倒进 system prompt,而是让 Agent 自己管理状态:留什么、更新什么、丢什么。</p></div>
+  </div>
+
+  <ul class="practice">
+    <li><span class="ic">🐘</span><span><strong>pgvector</strong> 成了「不需要专用向量数据库的团队」的默认选择——它就是加了个扩展的 Postgres。</span></li>
+    <li><span class="ic">🕸️</span><span><strong>GraphRAG</strong> 成为第二种检索选项:不做 embedding 匹配,而是<strong>沿实体之间的关系行走</strong>;这个领域由 <strong>Neo4j</strong> 领跑。</span></li>
+    <li><span class="ic">😴</span><span><strong>Sleep-time compute(睡眠时计算)</strong>——Agent 在空闲时间处理信息——还在研究阶段,但预示着 Tier 3 的走向。</span></li>
+  </ul>
+
+  <div class="callout co-gold"><b class="cap">💬 作者的诚实结论</b>大多数团队把记忆<strong>过度复杂化</strong>了。正确的递进是:<br>① 从 <strong>Postgres 里的对话历史 + 结构化 system prompt</strong> 开始;<br>② 当历史超出上下文限制时,再加<strong>向量检索</strong>;<br>③ 只有当 Agent 需要<strong>跨会话学习</strong>时,才加 agentic 的记忆管理。</div>
+
+  <div class="eval3">
+    <div class="e"><div class="q">状态管理</div><div class="a">这层就是状态层</div><div class="d">你在决定 Agent 记住什么、怎么检索、何时遗忘。<strong>全栈复杂度最高</strong>。</div></div>
+    <div class="e"><div class="q">锁定风险</div><div class="a">中</div><div class="d">pgvector 可迁移(它就是 Postgres);Mem0、Zep 这类专用工具则更难迁走。</div></div>
+    <div class="e"><div class="q">demo→生产鸿沟</div><div class="a">大</div><div class="d">demo 的记忆能用,是因为上下文窗口够大;生产环境里对话一变长,<strong>Agent 就开始忘掉重要的部分</strong>。</div></div>
+  </div>
+
+  <div class="callout co-key"><b class="cap">🏗️ 专用记忆基建什么时候值回票价?</b>当 Agent 需要<strong>跨实例共享记忆</strong>,或者要在<strong>切换模型厂商时保持状态</strong>时,纯上下文内记忆就会失效——这正是 <strong>Letta、Zep、Mem0</strong> 这类专用记忆基础设施的价值所在。</div>
+</section>
+
+<!-- ================================================== 07 -->
+<section id="layer4">
+  <h2>🧰 07 · 第 4 层:框架与 SDK(Frameworks &amp; SDKs)</h2>
+  <div class="h2-sub">怎么把模型调用、工具使用和控制流接在一起:厂商 SDK、图式框架(如 LangGraph),或裸写代码</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-7.png" alt="Frameworks & SDKs: key players" loading="lazy"><div class="fig-cap">原文配图 · 第 4 层「框架与 SDK」的主要玩家 · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+
+  <div class="card">
+    <p><span class="hl">每个主要 AI 实验室现在都在出自己的 Agent SDK</span>:OpenAI 有 Agents SDK(由 Swarm 演化而来),Google 发布了 ADK,Microsoft 有 Semantic Kernel 和 AutoGen,Hugging Face 做了 smolagents。<strong>两年前,LangChain 是唯一的选择;现在你要在三个阵营里挑</strong>——这个选择在 2024 年根本不存在:</p>
+  </div>
+
+  <div class="stats">
+    <div class="s"><div class="v">阵营 A</div><div class="k"><strong>厂商 SDK</strong><br>起步快,但锁死在一家模型上</div></div>
+    <div class="s"><div class="v">阵营 B</div><div class="k"><strong>图式框架(LangGraph)</strong><br>可移植,但需要更多搭建工作</div></div>
+    <div class="s"><div class="v">阵营 C</div><div class="k"><strong>不用框架</strong><br>完全掌控,自己裸写</div></div>
+  </div>
+
+  <div class="card">
+    <p><strong>LangGraph</strong> 坐稳了图式编排的头把交椅:<strong>v1.0 于 2025 年 10 月发布</strong>,生产部署案例包括 <strong>Uber、JPMorgan、LinkedIn、Klarna</strong>。LangChain 的 agent 现在底层就构建在 LangGraph 之上。</p>
+    <p>与此同时,「自己造」阵营也在壮大:2024 年试过 LangChain、跟抽象层搏斗过的团队,现在改写<strong>基于厂商 API + MCP 的薄封装</strong>。不用框架意味着完全掌控——<span class="hl">直到你的 Agent 需要状态管理或复杂分支为止</span>。</p>
+  </div>
+
+  <div class="callout co-teal"><b class="cap">📛 命名澄清(原文特意强调)</b>「LangChain」和「LangGraph」<strong>不是一回事</strong>:LangChain 是<strong>集成层</strong>,负责模型连接器、工具调用、prompt 模板;LangGraph 是<strong>编排引擎</strong>,负责状态、控制流和图。大多数生产团队两者一起用,但 <strong>Agent 逻辑住在 LangGraph 里</strong>。</div>
+
+  <div class="callout co-gold"><b class="cap">💬 作者的诚实结论</b>大多数团队<strong>选的框架太重了</strong>。如果你的 Agent 只是调一个模型和几个工具,你不需要 LangGraph——<strong>一个厂商 SDK 加几个工具调用,比任何图式框架都更快把你送进生产环境</strong>。</div>
+
+  <div class="eval3">
+    <div class="e"><div class="q">状态管理</div><div class="a">三种模式</div><div class="d">厂商 SDK 替你管状态;LangGraph 要求你显式定义每一次状态转移;自己造就自己扛。</div></div>
+    <div class="e"><div class="q">锁定风险</div><div class="a">全栈最高</div><div class="d">编排代码不可移植:一个 LangGraph agent 改写成 CrewAI,就是一个全新的代码库。厂商 SDK 更糟——你同时还被锁死在一家模型上。</div></div>
+    <div class="e"><div class="q">demo→生产鸿沟</div><div class="a">大</div><div class="d">demo 能跑是因为什么都没出错;生产意味着处理工具失败、重试、超时,以及「Agent 行动前需要人审批」。</div></div>
+  </div>
+
+  <div class="callout co-key"><b class="cap">🧭 这层的本质</b>你选的框架决定了你的<strong>迁移成本</strong>:厂商 SDK 起步最快但锁定一家模型;LangGraph 可移植但复杂;自己造给你完全掌控——直到 Agent 超出你封装的能力范围。<strong>MCP 是唯一能横跨三个阵营通用的一层。</strong></div>
+</section>
+
+<!-- ================================================== 08 -->
+<section id="layer5">
+  <h2>📏 08 · 第 5 层:评估与可观测性(Eval &amp; Observability)</h2>
+  <div class="h2-sub">怎么衡量 Agent 有没有把活干好:追踪运行、给输出打分、在用户之前抓住回归</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-8.png" alt="Eval & observability: key players" loading="lazy"><div class="fig-cap">原文配图 · 第 5 层「评估与可观测性」的主要玩家 · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+
+  <div class="card">
+    <p>这一层在 2024 年<strong>几乎不存在</strong>。现在,它是<strong>最大的缺口</strong>。LangChain 的《State of Agent Engineering》调查发现:</p>
+  </div>
+
+  <div class="stats">
+    <div class="s"><div class="v">89%</div><div class="k">有生产 Agent 的团队<br>实现了<strong>可观测性</strong></div></div>
+    <div class="s"><div class="v">52%</div><div class="k">团队真正建立了<br><strong>评估(evals)</strong></div></div>
+    <div class="s"><div class="v">37 个百分点</div><div class="k">这条差距,就是<br><strong>「生产质量死掉的地方」</strong></div></div>
+  </div>
+
+  <h3>🏗️「评估即基础设施」的三层收敛形态</h3>
+  <ol class="steps">
+    <li data-n="1"><b>每个 PR 上跑的快速检查</b><span>Agent 有没有调用正确的工具?</span></li>
+    <li data-n="2"><b>夜间回归测试套件</b><span>用一个 LLM 来评判输出质量(LLM as judge)。</span></li>
+    <li data-n="3"><b>持续的生产监控</b><span>当 Agent 表现漂移(drift)时发出告警。</span></li>
+  </ol>
+
+  <p>面向 Agent 的<strong>专用基准测试</strong>也出现了:<span class="term">Context-Bench</span>(测记忆管理)、<span class="term">Recovery-Bench</span>(测错误恢复)、<span class="term">Terminal-Bench</span>(测 coding agent)。</p>
+
+  <div class="callout co-gold"><b class="cap">💬 作者的诚实结论</b>大多数团队<strong>跳过评估,直到生产环境出事</strong>——到那时他们只能盲调(debugging blind)。没被这个问题困住的团队,都是<strong>在部署之前就把评估建好了</strong>的。</div>
+
+  <div class="eval3">
+    <div class="e"><div class="q">状态管理</div><div class="a">很重要</div><div class="d">你的 Agent 跑了 12 步,第 3 步选错了工具,第 4–12 步从那一刻起就注定完蛋。<strong>如果你的评估只检查最终输出,你永远不会知道原因。</strong></div></div>
+    <div class="e"><div class="q">锁定风险</div><div class="a">中等</div><div class="d">多数工具能导出 OpenTelemetry trace,换可观测性平台可行;但换<strong>评估框架</strong>意味着重建整套测试套件。</div></div>
+    <div class="e"><div class="q">demo→生产鸿沟</div><div class="a">全栈最大</div><div class="d">大多数原型的评估数量是零。你感受不到疼——直到生产用户替你把故障一个个找出来。</div></div>
+  </div>
+
+  <div class="callout co-warn"><b class="cap">🕳️ 未解决的评估难题</b>当前评估工具最强的场景是<strong>单轮对话和工具调用评估</strong>。而<strong>多 Agent 评估、长时程任务(long-horizon)评估、评估会持续学习的 Agent</strong>——这三个都还是未解决的问题。如果你的 Agent 涉及其中任何一个,你需要在现有平台之外<strong>自建评估基础设施</strong>。</div>
+</section>
+
+<!-- ================================================== 09 -->
+<section id="layer6">
+  <h2>🛡️ 09 · 第 6 层:护栏与安全(Guardrails &amp; Safety)</h2>
+  <div class="h2-sub">怎么阻止 Agent 做不该做的事:过滤输入、给工具调用授权、校验输出</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-9.png" alt="Guardrails & safety: key players" loading="lazy"><div class="fig-cap">原文配图 · 第 6 层「护栏与安全」的主要玩家 · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+
+  <div class="card">
+    <p><span class="hl">Agent 护栏已经从 LLM 护栏中分化出来,成为一门独立学科。</span>2024 年,护栏指的是模型的输入/输出过滤器;2026 年,你的 Agent 会<strong>调工具、花钱、采取行动</strong>——护栏的含义变成了:<strong>给工具调用授权、强制执行速率限制、校验 Agent 实际做了什么</strong>。</p>
+    <p>一批「吃过亏」的团队摸出了 <span class="term">guardrails before action(行动前护栏)</span>模式:把授权强制放在<strong>工具执行层</strong>,而不是输出层。原因很朴素:<span class="hl">等你过滤响应的时候,Agent 已经把那封邮件发出去了</span>。</p>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" aria-label="输出层过滤 vs 工具执行层授权">
+      <defs>
+        <marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-faint)"/></marker>
+      </defs>
+      <g data-anim><text x="205" y="34" text-anchor="middle" font-size="15" font-weight="700" fill="var(--warn)">❌ 旧思路:在输出层过滤</text></g>
+      <g data-anim>
+        <rect x="80" y="52" width="250" height="46" rx="10" fill="var(--card)" stroke="var(--ink-faint)"/>
+        <text x="205" y="81" text-anchor="middle" font-size="13.5" fill="var(--ink)">Agent 决定行动</text>
+      </g>
+      <path data-draw d="M 205 98 L 205 126" stroke="var(--ink-faint)" stroke-width="2" fill="none" marker-end="url(#ar3)"/>
+      <g data-anim>
+        <rect x="80" y="130" width="250" height="46" rx="10" fill="var(--warn-soft)" stroke="var(--warn)"/>
+        <text x="205" y="159" text-anchor="middle" font-size="13.5" fill="var(--warn)">🛠️ 工具执行:📧 邮件已发出</text>
+      </g>
+      <path data-draw d="M 205 176 L 205 204" stroke="var(--ink-faint)" stroke-width="2" fill="none" marker-end="url(#ar3)"/>
+      <g data-anim>
+        <rect x="80" y="208" width="250" height="46" rx="10" fill="var(--card)" stroke="var(--ink-faint)"/>
+        <text x="205" y="237" text-anchor="middle" font-size="13.5" fill="var(--ink)">🧹 过滤响应 —— 为时已晚</text>
+      </g>
+      <g data-anim><text x="615" y="34" text-anchor="middle" font-size="15" font-weight="700" fill="var(--teal)">✅ 新模式:行动前护栏</text></g>
+      <g data-anim>
+        <rect x="490" y="52" width="250" height="46" rx="10" fill="var(--card)" stroke="var(--ink-faint)"/>
+        <text x="615" y="81" text-anchor="middle" font-size="13.5" fill="var(--ink)">Agent 决定行动</text>
+      </g>
+      <path data-draw d="M 615 98 L 615 126" stroke="var(--ink-faint)" stroke-width="2" fill="none" marker-end="url(#ar3)"/>
+      <g data-anim>
+        <rect x="490" y="130" width="250" height="46" rx="10" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="615" y="152" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--teal)">🛡️ 工具执行层授权检查</text>
+        <text x="615" y="169" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">授权 · 速率限制 · 校验</text>
+      </g>
+      <path data-draw d="M 615 176 L 615 204" stroke="var(--ink-faint)" stroke-width="2" fill="none" marker-end="url(#ar3)"/>
+      <g data-anim>
+        <rect x="490" y="208" width="250" height="46" rx="10" fill="var(--card)" stroke="var(--teal)"/>
+        <text x="615" y="237" text-anchor="middle" font-size="13.5" fill="var(--ink)">只有被批准的行动才会执行</text>
+      </g>
+      <g data-anim><text x="410" y="310" text-anchor="middle" font-size="12.5" fill="var(--ink-faint)">「等你过滤响应的时候,Agent 已经把那封邮件发出去了。」</text></g>
+    </svg>
+    <div class="fig-cap">图 3 · 护栏位置的关键差异:输出层过滤(左)在行动发生之后才介入;「行动前护栏」模式(右)把授权卡在工具执行层。</div>
+  </div>
+
+  <div class="card">
+    <p>其他进展:<strong>OWASP 发布了 MCP Top 10(beta 版)</strong>——第一份真正面向「连接工具的 Agent」的安全检查清单。而<strong>部署这块仍然是 DIY 状态</strong>:LangGraph Cloud 和 Bedrock Agents 确实存在,但大多数生产团队仍在用 <strong>FastAPI + 自己的基础设施</strong>部署。作者提醒:<span class="hl">这一层是你将花掉最多计划外工程时间的地方</span>。</p>
+  </div>
+
+  <div class="callout co-gold"><b class="cap">💬 作者的诚实结论</b>这是全栈<strong>最不成熟的一层</strong>:没有占主导的框架,没有成型的模式,你是在<strong>从零手写策略代码(policy code)</strong>。</div>
+
+  <div class="eval3">
+    <div class="e"><div class="q">状态管理</div><div class="a">需要实时状态</div><div class="d">护栏必须知道 Agent「此刻正在做什么」,才能决定它「接下来不该做什么」——这意味着实时追踪 Agent 状态。</div></div>
+    <div class="e"><div class="q">锁定风险</div><div class="a">低</div><div class="d">因为大多数护栏就是你自己写的自定义策略代码。NeMo Guardrails 是最接近「框架」的东西,但大部分规则你仍要自己从头写。</div></div>
+    <div class="e"><div class="q">demo→生产鸿沟</div><div class="a">实际上是无限大</div><div class="d">你的 demo 没有护栏,因为没有人试图攻破它。<strong>生产环境会有。</strong></div></div>
+  </div>
+
+  <div class="callout co-warn"><b class="cap">🕳️ 多 Agent 场景的未解难题</b>当前护栏工具聚焦于<strong>单 Agent 系统</strong>。如果你跑的是「Agent 互相委派」的多 Agent 工作流,<strong>护栏如何跨 Agent 边界传播</strong>还是未解决的问题——你需要自定义授权逻辑。</div>
+</section>
+
+<!-- ================================================== 10 -->
+<section id="building">
+  <h2>🎯 10 · 你在造哪种 Agent?</h2>
+  <div class="h2-sub">切穿框架困惑的那个决定:Agent 类型决定你投资哪几层、每层选什么工具</div>
+
+  <div class="def">
+    <h4>① 🔍 无状态工具调用器(stateless tool caller)—— 周末项目</h4>
+    <div class="row"><span class="tag tag-what">做什么</span><p>基于知识库回答问题、查一笔订单、查库存。</p></div>
+    <div class="row"><span class="tag tag-why">需要什么</span><p>一个厂商 SDK + MCP + Postgres。<strong>不需要框架,不需要向量数据库。</strong></p></div>
+    <div class="row"><span class="tag tag-eg">量级</span><p>原文原话:这是一个「周末项目(weekend project)」。</p></div>
+  </div>
+
+  <div class="def">
+    <h4>② 🔁 多步工作流(multistep workflow)—— 先建评估再部署</h4>
+    <div class="row"><span class="tag tag-what">做什么</span><p>端到端处理一笔退款、跨五个文件评审一个 PR、对支持工单做分诊和路由。</p></div>
+    <div class="row"><span class="tag tag-why">难在哪</span><p>步骤之间相互依赖、事情会在中途失败、Agent 行动前需要人来审批。</p></div>
+    <div class="row"><span class="tag tag-eg">需要什么</span><p>LangGraph + MCP + 评估。<strong>部署前先建评估</strong>——因为这类 Agent 的失败是无声的(break silently)。</p></div>
+  </div>
+
+  <div class="def">
+    <h4>③ 📚 会学习的 Agent(an agent that learns)—— 记忆优先</h4>
+    <div class="row"><span class="tag tag-what">做什么</span><p>跨会话记住你的偏好、随时间越来越熟悉你的代码库、跨数周追踪项目上下文。</p></div>
+    <div class="row"><span class="tag tag-why">需要什么</span><p>记忆优先(memory-first)的架构 + 向量数据库 + 评估。</p></div>
+    <div class="row"><span class="tag tag-eg">真正的难点</span><p>编排是容易的部分;难的是决定<strong>记住什么、丢掉什么,以及怎么防止旧上下文污染新答案</strong>。</p></div>
+  </div>
+
+  <div class="def">
+    <h4>④ 🕸️ 多 Agent 系统(multi-agent system)—— 需要全栈</h4>
+    <div class="row"><span class="tag tag-what">做什么</span><p>Agent 向其他 Agent 委派任务、把研究任务拆给多个专家、并行运行多条工作流。</p></div>
+    <div class="row"><span class="tag tag-why">需要什么</span><p><strong>完整的六层栈</strong>。</p></div>
+    <div class="row"><span class="tag tag-eg">警示</span><p>两个 Agent 互传上下文就已经很难调试了;<strong>五个 Agent,如果每次交接(handoff)上没有 trace 级评估,根本不可能调</strong>。原文建议:<span class="hl">先建评估基础设施,再建第二个 Agent</span>。</p></div>
+  </div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-10.png" alt="Pick your stack" loading="lazy"><div class="fig-cap">原文配图 · 按 Agent 类型选栈的决策图(Pick your stack) · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+</section>
+
+<!-- ================================================== 11 -->
+<section id="coding">
+  <h2>💻 11 · Coding Agent:六层全开的实战样本</h2>
+  <div class="h2-sub">Cursor、Claude Code、Codex、Windsurf —— 这套栈迄今最被验证的应用</div>
+
+  <p>作者称 coding agent 是 AI Agent 栈<strong>最被验证(most proven)的应用</strong>——六层全部同时在运转:</p>
+
+  <div class="tbl-wrap"><table>
+    <tr><th>层</th><th>Coding Agent 里的实际形态</th></tr>
+    <tr><td><b>🖥️ 推理层</b></td><td>这些工具每天服务<strong>数亿次请求</strong>。Cursor 会根据任务在 Claude、GPT-4 和自家微调模型之间做路由。</td></tr>
+    <tr><td><b>🔌 协议层</b></td><td>MCP server 连接编辑器、终端、文件系统和 Git——这就是 Agent 读你的代码、跑命令的方式。</td></tr>
+    <tr><td><b>🧠 记忆层</b></td><td>代码库感知(codebase-aware)的检索 + 重排(reranking)。Agent 不会读你的整个仓库,而是<strong>只取出与这次编辑相关的文件</strong>。</td></tr>
+    <tr><td><b>🧰 框架层</b></td><td>带 RL 循环的<strong>自研编排系统</strong>——不是 LangGraph,也不是厂商 SDK,而是为代码生成、评审、迭代专门打造的控制流。</td></tr>
+    <tr><td><b>📏 评估层</b></td><td>Cursor 根据用户接受/拒绝建议的行为,<strong>每 90 分钟重新训练一次它的接受率模型</strong>——这就是「评估在生产中持续运行」。</td></tr>
+    <tr><td><b>🛡️ 护栏层</b></td><td><strong>沙箱化执行</strong>防止 Agent 失控:它可以写代码、跑代码,但被限制在一个容器里,能碰的东西有限。</td></tr>
+  </table></div>
+</section>
+
+<!-- ================================================== 12 -->
+<section id="cheatsheet">
+  <h2>📋 12 · 技术栈速查表(Cheat Sheet)</h2>
+  <div class="h2-sub">每一层按第 03 节的三个问题打分:状态管理 · 厂商锁定 · demo→生产鸿沟</div>
+
+  <div class="src-fig"><img src="assets/agents-stack-2026/image-11.png" alt="The agent stack cheat sheet" loading="lazy"><div class="fig-cap">原文配图 · 原文速查表(The agent stack cheat sheet);下表为中文转写 · 出处:<a href="https://www.oreilly.com/radar/the-ai-agents-stack-2026-edition/" target="_blank" rel="noopener">O'Reilly Radar 原文</a></div></div>
+
+
+  <div class="tbl-wrap"><table>
+    <tr><th>层</th><th>🧳 状态管理</th><th>🔒 锁定风险</th><th>🕳️ demo→生产鸿沟</th></tr>
+    <tr><td><b>1 · 模型与推理</b></td><td>无(API 无状态)</td><td><span class="pill p-high">闭源高</span> <span class="pill p-low">开源低</span></td><td><span class="pill p-low">全栈最小</span></td></tr>
+    <tr><td><b>2 · 协议与工具</b></td><td>不存在(调完即走)</td><td><span class="pill p-low">低(MCP 开放标准)</span></td><td><span class="pill p-mid">中(安全与治理)</span></td></tr>
+    <tr><td><b>3 · 记忆与知识</b></td><td>本身就是状态层,复杂度全栈最高</td><td><span class="pill p-mid">中(pgvector 可迁,专用工具难迁)</span></td><td><span class="pill p-high">大(长对话开始遗忘)</span></td></tr>
+    <tr><td><b>4 · 框架与 SDK</b></td><td>SDK 代管 / LangGraph 显式 / DIY 自扛</td><td><span class="pill p-high">全栈最高(编排代码不可移植)</span></td><td><span class="pill p-high">大(失败/重试/超时/人审)</span></td></tr>
+    <tr><td><b>5 · 评估与可观测</b></td><td>很重要(要看清中间步骤)</td><td><span class="pill p-mid">中(OTel 可迁,评估套件难迁)</span></td><td><span class="pill p-high">全栈最大(原型零评估)</span></td></tr>
+    <tr><td><b>6 · 护栏与安全</b></td><td>需要实时追踪 Agent 状态</td><td><span class="pill p-low">低(多为自写策略代码)</span></td><td><span class="pill p-high">实际上无限大</span></td></tr>
+  </table></div>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 440" xmlns="http://www.w3.org/2000/svg" aria-label="六层技术栈分层图">
+      <g data-anim>
+        <rect x="120" y="20" width="580" height="54" rx="10" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.5"/>
+        <text x="410" y="43" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--warn)">第 6 层 · 🛡️ 护栏与安全</text>
+        <text x="410" y="62" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">工具调用授权 · 速率限制 · 输出校验(最不成熟)</text>
+      </g>
+      <g data-anim>
+        <rect x="120" y="84" width="580" height="54" rx="10" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="1.5"/>
+        <text x="410" y="107" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--gold)">第 5 层 · 📏 评估与可观测性</text>
+        <text x="410" y="126" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">追踪 · 打分 · 回归拦截(89% 有观测,仅 52% 有评估)</text>
+      </g>
+      <g data-anim>
+        <rect x="120" y="148" width="580" height="54" rx="10" fill="var(--indigo-soft)" stroke="var(--indigo)" stroke-width="1.5"/>
+        <text x="410" y="171" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--indigo)">第 4 层 · 🧰 框架与 SDK</text>
+        <text x="410" y="190" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">厂商 SDK / LangGraph / 裸写(锁定风险全栈最高)</text>
+      </g>
+      <g data-anim>
+        <rect x="120" y="212" width="580" height="54" rx="10" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+        <text x="410" y="235" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--teal)">第 3 层 · 🧠 记忆与知识</text>
+        <text x="410" y="254" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">上下文内状态 / 向量检索 / 持久记忆(状态复杂度最高)</text>
+      </g>
+      <g data-anim>
+        <rect x="120" y="276" width="580" height="54" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="410" y="299" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--accent-deep)">第 2 层 · 🔌 协议与工具</text>
+        <text x="410" y="318" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">MCP · 浏览器自动化 · ACP/A2A(MCP 已胜出)</text>
+      </g>
+      <g data-anim>
+        <rect x="120" y="340" width="580" height="54" rx="10" fill="var(--accent-deep)"/>
+        <text x="410" y="363" text-anchor="middle" font-size="14.5" font-weight="700" fill="#fff">第 1 层 · 🖥️ 模型与推理</text>
+        <text x="410" y="382" text-anchor="middle" font-size="11.5" fill="rgba(255,255,255,.75)">API / 托管开源权重 / 自建(最稳定,正在商品化)</text>
+      </g>
+      <g data-anim>
+        <text x="60" y="52" text-anchor="middle" font-size="12" fill="var(--warn)">最不</text>
+        <text x="60" y="70" text-anchor="middle" font-size="12" fill="var(--warn)">成熟</text>
+        <text x="60" y="360" text-anchor="middle" font-size="12" fill="var(--teal)">最</text>
+        <text x="60" y="378" text-anchor="middle" font-size="12" fill="var(--teal)">稳定</text>
+      </g>
+      <path data-draw d="M 60 340 L 60 90" stroke="var(--ink-faint)" stroke-width="1.5" fill="none" marker-end="url(#ar3)"/>
+      <g data-anim>
+        <text x="410" y="424" text-anchor="middle" font-size="12" fill="var(--ink-faint)">阅读顺序:自底向上,从最稳定到最不成熟</text>
+      </g>
+    </svg>
+    <div class="fig-cap">图 4 · 2026 年的六层 Agent 技术栈总览:底层(模型与推理)最稳定,越往上越不成熟,顶层(护栏与安全)几乎全靠自写。</div>
+  </div>
+</section>
+
+<!-- ================================================== 13 -->
+<section id="bigpicture">
+  <h2>🔭 13 · 更大的图景</h2>
+  <div class="h2-sub">大多数团队还在按 2024 年的方式盖楼;而这个栈本身,正在走向坍缩</div>
+
+  <div class="cases">
+    <div class="c bad">
+      <h5>❌ 大多数团队的现状(像还活在 2024)</h5>
+      <p>· 还不知道自己需不需要状态,就先选了 LangGraph;</p>
+      <p>· 还没用爆 Postgres,就先加了向量数据库;</p>
+      <p>· 一个能跑的 Agent 都还没发布,就开始设计多 Agent 架构;</p>
+      <p>· 没有评估、只做输出过滤、system prompt 一直膨胀到把上下文窗口噎死。</p>
+    </div>
+    <div class="c good">
+      <h5>✅ 走出来的团队在做什么</h5>
+      <p>· <strong>每次部署</strong>都跑评估,而不是一个季度跑一次;</p>
+      <p>· 护栏放在<strong>工具调用层</strong>,而不是输出层;</p>
+      <p>· 记忆架构是<strong>设计出来的</strong>,不是从框架默认值里继承来的。</p>
+    </div>
+  </div>
+
+  <p>前文那张决策流程之所以存在,是因为<span class="hl">一个工具调用型聊天机器人和一个多 Agent 研究系统,几乎不共享任何基础设施</span>。把它们当同一种东西对待,你会<strong>把前者盖过头、把后者盖不够</strong>。作者点破:这中间的差距<strong>不是天赋,也不是预算</strong>——是「知道哪几层对你这个具体的 Agent 重要」,而不是六层每层都盖一半。</p>
+
+  <div class="quote-box">
+    「这个栈将会坍缩(collapse)。」厂商 SDK 已经在把记忆、工具调用和基础评估吸收进单一 API。到 <strong>2027 年初</strong>,大多数团队将不再单独构建每一层,而是从模型厂商那里拿到一套越来越有主见(opinionated)的栈——这对 <strong>80% 的用例</strong>来说没问题。剩下 <strong>20%</strong>(规模化运行、默认配置撑不住的 Agent)仍会在每一层自建。<br>
+    <span class="who">—— 但即便到那时,当生产环境出故障,你仍然需要知道<strong>是哪一层坏了</strong>。这正是这篇文章存在的意义。</span>
+  </div>
+</section>
+
+<!-- ================================================== 14 -->
+<section id="sources">
+  <h2>📚 14 · 来源清单(原文引用)</h2>
+  <div class="card">
+    <ul class="plain" style="font-size:14.5px;color:var(--ink-soft)">
+      <li>“The AI Agents Stack”,Letta,2024 年 11 月。</li>
+      <li>“Donating the Model Context Protocol and Establishing the Agentic AI Foundation”,Anthropic,2025 年 12 月。</li>
+      <li>“120+ Agentic AI Tools Mapped Across 11 Categories [2026]”,StackOne,2026 年 2 月。</li>
+      <li>Henrik Plate & Darren Meyer,《Dependency Management Report》,Endor Labs,2026 年 1 月。</li>
+      <li>Jason Liu,《Context Engineering Series: Building Better Agentic RAG Systems》,2025 年 8 月。</li>
+      <li>“LangChain and LangGraph Agent Frameworks Reach v1.0 Milestones”,LangChain,2025 年 10 月。</li>
+      <li>《State of Agent Engineering》,LangChain,2025 年 12 月。</li>
+      <li>Yunfei Bai、Allie Colin、Kashif Imran、Winnie Xiong,“Evaluating AI Agents: Real-World Lessons from Building Agentic Systems at Amazon”,Amazon,2026 年 2 月。</li>
+      <li>OWASP MCP Top 10,OWASP。</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  📄 本文档整理自 Paolo Perrone《The AI Agents Stack (2026 Edition)》,原载于作者的 The AI Engineer Substack,经授权转载于 O'Reilly Radar(2026-06-08)。<br>
+  🛠️ 处理方式:逐信息点中文整理(不删、不改、不压缩)+ 概念展开与 SVG 可视化。原文 9 张信息型配图已本地化收录(.src-fig 标注出处);图 1–4 为帮助理解另绘的结构示意;「换个说法」折叠块内容为解释性增补,已明确标注,非原文内容。
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var sections=[].slice.call(document.querySelectorAll('section[id]'));
+  var links=[].slice.call(document.querySelectorAll('.side-toc a'));
+  var stBar=document.getElementById('stBar'),stPct=document.getElementById('stPct'),top=document.getElementById('topProgress');
+  var toc=document.getElementById('sideToc'),btn=document.getElementById('tocBtn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  toc.addEventListener('click',function(e){if(e.target.closest('a')&&window.innerWidth<1180)toc.classList.remove('open')});
+  function onScroll(){
+    var h=document.documentElement,max=h.scrollHeight-h.clientHeight,p=max>0?Math.min(100,Math.round(h.scrollTop/max*100)):0;
+    stBar.style.width=p+'%';stPct.textContent=p+'%';top.style.width=p+'%';
+    var cur=sections[0]?sections[0].id:'';
+    for(var i=0;i<sections.length;i++){if(sections[i].getBoundingClientRect().top<window.innerHeight*0.35)cur=sections[i].id}
+    links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+cur)});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+  if(reduce){figs.forEach(function(f){f.classList.add('shown')});return}
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(p){
+      var len=p.getTotalLength?p.getTotalLength():300;
+      p.style.strokeDasharray=len;p.style.strokeDashoffset=len;
+    });
+  });
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(!en.isIntersecting)return;
+      var f=en.target;f.classList.add('shown');
+      var items=f.querySelectorAll('[data-anim]');
+      items.forEach(function(el,i){setTimeout(function(){el.classList.add('in')},200+i*160)});
+      var draws=f.querySelectorAll('[data-draw]');
+      draws.forEach(function(p,i){setTimeout(function(){p.style.strokeDashoffset=0},400+i*260)});
+      io.unobserve(f);
+    });
+  },{threshold:0.2});
+  figs.forEach(function(f){io.observe(f)});
+})();
+</script>
+</body>
+</html>
