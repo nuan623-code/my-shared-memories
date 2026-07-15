@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>程序化工具调用(PTC)深度学习文档 · 2026-07-15</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1c2b3a; --ink2:#4a5d70;
+  --blue:#1565d8; --blue-d:#0d2f5e; --blue-l:#e3eefc; --accent:#2e86ff;
+  --warn-bg:#fff7e8; --warn-bd:#e8a23d; --ok:#1f9d55; --code-bg:#0f2237;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.88}
+#progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--accent));width:0%;z-index:99}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 80px}
+header.hero{background:linear-gradient(135deg,#0d2f5e 0%,#134a8e 60%,#1565d8 100%);color:#fff;padding:64px 24px 56px;border-radius:0 0 28px 28px;text-align:center}
+header.hero h1{font-size:1.9em;line-height:1.4;margin-bottom:14px}
+header.hero p{color:#cfe0f7;max-width:640px;margin:0 auto;font-size:.95em}
+header.hero .tags{margin-top:18px}
+header.hero .tag{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:3px 14px;margin:4px;font-size:.8em}
+section{background:var(--card);border-radius:18px;padding:34px 30px;margin:26px 0;box-shadow:0 2px 14px rgba(13,47,94,.06)}
+section h2{color:var(--blue-d);font-size:1.45em;margin-bottom:18px;padding-bottom:10px;border-bottom:3px solid var(--blue-l)}
+section h3{color:var(--blue);font-size:1.15em;margin:26px 0 10px}
+p{margin:12px 0}
+a{color:var(--blue);text-decoration:none;border-bottom:1px dashed #9dbfe8}
+a:hover{border-bottom-style:solid}
+strong{color:var(--blue-d)}
+ul,ol{padding-left:1.4em;margin:12px 0}
+li{margin:6px 0}
+code{background:var(--blue-l);color:#0d3d7a;padding:2px 7px;border-radius:6px;font-size:.86em;font-family:"SF Mono",Menlo,Consolas,monospace}
+pre{background:var(--code-bg);color:#d8e8fb;padding:18px 20px;border-radius:12px;overflow-x:auto;font-size:.82em;line-height:1.7;margin:14px 0}
+pre code{background:none;color:inherit;padding:0;font-size:1em}
+.figure{margin:24px 0;text-align:center}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:.85em;color:var(--ink2);margin-top:8px}
+.def{border-left:5px solid var(--blue);background:var(--blue-l);border-radius:0 12px 12px 0;padding:16px 20px;margin:16px 0}
+.def .d1{font-weight:700;color:var(--blue-d)}
+.def .d2{margin-top:6px}
+.def .d3{margin-top:6px;font-size:.92em;color:var(--ink2)}
+.callout{border-radius:12px;padding:16px 20px;margin:16px 0}
+.callout.key{background:var(--blue-l);border:1px solid #b9d4f5}
+.callout.warn{background:var(--warn-bg);border:1px solid #f0cf9a}
+.callout .ct{font-weight:700;margin-bottom:6px}
+.steps{counter-reset:st;margin:18px 0}
+.step{position:relative;padding:14px 16px 14px 58px;background:#f7fafd;border:1px solid #dde9f6;border-radius:12px;margin:10px 0}
+.step::before{counter-increment:st;content:counter(st);position:absolute;left:16px;top:14px;width:30px;height:30px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9em}
+.step b{color:var(--blue-d)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:18px 0}
+.stat{background:linear-gradient(160deg,#f2f8ff,#e5f0fd);border:1px solid #cfe2f8;border-radius:14px;padding:16px;text-align:center}
+.stat .n{font-size:1.5em;font-weight:800;color:var(--blue)}
+.stat .l{font-size:.82em;color:var(--ink2);margin-top:4px;line-height:1.5}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.92em}
+th{background:var(--blue-d);color:#fff;padding:10px 12px;text-align:left}
+td{padding:10px 12px;border-bottom:1px solid #e3edf8;vertical-align:top}
+tr:nth-child(even) td{background:#f7fafd}
+.analogy{background:#f0fbf4;border:1px solid #bfe8cd;border-radius:12px;padding:16px 20px;margin:16px 0}
+.analogy .at{font-weight:700;color:#137a44;margin-bottom:6px}
+.glossary dt{font-weight:700;color:var(--blue-d);margin-top:12px}
+.glossary dd{margin-left:0;color:var(--ink2);font-size:.95em}
+#toc{position:fixed;left:18px;top:90px;width:210px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #d7e5f5;border-radius:14px;padding:14px;font-size:.82em;z-index:90;max-height:74vh;overflow-y:auto}
+#toc .tt{font-weight:800;color:var(--blue-d);margin-bottom:8px}
+#toc a{display:block;padding:4px 8px;border-radius:8px;color:var(--ink2);border-bottom:none;line-height:1.5}
+#toc a.on{background:var(--blue);color:#fff}
+#tocbtn{display:none;position:fixed;left:14px;bottom:18px;z-index:95;background:var(--blue);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:1.2em;box-shadow:0 4px 12px rgba(13,47,94,.3)}
+footer{color:var(--ink2);font-size:.85em;padding:10px 4px 30px}
+footer h4{color:var(--blue-d);margin:14px 0 6px}
+@media(max-width:1280px){
+  #toc{display:none}
+  #toc.open{display:block;left:14px;bottom:76px;top:auto}
+  #tocbtn{display:block}
+}
+@media(max-width:600px){
+  body{font-size:16px}
+  section{padding:26px 18px}
+  header.hero{padding:48px 18px 40px}
+  header.hero h1{font-size:1.5em}
+}
+@media(prefers-reduced-motion:no-preference){
+  .figure svg [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .7s ease,transform .7s ease}
+  .figure.seen svg [data-anim]{opacity:1;transform:none}
+  .figure svg [data-draw]{stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.4s ease .3s}
+  .figure.seen svg [data-draw]{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<nav id="toc">
+  <div class="tt">📑 目录</div>
+  <a href="#s0">开篇速览</a>
+  <a href="#s1">背景与动机</a>
+  <a href="#s2">核心概念</a>
+  <a href="#s3">工作原理</a>
+  <a href="#s4">怎么用:完整流程</a>
+  <a href="#s5">四种高级模式</a>
+  <a href="#s6">效果数据与适用场景</a>
+  <a href="#s7">对比与选型</a>
+  <a href="#s8">常见坑与限制</a>
+  <a href="#s9">学习资源</a>
+</nav>
+<button id="tocbtn" aria-label="目录">☰</button>
+
+<header class="hero">
+  <h1>程序化工具调用<br>Programmatic Tool Calling(PTC)</h1>
+  <p>让模型「写代码来调工具」,而不是「每调一次工具就回模型一次」——Claude 平台高级工具使用三件套中,对 Agent 工程影响最深的一项。</p>
+  <div class="tags"><span class="tag">Agent 工程</span><span class="tag">Tool Use</span><span class="tag">上下文效率</span><span class="tag">调研日期 2026-07-15</span></div>
+</header>
+
+<div class="wrap">
+
+<section id="s0">
+<h2>⚡ 开篇速览:30 秒版本</h2>
+<p>传统的工具调用,每调一次工具,结果都要<strong>原封不动塞回模型的上下文</strong>,模型看完再决定下一步——调 20 次工具就是 20 次模型往返,几千条中间数据全堆在上下文里。</p>
+<p><strong>程序化工具调用(PTC)</strong>换了个思路:Claude 直接<strong>写一段 Python 脚本</strong>,在沙箱容器里运行,脚本内部去调用你的工具、循环、过滤、汇总,<strong>中间结果一概不进模型上下文</strong>,Claude 只看到脚本最后 print 出来的结论。</p>
+<div class="figure" id="f1">
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="传统工具调用与程序化工具调用的对比图">
+  <text x="180" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#0d2f5e" data-anim>传统工具调用</text>
+  <text x="540" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#0d2f5e" data-anim>程序化工具调用(PTC)</text>
+  <g data-anim>
+    <rect x="60" y="45" width="240" height="46" rx="10" fill="#0d2f5e"/>
+    <text x="180" y="73" text-anchor="middle" font-size="13" fill="#fff">模型(每一步都要思考一次)</text>
+  </g>
+  <g data-anim>
+    <rect x="60" y="205" width="240" height="46" rx="10" fill="#e3eefc" stroke="#1565d8"/>
+    <text x="180" y="233" text-anchor="middle" font-size="13" fill="#0d3d7a">工具 ×20</text>
+  </g>
+  <g stroke="#c25b2a" stroke-width="2" fill="none">
+    <path d="M120 91 L120 205" data-draw/>
+    <path d="M160 205 L160 91" data-draw/>
+    <path d="M200 91 L200 205" data-draw/>
+    <path d="M240 205 L240 91" data-draw/>
+  </g>
+  <text x="180" y="160" text-anchor="middle" font-size="12" fill="#c25b2a" data-anim>20 次往返,中间结果全进上下文</text>
+  <g data-anim>
+    <rect x="420" y="45" width="240" height="46" rx="10" fill="#0d2f5e"/>
+    <text x="540" y="73" text-anchor="middle" font-size="13" fill="#fff">模型(写一段脚本,等最终结果)</text>
+  </g>
+  <g data-anim>
+    <rect x="420" y="128" width="240" height="46" rx="10" fill="#1565d8"/>
+    <text x="540" y="156" text-anchor="middle" font-size="13" fill="#fff">沙箱容器:脚本循环调工具、过滤</text>
+  </g>
+  <g data-anim>
+    <rect x="420" y="205" width="240" height="46" rx="10" fill="#e3eefc" stroke="#1565d8"/>
+    <text x="540" y="233" text-anchor="middle" font-size="13" fill="#0d3d7a">工具 ×20</text>
+  </g>
+  <g stroke="#1f9d55" stroke-width="2.5" fill="none">
+    <path d="M540 91 L540 128" data-draw/>
+    <path d="M540 174 L540 205" data-draw/>
+  </g>
+  <text x="540" y="278" text-anchor="middle" font-size="12" fill="#1f9d55" data-anim>模型只看到最终汇总,1 次往返</text>
+</svg>
+<div class="fig-cap">同一个「调 20 次工具」的任务:左边模型往返 20 次;右边脚本在沙箱里跑完,模型只拿结论。(依据官方文档描述绘制)</div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="n">-37%</div><div class="l">复杂研究任务平均 token 消耗(43,588 → 27,297)</div></div>
+  <div class="stat"><div class="n">+11%</div><div class="l">BrowseComp / DeepSearchQA 等搜索基准平均提升</div></div>
+  <div class="stat"><div class="n">-38%</div><div class="l">75 工具项目管理 Agent 基准的计费输入 token</div></div>
+</div>
+<p style="font-size:.85em;color:var(--ink2)">数据来源:Anthropic 官方文档与工程博客(见文末来源清单),不同工作负载差异很大,后文有「什么时候反而更贵」的说明。</p>
+</section>
+
+<section id="s1">
+<h2>🧭 背景与动机:它解决什么痛点</h2>
+<p>要理解 PTC,先看传统工具调用在任务变复杂后暴露的两个问题——这两个问题官方工程博客里讲得很直白:</p>
+<h3>痛点一:中间结果污染上下文</h3>
+<p>让 Claude 分析一个 10MB 日志文件里的报错规律,传统做法是整个文件进上下文——哪怕 Claude 真正需要的只是「每类错误出现了多少次」这一行摘要。跨多张表查客户数据,每条记录不管有用没用都会堆进上下文,把真正重要的信息挤出窗口。</p>
+<h3>痛点二:每次调用都是一次完整推理</h3>
+<p>每个工具调用都要模型完整推理一遍。调完之后,模型还得用「肉眼」在自然语言层面读数据、比大小、拼结论。一个 5 步工具流就是 5 次推理 + 5 次人肉式解析,又慢又容易错。</p>
+<div class="analogy">
+<div class="at">🍜 类比:老板与助理</div>
+<p>传统工具调用像一个事必躬亲的老板:每查一个数字,下属都要跑回办公室汇报全部原始材料,老板看完再派下一个活。PTC 则像老板写了一张<strong>清晰的任务清单</strong>交给助理:「把 20 个人的报销都查一遍,只把超预算的名字报给我」。老板(模型)只被打扰一次,桌上(上下文)也不会堆满原始票据。</p>
+</div>
+<h3>发展脉络</h3>
+<p>这个思路并非凭空出现。官方博客明确致谢了业界同类探索:Cloudflare 的 Code Mode、Anthropic 自己的《Code Execution as MCP》等——「让模型用代码编排工具」在 2025 年已是社区共识方向。Anthropic 于 <strong>2025 年 11 月 24 日</strong>把它作为 beta 功能(与 Tool Search Tool、Tool Use Examples 一起,合称「高级工具使用」)正式产品化;截至本文调研时(2026-07),官方文档已将其作为正式能力,依赖 <code>code_execution_20260120</code> 及以后版本的代码执行工具。官方产品 <strong>Claude for Excel</strong> 就用 PTC 读写数千行的表格而不撑爆上下文。</p>
+<div class="figure" id="f2">
+<svg viewBox="0 0 720 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PTC 发展时间线">
+  <line x1="50" y1="65" x2="670" y2="65" stroke="#1565d8" stroke-width="3" data-draw/>
+  <g data-anim><circle cx="120" cy="65" r="8" fill="#0d2f5e"/><text x="120" y="40" text-anchor="middle" font-size="12" fill="#0d2f5e">2025 前后</text><text x="120" y="100" text-anchor="middle" font-size="11" fill="#4a5d70">社区探索:Code Mode 等</text></g>
+  <g data-anim><circle cx="360" cy="65" r="8" fill="#1565d8"/><text x="360" y="40" text-anchor="middle" font-size="12" fill="#0d2f5e">2025-11-24</text><text x="360" y="100" text-anchor="middle" font-size="11" fill="#4a5d70">Anthropic 发布 beta(三件套)</text></g>
+  <g data-anim><circle cx="600" cy="65" r="8" fill="#1f9d55"/><text x="600" y="40" text-anchor="middle" font-size="12" fill="#0d2f5e">2026-07(调研时)</text><text x="600" y="100" text-anchor="middle" font-size="11" fill="#4a5d70">正式能力,code_execution_20260120+</text></g>
+</svg>
+<div class="fig-cap">PTC 从社区模式到官方正式能力的时间线(依据官方博客与文档整理)</div>
+</div>
+</section>
+
+<section id="s2">
+<h2>🧩 核心概念</h2>
+<div class="def">
+<div class="d1">程序化工具调用(Programmatic Tool Calling, PTC)</div>
+<div class="d2">Claude 在代码执行(code execution)沙箱容器中,用自己写的 Python 代码去调用你定义的工具。脚本可以循环、并行、加条件判断、过滤结果;工具的中间返回值由脚本消化,不进模型上下文,只有代码的最终输出回到模型。</div>
+<div class="d3">官方定义参考:「allows Claude to write code that calls your tools programmatically within a code execution container, rather than requiring round trips through the model for each tool invocation.」</div>
+</div>
+<h3>三个必须搞懂的字段/机制</h3>
+<dl class="glossary">
+<dt>1. allowed_callers ——「这个工具允许谁来调」</dt>
+<dd>加在工具定义上的字段。<code>["direct"]</code> 表示只让模型直接调(默认);<code>["code_execution_20260120"]</code> 表示引导模型只在代码里调;两个都写则两种都行。官方建议二选一,指向更明确。<strong>注意:它是引导而非硬拦截,官方明确说不要把它当安全边界</strong>——你的客户端仍要准备好处理任何工具的直接调用。</dd>
+<dt>2. caller ——「这次调用是谁发起的」</dt>
+<dd>响应里每个 <code>tool_use</code> 块都带 <code>caller</code> 字段:<code>{"type":"direct"}</code> 是传统直调;<code>{"type":"code_execution_20260120","tool_id":"srvtoolu_..."}</code> 则说明是某次代码执行发起的,<code>tool_id</code> 能对应到那段代码的 <code>server_tool_use</code> 块。你的代码靠它区分两种调用。</dd>
+<dt>3. 容器(container)生命周期</dt>
+<dd>PTC 复用代码执行的沙箱容器。响应里返回 <code>container</code> ID 和 <code>expires_at</code>;<strong>有挂起的程序化调用时,续传请求必须带容器 ID</strong>,否则 API 直接拒绝。闲置容器约 5 分钟回收,单个容器最长复用 30 天;挂起的工具调用约 4 分钟没等到结果,脚本里会抛 <code>TimeoutError</code>。</dd>
+</dl>
+<div class="callout key">
+<div class="ct">🔑 工具在代码里长什么样?</div>
+<p>你的每个工具会被暴露成一个<strong>异步 Python 函数</strong>:入参是一个 dict,返回值是字符串(即你回传的 <code>tool_result</code> 文本)。所以 Claude 的代码里常见 <code>rows = json.loads(await query_database({"sql": "..."}))</code> 这样的写法,还能用 <code>asyncio.gather</code> 并行调用多个工具。</p>
+</div>
+</section>
+
+<section id="s3">
+<h2>⚙️ 工作原理:一次调用的完整生命周期</h2>
+<p>官方文档把流程拆成 5 步。关键在于第 3、4 步:<strong>暂停的是沙箱里的脚本,不是模型</strong>——模型在整个过程中只被采样一次(写代码时)加最后一次(看结果时)。</p>
+<div class="steps">
+<div class="step"><b>Claude 写编排代码。</b>它不再逐个请求工具,而是生成一段 Python:里面可能有循环、并行、前后处理逻辑。</div>
+<div class="step"><b>代码在沙箱容器里运行。</b>通过 code execution 工具执行,环境是 Anthropic 托管的、为 Claude 调优的 Python 沙箱。</div>
+<div class="step"><b>脚本调到你的工具时,执行暂停。</b>API 返回一个带 <code>caller</code> 字段的 <code>tool_use</code> 块和容器 ID,<code>stop_reason</code> 为 <code>tool_use</code>。</div>
+<div class="step"><b>你回传 tool_result,脚本继续跑。</b>结果被<strong>脚本</strong>消费而不是模型——这一步是省 token 的关键。可能多次重复 3↔4。</div>
+<div class="step"><b>代码跑完,模型只看最终输出。</b>只有 <code>stdout</code>(如 print 的汇总结果)进入上下文,Claude 基于它给出最终回答。</div>
+</div>
+<div class="figure" id="f3">
+<svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PTC 请求-暂停-续传流程图">
+  <g data-anim><rect x="20" y="30" width="180" height="52" rx="10" fill="#0d2f5e"/><text x="110" y="52" text-anchor="middle" font-size="12" fill="#fff">① 你的请求</text><text x="110" y="70" text-anchor="middle" font-size="11" fill="#cfe0f7">tools + allowed_callers</text></g>
+  <g data-anim><rect x="270" y="30" width="180" height="52" rx="10" fill="#1565d8"/><text x="360" y="52" text-anchor="middle" font-size="12" fill="#fff">② Claude 写 Python</text><text x="360" y="70" text-anchor="middle" font-size="11" fill="#dbeafc">server_tool_use: code</text></g>
+  <g data-anim><rect x="520" y="30" width="180" height="52" rx="10" fill="#1565d8"/><text x="610" y="52" text-anchor="middle" font-size="12" fill="#fff">③ 沙箱执行,遇工具暂停</text><text x="610" y="70" text-anchor="middle" font-size="11" fill="#dbeafc">tool_use + caller + 容器ID</text></g>
+  <g data-anim><rect x="520" y="150" width="180" height="52" rx="10" fill="#e3eefc" stroke="#1565d8"/><text x="610" y="172" text-anchor="middle" font-size="12" fill="#0d3d7a">④ 你回传 tool_result</text><text x="610" y="190" text-anchor="middle" font-size="11" fill="#4a5d70">须带同一容器 ID + 同一 tools</text></g>
+  <g data-anim><rect x="270" y="150" width="180" height="52" rx="10" fill="#f0fbf4" stroke="#1f9d55"/><text x="360" y="172" text-anchor="middle" font-size="12" fill="#137a44">脚本消化结果,继续执行</text><text x="360" y="190" text-anchor="middle" font-size="11" fill="#4a5d70">不进模型上下文</text></g>
+  <g data-anim><rect x="20" y="255" width="430" height="52" rx="10" fill="#0d2f5e"/><text x="235" y="277" text-anchor="middle" font-size="12" fill="#fff">⑤ 代码跑完 → 模型只看到 stdout 最终输出</text><text x="235" y="295" text-anchor="middle" font-size="11" fill="#cfe0f7">code_execution_tool_result → Claude 给出最终回答</text></g>
+  <g stroke="#1565d8" stroke-width="2" fill="none">
+    <path d="M200 56 L270 56" data-draw/><path d="M450 56 L520 56" data-draw/>
+    <path d="M610 82 L610 150" data-draw/><path d="M520 176 L450 176" data-draw/>
+    <path d="M270 176 L235 176 L235 255" data-draw/>
+  </g>
+  <path d="M360 150 L360 110 Q360 95 380 95 L590 95 Q610 95 610 110 L610 118" stroke="#e8a23d" stroke-width="2" fill="none" stroke-dasharray="5 4" data-draw/>
+  <text x="480" y="128" text-anchor="middle" font-size="11" fill="#c25b2a" data-anim>脚本再调下一个工具时,重复 ③↔④</text>
+</svg>
+<div class="fig-cap">一次 PTC 交互的请求-暂停-续传循环(依据官方文档 5 步工作流绘制)</div>
+</div>
+<div class="callout key">
+<div class="ct">🔑 为什么这招有效?</div>
+<p>官方给的解释很朴素:Claude 的代码能力极强,把工具呈现为可调用的 Python 函数,循环、条件、组合就成了普通的代码控制流,而不是一连串模型往返;大结果集在代码里过滤聚合,只有结论进上下文;两次工具调用之间也不需要重新采样模型。</p>
+</div>
+</section>
+<section id="s4">
+<h2>🛠️ 怎么用:完整上手流程</h2>
+<h3>前置条件</h3>
+<ul>
+<li><strong>模型</strong>:需要 <code>code_execution_20260120</code> 或更高版本,支持的模型包括 Claude Fable 5 / Mythos 5、Opus 4.8 / 4.7 / 4.6 / 4.5、Sonnet 5 / 4.6 / 4.5(官方文档兼容表)。</li>
+<li><strong>平台</strong>:Claude API、Claude Platform on AWS、Microsoft Foundry(需 Hosted on Anthropic 部署);<strong>Amazon Bedrock 与 Google Cloud 目前不可用</strong>。</li>
+<li><strong>必须同时启用 code execution 工具</strong>;该功能不符合零数据保留(ZDR)条件,容器数据按标准策略最长保留 30 天。</li>
+</ul>
+<h3>第一步:在工具定义上加 allowed_callers</h3>
+<p>下面是官方 Quick start 的 Python 版(代码来自官方文档,略有排版调整):</p>
+<pre><code>client = anthropic.Anthropic()
+
+response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=4096,
+    messages=[{
+        "role": "user",
+        "content": "查询 West、East、Central 三个区域的销售数据,告诉我哪个区收入最高",
+    }],
+    tools=[
+        {"type": "code_execution_20260120", "name": "code_execution"},
+        {
+            "name": "query_database",
+            "description": "对销售库执行 SQL。返回 JSON 对象组成的行列表。",
+            "input_schema": {
+                "type": "object",
+                "properties": {"sql": {"type": "string"}},
+                "required": ["sql"],
+            },
+            "allowed_callers": ["code_execution_20260120"],  # 关键:允许代码调用
+        },
+    ],
+)</code></pre>
+<div class="callout key">
+<div class="ct">🔑 工具描述要写清「返回什么格式」</div>
+<p>因为 Claude 要在代码里反序列化你的返回值,官方最佳实践强调:在工具 description 里把输出的 JSON 结构、字段类型写清楚(如「返回列表,每项含 id(str)、total(float)、status(str) …」)。写得越细,Claude 的解析代码越靠谱。</p>
+</div>
+<h3>第二步:处理暂停,回传结果</h3>
+<p>收到 <code>stop_reason: "tool_use"</code> 且 <code>tool_use</code> 块带代码执行 <code>caller</code> 时,续传请求有三个硬要求(官方文档原文归纳):</p>
+<ol>
+<li>承载结果的 user 消息<strong>只能包含 tool_result 块</strong>,连一句文字都不能带(传统直调没有这个限制);</li>
+<li><strong>必须回传暂停响应里的容器 ID</strong>,否则请求被拒;</li>
+<li><strong>tools 数组要和原请求一致</strong>,code execution 工具必须还在,暂停的代码才能恢复。</li>
+</ol>
+<h3>第三步:循环直到代码跑完</h3>
+<p>每个续传响应要么再次暂停(还有新的程序化 <code>tool_use</code>,继续回传),要么返回 <code>code_execution_tool_result</code>(内含 stdout)并让 Claude 给出最终回答。用 <code>stop_reason</code> 和 <code>caller</code> 字段区分这两种情况。</p>
+</section>
+
+<section id="s5">
+<h2>🧠 四种高级模式</h2>
+<p>官方文档给出四个典型代码模式,正好覆盖 PTC 的四类价值(以下代码均摘自官方文档):</p>
+<h3>1. 批量循环:N 次往返变 1 次</h3>
+<pre><code>regions = ["West", "East", "Central", "North", "South"]
+results = {}
+for region in regions:
+    rows = json.loads(await query_database({"sql": f"..."}))
+    results[region] = sum(row["revenue"] for row in rows)
+top_region = max(results.items(), key=lambda x: x[1])
+print(f"Top region: {top_region[0]}")</code></pre>
+<h3>2. 提前终止:满足条件就停</h3>
+<pre><code>for endpoint in ["us-east", "eu-west", "apac"]:
+    status = await check_health({"endpoint": endpoint})
+    if status == "healthy":
+        print(f"Found healthy endpoint: {endpoint}")
+        break  # 后面的不再查</code></pre>
+<h3>3. 条件选工具:按中间结果分叉</h3>
+<pre><code>file_info = json.loads(await get_file_info({"path": path}))
+if file_info["size"] &lt; 10000:
+    content = await read_full_file({"path": path})
+else:
+    content = await read_file_summary({"path": path})</code></pre>
+<h3>4. 数据过滤:只让结论进上下文</h3>
+<pre><code>log_text = await fetch_logs({"server_id": "srv-01"})
+errors = [l for l in log_text.splitlines() if "ERROR" in l]
+print(f"Found {len(errors)} errors")
+for error in errors[-10:]:   # 只返回最后 10 条
+    print(error)</code></pre>
+<p>再加上工具函数天然是异步的,可以 <code>asyncio.gather</code> <strong>并行发起几十个调用</strong>——官方工程博客的「预算合规检查」例子就是并行拉 20 个人的报销、并行查各级别预算,最后只把两三个超支者的名字送回模型,上下文从 200KB 原始数据缩到 1KB 结论。</p>
+</section>
+
+<section id="s6">
+<h2>📊 效果数据与适用场景</h2>
+<h3>官方公布的量化效果</h3>
+<table>
+<tr><th>场景</th><th>效果</th><th>出处</th></tr>
+<tr><td>BrowseComp / DeepSearchQA 等 agentic 搜索基准</td><td>平均 +11% 表现,输入 token -24%</td><td>官方文档</td></tr>
+<tr><td>75 工具的项目管理 Agent 基准</td><td>计费输入 token 约 -38%,准确率不变</td><td>官方文档(内部评测)</td></tr>
+<tr><td>复杂研究任务</td><td>平均 token 43,588 → 27,297(-37%)</td><td>官方工程博客</td></tr>
+<tr><td>内部知识检索 / GIA 基准</td><td>25.6% → 28.5% / 46.5% → 51.2%</td><td>官方工程博客</td></tr>
+<tr><td>生产流量中 tools 数组含 10–49 个工具的请求</td><td>典型节省 20%–40%</td><td>官方文档</td></tr>
+<tr><td style="background:#fff7e8">τ²-bench(每轮只有 1–2 个顺序调用)</td><td style="background:#fff7e8"><strong>分数不变,成本反而 +8%</strong></td><td style="background:#fff7e8">官方文档(内部评测)</td></tr>
+</table>
+<p>最后一行值得特别注意:官方自己承认<strong>顺序单调用工作流不受益</strong>——PTC 是用「容器启动 + 生成脚本」的固定开销,换「省掉工具结果 token 和模型往返」的收益,负载形态决定这笔账划不划算。</p>
+<h3>什么时候用(官方判断标准)</h3>
+<table>
+<tr><th>✅ 强适配</th><th>❌ 弱适配</th></tr>
+<tr><td>扇出/并行操作:查 50 个接口、20 条记录</td><td>严格顺序流:每步都要模型看完上一步结果再推理</td></tr>
+<tr><td>大结果集需要先过滤、聚合、摘要</td><td>少量调用 + 小返回值(尤其会话第一轮,固定开销可能超过节省)</td></tr>
+<tr><td>agentic 搜索/检索:迭代查询 + 结果过滤为主</td><td>每次调用之间需要用户即时反馈</td></tr>
+<tr><td>中间数据不应影响模型判断的任务</td><td>模型应该看到并推理所有中间结果的任务</td></tr>
+</table>
+<div class="callout key">
+<div class="ct">🔑 拿不准就先测</div>
+<p>官方建议:在放开之前,用有代表性的流量样本,分别测「加 / 不加 allowed_callers」的计费输入 token,再决定是否全面启用。</p>
+</div>
+</section>
+
+<section id="s7">
+<h2>⚖️ 对比与选型:三种实现路线</h2>
+<p>「让模型写代码调工具」是个通用模式,官方文档列了三种实现路线,PTC 是其中的托管版:</p>
+<table>
+<tr><th>路线</th><th>优点</th><th>缺点</th><th>适合</th></tr>
+<tr><td><strong>客户端直接执行</strong><br>你在本地执行模型写的代码</td><td>改造成本最小,环境完全自控</td><td>在沙箱外跑不可信代码,存在注入风险</td><td>应用本身能安全执行任意代码时</td></tr>
+<tr><td><strong>自管沙箱</strong><br>自建受限容器跑代码</td><td>安全 + 基础设施自控</td><td>构建维护复杂,要自己解决沙箱内外的工具通信</td><td>安全要求极高、托管方案不满足需求时</td></tr>
+<tr><td><strong>Anthropic 托管(即 PTC)</strong></td><td>默认安全,一个字段开启,环境为 Claude 调优</td><td>依赖托管平台(Bedrock/GCP 暂不可用),不符合 ZDR</td><td>用 Claude API / AWS Claude Platform / Foundry 的大多数场景</td></tr>
+</table>
+<h3>和三件套里另外两个的关系</h3>
+<p>PTC 与同期发布的 <strong>Tool Search Tool</strong>(按需搜索加载工具定义,官方测试在大工具库上 token 省约 85%、准确率显著提升)和 <strong>Tool Use Examples</strong>(在工具定义里给调用示例,复杂参数准确率 72%→90%)互补:一个管「找到对的工具」,一个管「高效执行」,一个管「参数填对」。官方建议按瓶颈选择:工具定义撑爆上下文 → Tool Search;中间结果污染上下文 → PTC;参数总填错 → Examples。</p>
+</section>
+
+<section id="s8">
+<h2>⚠️ 常见坑与限制</h2>
+<div class="callout warn"><div class="ct">以下均为官方文档明确列出的限制(非社区传闻)</div></div>
+<ul>
+<li><strong>MCP connector 的工具不能被程序化调用</strong>——这是很多人会撞上的第一堵墙。</li>
+<li><strong>三个功能互斥</strong>:<code>strict: true</code> 的结构化输出工具不支持;<code>tool_choice</code> 不能强制程序化调用某个工具(指名的工具必须允许 direct,否则 400);<code>disable_parallel_tool_use: true</code> 不支持。</li>
+<li><strong>递归 schema 报错</strong>:工具 input_schema 里有循环 $ref 时,启用程序化调用会 400(<code>Circular $ref detected</code>)。解法:该工具保持 direct-only,或把递归展开成固定深度。</li>
+<li><strong>续传格式严格</strong>:回传程序化 tool_result 的消息里不能夹带文字;结果内容只能是字符串或 text 块,图片、文档块会被拒。</li>
+<li><strong>超时链条</strong>:工具结果约 4 分钟不到,脚本内抛 TimeoutError(Claude 通常会重试);闲置容器约 5 分钟回收。工具执行慢的要自己加超时、拆小块。</li>
+<li><strong>计费与限流</strong>:代码里每次工具调用都按独立调用计入速率限制;但程序化调用的工具结果<strong>不计入输入/输出 token</strong>,只有最终代码结果和模型回复计费,代码执行本身按 code execution 定价。</li>
+<li><strong>安全注意</strong>:工具结果是字符串,可能包含会被执行环境解释的代码片段;返回外部数据或用户输入的工具要防注入。同时记住 allowed_callers 不是安全边界。</li>
+</ul>
+</section>
+
+<section id="s9">
+<h2>📚 学习资源</h2>
+<ul>
+<li><strong>官方文档(必读)</strong>:Programmatic tool calling — platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling</li>
+<li><strong>官方工程博客</strong>:Introducing advanced tool use on the Claude Developer Platform(2025-11-24)— anthropic.com/engineering/advanced-tool-use,讲三件套的动机与内部数据</li>
+<li><strong>官方 Cookbook 实战笔记本</strong>:github.com/anthropics/claude-cookbooks → tool_use/programmatic_tool_calling_ptc.ipynb</li>
+<li><strong>相关文档</strong>:Code execution tool(容器与定价)、Tool search tool、Manage tool context</li>
+<li><strong>思想源头延伸阅读</strong>:Cloudflare「Code Mode」博客;Anthropic「Code Execution as MCP」工程博客</li>
+</ul>
+<div class="callout key">
+<div class="ct">🎯 学完检验:三个自测问题</div>
+<p>① 为什么说 PTC 省 token 的本质是「中间结果不进上下文」而不是「少调了工具」?② 一个每步都依赖模型判断的顺序工作流,该不该开 PTC?为什么官方在 τ²-bench 上成本反升 8%?③ 续传请求忘带容器 ID 会发生什么?</p>
+</div>
+</section>
+
+<footer>
+<h4>调研说明</h4>
+<p>调研时间:2026-07-15。本文核心内容全部取自当日抓取的 Anthropic 官方一手来源(平台文档 + 工程博客全文),量化数据均注明出处;PTC 迭代较快(工具版本号已从 20250825 演进到 20260120),使用时请以官方最新文档为准。</p>
+<h4>来源清单</h4>
+<p>① Programmatic tool calling — Claude Platform Docs:https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling(2026-07-15 抓取)<br>
+② Introducing advanced tool use on the Claude Developer Platform — Anthropic Engineering(2025-11-24):https://www.anthropic.com/engineering/advanced-tool-use(2026-07-15 抓取)<br>
+③ PTC Cookbook:https://github.com/anthropics/claude-cookbooks/blob/main/tool_use/programmatic_tool_calling_ptc.ipynb(未逐页核读,仅作延伸)</p>
+</footer>
+
+<script>
+(function(){
+  var prog=document.getElementById('progress');
+  window.addEventListener('scroll',function(){
+    var h=document.documentElement;
+    var p=h.scrollTop/(h.scrollHeight-h.clientHeight)*100;
+    prog.style.width=p+'%';
+  },{passive:true});
+  var links=document.querySelectorAll('#toc a');
+  var secs=[].map.call(links,function(a){return document.querySelector(a.getAttribute('href'))});
+  window.addEventListener('scroll',function(){
+    var i=secs.length-1;
+    while(i>0 && secs[i].getBoundingClientRect().top>140) i--;
+    links.forEach(function(a,j){a.classList.toggle('on',j===i)});
+  },{passive:true});
+  var btn=document.getElementById('tocbtn'),toc=document.getElementById('toc');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  links.forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open')})});
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('seen');io.unobserve(e.target)}});
+    },{threshold:.25});
+    document.querySelectorAll('.figure').forEach(function(f){io.observe(f)});
+  }else{
+    document.querySelectorAll('.figure').forEach(function(f){f.classList.add('seen')});
+  }
+})();
+</script>
+</div>
+</body>
+</html>
