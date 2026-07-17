@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>混合线性注意力 KDA:Kimi K3 如何把 1M 上下文解码提速 6 倍</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1c2b3a; --muted:#5b7288;
+  --blue:#1667d9; --blue-dark:#0d3b78; --blue-deep:#092a57; --blue-light:#dcebfc;
+  --accent:#2e8bff; --warn-bg:#fff7e8; --warn-bd:#e8a13d; --ok:#1f9d6b;
+  --code-bg:#0e2440; --code-ink:#cfe3ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);font-size:17px;line-height:1.88;}
+#progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--accent));width:0;z-index:99;transition:width .1s}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 80px}
+header.hero{background:linear-gradient(135deg,var(--blue-deep),var(--blue-dark) 60%,#155bb5);color:#fff;
+  padding:64px 24px 56px;text-align:center;border-radius:0 0 28px 28px}
+header.hero h1{font-size:1.9em;line-height:1.4;margin-bottom:14px}
+header.hero p.sub{color:#bcd6f7;max-width:640px;margin:0 auto;font-size:.95em}
+header.hero .tag{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+  border-radius:999px;padding:2px 14px;font-size:.8em;margin:4px 4px 16px}
+section{background:var(--card);border-radius:16px;padding:34px 34px 28px;margin:26px 0;box-shadow:0 2px 10px rgba(13,59,120,.06)}
+section h2{color:var(--blue-dark);font-size:1.45em;margin-bottom:18px;padding-bottom:10px;border-bottom:3px solid var(--blue-light)}
+section h3{color:var(--blue);font-size:1.13em;margin:26px 0 10px}
+p{margin:12px 0}
+a{color:var(--blue);text-decoration:none;border-bottom:1px dashed #9ec4ef}
+a:hover{border-bottom-style:solid}
+strong{color:var(--blue-dark)}
+ul,ol{padding-left:1.5em;margin:10px 0}
+li{margin:6px 0}
+.def{border-left:5px solid var(--blue);background:#f4f9ff;border-radius:0 12px 12px 0;padding:16px 20px;margin:18px 0}
+.def .d-what{font-weight:700;color:var(--blue-dark)}
+.def .d-plain{margin-top:6px}
+.def .d-why{margin-top:6px;color:var(--muted);font-size:.95em}
+.analogy{background:#f0fbf5;border:1px solid #bfe8d2;border-radius:12px;padding:16px 20px;margin:18px 0}
+.analogy::before{content:"🪄 打个比方";display:block;font-weight:700;color:var(--ok);margin-bottom:6px;font-size:.9em}
+.callout{border-radius:12px;padding:16px 20px;margin:18px 0}
+.callout.key{background:var(--blue-light);border:1px solid #a9ccf5}
+.callout.key::before{content:"🔑 关键点";display:block;font-weight:700;color:var(--blue-dark);margin-bottom:6px;font-size:.9em}
+.callout.warn{background:var(--warn-bg);border:1px solid #f2cf9a}
+.callout.warn::before{content:"⚠️ 注意 / 坑";display:block;font-weight:700;color:#b06e10;margin-bottom:6px;font-size:.9em}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:20px 0}
+.stat{background:linear-gradient(160deg,#f4f9ff,#e8f1fd);border:1px solid #cfe2f8;border-radius:14px;padding:16px;text-align:center}
+.stat .num{font-size:1.7em;font-weight:800;color:var(--blue)}
+.stat .lbl{font-size:.82em;color:var(--muted);line-height:1.5;margin-top:4px}
+.steps{counter-reset:st;margin:18px 0}
+.steps .step{position:relative;padding:14px 18px 14px 58px;background:#f7fafe;border:1px solid #dbe9fa;border-radius:12px;margin:10px 0}
+.steps .step::before{counter-increment:st;content:counter(st);position:absolute;left:16px;top:14px;width:28px;height:28px;
+  background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9em}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:.92em}
+th{background:var(--blue-dark);color:#fff;padding:10px 12px;text-align:left}
+td{padding:9px 12px;border-bottom:1px solid #e3edf9;vertical-align:top}
+tr:nth-child(even) td{background:#f6faff}
+.tblwrap{overflow-x:auto}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:18px 20px;overflow-x:auto;
+  font-size:.85em;line-height:1.7;margin:16px 0;font-family:"SF Mono",Menlo,Consolas,monospace}
+code{background:#e5effb;color:var(--blue-dark);padding:1px 6px;border-radius:5px;font-size:.9em;font-family:"SF Mono",Menlo,Consolas,monospace}
+pre code{background:none;color:inherit;padding:0}
+.figure{margin:24px 0;text-align:center}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:.85em;color:var(--muted);margin-top:8px}
+.src{font-size:.82em;color:var(--muted)}
+.glossary dt{font-weight:700;color:var(--blue-dark);margin-top:12px}
+.glossary dd{margin-left:0;color:var(--ink)}
+#toc{position:fixed;left:18px;top:90px;width:200px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+  border:1px solid #d8e6f7;border-radius:14px;padding:14px;font-size:.8em;z-index:90;max-height:74vh;overflow-y:auto}
+#toc .t-title{font-weight:800;color:var(--blue-dark);margin-bottom:8px}
+#toc a{display:block;padding:4px 8px;border-radius:8px;color:var(--muted);border:none;line-height:1.5}
+#toc a.on{background:var(--blue-light);color:var(--blue-dark);font-weight:700}
+#tocbtn{display:none;position:fixed;left:14px;bottom:18px;z-index:95;width:46px;height:46px;border-radius:50%;
+  background:var(--blue);color:#fff;border:none;font-size:1.2em;box-shadow:0 4px 14px rgba(13,59,120,.35)}
+footer{text-align:center;color:var(--muted);font-size:.85em;padding:30px 16px;line-height:2}
+.srclist{text-align:left;max-width:820px;margin:14px auto;background:var(--card);border-radius:14px;padding:20px 26px}
+.srclist li{font-size:.95em}
+@media(max-width:1280px){#toc{display:none}#toc.open{display:block}#tocbtn{display:block}}
+@media(max-width:640px){
+  body{font-size:16px}
+  section{padding:24px 18px}
+  header.hero{padding:44px 16px 40px}
+  header.hero h1{font-size:1.5em}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media(prefers-reduced-motion:no-preference){
+  [data-anim]{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+  [data-anim].in{opacity:1;transform:none}
+  svg [data-draw]{stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.2s ease .2s}
+  svg.in [data-draw]{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<button id="tocbtn" aria-label="目录">☰</button>
+<nav id="toc" aria-label="目录">
+  <div class="t-title">📖 目录</div>
+  <a href="#s0">30 秒速览</a>
+  <a href="#s1">背景:注意力为何是瓶颈</a>
+  <a href="#s2">核心概念逐个拆</a>
+  <a href="#s3">KDA 究竟改了什么</a>
+  <a href="#s4">在 Kimi K3 中的落地</a>
+  <a href="#s5">怎么用(上手)</a>
+  <a href="#s6">什么场景真正受益</a>
+  <a href="#s7">对比与选型</a>
+  <a href="#s8">常见坑与限制</a>
+  <a href="#s9">学习资源</a>
+</nav>
+
+<header class="hero">
+  <h1>混合线性注意力 KDA<br>Kimi K3 如何把 1M 上下文解码提速 6 倍</h1>
+  <div>
+    <span class="tag">Kimi Delta Attention</span>
+    <span class="tag">线性注意力</span>
+    <span class="tag">长上下文</span>
+    <span class="tag">Kimi K3 架构</span>
+  </div>
+  <p class="sub">2026 年 7 月 16 日,Moonshot 发布 2.8 万亿参数的开源模型 Kimi K3,带着 100 万 token 上下文窗口。支撑这件事的核心技术,是一种叫 KDA 的混合线性注意力。这份文档从"注意力为什么会成为瓶颈"讲起,带你搞懂它的原理、用法和边界。</p>
+</header>
+
+<div class="wrap">
+
+<section id="s0" data-anim>
+  <h2>⏱️ 30 秒速览</h2>
+  <p><strong>KDA(Kimi Delta Attention)</strong>是 Moonshot(月之暗面)提出的一种<strong>线性注意力</strong>机制:它不像标准 Transformer 那样让每个新词回头看所有历史词,而是把历史压缩进一块<strong>固定大小的"记忆状态"</strong>里,边读边更新。这样计算量随文本长度只<strong>线性增长</strong>,而不是平方增长。</p>
+  <p>纯线性注意力记性不够好,所以实际模型采用<strong>混合(hybrid)架构</strong>:大部分层用 KDA 快速处理,周期性插入少量"全注意力"层负责精确回忆。按官方论文(<a href="https://arxiv.org/abs/2510.26692">arXiv 2510.26692</a>)的数据,这套组合在相同训练配方下效果反超全注意力,同时 <strong>KV cache 省最多 75%、1M 上下文解码提速最高 6 倍</strong>;在 Kimi K3 中官方称解码提速最高 <strong>6.3 倍</strong>。</p>
+  <div class="figure">
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全注意力与线性注意力的对比分叉图">
+      <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1667d9"/></marker></defs>
+      <rect x="270" y="14" width="180" height="46" rx="10" fill="#0d3b78"/>
+      <text x="360" y="43" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">超长文本进来了</text>
+      <line x1="320" y1="60" x2="180" y2="100" stroke="#1667d9" stroke-width="2" marker-end="url(#ar)" data-draw/>
+      <line x1="400" y1="60" x2="540" y2="100" stroke="#1667d9" stroke-width="2" marker-end="url(#ar)" data-draw/>
+      <rect x="40" y="104" width="280" height="120" rx="12" fill="#fdeeee" stroke="#d98080"/>
+      <text x="180" y="132" text-anchor="middle" fill="#a33" font-size="14" font-weight="700">全注意力(标准 Transformer)</text>
+      <text x="180" y="158" text-anchor="middle" fill="#7a4a4a" font-size="12.5">每个新词都回看全部历史</text>
+      <text x="180" y="180" text-anchor="middle" fill="#7a4a4a" font-size="12.5">计算 O(n²) · KV 缓存随长度膨胀</text>
+      <text x="180" y="202" text-anchor="middle" fill="#a33" font-size="12.5" font-weight="700">长文本下又慢又贵 💸</text>
+      <rect x="400" y="104" width="280" height="120" rx="12" fill="#eaf7f0" stroke="#6cbf94"/>
+      <text x="540" y="132" text-anchor="middle" fill="#1f7a52" font-size="14" font-weight="700">线性注意力(KDA 这一路)</text>
+      <text x="540" y="158" text-anchor="middle" fill="#3e6b56" font-size="12.5">历史压缩进固定大小的记忆状态</text>
+      <text x="540" y="180" text-anchor="middle" fill="#3e6b56" font-size="12.5">计算 O(n) · 缓存不随长度膨胀</text>
+      <text x="540" y="202" text-anchor="middle" fill="#1f7a52" font-size="12.5" font-weight="700">代价:记忆有限,可能忘事 🤔</text>
+    </svg>
+    <div class="fig-cap">同一个长文本,两条技术路线的取舍。KDA 属于右边这条路,再用"混合架构"补上记性短板。</div>
+  </div>
+</section>
+
+<section id="s1" data-anim>
+  <h2>🧱 背景:注意力为什么会成为瓶颈</h2>
+  <h3>痛点从哪来</h3>
+  <p>标准 Transformer 的注意力机制,本质是"每生成一个新词,都要和前面<em>所有</em>词算一遍相关性"。文本有 n 个词,总计算量就是 n×n 量级——业内叫 <strong>O(n²) 复杂度</strong>(读作"平方级复杂度",意思是文本长 10 倍,计算量涨 100 倍)。</p>
+  <p>还有第二个隐形成本:<strong>KV cache(键值缓存)</strong>。生成时为了不重复计算,模型要把每个历史词的中间结果(Key 和 Value 两组向量)全存在显存里。上下文越长,这块缓存越大——100 万 token 的上下文,光缓存就能吃掉大量显存,直接限制了并发和速度。</p>
+  <div class="analogy">开会做记录有两种方式:<strong>全注意力</strong>像逐字速记——每说一句话都要翻遍前面全部记录找关联,会开得越久翻得越慢,笔记本也越堆越厚;<strong>线性注意力</strong>像只维护一页"会议要点"——每听一句就更新这一页,永远只有一页,翻阅速度恒定。代价是:三小时前某句原话的措辞,可能已经被要点覆盖掉了。</div>
+  <h3>这条路线的发展脉络</h3>
+  <div class="figure">
+    <svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="线性注意力发展时间线">
+      <line x1="40" y1="105" x2="690" y2="105" stroke="#1667d9" stroke-width="3" data-draw/>
+      <g font-size="12">
+        <circle cx="80" cy="105" r="7" fill="#0d3b78"/>
+        <text x="80" y="80" text-anchor="middle" font-weight="700" fill="#0d3b78">2017</text>
+        <text x="80" y="135" text-anchor="middle" fill="#5b7288">Transformer</text>
+        <text x="80" y="152" text-anchor="middle" fill="#5b7288">全注意力时代</text>
+        <circle cx="215" cy="105" r="7" fill="#1667d9"/>
+        <text x="215" y="80" text-anchor="middle" font-weight="700" fill="#0d3b78">2020-23</text>
+        <text x="215" y="135" text-anchor="middle" fill="#5b7288">早期线性注意力</text>
+        <text x="215" y="152" text-anchor="middle" fill="#5b7288">快但效果差一截</text>
+        <circle cx="355" cy="105" r="7" fill="#1667d9"/>
+        <text x="355" y="80" text-anchor="middle" font-weight="700" fill="#0d3b78">2023-24</text>
+        <text x="355" y="135" text-anchor="middle" fill="#5b7288">Mamba / DeltaNet /</text>
+        <text x="355" y="152" text-anchor="middle" fill="#5b7288">Gated DeltaNet</text>
+        <circle cx="500" cy="105" r="7" fill="#2e8bff"/>
+        <text x="500" y="80" text-anchor="middle" font-weight="700" fill="#0d3b78">2025.10</text>
+        <text x="500" y="135" text-anchor="middle" fill="#5b7288">Kimi Linear 论文</text>
+        <text x="500" y="152" text-anchor="middle" fill="#5b7288">提出 KDA</text>
+        <circle cx="640" cy="105" r="9" fill="#e8542f"/>
+        <text x="640" y="80" text-anchor="middle" font-weight="700" fill="#b3400f">2026.7.16</text>
+        <text x="640" y="135" text-anchor="middle" fill="#b3400f" font-weight="700">Kimi K3 发布</text>
+        <text x="640" y="152" text-anchor="middle" fill="#5b7288">KDA 进旗舰模型</text>
+      </g>
+    </svg>
+    <div class="fig-cap">从全注意力到 KDA 进入 2.8T 旗舰模型的技术脉络(依据 arXiv 论文与 MarkTechPost 报道整理)。</div>
+  </div>
+  <p>早期线性注意力(2020 年前后)证明了"O(n) 是可能的",但语言能力明显落后;Mamba、DeltaNet 等状态空间/循环路线(2023-24)大幅缩小差距;<strong>Kimi Linear 论文(2025 年 10 月)官方宣称首次在公平对比下全面超过全注意力</strong>——注意这是 Moonshot 自己的实验结论,详见<a href="#s8">限制一节</a>。到 2026 年 7 月的 Kimi K3,这套架构正式承载旗舰模型。</p>
+</section>
+
+<section id="s2" data-anim>
+  <h2>🧩 核心概念逐个拆</h2>
+  <p>搞懂 KDA 需要四块积木,我们按"读者下一个自然会问什么"的顺序来。</p>
+
+  <h3>积木一:线性注意力 = 把注意力变成一个 RNN</h3>
+  <div class="def">
+    <div class="d-what">线性注意力(Linear Attention)</div>
+    <div class="d-plain">大白话:不再保存每个历史词,而是维护一个<strong>固定大小的矩阵 S</strong>(可理解为"记忆板")。每读一个新词,就往记忆板上写一点新信息;要用历史时,直接查记忆板,不回头翻原文。</div>
+    <div class="d-why">为什么快:每步只操作固定大小的 S,与文本长度无关,所以总计算量 O(n)、生成时显存占用恒定——这正是 KV cache 不膨胀的原因。</div>
+  </div>
+  <p>这个"边读边更新一块固定状态"的模式,其实就是经典 RNN(循环神经网络)的思路。所以你会看到论文里把这类模型叫 <strong>finite-state RNN</strong>——有限状态的循环模型。问题随之而来:<strong>板子就这么大,写满了怎么办?</strong></p>
+
+  <h3>积木二:Delta 规则——"先擦再写"</h3>
+  <div class="def">
+    <div class="d-what">Delta Rule(增量规则)</div>
+    <div class="d-plain">大白话:往记忆板写新内容前,先看看板上有没有关于"同一个 key"的旧内容,<strong>把旧的擦掉一部分,再写新的</strong>。写入的是"新旧之差"(delta),而不是无脑叠加。</div>
+    <div class="d-why">解决什么:朴素线性注意力只加不擦,信息越叠越糊。Delta 规则让记忆板"可修正",同一话题的新信息能覆盖旧信息。</div>
+  </div>
+
+  <h3>积木三:Gated DeltaNet——再加一个"遗忘阀门"</h3>
+  <div class="def">
+    <div class="d-what">Gated DeltaNet(门控增量网络)</div>
+    <div class="d-plain">大白话:在"先擦再写"之外,再装一个<strong>遗忘门(gate)</strong>:每一步都让整块记忆按一定比例自然衰减——不重要的旧信息随时间淡出,给新信息腾地方。NVIDIA 2024 年提出,是 KDA 的直接前身。</div>
+    <div class="d-why">局限在哪:它的遗忘是<strong>按注意力头(head)为单位</strong>的——一整个头共用一个衰减比例,想保留头里某些信息、丢弃另一些,做不到。</div>
+  </div>
+
+  <h3>积木四:混合架构——线性层打工,全注意力层查档案</h3>
+  <div class="def">
+    <div class="d-what">Hybrid Attention(混合注意力)</div>
+    <div class="d-plain">大白话:模型几十层里,<strong>大部分层用线性注意力(快),每隔几层插一个全注意力层(记性好)</strong>。日常处理靠线性层,需要"精确回忆原文第 3 段说了什么"时靠全注意力层。</div>
+    <div class="d-why">为什么必须混合:固定大小的记忆状态在"精确回忆(recall)"类任务上有天然上限(详见第 8 节),少量全注意力层正好补这个短板。Kimi Linear 采用 KDA 与 MLA(DeepSeek 系的省显存全注意力变体)的层间混合。</div>
+  </div>
+  <div class="figure">
+    <svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="混合架构分层示意">
+      <text x="360" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#0d3b78">模型层堆叠(示意):多数 KDA 层 + 周期性插入全注意力层</text>
+      <g font-size="12.5">
+        <rect x="60" y="44" width="130" height="34" rx="8" fill="#eaf7f0" stroke="#6cbf94"/><text x="125" y="66" text-anchor="middle" fill="#1f7a52">KDA 层 ⚡</text>
+        <rect x="210" y="44" width="130" height="34" rx="8" fill="#eaf7f0" stroke="#6cbf94"/><text x="275" y="66" text-anchor="middle" fill="#1f7a52">KDA 层 ⚡</text>
+        <rect x="360" y="44" width="130" height="34" rx="8" fill="#eaf7f0" stroke="#6cbf94"/><text x="425" y="66" text-anchor="middle" fill="#1f7a52">KDA 层 ⚡</text>
+        <rect x="510" y="44" width="150" height="34" rx="8" fill="#e3edfd" stroke="#1667d9" stroke-width="2"/><text x="585" y="66" text-anchor="middle" fill="#0d3b78" font-weight="700">全注意力 MLA 🔍</text>
+        <rect x="60" y="96" width="130" height="34" rx="8" fill="#eaf7f0" stroke="#6cbf94"/><text x="125" y="118" text-anchor="middle" fill="#1f7a52">KDA 层 ⚡</text>
+        <rect x="210" y="96" width="130" height="34" rx="8" fill="#eaf7f0" stroke="#6cbf94"/><text x="275" y="118" text-anchor="middle" fill="#1f7a52">KDA 层 ⚡</text>
+        <rect x="360" y="96" width="130" height="34" rx="8" fill="#eaf7f0" stroke="#6cbf94"/><text x="425" y="118" text-anchor="middle" fill="#1f7a52">KDA 层 ⚡</text>
+        <rect x="510" y="96" width="150" height="34" rx="8" fill="#e3edfd" stroke="#1667d9" stroke-width="2"/><text x="585" y="118" text-anchor="middle" fill="#0d3b78" font-weight="700">全注意力 MLA 🔍</text>
+      </g>
+      <text x="360" y="164" text-anchor="middle" font-size="12.5" fill="#5b7288">⚡ 线性层:O(n) 快速处理、状态固定 &nbsp;&nbsp; 🔍 全注意力层:保留精确回忆能力</text>
+    </svg>
+    <div class="fig-cap">层间混合示意图(比例为示意,非精确配比)。研究表明全注意力层占比对 recall 能力影响显著,见第 8 节。</div>
+  </div>
+</section>
+
+<section id="s3" data-anim>
+  <h2>🔬 KDA 究竟改了什么</h2>
+  <p>有了上面四块积木,KDA 的创新一句话就能说清:</p>
+  <div class="callout key">KDA = Gated DeltaNet 的<strong>细粒度门控</strong>升级版——遗忘不再"整头一刀切",而是<strong>每个通道(channel,即向量的每一维)各自决定忘多少、忘多快</strong>。官方论文称之为 finer-grained gating,让有限的记忆状态被更高效地利用。</div>
+  <div class="figure">
+    <svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="按头门控与按通道门控对比">
+      <text x="185" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#a33">Gated DeltaNet:按头遗忘</text>
+      <rect x="60" y="44" width="250" height="120" rx="12" fill="#fdeeee" stroke="#d98080"/>
+      <g font-size="12">
+        <rect x="80" y="64" width="210" height="20" rx="5" fill="#e9b8b8"/><text x="185" y="79" text-anchor="middle" fill="#7a3333">通道 1 ── 衰减 0.9</text>
+        <rect x="80" y="92" width="210" height="20" rx="5" fill="#e9b8b8"/><text x="185" y="107" text-anchor="middle" fill="#7a3333">通道 2 ── 衰减 0.9(被迫一样)</text>
+        <rect x="80" y="120" width="210" height="20" rx="5" fill="#e9b8b8"/><text x="185" y="135" text-anchor="middle" fill="#7a3333">通道 3 ── 衰减 0.9(被迫一样)</text>
+      </g>
+      <text x="185" y="190" text-anchor="middle" font-size="12.5" fill="#7a4a4a">一个头一个阀门,粒度粗</text>
+      <text x="535" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#1f7a52">KDA:按通道遗忘</text>
+      <rect x="410" y="44" width="250" height="120" rx="12" fill="#eaf7f0" stroke="#6cbf94"/>
+      <g font-size="12">
+        <rect x="430" y="64" width="210" height="20" rx="5" fill="#bfe3cf"/><text x="535" y="79" text-anchor="middle" fill="#2a6047">通道 1 ── 衰减 0.99(慢忘)</text>
+        <rect x="430" y="92" width="210" height="20" rx="5" fill="#bfe3cf"/><text x="535" y="107" text-anchor="middle" fill="#2a6047">通道 2 ── 衰减 0.60(快忘)</text>
+        <rect x="430" y="120" width="210" height="20" rx="5" fill="#bfe3cf"/><text x="535" y="135" text-anchor="middle" fill="#2a6047">通道 3 ── 衰减 0.85(中速)</text>
+      </g>
+      <text x="535" y="190" text-anchor="middle" font-size="12.5" fill="#3e6b56">每个特征维度自己控制记忆寿命</text>
+      <text x="360" y="222" text-anchor="middle" font-size="13" fill="#0d3b78" font-weight="700">→ 同样大小的记忆板,KDA 能存得更"精打细算"</text>
+    </svg>
+    <div class="fig-cap">KDA 与前身 Gated DeltaNet 的核心区别:遗忘门的粒度从"每头一个"细化到"每通道一个"(依据 arXiv 2510.26692 摘要整理,衰减数值为示意)。</div>
+  </div>
+  <div class="analogy">还是那页"会议要点":Gated DeltaNet 相当于规定"整页笔记每小时统一淡化 10%";KDA 则允许"决策事项那几行永不褪色、寒暄闲聊几分钟就淡掉"。同一页纸,后者显然能装下更多真正有用的东西。</div>
+  <h3>工程上如何做到不变慢</h3>
+  <p>细粒度门控听起来会增加计算,论文的解法有两点(均来自 <a href="https://arxiv.org/abs/2510.26692">官方摘要</a>):</p>
+  <ul>
+    <li><strong>专用 DPLR 变体</strong>:状态转移矩阵采用 Diagonal-Plus-Low-Rank(对角+低秩)结构的特化版本,比通用 DPLR 计算量大幅降低,同时更贴近经典 delta 规则的行为;</li>
+    <li><strong>分块(chunkwise)算法</strong>:把序列切块后在块内并行、块间递推,充分吃满 GPU 硬件效率。KDA 的 kernel 已开源(<a href="https://github.com/MoonshotAI/Kimi-Linear">GitHub: MoonshotAI/Kimi-Linear</a>)。</li>
+  </ul>
+  <div class="stats">
+    <div class="stat"><div class="num">-75%</div><div class="lbl">KV cache 用量最多可减少(Kimi Linear 论文)</div></div>
+    <div class="stat"><div class="num">6×</div><div class="lbl">1M 上下文解码吞吐最高提升(论文)</div></div>
+    <div class="stat"><div class="num">6.3×</div><div class="lbl">Kimi K3 官方称的百万上下文解码提速上限</div></div>
+    <div class="stat"><div class="num">48B/3B</div><div class="lbl">论文验证模型:总参数/激活参数</div></div>
+  </div>
+</section>
+
+<section id="s4" data-anim>
+  <h2>🚀 在 Kimi K3 中的落地</h2>
+  <p>2026 年 7 月 16 日发布的 Kimi K3,是 KDA 第一次进入旗舰级模型(此前 Kimi Linear 只是 48B 的研究验证模型)。K3 的整体配置(来源:<a href="https://www.marktechpost.com/2026/07/16/moonshot-ai-releases-kimi-k3-a-2-8-trillion-parameter-open-moe-model-with-kimi-delta-attention-and-1m-context/">MarkTechPost 2026-07-16</a>,一手信息见 <a href="https://www.kimi.com/blog/kimi-k3">Moonshot 官方博客</a>):</p>
+  <div class="stats">
+    <div class="stat"><div class="num">2.8T</div><div class="lbl">总参数,官方称首个开放 3T 级模型</div></div>
+    <div class="stat"><div class="num">16/896</div><div class="lbl">MoE 每次激活的专家数(Stable LatentMoE)</div></div>
+    <div class="stat"><div class="num">1M</div><div class="lbl">token 上下文窗口,原生视觉</div></div>
+    <div class="stat"><div class="num">2.5×</div><div class="lbl">相对 K2 的整体 scaling 效率提升(官方)</div></div>
+  </div>
+  <p>KDA 在其中负责"长上下文不爆炸";与它配套的还有两个架构组件(均为官方说法):<strong>AttnRes(Attention Residuals)</strong>在深度方向选择性检索各层表征,称带来约 25% 训练效率提升、额外成本低于 2%;<strong>Quantile Balancing / Per-Head Muon / SiTU</strong> 等则解决极稀疏 MoE 的路由与优化问题。这些超出本文主题,点到为止。</p>
+  <h3>效果如何(官方基准,注意甄别)</h3>
+  <p>官方口径:K3 整体仍落后于最强闭源模型(Claude Fable 5、GPT-5.6 Sol),但在 Program Bench、SWE Marathon、BrowseComp、OmniDocBench 等基准领先,FrontierSWE 和 HLE-Full 落后于 Fable 5。值得注意的细节:BrowseComp 得分 91.2 是在 300K token 触发上下文压缩的配置下取得的,<strong>不压缩时反而是 90.4</strong>——说明百万级上下文的实际使用仍需上下文管理策略配合。</p>
+  <div class="callout warn">以上分数全部来自 Moonshot 自家评测套件与选定 harness(KimiCode / Claude Code / Codex 不一),发布还不满 48 小时,<strong>暂无独立第三方复测</strong>。判断真实水平请等 LMArena 等第三方榜单更新。</div>
+</section>
+
+<section id="s5" data-anim>
+  <h2>🛠️ 怎么用(上手)</h2>
+  <h3>路线 A:直接调用 Kimi K3 API(用它,不改它)</h3>
+  <p>K3 兼容 OpenAI SDK,换个 base_url 即可。示例代码来自 MarkTechPost 报道(与官方文档口径一致):</p>
+<pre><code>from openai import OpenAI
+import os
+
+client = OpenAI(api_key=os.environ["MOONSHOT_API_KEY"],
+                base_url="https://api.moonshot.ai/v1")
+
+completion = client.chat.completions.create(
+    model="kimi-k3",
+    reasoning_effort="max",   # K3 只支持 max;不要再传 K2.x 的 thinking 参数
+    messages=[{"role": "user", "content": "用一句话介绍 Kimi K3。"}],
+)
+print(completion.choices[0].message.content)</code></pre>
+  <div class="steps">
+    <div class="step"><strong>参数规矩</strong>:<code>temperature</code>、<code>top_p</code>、<code>n</code> 是固定的,直接省略;<code>max_completion_tokens</code> 默认 131072,上限 1048576。</div>
+    <div class="step"><strong>多轮/工具调用</strong>:必须把完整的 assistant 消息原样传回,不能裁剪。</div>
+    <div class="step"><strong>算账先看缓存命中率</strong>:定价不按上下文长度分级——缓存命中输入 $0.30/M、未命中 $3.00/M、输出 $15.00/M。官方称编码类负载缓存命中率可超 90%,<strong>成本大头取决于你的 prompt 结构是否缓存友好</strong>(稳定前缀放前面,可变内容放后面)。</div>
+  </div>
+  <h3>路线 B:研究或自部署 KDA(改它、学它)</h3>
+  <ul>
+    <li><strong>开源 kernel 与模型</strong>:<a href="https://github.com/MoonshotAI/Kimi-Linear">MoonshotAI/Kimi-Linear</a> 提供 KDA kernel、vLLM 集成,以及 48B 预训练/指令微调 checkpoint,可直接跑通"混合线性注意力"全流程。</li>
+    <li><strong>vLLM 部署注意</strong>:KDA 的循环状态让<strong>前缀缓存(prefix caching)</strong>逻辑与全注意力不同——不能像 KV cache 那样按 token 块随意复用。Moonshot 为此向 vLLM 贡献了专门实现,自部署请用官方集成而非自己魔改。</li>
+    <li><strong>K3 本体权重</strong>:官方宣布 7 月 27 日放出(<a href="https://www.latent.space/p/ainews-kimi-k3-28t-a50b-the-largest">Latent Space AINews</a>);推理采用 MXFP4 权重 + MXFP8 激活的量化感知训练,官方建议 64+ 加速卡的超节点配置——<strong>个人设备跑不动 K3,学架构请用 48B 的 Kimi Linear</strong>。</li>
+  </ul>
+</section>
+
+<section id="s6" data-anim>
+  <h2>🎯 什么场景真正受益</h2>
+  <p>KDA 的收益全部来自"长"——上下文越长、输出越长,相对全注意力的优势越大;几千 token 的短对话里体感差别不大。官方列举并被报道的典型场景:</p>
+  <ul>
+    <li><strong>仓库级编码 Agent</strong>:整个代码仓 + 长会话历史塞进上下文,长时间自主工作。KDA 的恒定解码速度意味着会话越长优势越明显,官方报告的案例是"长会话、极少人工干预"。</li>
+    <li><strong>研究复现</strong>:官方案例:复现 I-Love-Q 关系研究,一次性读 20+ 篇论文、产出 3000+ 行 Python——1M 上下文 + 自动缓存是前提。</li>
+    <li><strong>深度研究报告</strong>:官方案例:一份 42 年跨度的 ASIC 行业研究,2800+ 次抓取、11000+ 页材料进上下文。</li>
+    <li><strong>RL 训练效率</strong>:论文强调的一个容易被忽略的点——强化学习后训练要生成大量长轨迹,解码提速 6 倍直接换成 RL 迭代速度。这也是"Agentic RL"时代线性注意力重新火起来的深层原因。</li>
+  </ul>
+  <div class="callout key">一句话判断:<strong>你的负载是否"读得多、写得长、会话久"?</strong>是,混合线性注意力的成本/速度优势是数量级的;否,它对你只是个透明的实现细节。</div>
+</section>
+
+<section id="s7" data-anim>
+  <h2>⚖️ 对比与选型:长上下文的四条技术路线</h2>
+  <div class="tblwrap">
+  <table>
+    <tr><th>路线</th><th>代表</th><th>思路</th><th>强项</th><th>弱项</th></tr>
+    <tr><td><strong>全注意力 + 省显存变体</strong></td><td>MLA(DeepSeek)、GQA</td><td>不改 O(n²),压缩 KV cache</td><td>精确回忆无损,生态最成熟</td><td>长度上来后依然又慢又贵</td></tr>
+    <tr><td><strong>稀疏/滑窗注意力</strong></td><td>滑动窗口、NSA 等</td><td>只看部分历史</td><td>实现简单,短程任务几乎无损</td><td>窗口外信息直接不可见</td></tr>
+    <tr><td><strong>纯线性/状态空间</strong></td><td>Mamba、RWKV、DeltaNet</td><td>固定状态,O(n)</td><td>速度和显存最优</td><td>精确回忆(recall)有硬上限</td></tr>
+    <tr><td><strong>混合线性(本文主角)</strong></td><td><strong>KDA+MLA(Kimi)</strong>、Gated DeltaNet-2 等</td><td>多数层线性 + 少数全注意力层</td><td>速度接近纯线性,回忆能力大体保住</td><td>架构/推理栈更复杂,生态尚新</td></tr>
+  </table>
+  </div>
+  <p>怎么选:<strong>做应用</strong>——你其实不用选,选模型即可,架构是厂商的事;真正要看的是价格、长上下文实测质量和缓存命中率。<strong>做训练/研究</strong>——2026 年的社区共识是混合路线最务实:<a href="https://arxiv.org/abs/2507.06457">《A Systematic Analysis of Hybrid Linear Attention》</a>系统实验发现,语言建模能力对线性:全注意力比例不敏感,但<strong>精确回忆能力随全注意力层占比明显变化,比例低于 3:1(即全注意力层多于四分之一)时 recall 提升显著</strong>;Hazy Research 的 <a href="https://arxiv.org/abs/2402.18668">BASED 论文</a>更早指出了"状态大小 ↔ 回忆能力"这条根本取舍曲线。同期还有 <a href="https://arxiv.org/abs/2605.22791">Gated DeltaNet-2</a>(把"擦"和"写"解耦)等平行探索,说明这个方向远未收敛。</p>
+</section>
+
+<section id="s8" data-anim>
+  <h2>🕳️ 常见坑与限制</h2>
+  <div class="callout warn"><strong>坑 1:固定状态 ≠ 无限记忆。</strong>学界已明确:固定大小的循环状态做"精确关联回忆"有理论上限(<a href="https://arxiv.org/abs/2402.18668">BASED 论文</a>称之为 recall-throughput tradeoff)。表现出来就是:大海捞针式的"逐字找回 50 万 token 前的一句话",混合模型依赖那少数几层全注意力,极端场景仍可能不如纯全注意力稳。对 Agent 工程的含义:<strong>关键信息别指望模型"记得",该外置到记忆系统/文件的照样外置</strong>。</div>
+  <div class="callout warn"><strong>坑 2:"超过全注意力"目前主要是厂商自证。</strong>Kimi Linear 论文说"公平对比下首次超越 full attention",实验设计和评测都由 Moonshot 完成;K3 的基准同样是自家套件、发布未满 48 小时。社区独立复现之前,措辞上应保持"官方宣称"。</div>
+  <div class="callout warn"><strong>坑 3:推理基础设施的隐性差异。</strong>KDA 的循环状态让 prefix caching、投机解码等常规优化都要专门适配(Moonshot 已给 vLLM 提交了实现)。自部署时如果用了未适配的推理栈,可能出现缓存失效、吞吐不升反降的情况。K2.x 的调用习惯(<code>thinking</code> 参数、自定 temperature)在 K3 上会直接报错。</div>
+  <div class="callout warn"><strong>坑 4:教程时效。</strong>线性注意力领域 2024-2026 迭代极快,DeltaNet → Gated DeltaNet → KDA → GDN-2 一年多连跳数代。读到不带日期的"线性注意力不行"或"线性注意力已解决一切"的文章,先查发布时间——2025 年 10 月(Kimi Linear)之前和之后的结论差别很大。</div>
+</section>
+
+<section id="s9" data-anim>
+  <h2>📚 学习资源</h2>
+  <ul>
+    <li><strong>一手论文</strong>:<a href="https://arxiv.org/abs/2510.26692">Kimi Linear: An Expressive, Efficient Attention Architecture</a>(arXiv 2510.26692,KDA 原始论文,2025-10)</li>
+    <li><strong>官方代码</strong>:<a href="https://github.com/MoonshotAI/Kimi-Linear">GitHub · MoonshotAI/Kimi-Linear</a>(KDA kernel、vLLM 集成、48B checkpoint)</li>
+    <li><strong>K3 官方博客</strong>:<a href="https://www.kimi.com/blog/kimi-k3">kimi.com/blog/kimi-k3</a>(架构、评测、API 细节的一手来源)</li>
+    <li><strong>背景论文</strong>:<a href="https://arxiv.org/abs/2402.18668">BASED:recall-throughput 取舍</a> · <a href="https://arxiv.org/abs/2507.06457">混合线性注意力系统分析</a> · <a href="https://arxiv.org/abs/2605.22791">Gated DeltaNet-2(2026-05)</a></li>
+    <li><strong>解读文章</strong>:<a href="https://www.marktechpost.com/2026/07/16/moonshot-ai-releases-kimi-k3-a-2-8-trillion-parameter-open-moe-model-with-kimi-delta-attention-and-1m-context/">MarkTechPost:K3 发布详解</a> · <a href="https://vizuara.substack.com/p/kimi-linear-an-expressive-efficient">Vizuara:Kimi Linear 图解</a>(社区解读,观点性内容)</li>
+  </ul>
+</section>
+
+</div>
+
+<footer>
+  <div>📅 调研时间:2026-07-17 · 领域迭代快,关键细节请以 <a href="https://www.kimi.com/blog/kimi-k3">Moonshot 官方文档</a> 与 arXiv 最新版为准</div>
+  <div class="srclist">
+    <strong>来源清单</strong>
+    <ol>
+      <li><a href="https://arxiv.org/abs/2510.26692">Kimi Linear: An Expressive, Efficient Attention Architecture</a> — arXiv 2510.26692,Kimi Team,2025-10-30(官方一手)</li>
+      <li><a href="https://www.marktechpost.com/2026/07/16/moonshot-ai-releases-kimi-k3-a-2-8-trillion-parameter-open-moe-model-with-kimi-delta-attention-and-1m-context/">Moonshot AI Releases Kimi K3</a> — MarkTechPost,2026-07-16(引用官方博客)</li>
+      <li><a href="https://www.kimi.com/blog/kimi-k3">Kimi K3 官方博客</a> — Moonshot AI,2026-07-16(官方一手)</li>
+      <li><a href="https://github.com/MoonshotAI/Kimi-Linear">MoonshotAI/Kimi-Linear</a> — GitHub 官方仓库</li>
+      <li><a href="https://www.latent.space/p/ainews-kimi-k3-28t-a50b-the-largest">AINews: Kimi K3 2.8T-A50B</a> — Latent Space,2026-07-16</li>
+      <li><a href="https://venturebeat.com/technology/chinas-moonshot-ai-releases-kimi-k3-the-largest-open-source-model-ever-rivaling-top-u-s-systems">China's Moonshot AI releases Kimi K3</a> — VentureBeat,2026-07-16</li>
+      <li><a href="https://arxiv.org/abs/2402.18668">Simple linear attention language models balance the recall-throughput tradeoff (BASED)</a> — arXiv 2402.18668</li>
+      <li><a href="https://arxiv.org/abs/2507.06457">A Systematic Analysis of Hybrid Linear Attention</a> — arXiv 2507.06457</li>
+      <li><a href="https://arxiv.org/abs/2605.22791">Gated DeltaNet-2: Decoupling Erase and Write in Linear Attention</a> — arXiv 2605.22791,2026-05</li>
+    </ol>
+  </div>
+  <div>本文档由 AI 调研整理生成,事实均标注来源;「官方宣称」类表述表示尚无独立第三方验证。</div>
+</footer>
+
+<script>
+(function(){
+  var bar=document.getElementById('progress');
+  addEventListener('scroll',function(){
+    var h=document.documentElement, p=h.scrollTop/(h.scrollHeight-h.clientHeight)*100;
+    bar.style.width=p+'%';
+  },{passive:true});
+  var links=[].slice.call(document.querySelectorAll('#toc a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))});
+  function hl(){
+    var y=scrollY+120,idx=0;
+    secs.forEach(function(s,i){if(s&&s.offsetTop<=y)idx=i});
+    links.forEach(function(a,i){a.classList.toggle('on',i===idx)});
+  }
+  addEventListener('scroll',hl,{passive:true});hl();
+  var btn=document.getElementById('tocbtn'),toc=document.getElementById('toc');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  links.forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open')})});
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('in');
+        e.target.querySelectorAll('svg').forEach(function(s){s.classList.add('in')});
+        io.unobserve(e.target);}
+    })},{threshold:.12});
+    document.querySelectorAll('[data-anim]').forEach(function(el){io.observe(el)});
+  }else{
+    document.querySelectorAll('[data-anim]').forEach(function(el){el.classList.add('in')});
+  }
+})();
+</script>
+</body>
+</html>
