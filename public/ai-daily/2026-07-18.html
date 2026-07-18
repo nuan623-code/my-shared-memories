@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Apps:让 MCP 服务器「长出界面」的交互 UI 扩展</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1c2b3a; --ink2:#4a5e72; --ink3:#7b8fa3;
+  --blue:#1769d0; --blue-d:#0d3f7e; --blue-dd:#092c5a; --blue-l:#dcebfc; --blue-ll:#f2f8ff;
+  --ok:#1f9d6b; --warn:#c47f17; --warn-bg:#fdf6e8; --danger:#c2453f;
+  --mono:'SF Mono',Consolas,Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.88}
+#progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--blue),#5aa4f2);width:0;z-index:99}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px 80px}
+.hero{background:linear-gradient(135deg,var(--blue-dd),var(--blue-d) 60%,#155ab4);color:#fff;border-radius:0 0 26px 26px;padding:54px 26px 44px;margin:0 -20px 34px;text-align:center}
+.hero .tag{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:3px 16px;font-size:13.5px;margin-bottom:16px;letter-spacing:1px}
+.hero h1{font-size:clamp(24px,4.6vw,36px);line-height:1.4;margin-bottom:14px}
+.hero p{color:#cfe2f8;font-size:15.5px;max-width:620px;margin:0 auto}
+section{background:var(--card);border-radius:18px;padding:30px 28px;margin-bottom:26px;box-shadow:0 2px 14px rgba(23,60,110,.06)}
+h2{font-size:22px;color:var(--blue-d);margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid var(--blue-l)}
+h3{font-size:18px;color:var(--blue-d);margin:24px 0 10px}
+p{margin-bottom:13px;color:var(--ink)}
+strong{color:var(--blue-d)}
+ul,ol{margin:0 0 14px 1.4em}
+li{margin-bottom:7px}
+a{color:var(--blue);text-decoration:none;word-break:break-all}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.86em;background:var(--blue-ll);border:1px solid var(--blue-l);border-radius:5px;padding:1px 6px;color:var(--blue-d)}
+pre{background:#0f2038;color:#dbe9fb;border-radius:12px;padding:18px 16px;overflow-x:auto;font-family:var(--mono);font-size:13.2px;line-height:1.72;margin:12px 0 16px}
+pre code{background:none;border:none;color:inherit;padding:0}
+.def{background:var(--blue-ll);border:1px solid var(--blue-l);border-radius:14px;padding:18px 20px;margin:14px 0 18px}
+.def .d1{font-weight:700;color:var(--blue-d);margin-bottom:6px}
+.def .d2{margin-bottom:6px}
+.def .d3{color:var(--ink2);font-size:15.3px;margin-bottom:0}
+.callout{border-radius:12px;padding:15px 18px;margin:14px 0 18px;font-size:15.8px}
+.callout.key{background:var(--blue-ll);border-left:4px solid var(--blue)}
+.callout.warn{background:var(--warn-bg);border-left:4px solid var(--warn)}
+.callout p:last-child{margin-bottom:0}
+.analogy{background:#f4f9f2;border:1px dashed #9cc79a;border-radius:14px;padding:16px 20px;margin:14px 0 18px;font-size:15.8px}
+.analogy .t{font-weight:700;color:#2f7d4f;margin-bottom:6px}
+.steps{counter-reset:st;margin:16px 0 18px}
+.step{position:relative;padding:12px 16px 12px 54px;background:var(--blue-ll);border-radius:12px;margin-bottom:10px}
+.step::before{counter-increment:st;content:counter(st);position:absolute;left:14px;top:13px;width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14.5px}
+.step .st-t{font-weight:700;color:var(--blue-d)}
+table{width:100%;border-collapse:collapse;margin:14px 0 18px;font-size:15px}
+th{background:var(--blue-d);color:#fff;padding:10px 12px;text-align:left;font-weight:600}
+td{padding:10px 12px;border-bottom:1px solid #e3edf8;vertical-align:top}
+tr:nth-child(even) td{background:var(--blue-ll)}
+.figure{margin:20px 0 22px;text-align:center}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:14px;color:var(--ink3);margin-top:8px}
+.glossary{margin:14px 0 18px}
+.glossary .g{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed #d6e4f4;flex-wrap:wrap}
+.glossary .g b{flex:0 0 200px;color:var(--blue-d)}
+.glossary .g span{flex:1;min-width:240px;color:var(--ink2);font-size:15.5px}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 18px}
+.stat{flex:1;min-width:140px;background:var(--blue-ll);border-radius:14px;padding:16px 14px;text-align:center}
+.stat .n{font-size:24px;font-weight:800;color:var(--blue)}
+.stat .l{font-size:13.5px;color:var(--ink2);margin-top:4px}
+.src{font-size:13.5px;color:var(--ink3)}
+footer{background:var(--card);border-radius:18px;padding:26px 28px;font-size:14px;color:var(--ink2)}
+footer li{margin-bottom:6px}
+/* TOC */
+#toc-btn{position:fixed;left:14px;bottom:18px;z-index:60;width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 14px rgba(23,105,208,.4);display:none}
+#toc{position:fixed;left:22px;top:90px;width:212px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #dbe8f7;border-radius:16px;padding:16px 8px;z-index:50;max-height:74vh;overflow-y:auto}
+#toc .tt{font-size:13px;font-weight:700;color:var(--ink3);padding:0 12px 8px;letter-spacing:2px}
+#toc a{display:block;padding:6px 12px;font-size:13.8px;color:var(--ink2);border-radius:8px;line-height:1.4}
+#toc a.on{background:var(--blue-l);color:var(--blue-d);font-weight:700}
+@media(max-width:1360px){
+  #toc{display:none;left:14px;bottom:76px;top:auto;max-height:60vh}
+  #toc.open{display:block}
+  #toc-btn{display:block}
+}
+@media(max-width:640px){
+  body{font-size:16px}
+  section{padding:22px 18px}
+  .glossary .g b{flex-basis:100%}
+}
+@media(prefers-reduced-motion:no-preference){
+  [data-anim]{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+  [data-anim].in{opacity:1;transform:none}
+  svg [data-draw]{stroke-dasharray:1000;stroke-dashoffset:1000;transition:stroke-dashoffset 1.4s ease .2s}
+  svg.in [data-draw]{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<button id="toc-btn" aria-label="目录">☰</button>
+<nav id="toc">
+  <div class="tt">目 录</div>
+  <a href="#s0">30 秒速览</a>
+  <a href="#s1">背景与动机</a>
+  <a href="#s2">核心概念</a>
+  <a href="#s3">工作机制全流程</a>
+  <a href="#s4">怎么用:服务器侧</a>
+  <a href="#s5">怎么用:UI 侧</a>
+  <a href="#s6">安全模型</a>
+  <a href="#s7">使用场景与客户端支持</a>
+  <a href="#s8">对比与选型</a>
+  <a href="#s9">常见坑与限制</a>
+  <a href="#s10">学习资源</a>
+</nav>
+
+<div class="wrap">
+<div class="hero">
+  <div class="tag">MCP 官方扩展 · io.modelcontextprotocol/ui</div>
+  <h1>MCP Apps<br>让 MCP 服务器「长出界面」的交互 UI 扩展</h1>
+  <p>工具调用不再只能返回文字——服务器可以把仪表盘、表单、可视化直接渲染进对话里。这是 MCP 首个官方扩展(SEP-1865),已被 Claude、ChatGPT、VS Code、Goose 支持,并作为官方扩展纳入 2026-07-28 新规范。</p>
+</div>
+
+<section id="s0" data-anim>
+<h2>⚡ 30 秒速览</h2>
+<p>MCP 让模型能调用外部工具,但工具的返回一直只有<strong>文字和结构化数据</strong>。用户想筛选一下表格、点开一条记录,都得再打一轮字。<strong>MCP Apps 补上了这块:MCP 服务器可以随工具附带一份 HTML 界面,宿主(Claude、ChatGPT 等)把它渲染在对话内的沙箱 iframe 里,用户直接点击交互,界面再通过标准 JSON-RPC 与宿主、模型双向沟通。</strong></p>
+<div class="figure">
+<svg viewBox="0 0 700 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MCP Apps 定位图:从纯文本交互到对话内交互界面">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1769d0"/></marker></defs>
+  <rect x="20" y="30" width="300" height="150" rx="14" fill="#f2f8ff" stroke="#c9ddf5"/>
+  <text x="170" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="#7b8fa3">以前:纯文本往返</text>
+  <text x="170" y="90" text-anchor="middle" font-size="13" fill="#4a5e72">「帮我按收入排序」</text>
+  <text x="170" y="115" text-anchor="middle" font-size="13" fill="#4a5e72">「只看上周的」</text>
+  <text x="170" y="140" text-anchor="middle" font-size="13" fill="#4a5e72">「第 47 行详情是什么?」</text>
+  <text x="170" y="166" text-anchor="middle" font-size="12.5" fill="#c2453f">每个动作都要再等一轮对话</text>
+  <path d="M330 105 L378 105" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar)" data-draw fill="none"/>
+  <rect x="388" y="30" width="292" height="150" rx="14" fill="#dcebfc" stroke="#1769d0"/>
+  <text x="534" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="#0d3f7e">现在:对话内交互 UI</text>
+  <rect x="410" y="72" width="248" height="86" rx="8" fill="#ffffff" stroke="#9dc4ee"/>
+  <text x="534" y="96" text-anchor="middle" font-size="12.5" fill="#1c2b3a">📊 可点击的仪表盘 / 表单</text>
+  <text x="534" y="118" text-anchor="middle" font-size="12.5" fill="#1c2b3a">直接排序、筛选、点选</text>
+  <text x="534" y="140" text-anchor="middle" font-size="12" fill="#1f9d6b">模型全程「看得见」用户操作</text>
+</svg>
+<div class="fig-cap">MCP Apps 解决的核心问题:把「每个动作一轮对话」变成「界面直接操作、模型保持在环」</div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="n">2026-01-26</div><div class="l">Stable 版本发布<br>首个 MCP 官方扩展</div></div>
+  <div class="stat"><div class="n">4+</div><div class="l">已支持宿主:Claude、ChatGPT、Goose、VS Code Insiders</div></div>
+  <div class="stat"><div class="n">2.1k★</div><div class="l">ext-apps 官方仓库<br>(截至调研时)</div></div>
+</div>
+<p class="src">数据来源:MCP 官方博客(2026-01-26)、GitHub ext-apps 仓库页面。</p>
+</section>
+
+<section id="s1" data-anim>
+<h2>🧭 背景与动机:为什么需要 MCP Apps</h2>
+<p>先说痛点。MCP 把模型连上了数据和工具,但官方博客里举了一个很典型的例子:一个查数据库的工具返回几百行数据,模型能做摘要,可用户真正想做的是<strong>探索</strong>——按列排序、按日期筛、点进某条记录。纯文本模式下,每个动作都要再发一条消息:「只看上周的」「按收入排」「第 47 行是什么」。能用,但慢。</p>
+<p>社区早就动手了,于是出现了两条先行路线:</p>
+<ul>
+<li><strong>MCP-UI</strong>:社区项目,验证了「UI 资源 + 双向通信」这套模式,Postman、HuggingFace、Shopify、ElevenLabs 等都采用过;</li>
+<li><strong>OpenAI Apps SDK</strong>(2025 年 11 月):让开发者在 ChatGPT 里构建富交互应用,底层同样基于 MCP。</li>
+</ul>
+<p>问题在于两套方案互不兼容:同一个功能,开发者要为不同宿主维护两份实现;各宿主行为细节不一致;安全与审计模式也各搞一套。SEP-1865 的目标就是把两家的经验<strong>合并成一个开放标准</strong>——规范由 MCP-UI 作者(Ido Salomon、Liad Yosef)与 OpenAI、Anthropic 的工程师共同起草。</p>
+<div class="figure">
+<svg viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MCP Apps 发展时间线">
+  <line x1="40" y1="75" x2="660" y2="75" stroke="#9dc4ee" stroke-width="3" data-draw/>
+  <g font-size="12.5" fill="#4a5e72" text-anchor="middle">
+    <circle cx="90" cy="75" r="8" fill="#1769d0"/><text x="90" y="50" font-weight="700" fill="#0d3f7e">2025-11</text><text x="90" y="105">SEP-1865 提案</text><text x="90" y="123">(MCP-UI + Apps SDK 合流)</text>
+    <circle cx="270" cy="75" r="8" fill="#1769d0"/><text x="270" y="50" font-weight="700" fill="#0d3f7e">2026-01-26</text><text x="270" y="105">Stable 发布</text><text x="270" y="123">Claude / ChatGPT 等上线</text>
+    <circle cx="460" cy="75" r="8" fill="#1769d0"/><text x="460" y="50" font-weight="700" fill="#0d3f7e">2026-05-21</text><text x="460" y="105">进入 07-28 规范 RC</text><text x="460" y="123">Extensions 框架转正</text>
+    <circle cx="625" cy="75" r="8" fill="#1f9d6b"/><text x="625" y="50" font-weight="700" fill="#1f9d6b">2026-07-28</text><text x="625" y="105">新规范定稿</text>
+  </g>
+</svg>
+<div class="fig-cap">从社区实验到官方标准:MCP Apps 是 Extensions 机制下第一个「转正」的扩展</div>
+</div>
+<div class="callout key"><p><strong>它在新规范里的位置:</strong>2026-07-28 规范把「扩展」变成一等公民——反向域名 ID、独立仓库、独立版本号。MCP Apps(<code>io.modelcontextprotocol/ui</code>)和 Tasks 是首批两个官方扩展。也就是说,Apps 不绑定协议大版本,可以按自己的节奏演进。</p></div>
+</section>
+
+<section id="s2" data-anim>
+<h2>🧩 核心概念:四个关键词</h2>
+<p>MCP Apps 整个规范可以浓缩为四个概念,理解了它们就理解了一切:</p>
+<div class="def">
+<div class="d1">① UI 资源(ui:// 资源)</div>
+<div class="d2">一份用 <code>ui://</code> 开头的 URI 声明的 MCP 资源,内容是一个完整的 HTML5 文档(MIME 类型固定为 <code>text/html;profile=mcp-app</code>),通过标准的 <code>resources/read</code> 获取。</div>
+<div class="d3">大白话:界面模板就是服务器上的一个「特殊文件」,宿主用读资源的老办法把它拿下来。<code>ui://</code> 前缀已在 MCP 中为 Apps 保留。</div>
+</div>
+<div class="def">
+<div class="d1">② 工具-UI 关联(_meta.ui.resourceUri)</div>
+<div class="d2">工具在定义里加一个元数据字段 <code>_meta.ui.resourceUri</code>,指向某个 ui:// 资源。宿主看到这个字段,就知道「这个工具的结果应该用那份界面来展示」。</div>
+<div class="d3">大白话:工具举个牌子说「我的结果请用 3 号模板渲染」。不支持 Apps 的宿主直接无视牌子,退回纯文本——完全向后兼容。</div>
+</div>
+<div class="def">
+<div class="d1">③ 沙箱 iframe 渲染</div>
+<div class="d2">宿主把 HTML 渲染在权限受限的沙箱 iframe 中;网页版宿主还必须再套一层不同源的「沙箱代理」(双 iframe 结构),并按服务器声明的 CSP 白名单加载。</div>
+<div class="d3">大白话:第三方界面被关进「玻璃房」里运行——能看、能点,但摸不到宿主页面,想连哪个外部域名必须提前报备。</div>
+</div>
+<div class="def">
+<div class="d1">④ JSON-RPC over postMessage 双向通信</div>
+<div class="d2">iframe 里的界面(规范里叫 View)概念上就是一个 MCP 客户端,通过 postMessage 与宿主说 MCP 的标准话:调工具用 <code>tools/call</code>,读资源用 <code>resources/read</code>,外加一组 <code>ui/*</code> 专用消息。</div>
+<div class="d3">大白话:界面不发明新语言,继续说 MCP 的普通话。好处是:界面发起的每个动作都走和模型调工具<strong>同一条审计与同意通道</strong>,宿主可以逐条记录、逐条拦截。</div>
+</div>
+<div class="analogy"><div class="t">🍜 一个类比</div>以前的 MCP 工具像「电话点餐」:你说一句,后厨做一步,想改口味再打一次电话。MCP Apps 相当于餐厅递给你一台<strong>点餐平板</strong>:菜单(UI 模板)是餐厅预先做好、经过审查的;你在平板上点的每一下,都会生成一张标准格式的订单小票(JSON-RPC 消息)送进后厨——服务员(宿主)全程能看到每张小票,可疑的可以拦下。</div>
+</section>
+
+<section id="s3" data-anim>
+<h2>⚙️ 工作机制:一次 UI 工具调用的完整旅程</h2>
+<p>把上面四个概念串起来,一个带界面的工具调用是这样跑完全程的(依据规范 Lifecycle 章节):</p>
+<div class="figure">
+<svg viewBox="0 0 700 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MCP Apps 生命周期流程图">
+  <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1769d0"/></marker></defs>
+  <g font-size="13">
+    <rect x="20" y="20" width="200" height="62" rx="10" fill="#dcebfc" stroke="#1769d0"/>
+    <text x="120" y="45" text-anchor="middle" font-weight="700" fill="#0d3f7e">1. 发现</text>
+    <text x="120" y="66" text-anchor="middle" fill="#4a5e72">tools/list 带 _meta.ui</text>
+    <rect x="250" y="20" width="200" height="62" rx="10" fill="#dcebfc" stroke="#1769d0"/>
+    <text x="350" y="45" text-anchor="middle" font-weight="700" fill="#0d3f7e">2. 预取模板</text>
+    <text x="350" y="66" text-anchor="middle" fill="#4a5e72">resources/read ui://…</text>
+    <rect x="480" y="20" width="200" height="62" rx="10" fill="#dcebfc" stroke="#1769d0"/>
+    <text x="580" y="45" text-anchor="middle" font-weight="700" fill="#0d3f7e">3. 审查 + 缓存</text>
+    <text x="580" y="66" text-anchor="middle" fill="#4a5e72">宿主可先安全审查 HTML</text>
+    <path d="M220 51 L246 51" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw fill="none"/>
+    <path d="M450 51 L476 51" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw fill="none"/>
+    <path d="M580 82 L580 108" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw fill="none"/>
+    <rect x="480" y="112" width="200" height="62" rx="10" fill="#dcebfc" stroke="#1769d0"/>
+    <text x="580" y="137" text-anchor="middle" font-weight="700" fill="#0d3f7e">4. 模型调用工具</text>
+    <text x="580" y="158" text-anchor="middle" fill="#4a5e72">tools/call,同时渲染 iframe</text>
+    <path d="M480 143 L276 143" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw fill="none"/>
+    <rect x="20" y="112" width="250" height="62" rx="10" fill="#dcebfc" stroke="#1769d0"/>
+    <text x="145" y="137" text-anchor="middle" font-weight="700" fill="#0d3f7e">5. UI 握手</text>
+    <text x="145" y="158" text-anchor="middle" fill="#4a5e72">ui/initialize → 拿到主题/尺寸等上下文</text>
+    <path d="M145 174 L145 200" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw fill="none"/>
+    <rect x="20" y="204" width="250" height="62" rx="10" fill="#dcebfc" stroke="#1769d0"/>
+    <text x="145" y="229" text-anchor="middle" font-weight="700" fill="#0d3f7e">6. 数据注入</text>
+    <text x="145" y="250" text-anchor="middle" fill="#4a5e72">tool-input / tool-result 通知</text>
+    <path d="M270 235 L336 235" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw fill="none"/>
+    <rect x="340" y="204" width="340" height="62" rx="10" fill="#e8f6ef" stroke="#1f9d6b"/>
+    <text x="510" y="229" text-anchor="middle" font-weight="700" fill="#1f9d6b">7. 交互循环(核心阶段)</text>
+    <text x="510" y="250" text-anchor="middle" fill="#4a5e72">用户点击 → tools/call / ui/message / 更新模型上下文</text>
+    <path d="M510 266 L510 292" stroke="#7b8fa3" stroke-width="2.5" marker-end="url(#ar2)" data-draw fill="none"/>
+    <rect x="390" y="294" width="240" height="30" rx="8" fill="#f2f8ff" stroke="#c9ddf5"/>
+    <text x="510" y="314" text-anchor="middle" fill="#7b8fa3">8. ui/resource-teardown 优雅收尾</text>
+  </g>
+</svg>
+<div class="fig-cap">生命周期八步:模板「预声明 → 预取 → 审查」发生在工具执行之前,这是与旧方案最大的架构差异</div>
+</div>
+<h3>数据是怎么进入界面的?</h3>
+<p>界面拿到数据靠两条通知(而不是自己去请求):宿主在 View 初始化完成后推送 <code>ui/notifications/tool-input</code>(完整的工具入参,还可选流式推送 partial 版本做加载动画),工具执行完毕后推送 <code>ui/notifications/tool-result</code>(标准 CallToolResult)。规范对结果的三个字段有明确分工:</p>
+<ul>
+<li><code>content</code>:给模型和纯文本宿主看的文字版——<strong>必须有意义</strong>,这是降级保底;</li>
+<li><code>structuredContent</code>:给 UI 渲染用的结构化数据,<strong>不进入模型上下文</strong>;</li>
+<li><code>_meta</code>:时间戳等附加元数据,也不给模型。</li>
+</ul>
+<div class="callout key"><p><strong>反向通道同样重要:</strong>界面可以用 <code>ui/update-model-context</code> 把「用户在界面里做了什么」(如选了方案 B)写回模型上下文,供下一轮对话使用——每次调用会覆盖上一次的内容;也可以用 <code>ui/message</code> 直接以用户身份往对话里发消息推动下一步。这就是官方说的「模型保持在环」(model stays in the loop)。</p></div>
+</section>
+
+<section id="s4" data-anim>
+<h2>🛠️ 怎么用(一):服务器侧三步接入</h2>
+<p>官方 SDK 是 npm 包 <code>@modelcontextprotocol/ext-apps</code>,配合标准 MCP SDK 使用。服务器侧的接入只有三件事(以下代码均来自官方规范与博客,做了注释汉化):</p>
+<div class="steps">
+<div class="step"><span class="st-t">注册 ui:// 资源</span>——把打包好的 HTML(建议单文件、内联 JS/CSS)作为资源暴露,MIME 用 <code>text/html;profile=mcp-app</code>,并在 <code>_meta.ui.csp</code> 里声明需要访问的外部域名。</div>
+<div class="step"><span class="st-t">给工具挂上 UI 元数据</span>——在工具定义的 <code>_meta.ui.resourceUri</code> 指向该资源;需要的话用 <code>visibility</code> 控制工具对模型/界面的可见性。</div>
+<div class="step"><span class="st-t">按客户端能力降级</span>——用 <code>getUiCapability</code> 检查宿主是否声明了 <code>io.modelcontextprotocol/ui</code> 扩展能力,不支持就注册纯文本版工具。</div>
+</div>
+<pre><code>// ① 资源内容(resources/read 返回)
+{
+  "contents": [{
+    "uri": "ui://weather-server/dashboard-template",
+    "mimeType": "text/html;profile=mcp-app",
+    "text": "&lt;!DOCTYPE html&gt;&lt;html&gt;...&lt;/html&gt;",
+    "_meta": { "ui": {
+      "csp": {
+        "connectDomains":  ["https://api.openweathermap.org"], // 允许 fetch 的域名
+        "resourceDomains": ["https://cdn.jsdelivr.net"]        // 允许加载静态资源的域名
+      },
+      "prefersBorder": true
+    }}
+  }]
+}
+
+// ② 工具声明:结果用上面的模板渲染
+{
+  "name": "get_weather",
+  "description": "Get current weather for a location",
+  "inputSchema": { "type": "object",
+    "properties": { "location": { "type": "string" } } },
+  "_meta": { "ui": {
+    "resourceUri": "ui://weather-server/dashboard-template",
+    "visibility": ["model", "app"]   // 默认值:模型和界面都能调
+  }}
+}</code></pre>
+<h3>visibility:一个容易被忽略的好设计</h3>
+<p>工具可见性数组解决了「界面内部按钮」问题:把工具标成 <code>visibility: ["app"]</code>,它就<strong>对模型隐藏</strong>(不会出现在 tools/list 里),只允许同一服务器的界面调用——刷新按钮、表单提交这类实现细节就不会污染模型的工具列表。宿主必须拒绝跨服务器的 app-only 工具调用。</p>
+<pre><code>// ③ 能力协商 + 降级(官方推荐写法)
+import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+
+const uiCap = getUiCapability(clientCapabilities);
+if (uiCap?.mimeTypes?.includes(RESOURCE_MIME_TYPE)) {
+  // 宿主支持 → 注册带 UI 的工具
+} else {
+  // 宿主不支持 → 注册纯文本版本
+}</code></pre>
+</section>
+
+<section id="s5" data-anim>
+<h2>🎨 怎么用(二):UI 侧的 App API</h2>
+<p>iframe 里的界面代码用同一个包的 <code>App</code> 类与宿主通信(不用 SDK、裸写 postMessage + JSON-RPC 也完全可以,规范里给了等价实现):</p>
+<pre><code>import { App } from "@modelcontextprotocol/ext-apps";
+
+const app = new App();
+await app.connect();                    // ui/initialize 握手
+
+// 接收工具结果并渲染
+app.ontoolresult = (result) =&gt; {
+  renderChart(result.structuredContent);
+};
+
+// 从界面反向调用服务器工具(走宿主代理,可被审计/拦截)
+const response = await app.callServerTool({
+  name: "fetch_details",
+  arguments: { id: "123" },
+});
+
+// 把用户操作写回模型上下文
+await app.updateModelContext({
+  content: [{ type: "text", text: "User selected option B" }],
+});</code></pre>
+<h3>宿主上下文:让界面「入乡随俗」</h3>
+<p><code>ui/initialize</code> 的返回里,宿主会给界面一份 <code>hostContext</code>,包括:明暗主题、一组<strong>标准化 CSS 变量</strong>(背景/文字/边框色、字体、圆角、阴影等,宿主用 <code>light-dark()</code> 提供双主题值)、容器尺寸(固定或弹性,弹性时界面用 ResizeObserver 上报 <code>size-changed</code>)、显示模式(<code>inline</code> 内嵌 / <code>fullscreen</code> 全屏 / <code>pip</code> 画中画)、语言时区、平台类型(web/desktop/mobile)。界面按 <code>var(--color-background-primary)</code> 这样取用并<strong>自带兜底默认值</strong>,就能在 Claude 和 ChatGPT 里都长得「像原生」。</p>
+<h3>ui/* 专用消息速查表</h3>
+<table>
+<tr><th>消息</th><th>方向</th><th>作用</th></tr>
+<tr><td><code>ui/open-link</code></td><td>View → 宿主</td><td>请求在用户浏览器打开外链(宿主可拒绝)</td></tr>
+<tr><td><code>ui/message</code></td><td>View → 宿主</td><td>以用户身份向对话发消息,驱动下一轮(宿主可要求用户同意)</td></tr>
+<tr><td><code>ui/update-model-context</code></td><td>View → 宿主</td><td>更新模型上下文,覆盖式,下轮生效</td></tr>
+<tr><td><code>ui/request-display-mode</code></td><td>View → 宿主</td><td>请求切换 inline/fullscreen/pip,以宿主返回为准</td></tr>
+<tr><td><code>ui/notifications/tool-input(-partial)</code></td><td>宿主 → View</td><td>推送(流式)工具入参</td></tr>
+<tr><td><code>ui/notifications/tool-result / tool-cancelled</code></td><td>宿主 → View</td><td>推送工具结果 / 取消原因</td></tr>
+<tr><td><code>ui/notifications/size-changed</code></td><td>View → 宿主</td><td>内容尺寸变化,宿主据此调 iframe 大小</td></tr>
+<tr><td><code>ui/notifications/host-context-changed</code></td><td>宿主 → View</td><td>主题切换、窗口变化等增量更新</td></tr>
+<tr><td><code>ui/resource-teardown</code></td><td>宿主 → View</td><td>销毁前通知,给界面保存状态的机会</td></tr>
+</table>
+</section>
+
+<section id="s6" data-anim>
+<h2>🔐 安全模型:怎么放心运行「别人写的界面」</h2>
+<p>MCP Apps 的本质风险一句话就能说清:<strong>宿主要运行不是自己写的 HTML/JS</strong>。规范的威胁模型明确列了五类攻击:恶意 HTML、逃逸沙箱、未授权调工具、窃取宿主数据、钓鱼/社工。对应四层防御:</p>
+<div class="figure">
+<svg viewBox="0 0 700 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MCP Apps 四层安全防御与双 iframe 沙箱结构">
+  <g font-size="13">
+    <rect x="20" y="16" width="320" height="258" rx="14" fill="#f2f8ff" stroke="#c9ddf5"/>
+    <text x="180" y="42" text-anchor="middle" font-weight="700" fill="#0d3f7e" font-size="14.5">四层防御</text>
+    <g>
+      <rect x="40" y="56" width="280" height="44" rx="9" fill="#dcebfc" stroke="#1769d0"/>
+      <text x="180" y="74" text-anchor="middle" font-weight="700" fill="#0d3f7e">① 沙箱 iframe(强制)</text>
+      <text x="180" y="92" text-anchor="middle" fill="#4a5e72" font-size="12">权限受限,碰不到宿主 DOM</text>
+      <rect x="40" y="108" width="280" height="44" rx="9" fill="#dcebfc" stroke="#1769d0"/>
+      <text x="180" y="126" text-anchor="middle" font-weight="700" fill="#0d3f7e">② 模板预声明</text>
+      <text x="180" y="144" text-anchor="middle" fill="#4a5e72" font-size="12">渲染前可审查 / 计算哈希 / 建白名单</text>
+      <rect x="40" y="160" width="280" height="44" rx="9" fill="#dcebfc" stroke="#1769d0"/>
+      <text x="180" y="178" text-anchor="middle" font-weight="700" fill="#0d3f7e">③ 通信全程可审计</text>
+      <text x="180" y="196" text-anchor="middle" fill="#4a5e72" font-size="12">JSON-RPC 逐条校验、记录、可拦截</text>
+      <rect x="40" y="212" width="280" height="44" rx="9" fill="#dcebfc" stroke="#1769d0"/>
+      <text x="180" y="230" text-anchor="middle" font-weight="700" fill="#0d3f7e">④ CSP 白名单</text>
+      <text x="180" y="248" text-anchor="middle" fill="#4a5e72" font-size="12">未声明的域名一律连不上</text>
+    </g>
+    <rect x="368" y="16" width="312" height="258" rx="14" fill="#f2f8ff" stroke="#c9ddf5"/>
+    <text x="524" y="42" text-anchor="middle" font-weight="700" fill="#0d3f7e" font-size="14.5">网页宿主:双 iframe 结构(必须)</text>
+    <rect x="388" y="56" width="272" height="200" rx="10" fill="#ffffff" stroke="#7b8fa3" stroke-dasharray="5 4"/>
+    <text x="524" y="78" text-anchor="middle" fill="#7b8fa3" font-size="12.5">宿主页面(claude.ai 等)</text>
+    <rect x="406" y="90" width="236" height="150" rx="9" fill="#dcebfc" stroke="#1769d0"/>
+    <text x="524" y="110" text-anchor="middle" fill="#0d3f7e" font-size="12.5" font-weight="700">沙箱代理 iframe(不同源!)</text>
+    <text x="524" y="127" text-anchor="middle" fill="#4a5e72" font-size="11.5">只转发消息,不生成请求</text>
+    <rect x="424" y="136" width="200" height="90" rx="8" fill="#ffffff" stroke="#1f9d6b"/>
+    <text x="524" y="157" text-anchor="middle" fill="#1f9d6b" font-size="12.5" font-weight="700">内层 iframe:View</text>
+    <text x="524" y="176" text-anchor="middle" fill="#4a5e72" font-size="11.5">服务器的 HTML 在这里运行</text>
+    <text x="524" y="194" text-anchor="middle" fill="#4a5e72" font-size="11.5">CSP 按 _meta.ui.csp 构造</text>
+    <text x="524" y="212" text-anchor="middle" fill="#4a5e72" font-size="11.5">postMessage ↕ JSON-RPC</text>
+  </g>
+</svg>
+<div class="fig-cap">左:规范的四层防御。右:网页宿主强制的「双 iframe」——代理层与宿主不同源,浏览器同源策略从物理上隔断了对宿主数据的访问</div>
+</div>
+<h3>CSP 的「默认拒绝」哲学</h3>
+<p>服务器不声明 CSP 时,宿主必须套用最严默认值:<code>default-src 'none'; connect-src 'none'</code>——即<strong>完全断网</strong>,只能用内联脚本和 data: 图片。声明了域名,宿主也只能收紧、<strong>不得放宽</strong>。权限(摄像头/麦克风/定位/剪贴板写入)同理:服务器申请、宿主决定,界面必须做特性检测兜底。</p>
+<div class="callout warn"><p><strong>规范也坦承两个「防不住」:</strong>一是社交工程——沙箱管不了界面显示误导性内容,所以宿主应清晰标示「这是第三方 UI」的边界;二是资源消耗——恶意界面可以烧 CPU/内存,宿主要自行做资源限制。另外整个 MCP 生态 2026 年初曾集中曝出 30+ CVE(如影响 mcp-remote 的 CVE-2025-6514,CVSS 9.6),这提醒我们:Apps 的沙箱再好,<strong>接入不可信服务器本身仍是最大风险源</strong>。(CVE 数据来自 Aembit 安全报告,属 MCP 整体生态而非 Apps 扩展本身)</p></div>
+</section>
+
+<section id="s7" data-anim>
+<h2>🌍 使用场景与客户端支持</h2>
+<p>官方博客给出的四个典型场景,可以当作「什么时候值得上 Apps」的判断样板:</p>
+<table>
+<tr><th>场景</th><th>界面做什么</th><th>为什么文本做不好</th></tr>
+<tr><td>数据探索</td><td>销售分析工具返回可交互仪表盘,按地区筛选、下钻、导出</td><td>每次筛选都要一轮对话,慢</td></tr>
+<tr><td>配置向导</td><td>部署工具的表单带联动字段:选 production 出现安全选项</td><td>依赖关系用文字描述容易错</td></tr>
+<tr><td>文档审阅</td><td>合同分析工具内嵌 PDF 高亮条款,点击批准/标记,模型实时看到决定</td><td>「第三段第二句」式引用效率低</td></tr>
+<tr><td>实时监控</td><td>服务器健康面板持续自更新</td><td>文本结果是静态快照,得反复重跑</td></tr>
+</table>
+<p>官方 ext-apps 仓库提供了一批可直接起步的示例服务器:<code>threejs-server</code>(3D 可视化)、<code>map-server</code>(地图)、<code>pdf-server</code>(文档查看)、<code>system-monitor-server</code>(实时仪表盘)、<code>sheet-music-server</code>(乐谱)等。</p>
+<h3>谁已经支持了?</h3>
+<p>截至 2026 年 1 月官方公告:<strong>Claude</strong>(网页版 + 桌面版)、<strong>Goose</strong>、<strong>VS Code Insiders</strong> 已上线,<strong>ChatGPT</strong> 同周跟进;JetBrains、AWS(Kiro)、Google DeepMind(Antigravity)公开表态探索接入。对开发者的意义是官方那句话:<strong>写一次交互体验,跑在所有兼容宿主上,不用写任何宿主专属代码。</strong></p>
+</section>
+
+<section id="s8" data-anim>
+<h2>⚖️ 对比与选型:MCP Apps vs MCP-UI vs OpenAI Apps SDK</h2>
+<table>
+<tr><th></th><th>MCP Apps(官方扩展)</th><th>MCP-UI(社区先驱)</th><th>OpenAI Apps SDK</th></tr>
+<tr><td>定位</td><td>开放标准,跨宿主</td><td>社区项目 / 试验场</td><td>ChatGPT 专属生态</td></tr>
+<tr><td>UI 交付方式</td><td><strong>预声明</strong> ui:// 资源,可预取/审查/缓存</td><td>资源内嵌在工具结果里返回</td><td>组件随响应返回</td></tr>
+<tr><td>通信协议</td><td>标准 MCP JSON-RPC over postMessage</td><td>自定义消息类型(tool、prompt 等)</td><td>SDK 专有 API</td></tr>
+<tr><td>内容类型</td><td>MVP 仅 HTML(<code>profile=mcp-app</code>)</td><td>HTML / 外部 URL / Remote DOM</td><td>HTML 组件</td></tr>
+<tr><td>工具可见性</td><td>单一 <code>visibility</code> 数组</td><td>—</td><td><code>widgetAccessible</code> + <code>visibility</code> 两字段</td></tr>
+<tr><td>现状</td><td>Stable,首个官方扩展</td><td>继续维护,SDK 已兼容 Apps 模式,官方推荐宿主用其 Client SDK</td><td>持续存在,ChatGPT 同时支持 Apps 标准</td></tr>
+</table>
+<p><strong>怎么选:</strong>新项目直接按 MCP Apps 标准写——这是三方(MCP-UI 作者 + OpenAI + Anthropic)共同收敛的结果;已有 MCP-UI 项目官方明确「不用慌」,SDK 支持平滑迁移;只有深度绑定 ChatGPT 分发渠道的应用才需要额外关注 Apps SDK 的专属能力。注意 MCP-UI 的「外部 URL 嵌入」能力在 Apps MVP 中被<strong>刻意推迟</strong>(模型看不见内容、无法截图、难以审查),依赖它的场景暂时只能留在 MCP-UI。</p>
+</section>
+
+<section id="s9" data-anim>
+<h2>⚠️ 常见坑与限制</h2>
+<ul>
+<li><strong>MVP 只支持单文件 HTML</strong>:外部 URL、Remote DOM、多资源响应、状态持久化、View 间通信都在「未来考虑」清单里。需要嵌整站的场景现在做不了。(官方规范明示)</li>
+<li><strong>别把关键信息只放 structuredContent</strong>:它不进模型上下文。<code>content</code> 文字版必须独立成立,否则纯文本宿主和模型都会「失明」。(官方最佳实践)</li>
+<li><strong>CSP 忘了声明就是断网</strong>:默认 <code>connect-src 'none'</code>。界面里 fetch 外部 API 失败,先检查 <code>_meta.ui.csp.connectDomains</code>。</li>
+<li><strong>旧元数据键已废弃</strong>:扁平的 <code>_meta["ui/resourceUri"]</code> 将在 GA 前移除,一律改用嵌套的 <code>_meta.ui.resourceUri</code>。(官方弃用通知)</li>
+<li><strong>partial 输入不可靠</strong>:流式 <code>tool-input-partial</code> 是「尽力恢复」的截断 JSON,规范禁止用它做关键操作,只能拿来画加载态。</li>
+<li><strong>显示模式要先查再要</strong>:请求 fullscreen 前先看宿主的 <code>availableDisplayModes</code>,且必须处理「要了但没给」的返回。</li>
+<li><strong>主题变量要带兜底</strong>:宿主可能只传部分 CSS 变量,不设默认值会出现「一半宿主色一半裸样式」的混搭。(规范明确警告)</li>
+<li><strong>沙箱不是免死金牌</strong>:社工内容、资源消耗攻击、以及接入恶意服务器的整体风险仍在;结合 MCP 生态近期的 CVE 密集披露,生产环境应叠加模板哈希白名单、消息日志审计与用户同意弹窗。(官方威胁模型 + 社区安全报告)</li>
+</ul>
+</section>
+
+<section id="s10" data-anim>
+<h2>📚 学习资源</h2>
+<ul>
+<li>官方文档:<a href="https://modelcontextprotocol.io/docs/extensions/apps">MCP Apps Guide(含宿主实现指南)</a></li>
+<li>快速上手:<a href="https://apps.extensions.modelcontextprotocol.io/api/documents/Quickstart.html">Getting Started with MCP Apps</a></li>
+<li>SDK:<a href="https://www.npmjs.com/package/@modelcontextprotocol/ext-apps">@modelcontextprotocol/ext-apps(npm)</a></li>
+<li>规范全文:<a href="https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx">SEP-1865 Stable(2026-01-26)</a> · <a href="https://github.com/modelcontextprotocol/ext-apps">ext-apps 仓库(含全部示例)</a></li>
+<li>官方公告:<a href="https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/">MCP Apps 正式发布(2026-01-26)</a> · <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/">2026-07-28 规范 RC</a></li>
+<li>Claude 宿主问题反馈:<a href="https://github.com/anthropics/claude-ai-mcp">anthropics/claude-ai-mcp</a></li>
+</ul>
+</section>
+
+<footer>
+<p><strong>调研时间:2026-07-18</strong> · MCP Apps 扩展独立于协议版本演进,细节请以官方最新文档为准。本文关键事实均来自以下实际抓取的来源:</p>
+<ul>
+<li>SEP-1865 规范全文(Stable 2026-01-26)— github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx(已通读全文)</li>
+<li>MCP Apps 正式发布公告(2026-01-26)— blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/</li>
+<li>2026-07-28 规范 Release Candidate(2026-05-21)— blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/</li>
+<li>MCP 生态安全背景(CVE 统计)— aembit.io/blog/the-ultimate-guide-to-mcp-security-vulnerabilities/(社区报告,措辞已按单源降级)</li>
+</ul>
+</footer>
+</div>
+
+<script>
+(function(){
+  var bar=document.getElementById('progress');
+  addEventListener('scroll',function(){
+    var h=document.documentElement, p=h.scrollTop/(h.scrollHeight-h.clientHeight);
+    bar.style.width=(p*100)+'%';
+  },{passive:true});
+  var toc=document.getElementById('toc'), btn=document.getElementById('toc-btn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A')toc.classList.remove('open')});
+  var links=[].slice.call(toc.querySelectorAll('a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))});
+  addEventListener('scroll',function(){
+    var i=secs.length-1;
+    while(i>0 && secs[i].getBoundingClientRect().top>140) i--;
+    links.forEach(function(a,j){a.classList.toggle('on',j===i)});
+  },{passive:true});
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('in');
+      e.target.querySelectorAll('svg').forEach(function(s){s.classList.add('in')});
+      io.unobserve(e.target);}
+  })},{threshold:.08});
+  document.querySelectorAll('[data-anim]').forEach(function(el){io.observe(el)});
+})();
+</script>
+</body>
+</html>
