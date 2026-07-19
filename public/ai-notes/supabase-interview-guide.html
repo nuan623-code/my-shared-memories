@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supabase 面试备考指南 —— 架构 · RLS · Auth · 一周学习路径</title>
+<style>
+:root{
+  --bg:#eef4fb;
+  --card:#ffffff;
+  --ink:#1c2b3a;
+  --ink-soft:#4a5d72;
+  --accent:#2563eb;
+  --accent-deep:#1e40af;
+  --accent-soft:#dbeafe;
+  --teal:#0d9488;
+  --teal-soft:#ccfbf1;
+  --indigo:#4f46e5;
+  --indigo-soft:#e0e7ff;
+  --gold:#b45309;
+  --gold-soft:#fef3c7;
+  --warn:#b91c1c;
+  --warn-soft:#fee2e2;
+  --line:#d7e3f2;
+  --hero-g1:#0f2a52;
+  --hero-g2:#1d4ed8;
+  --radius:14px;
+  --shadow:0 2px 12px rgba(30,64,175,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);
+  font-size:17px;line-height:1.88;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:99;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .15s linear}
+.side-toc{
+  position:fixed;left:18px;top:50%;transform:translateY(-50%);
+  width:218px;max-height:82vh;overflow-y:auto;z-index:60;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:16px;padding:16px 14px;
+  box-shadow:0 6px 24px rgba(15,42,82,.10);
+}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep);letter-spacing:.5px}
+.st-sub{font-size:11.5px;color:var(--ink-soft);margin:2px 0 10px}
+.st-progress{margin-bottom:12px}
+.st-progress .pct{font-size:11.5px;color:var(--ink-soft);margin-bottom:4px}
+.st-progress .bar{height:5px;border-radius:3px;background:var(--accent-soft);overflow:hidden}
+.st-progress .fill{height:100%;width:0;border-radius:3px;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .2s}
+.side-toc ol{list-style:none}
+.side-toc li a{
+  display:flex;gap:8px;align-items:baseline;text-decoration:none;
+  font-size:12.8px;color:var(--ink-soft);padding:5.5px 8px;border-radius:8px;line-height:1.45;
+}
+.side-toc li a .no{font-size:10.5px;color:#94a3b8;font-variant-numeric:tabular-nums;min-width:16px}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc li a.active{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.side-toc li a.active .no{color:var(--accent)}
+.toc-toggle{
+  display:none;position:fixed;top:14px;left:14px;z-index:70;
+  width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
+  font-size:19px;color:var(--accent-deep);cursor:pointer;box-shadow:var(--shadow);
+}
+@media (max-width:1179px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:66px;transform:none;left:14px}
+  .toc-toggle{display:block}
+}
+.wrap{max-width:840px;margin:0 auto;padding:34px 22px 80px}
+@media (min-width:1180px){.wrap{margin-left:calc(50% - 420px + 60px)}}
+@media (min-width:1420px){.wrap{margin-left:auto}}
+.hero{
+  background:linear-gradient(135deg,var(--hero-g1),var(--hero-g2));
+  border-radius:20px;color:#fff;padding:46px 40px 40px;margin-bottom:34px;
+  box-shadow:0 10px 30px rgba(15,42,82,.25);
+}
+.hero .kicker{font-size:13px;letter-spacing:2.5px;color:#93c5fd;font-weight:600;margin-bottom:12px}
+.hero h1{font-size:31px;line-height:1.4;margin-bottom:8px}
+.hero .en{font-size:15px;color:#bfdbfe;font-style:italic;margin-bottom:16px}
+.hero .subtitle{font-size:16.5px;color:#dbeafe;border-left:3px solid #60a5fa;padding-left:12px;margin-bottom:20px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px;font-size:12.5px}
+.hero .meta span{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+  padding:3px 11px;border-radius:99px;color:#e0edff}
+section{margin-bottom:42px}
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.sec-head .icon{font-size:24px}
+.sec-head h2{font-size:23px;color:var(--accent-deep);line-height:1.5}
+.sec-head .en-tag{font-size:12.5px;color:#94a3b8;font-style:italic}
+.sec-lede{color:var(--ink-soft);font-size:15px;margin-bottom:16px;padding-left:34px}
+h3{font-size:18px;color:var(--ink);margin:24px 0 10px}
+p{margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 6px;border-radius:5px;font-weight:600}
+.hl{background:linear-gradient(transparent 62%,#bfdbfe 62%);font-weight:600}
+.def{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);margin-bottom:16px}
+.def .row{display:flex;gap:10px;margin-bottom:10px}
+.def .row:last-child{margin-bottom:0}
+.def .tag{flex-shrink:0;font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;
+  height:fit-content;margin-top:5px;white-space:nowrap}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--teal-soft);color:var(--teal)}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .row div{flex:1}
+.callout{border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;font-size:15.5px}
+.callout.key{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.callout.key-teal{background:var(--teal-soft);border-left:4px solid var(--teal)}
+.callout.key-gold{background:var(--gold-soft);border-left:4px solid var(--gold)}
+.callout.warn{background:var(--warn-soft);border-left:4px solid var(--warn)}
+.quote-box{background:linear-gradient(135deg,#12305e,#1e40af);color:#e5efff;
+  border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;position:relative}
+.quote-box::before{content:"❝";position:absolute;top:8px;left:14px;font-size:30px;color:#60a5fa;opacity:.7}
+.quote-box .zh{margin:0 0 12px 22px;font-size:15.8px;line-height:1.9}
+.quote-box .en{margin-left:22px;font-size:13px;color:#9ec4f8;font-style:italic;line-height:1.7}
+.quote-box .src{margin:10px 0 0 22px;font-size:12.5px;color:#7fb0f0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  text-align:center;padding:18px 10px;box-shadow:var(--shadow)}
+.stat .num{font-size:26px;font-weight:800;color:var(--accent);line-height:1.3}
+.stat .lab{font-size:12.8px;color:var(--ink-soft);margin-top:4px;line-height:1.5}
+@media (max-width:640px){.stats{grid-template-columns:1fr}}
+.steps{list-style:none;margin-bottom:16px}
+.steps li{position:relative;padding:0 0 18px 44px}
+.steps li::before{content:attr(data-n);position:absolute;left:0;top:2px;width:28px;height:28px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+.steps li:not(:last-child)::after{content:"";position:absolute;left:13.5px;top:32px;bottom:2px;
+  width:1.5px;background:var(--line)}
+.steps li b{display:block;font-size:15.8px;margin-bottom:2px}
+.steps li span{font-size:14.5px;color:var(--ink-soft)}
+.analogy{display:flex;border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow);background:var(--card)}
+.analogy .side{flex-shrink:0;writing-mode:vertical-rl;background:var(--indigo-soft);color:var(--indigo);
+  font-size:12.5px;font-weight:700;letter-spacing:3px;padding:14px 8px;display:flex;align-items:center}
+.analogy .body{padding:16px 20px;font-size:15.3px}
+.analogy .body .note{font-size:12.5px;color:#94a3b8;margin-top:6px}
+.rephrase{border:1px dashed #a8c3e8;border-radius:12px;margin-bottom:16px;background:#f6faff}
+.rephrase summary{cursor:pointer;padding:11px 18px;font-size:14.2px;font-weight:600;color:var(--accent-deep);
+  list-style:none}
+.rephrase summary::-webkit-details-marker{display:none}
+.rephrase summary::before{content:"▸ ";color:var(--accent)}
+.rephrase[open] summary::before{content:"▾ "}
+.rephrase .inner{padding:2px 20px 14px;font-size:14.8px;color:var(--ink-soft)}
+.qa{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+.qa summary{padding:12px 18px;font-size:15px}
+.qa .inner{font-size:14.6px}
+.qa .inner ul{margin:0 0 10px 20px}
+.qa .inner li{margin-bottom:6px}
+.glossary{width:100%;border-collapse:collapse;margin-bottom:16px;background:var(--card);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);font-size:14.8px}
+.glossary th{background:var(--accent-soft);color:var(--accent-deep);text-align:left;
+  padding:10px 16px;font-size:13.5px}
+.glossary td{border-top:1px solid var(--line);padding:10px 16px;vertical-align:top}
+.glossary td:first-child{white-space:nowrap;font-weight:700;color:var(--accent-deep)}
+@media (max-width:640px){.glossary td:first-child{white-space:normal}}
+.tbl-scroll{overflow-x:auto;margin-bottom:16px}
+.tbl-scroll .glossary{margin-bottom:0;min-width:560px}
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.case{border-radius:var(--radius);padding:18px 20px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+.case.good{border-top:4px solid var(--teal)}
+.case.bad{border-top:4px solid var(--warn)}
+.case h4{font-size:15.5px;margin-bottom:8px}
+.case p{font-size:14.3px;color:var(--ink-soft);margin-bottom:6px}
+.case .big{font-size:23px;font-weight:800}
+.case.good .big{color:var(--teal)}
+.case.bad .big{color:var(--warn)}
+@media (max-width:640px){.cases{grid-template-columns:1fr}}
+.practice{list-style:none;margin-bottom:16px}
+.practice li{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px 18px;margin-bottom:10px;box-shadow:var(--shadow);font-size:15.3px;display:flex;gap:10px}
+.practice li .ic{flex-shrink:0}
+pre{background:#0f2440;color:#dbeafe;border-radius:12px;padding:16px 18px;font-size:13.5px;
+  line-height:1.7;overflow-x:auto;margin-bottom:16px;
+  font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace}
+pre .cm{color:#7fb0f0;font-style:italic}
+code{background:#e4edfb;color:#1e40af;padding:1px 6px;border-radius:5px;font-size:14px;
+  font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace}
+pre code{background:none;color:inherit;padding:0;font-size:inherit}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 18px 12px;margin-bottom:18px;box-shadow:var(--shadow);
+  opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{text-align:center;font-size:13px;color:var(--ink-soft);padding:8px 10px 4px}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{transition:stroke-dashoffset 1s ease}
+.final{background:linear-gradient(135deg,var(--hero-g1),var(--hero-g2));color:#dbeafe;
+  border-radius:20px;padding:34px 36px;margin-top:10px}
+.final h2{color:#fff;font-size:20px;margin-bottom:12px}
+.final a{color:#93c5fd}
+footer{text-align:center;font-size:12.8px;color:#8aa2bd;margin-top:36px;line-height:1.8}
+footer .srcs{text-align:left;max-width:720px;margin:14px auto 0;font-size:12px}
+footer .srcs li{margin-bottom:3px}
+a{color:var(--accent)}
+.prereq{font-size:13.5px;color:var(--ink-soft);background:#f2f7ff;border:1px solid var(--line);
+  border-radius:8px;padding:6px 12px;display:inline-block;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .figure,.figure [data-anim]{opacity:1 !important;transform:none !important;transition:none !important}
+  .figure [data-draw]{stroke-dasharray:none !important;stroke-dashoffset:0 !important;transition:none !important}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .hero{padding:32px 24px 28px}
+  .hero h1{font-size:24px}
+  .wrap{padding:22px 14px 60px}
+  .card,.def{padding:16px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="打开目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">⚡ Supabase 备考</div>
+  <div class="st-sub">架构 · RLS · Auth · 面试题 · 一周计划</div>
+  <div class="st-progress">
+    <div class="pct">已读 <span id="pctNum">0%</span></div>
+    <div class="bar"><div class="fill" id="pctFill"></div></div>
+  </div>
+  <ol>
+    <li><a href="#intro"><span class="no">01</span>30 秒速览</a></li>
+    <li><a href="#story"><span class="no">02</span>背景与动机</a></li>
+    <li><a href="#arch"><span class="no">03</span>架构总览 ★</a></li>
+    <li><a href="#postgrest"><span class="no">04</span>自动 API:PostgREST</a></li>
+    <li><a href="#auth"><span class="no">05</span>Auth、JWT 与 API Key</a></li>
+    <li><a href="#rls"><span class="no">06</span>RLS 行级安全 ★</a></li>
+    <li><a href="#realtime"><span class="no">07</span>Realtime 实时</a></li>
+    <li><a href="#storage"><span class="no">08</span>Storage 存储</a></li>
+    <li><a href="#functions"><span class="no">09</span>Edge Functions</a></li>
+    <li><a href="#pooling"><span class="no">10</span>连接与连接池 ★</a></li>
+    <li><a href="#ai"><span class="no">11</span>AI 与 pgvector</a></li>
+    <li><a href="#compare"><span class="no">12</span>对比与选型</a></li>
+    <li><a href="#pitfalls"><span class="no">13</span>常见坑与限制</a></li>
+    <li><a href="#interview"><span class="no">14</span>高频面试题 ★</a></li>
+    <li><a href="#plan"><span class="no">15</span>一周学习路径</a></li>
+    <li><a href="#resources"><span class="no">16</span>资源清单</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">INTERVIEW PREP · 2026</div>
+  <h1>⚡ Supabase 面试备考指南</h1>
+  <div class="en">The Postgres Development Platform — from architecture to interview</div>
+  <div class="subtitle">一份「讲得出原理」级别的 Supabase 学习文档:架构、RLS、Auth、Realtime、连接池逐个讲透,配 28 道高频面试题和一周学习路径。你已经在自己的网站上用过它——这份文档负责把「会用」升级成「能讲」。</div>
+  <div class="meta">
+    <span>📅 调研时间 2026-07-19</span>
+    <span>📚 官方文档 14 页全文核对</span>
+    <span>🎯 面向面试</span>
+    <span>⏱ 一周计划</span>
+  </div>
+</div>
+
+<!-- ================= 01 30 秒速览 ================= -->
+<section id="intro">
+  <div class="sec-head"><span class="icon">🚀</span><h2>30 秒速览</h2><span class="en-tag">What is Supabase</span></div>
+  <p class="sec-lede">先拿到全貌,再逐层加深——读完这一节,你已经能回答面试的第一个问题。</p>
+
+  <p><span class="term">Supabase</span> 是一个开源的后端即服务平台(BaaS,Backend as a Service)。「后端即服务」的意思是:你只写前端,后端那一整套——数据库、用户登录、文件存储、实时推送、服务端函数——它打包提供,不用你自己搭服务器。它最常被介绍为「开源的 Firebase 替代品」,但底座完全不同:<strong>Firebase 用私有 NoSQL,Supabase 给你一个完整的、不加抽象层的 PostgreSQL 数据库</strong>。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 210" xmlns="http://www.w3.org/2000/svg">
+      <g data-anim>
+        <rect x="20" y="60" width="180" height="90" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="110" y="95" text-anchor="middle" font-size="15" font-weight="700" fill="var(--accent-deep)">你的前端代码</text>
+        <text x="110" y="120" text-anchor="middle" font-size="12.5" fill="var(--ink-soft)">Web / App + supabase-js</text>
+      </g>
+      <path d="M205 105 L265 105" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw/>
+      <g data-anim>
+        <rect x="270" y="20" width="300" height="170" rx="14" fill="#f6faff" stroke="var(--accent)" stroke-width="2"/>
+        <text x="420" y="44" text-anchor="middle" font-size="15" font-weight="800" fill="var(--accent-deep)">Supabase</text>
+        <rect x="285" y="58" width="130" height="34" rx="8" fill="var(--accent-soft)"/>
+        <text x="350" y="80" text-anchor="middle" font-size="12" fill="var(--accent-deep)">🐘 Postgres 数据库</text>
+        <rect x="425" y="58" width="130" height="34" rx="8" fill="var(--teal-soft)"/>
+        <text x="490" y="80" text-anchor="middle" font-size="12" fill="var(--teal)">🔐 Auth 认证</text>
+        <rect x="285" y="100" width="130" height="34" rx="8" fill="var(--indigo-soft)"/>
+        <text x="350" y="122" text-anchor="middle" font-size="12" fill="var(--indigo)">📡 Realtime 实时</text>
+        <rect x="425" y="100" width="130" height="34" rx="8" fill="var(--gold-soft)"/>
+        <text x="490" y="122" text-anchor="middle" font-size="12" fill="var(--gold)">🗂 Storage 存储</text>
+        <rect x="285" y="142" width="270" height="34" rx="8" fill="#e8eefc"/>
+        <text x="420" y="164" text-anchor="middle" font-size="12" fill="var(--accent-deep)">λ Edge Functions 服务端函数</text>
+      </g>
+      <path d="M575 105 L635 105" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw/>
+      <g data-anim>
+        <rect x="640" y="60" width="160" height="90" rx="12" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+        <text x="720" y="95" text-anchor="middle" font-size="15" font-weight="700" fill="var(--teal)">完整上线的应用</text>
+        <text x="720" y="120" text-anchor="middle" font-size="12.5" fill="var(--ink-soft)">不用自己搭后端</text>
+      </g>
+      <defs>
+        <marker id="ar1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">Supabase 的定位:前端之外的一切后端能力,打包成一个平台交付</div>
+  </div>
+
+  <p>速览版的三个核心记忆点:</p>
+  <ul class="practice">
+    <li><span class="ic">🐘</span><div><strong>一切围着 Postgres 转。</strong>认证的用户表、存储的文件元数据、实时推送的数据源,全部就是 Postgres 里的表。这个「数据库中心」设计是理解全部架构的钥匙。</div></li>
+    <li><span class="ic">🔓</span><div><strong>你拿到的是完整数据库权限。</strong>没有抽象层——SQL、索引、触发器、扩展随便用,也能随时 <code>pg_dump</code> 整库带走(官方产品原则里明确写了「可移植性」)。</div></li>
+    <li><span class="ic">📖</span><div><strong>整个平台开源(Apache 2.0),可自托管。</strong>每个组件都是独立开源项目,官方云只是「帮你托管好的那一套」。</div></li>
+  </ul>
+
+  <div class="stats">
+    <div class="stat"><div class="num">450 万+</div><div class="lab">开发者(官方与投资方 Craft Ventures 2026 年称)</div></div>
+    <div class="stat"><div class="num">10 万+/秒</div><div class="lab">平台处理的 API 请求(官方称)</div></div>
+    <div class="stat"><div class="num">55%</div><div class="lab">最近一期 YC 创业营选用 Supabase(官方博客称)</div></div>
+  </div>
+</section>
+
+<!-- ================= 02 背景与动机 ================= -->
+<section id="story">
+  <div class="sec-head"><span class="icon">🧭</span><h2>背景与动机</h2><span class="en-tag">Why it exists</span></div>
+  <p class="sec-lede">面试里「为什么会有 Supabase」比「Supabase 是什么」更能体现理解深度。</p>
+
+  <p>先看它出现之前的世界。2010 年代,Google 的 <strong>Firebase</strong> 把「不用写后端」变成了现实:前端直接读写云端数据、内置登录、实时同步,创业团队爱不释手。但它有两个越用越疼的痛点:</p>
+  <ul class="practice">
+    <li><span class="ic">🔒</span><div><strong>闭源 + 锁定。</strong>Firestore 是 Google 私有的 NoSQL 数据库,没有自托管路径,数据和查询逻辑都长在 Google 的地基上,想搬家非常难。</div></li>
+    <li><span class="ic">🧩</span><div><strong>NoSQL 的表达力天花板。</strong>文档型数据库做不了真正的 JOIN、复杂聚合、事务约束。业务一复杂,开发者就开始怀念 SQL。</div></li>
+  </ul>
+
+  <p>Supabase 的回答很直接:<strong>用世界上最流行的开源关系型数据库做底座,把 Firebase 的开发体验搬到它上面</strong>。官方架构文档里有一句关键表述——他们认为没有其他数据库能在保持可扩展性的同时,提供与 Firebase 竞争所需的功能,所以选择了 Postgres。这句可以在面试里直接引用。</p>
+
+  <div class="callout key">💡 <strong>一个重要的认知纠偏:</strong>官方多次强调 Supabase 不是「Firebase 的克隆」,而是「Postgres 开发平台」(它的 GitHub 简介就是 The Postgres development platform)。它做的事是:把 Postgres 本来就有的能力(行级安全、逻辑复制、扩展生态)包装成开箱即用的产品,而不是重新发明一套。这也是官方产品原则之一:「扩展现有工具,而非新建工具」。</div>
+
+  <p>到 2026 年,它的增长又叠加了一层新动力:<strong>AI 编程</strong>。据投资方 Craft Ventures 的分析文章,AI 编程工具和「vibe coding」应用大量默认选择 Supabase 当后端(生成的代码就是标准 SQL + 标准 API,对 AI 友好),推动开发者数量在一年内从约 100 万涨到 450 万以上。官方也在 2026 年 6 月上线了 ChatGPT 集成,可以用对话方式管理数据库。这些属于「官方与投资方口径」,引用时注意措辞。</p>
+</section>
+
+<!-- ================= 03 架构总览 ================= -->
+<section id="arch">
+  <div class="sec-head"><span class="icon">🏗️</span><h2>架构总览:一个数据库,一圈服务</h2><span class="en-tag">Architecture ★</span></div>
+  <p class="sec-lede">面试最高频考点之一:「讲讲 Supabase 的架构」。这一节的目标是让你能白纸画出这张图。</p>
+
+  <p>Supabase 不是一个大单体,而是<strong>一组围绕 Postgres 的独立开源服务</strong>。每个服务只做一件事,全部通过 API 网关对外。理解顺序:先记住「下面是唯一的数据库,上面是一排无状态服务,最前面是网关」,再逐个认识每个服务。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 400" xmlns="http://www.w3.org/2000/svg">
+      <g data-anim>
+        <rect x="120" y="14" width="120" height="38" rx="10" fill="var(--accent-soft)"/>
+        <text x="180" y="38" text-anchor="middle" font-size="12.5" fill="var(--accent-deep)">🌐 Web 前端</text>
+        <rect x="350" y="14" width="120" height="38" rx="10" fill="var(--accent-soft)"/>
+        <text x="410" y="38" text-anchor="middle" font-size="12.5" fill="var(--accent-deep)">📱 移动 App</text>
+        <rect x="580" y="14" width="140" height="38" rx="10" fill="var(--accent-soft)"/>
+        <text x="650" y="38" text-anchor="middle" font-size="12.5" fill="var(--accent-deep)">🤖 服务端 / AI Agent</text>
+      </g>
+      <path d="M180 56 L180 86 M410 56 L410 86 M650 56 L650 86" stroke="var(--line)" stroke-width="2" fill="none" data-draw/>
+      <g data-anim>
+        <rect x="60" y="90" width="700" height="40" rx="10" fill="#12305e"/>
+        <text x="410" y="115" text-anchor="middle" font-size="13.5" font-weight="700" fill="#dbeafe">API 网关 Kong(Lua)· 统一入口,校验 API Key,路由到各服务 · 自托管默认网关 2026-08 起改为 Envoy</text>
+      </g>
+      <path d="M410 134 L410 158" stroke="var(--line)" stroke-width="2" fill="none" data-draw/>
+      <g data-anim>
+        <rect x="30" y="162" width="140" height="66" rx="10" fill="var(--teal-soft)"/>
+        <text x="100" y="188" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)">🔐 GoTrue</text>
+        <text x="100" y="208" text-anchor="middle" font-size="11" fill="var(--ink-soft)">认证 · 签发 JWT · Go</text>
+      </g>
+      <g data-anim>
+        <rect x="186" y="162" width="150" height="66" rx="10" fill="var(--accent-soft)"/>
+        <text x="261" y="188" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">🔌 PostgREST</text>
+        <text x="261" y="208" text-anchor="middle" font-size="11" fill="var(--ink-soft)">自动 REST API · Haskell</text>
+      </g>
+      <g data-anim>
+        <rect x="352" y="162" width="140" height="66" rx="10" fill="var(--indigo-soft)"/>
+        <text x="422" y="188" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--indigo)">📡 Realtime</text>
+        <text x="422" y="208" text-anchor="middle" font-size="11" fill="var(--ink-soft)">WebSocket · Elixir</text>
+      </g>
+      <g data-anim>
+        <rect x="508" y="162" width="140" height="66" rx="10" fill="var(--gold-soft)"/>
+        <text x="578" y="188" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--gold)">🗂 Storage API</text>
+        <text x="578" y="208" text-anchor="middle" font-size="11" fill="var(--ink-soft)">对象存储 · TS/Node</text>
+      </g>
+      <g data-anim>
+        <rect x="664" y="162" width="130" height="66" rx="10" fill="#e8eefc"/>
+        <text x="729" y="188" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">λ Edge Functions</text>
+        <text x="729" y="208" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Deno · TS/Rust</text>
+      </g>
+      <path d="M100 232 L100 268 M261 232 L261 268 M422 232 L422 268 M578 232 L578 268 M729 232 L729 268" stroke="var(--line)" stroke-width="2" fill="none" data-draw/>
+      <g data-anim>
+        <rect x="200" y="272" width="420" height="44" rx="10" fill="#f0f6ff" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="410" y="299" text-anchor="middle" font-size="12.5" fill="var(--accent-deep)">🔀 Supavisor 连接池(Elixir)· 多租户连接复用</text>
+      </g>
+      <path d="M410 320 L410 340" stroke="var(--line)" stroke-width="2" fill="none" data-draw/>
+      <g data-anim>
+        <rect x="60" y="344" width="700" height="46" rx="12" fill="#0f2a52"/>
+        <text x="410" y="373" text-anchor="middle" font-size="14.5" font-weight="800" fill="#dbeafe">🐘 PostgreSQL(C)—— 唯一的事实源:业务数据 + 用户表 + 文件元数据 + 实时数据源</text>
+      </g>
+    </svg>
+    <div class="fig-cap">Supabase 分层架构:无状态服务环绕唯一的 Postgres;另有 Studio 管理台与 postgres-meta(数据库管理 API)未画入(依据官方 Architecture 文档绘制)</div>
+  </div>
+
+  <h3>🧩 组件清单(面试背诵版)</h3>
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>组件</th><th>职责</th><th>实现语言</th></tr>
+    <tr><td>Postgres</td><td>核心数据库,用户可完全访问、无抽象层</td><td>C</td></tr>
+    <tr><td>PostgREST</td><td>把 Postgres schema 自动映射成 REST API;配合 pg_graphql 提供 GraphQL</td><td>Haskell</td></tr>
+    <tr><td>GoTrue</td><td>认证服务:管理用户、签发 JWT</td><td>Go</td></tr>
+    <tr><td>Realtime</td><td>WebSocket 引擎:广播、在线状态、数据库变更推送</td><td>Elixir(Phoenix)</td></tr>
+    <tr><td>Storage API</td><td>S3 兼容对象存储,元数据存在 Postgres</td><td>Node / TypeScript</td></tr>
+    <tr><td>Edge Functions</td><td>全球分布的服务端函数,Deno 运行时</td><td>TypeScript / Rust</td></tr>
+    <tr><td>Supavisor</td><td>云原生多租户 Postgres 连接池</td><td>Elixir</td></tr>
+    <tr><td>Kong</td><td>API 网关(基于 NGINX);自托管默认网关 2026 年 8 月起换为 Envoy</td><td>Lua</td></tr>
+    <tr><td>Studio / postgres-meta</td><td>管理仪表板 / 数据库管理 REST API</td><td>TypeScript / Node</td></tr>
+  </table></div>
+
+  <div class="analogy">
+    <div class="side">🔗 类比</div>
+    <div class="body">把 Postgres 想成一家银行的<strong>金库</strong>,所有真正值钱的东西(状态)都只放在这一处。GoTrue 是发工牌的前台(签发 JWT),PostgREST 是柜台(照章办事,规则写在金库门上),Realtime 是广播喇叭(金库有动静就通知订阅的人),Kong 是大门保安(先验你有没有资格进楼)。柜台、前台、喇叭全都<strong>不存钱</strong>——所以它们坏了随便换、随便加人手(无状态、可水平扩展),金库只有一个。<div class="note">类比用于理解「有状态/无状态分离」,细节以官方架构文档为准。</div></div>
+  </div>
+
+  <div class="callout key-teal">🎯 <strong>面试加分句:</strong>「Supabase 的架构本质是 database-centric——除 Postgres 和 Storage 的文件本体外,其余服务全是无状态的,状态收敛在数据库里;安全规则(RLS)也定义在数据库层,所以无论请求走 REST、GraphQL 还是直连 SQL,约束都一致。」这句话把架构、安全、扩展性三个话题串起来了。</div>
+</section>
+
+<!-- ================= 04 PostgREST ================= -->
+<section id="postgrest">
+  <div class="sec-head"><span class="icon">🔌</span><h2>自动 API:PostgREST</h2><span class="en-tag">Instant REST API</span></div>
+  <p class="sec-lede">「建一张表,立刻得到一套 API」是 Supabase 开发体验的核心魔法,魔法师是 PostgREST。</p>
+
+  <div class="def">
+    <div class="row"><span class="tag tag-what">是什么</span><div><strong>PostgREST</strong> 是一个独立的开源服务器(Haskell 写的,比 Supabase 出现更早),它读取 Postgres 的 schema(有哪些表、列、视图、函数),自动生成一套 RESTful API。官方文档强调这套 API 是「即时的、自动生成的」——你改了表结构,API 立刻跟着变,还自带文档。</div></div>
+    <div class="row"><span class="tag tag-why">为什么</span><div>传统开发里,后端工程师要为每张表手写 CRUD 接口(controller、service、DTO……),既重复又容易和数据库结构脱节。PostgREST 的哲学是:<strong>schema 即接口</strong>——数据库结构本身已经完整描述了数据能怎么读写,何必再手抄一遍?</div></div>
+    <div class="row"><span class="tag tag-eg">例子</span><div>你建了 <code>products</code> 表,立刻就有了 <code>GET /rest/v1/products?price=gte.100</code> 这样的查询端点;前端用 supabase-js 写出来就是下面这样。</div></div>
+  </div>
+
+<pre><code><span class="cm">// 官方标准用法(supabase-js)</span>
+import { createClient } from '@supabase/supabase-js'
+const supabase = createClient(SUPABASE_URL, PUBLISHABLE_KEY)
+
+<span class="cm">// 查询:price >= 100 的商品,按创建时间倒序</span>
+const { data, error } = await supabase
+  .from('products')
+  .select('id, name, price')
+  .gte('price', 100)
+  .order('created_at', { ascending: false })
+
+<span class="cm">// 插入</span>
+await supabase.from('products').insert({ name: 'Widget', price: 42 })</code></pre>
+
+  <div class="callout warn">⚠️ <strong>随之而来的关键问题(面试必被追问):</strong>API 是数据库自动生成的、任何前端都能直接调,那安全怎么办?答案是——安全不做在 API 层,做在<strong>数据库层</strong>,靠 RLS(第 6 节)。这是 Supabase 和传统「后端代码里写权限」最大的思维差异,先在这里挂个钩子。</div>
+
+  <p>补充一点:同一套机制还有 GraphQL 版本——<code>pg_graphql</code> 扩展把 schema 映射成 GraphQL 接口;2026 年 7 月还推出了 <code>@supabase-labs/tanstack-db</code>(alpha),把 TanStack DB 集合通过 PostgREST + Realtime 与数据表同步——如果面试聊到你的 TanStack Start 项目,这是个很新的谈资。</p>
+</section>
+
+<!-- ================= 05 Auth ================= -->
+<section id="auth">
+  <div class="sec-head"><span class="icon">🔐</span><h2>Auth、JWT 与 API Key 体系</h2><span class="en-tag">GoTrue &amp; keys</span></div>
+  <p class="sec-lede">认证回答「你是谁」,API Key 回答「什么应用在访问」——两套体系,面试常让你分清。</p>
+
+  <h3>🧑‍💻 Supabase Auth 能做什么</h3>
+  <p>认证服务由 <strong>GoTrue</strong>(Go)承担。官方文档列出的登录方式:邮箱密码、magic link(邮件里点链接免密登录)、一次性密码 OTP、社交登录(Apple、Google、GitHub、Discord、Facebook、LinkedIn、Microsoft Azure 等 18+ 家)、手机短信(Twilio、MessageBird、Vonage)、企业单点登录 SSO,以及任何 OAuth2/OIDC 兼容的身份源。2026 年 6 月起还支持 <strong>WebAuthn</strong>:Face ID、Touch ID、Windows Hello、硬件安全钥匙,走「无密码、防钓鱼」路线。</p>
+  <p>用户数据存在 Postgres 的专用 <code>auth</code> schema 里(核心是 <code>auth.users</code> 表),官方文档明确说可以用<strong>触发器和外键</strong>把它关联到你自己的表——最经典的模式就是「<code>auth.users</code> 插入新行时,触发器自动在 <code>public.profiles</code> 建一条资料」。</p>
+
+  <h3>🎫 JWT:整个安全模型的通行证</h3>
+  <div class="def">
+    <div class="row"><span class="tag tag-what">是什么</span><div><strong>JWT</strong>(JSON Web Token)是一段自包含的签名令牌,格式为 <code>header.payload.signature</code> 三段。用户登录成功后 GoTrue 签发;此后每个请求都带着它。官方文档:「只要用户保持登录,Supabase Auth 就会为会话持续签发新的 JWT」——SDK 在后台自动完成续期,开发者无感。</div></div>
+    <div class="row"><span class="tag tag-why">为什么</span><div>JWT 的妙处是<strong>自带身份信息且可离线验证</strong>:任何服务拿到 token,用密钥验签即可确认真伪,不用每次回查数据库。这让 PostgREST、Realtime、Storage 等一圈无状态服务都能独立完成鉴权。签名算法支持对称的 HS256 和非对称的 RS256 / ES256(非对称意味着第三方服务只需公钥就能验签)。</div></div>
+    <div class="row"><span class="tag tag-eg">例子</span><div>把你自己项目的 access token 粘到 jwt.io 解开,能看到下面这些 claims——这是面试展示动手经验的好素材。</div></div>
+  </div>
+
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>Claim</th><th>含义</th><th>面试要点</th></tr>
+    <tr><td>sub</td><td>用户唯一 ID</td><td>RLS 里 <code>auth.uid()</code> 读的就是它</td></tr>
+    <tr><td>role</td><td>Postgres 数据库角色</td><td><strong>核心机制:</strong>PostgREST 验签后按此 claim 切换数据库角色(<code>anon</code> 或 <code>authenticated</code>),RLS 策略随之生效</td></tr>
+    <tr><td>exp / iss</td><td>过期时间 / 签发方</td><td>过期后由 SDK 自动换新;具体有效期可在项目中配置(官方文档未给统一默认值,以你项目设置为准)</td></tr>
+    <tr><td>email / phone</td><td>联系方式</td><td>官方说明:这类 claims 用于「免查库快速读取资料」</td></tr>
+    <tr><td>app_metadata</td><td>应用元数据,<strong>用户不可修改</strong></td><td>✅ 可用于授权判断(如所属团队)</td></tr>
+    <tr><td>user_metadata</td><td>用户元数据,<strong>用户可自行修改</strong></td><td>❌ 绝不可用于授权——经典安全陷阱题</td></tr>
+  </table></div>
+
+  <h3>🗝️ API Key:新旧两套体系</h3>
+  <p>API Key 与用户身份无关,它标识「哪个应用在访问这个项目」。目前两套并存(官方文档口径):</p>
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>体系</th><th>Key</th><th>权限</th><th>用在哪</th></tr>
+    <tr><td rowspan="2">Legacy(JWT 型)</td><td><code>anon</code></td><td>低权限,走 RLS</td><td>前端公开使用</td></tr>
+    <tr><td><code>service_role</code></td><td><strong>绕过 RLS</strong></td><td>仅后端;泄露 = 整库裸奔</td></tr>
+    <tr><td rowspan="2">新体系</td><td><code>sb_publishable_...</code></td><td>低权限(映射 anon/authenticated 角色)</td><td>可公开:网页、App、CLI、源码</td></tr>
+    <tr><td><code>sb_secret_...</code></td><td>高权限(映射 service_role,绕过 RLS)</td><td>仅后端/Edge Functions;官方要求不进源码仓库、泄露立即删除轮换</td></tr>
+  </table></div>
+  <div class="callout key-gold">📌 官方文档的两个迁移细节,容易踩:新 key <strong>不能放在 <code>Authorization: Bearer</code> 头里用</strong>;Edge Functions 若用新 key 调用,需要 <code>--no-verify-jwt</code> 并在函数内自行做鉴权。新旧体系可同时启用,平滑迁移。</div>
+</section>
+
+<!-- ================= 06 RLS ================= -->
+<section id="rls">
+  <div class="sec-head"><span class="icon">🛡️</span><h2>RLS 行级安全:整个平台的安全地基</h2><span class="en-tag">Row Level Security ★</span></div>
+  <p class="sec-lede">如果 Supabase 面试只考一个主题,一定是 RLS。这一节讲透:是什么、四种策略怎么写、性能怎么调、有哪些坑。</p>
+  <div class="prereq">📎 需先理解 <a href="#auth">JWT 的 role 与 sub claim</a>——RLS 策略读的就是它们</div>
+
+  <div class="def">
+    <div class="row"><span class="tag tag-what">是什么</span><div><span class="term">RLS(Row Level Security,行级安全)</span>是 Postgres 的原生安全机制:给表定义「策略」(policy)后,数据库会为<strong>每一次访问自动追加一个隐式的 WHERE 条件</strong>,不满足条件的行就像不存在一样。官方文档称 policy 为「Postgres 的规则引擎」。</div></div>
+    <div class="row"><span class="tag tag-why">为什么</span><div>因为 Supabase 的 API 是数据库自动生成的、前端直连,传统「在后端代码里写权限判断」这条路不存在了,权限必须下沉到数据库本身。好处也正在这里:<strong>规则只写一份,任何入口都逃不掉</strong>——REST、GraphQL、Realtime、直连 SQL、定时任务,统统走同一套检查。</div></div>
+    <div class="row"><span class="tag tag-eg">例子</span><div>「用户只能看自己的资料」写成策略,就是给所有对 <code>profiles</code> 的查询自动加上 <code>WHERE auth.uid() = user_id</code>。</div></div>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg">
+      <g data-anim>
+        <rect x="15" y="45" width="140" height="72" rx="10" fill="var(--accent-soft)"/>
+        <text x="85" y="73" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">① 客户端请求</text>
+        <text x="85" y="95" text-anchor="middle" font-size="11" fill="var(--ink-soft)">带 API Key + JWT</text>
+      </g>
+      <path d="M158 81 L188 81" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <g data-anim>
+        <rect x="192" y="45" width="130" height="72" rx="10" fill="#e8eefc"/>
+        <text x="257" y="73" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">② 网关</text>
+        <text x="257" y="95" text-anchor="middle" font-size="11" fill="var(--ink-soft)">校验 API Key</text>
+      </g>
+      <path d="M325 81 L355 81" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <g data-anim>
+        <rect x="359" y="45" width="150" height="72" rx="10" fill="var(--teal-soft)"/>
+        <text x="434" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)">③ PostgREST</text>
+        <text x="434" y="88" text-anchor="middle" font-size="11" fill="var(--ink-soft)">验 JWT 签名</text>
+        <text x="434" y="104" text-anchor="middle" font-size="11" fill="var(--ink-soft)">按 role 切数据库角色</text>
+      </g>
+      <path d="M512 81 L542 81" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <g data-anim>
+        <rect x="546" y="45" width="150" height="72" rx="10" fill="var(--gold-soft)"/>
+        <text x="621" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--gold)">④ Postgres 执行</text>
+        <text x="621" y="88" text-anchor="middle" font-size="11" fill="var(--ink-soft)">policy 变成隐式 WHERE</text>
+        <text x="621" y="104" text-anchor="middle" font-size="11" fill="var(--ink-soft)">逐行过滤</text>
+      </g>
+      <path d="M699 81 L729 81" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar2)" data-draw/>
+      <g data-anim>
+        <rect x="733" y="45" width="74" height="72" rx="10" fill="var(--teal-soft)"/>
+        <text x="770" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)">⑤ 只返回</text>
+        <text x="770" y="96" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)">有权的行</text>
+      </g>
+      <text x="410" y="160" text-anchor="middle" font-size="12" fill="var(--ink-soft)">🔑 关键:JWT 的 role claim 决定连接用哪个 Postgres 角色(anon / authenticated),策略再按 auth.uid() 逐行判断</text>
+      <defs>
+        <marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">一条带 JWT 的请求如何被 RLS 过滤(依据官方 RLS 与 JWT 文档整理)</div>
+  </div>
+
+  <h3>✍️ 四种策略写法(官方示例)</h3>
+<pre><code><span class="cm">-- 第一步:开启 RLS(暴露在 API 里的表必须开!)</span>
+alter table profiles enable row level security;
+
+<span class="cm">-- SELECT:能"看"哪些行 → USING 子句</span>
+create policy "只能看自己的资料" on profiles
+for select using ( (select auth.uid()) = user_id );
+
+<span class="cm">-- INSERT:能"写入"什么样的新行 → WITH CHECK 子句</span>
+create policy "只能以自己的身份建资料" on profiles
+for insert to authenticated
+with check ( (select auth.uid()) = user_id );
+
+<span class="cm">-- UPDATE:改之前要能"看到"旧行(USING),改出来的新行要合规(WITH CHECK)</span>
+create policy "只能改自己的资料" on profiles
+for update to authenticated
+using  ( (select auth.uid()) = user_id )
+with check ( (select auth.uid()) = user_id );
+
+<span class="cm">-- DELETE:能"删"哪些行 → USING 子句</span>
+create policy "只能删自己的资料" on profiles
+for delete to authenticated
+using ( (select auth.uid()) = user_id );</code></pre>
+
+  <details class="rephrase"><summary>💬 USING 和 WITH CHECK 到底怎么区分?点这里换种说法</summary>
+    <div class="inner"><p><strong>USING 管「已经存在的行」,WITH CHECK 管「即将写入的行」。</strong>把表想成档案室:USING 是「哪些柜子允许你打开看」(SELECT/UPDATE/DELETE 都要先找到行,所以都用它);WITH CHECK 是「你交上来的新档案要盖章合格才收」(INSERT/UPDATE 会产生新行,所以要检查)。UPDATE 两者都要:先能打开旧档案(USING),改完的新档案也要合格(WITH CHECK)。</p></div>
+  </details>
+
+  <div class="callout warn">⚠️ <strong>官方文档明确的三个易错点:</strong><br>① <strong>UPDATE 策略需要配套的 SELECT 策略</strong>才能生效(更新前得先「看见」那一行);<br>② <code>auth.uid()</code> 对未登录用户返回 <code>null</code>,而 <code>null = user_id</code> 在 SQL 里不为真也不报错——逻辑复杂时建议显式写 <code>auth.uid() is not null and ...</code>;<br>③ JWT 不是实时刷新的:改了用户的 <code>app_metadata</code>,旧 token 里还是旧值,直到下次刷新——授权数据变更不会立刻生效。</div>
+
+  <h3>⚡ 性能优化六招(官方基准数据)</h3>
+  <p>RLS 策略会在<strong>每一行</strong>上求值,写得不好就是性能杀手。官方 RLS 文档给出了六个优化手段和实测提升幅度:</p>
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>手段</th><th>做法</th><th>官方实测提升</th></tr>
+    <tr><td>加索引</td><td>给策略里用到的列(如 <code>user_id</code>)建 btree 索引</td><td>~99.94%</td></tr>
+    <tr><td>select 包裹函数</td><td>写 <code>(select auth.uid()) = user_id</code> 而非裸调用——让优化器只求值一次并缓存</td><td>~99.93%</td></tr>
+    <tr><td>security definer 函数</td><td>复杂判断(如查团队表)封装进提权函数,避免策略里嵌查询</td><td>~99.99%</td></tr>
+    <tr><td>减少 JOIN</td><td>策略里用子查询代替表连接</td><td>~99.78%</td></tr>
+    <tr><td>显式指定 TO 角色</td><td><code>to authenticated</code> 让匿名请求提前短路</td><td>~99.78%</td></tr>
+    <tr><td>查询自带过滤</td><td>客户端查询也写 <code>.eq('user_id', id)</code>,不全靠策略兜底</td><td>~94.74%</td></tr>
+  </table></div>
+
+  <h3>🕳️ 还要知道的三件事</h3>
+  <ul class="practice">
+    <li><span class="ic">👁️</span><div><strong>视图默认不走基表的 RLS。</strong>Postgres 15+ 可在建视图时加 <code>with (security_invoker = true)</code>,让视图遵守底层表的策略(官方文档给出的方案)。</div></li>
+    <li><span class="ic">🔓</span><div><strong>绕过 RLS 的正规途径</strong>:后端用 <code>service_role</code>/secret key,或给角色加 <code>bypassrls</code> 属性——仅限可信服务端环境。</div></li>
+    <li><span class="ic">🧪</span><div><strong>RLS Tester</strong>:2026 年 6 月 Dashboard 新增的测试器,可以「扮演某个用户」跑查询、看命中了哪条策略——复习时实测一遍,面试可以当经验讲。</div></li>
+  </ul>
+</section>
+
+<!-- ================= 07 Realtime ================= -->
+<section id="realtime">
+  <div class="sec-head"><span class="icon">📡</span><h2>Realtime:三种实时能力</h2><span class="en-tag">Broadcast · Presence · Postgres Changes</span></div>
+  <p class="sec-lede">「Realtime 怎么工作、能扛多大规模」是系统设计向面试题的常客,官方数字要背两个。</p>
+
+  <p>Realtime 是一台 Elixir/Phoenix 写的 WebSocket 服务器,提供三种能力,按「谁产生消息」区分最清楚:</p>
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>功能</th><th>消息来源</th><th>典型场景</th></tr>
+    <tr><td>Broadcast</td><td>客户端 ↔ 客户端(低延迟转发)</td><td>聊天、光标跟踪、游戏事件;2026-07 起支持二进制载荷(遥测、截图流)</td></tr>
+    <tr><td>Presence</td><td>各客户端上报状态,服务端合并同步</td><td>「谁在线」「谁在编辑」</td></tr>
+    <tr><td>Postgres Changes</td><td><strong>数据库本身</strong>(监听数据变更)</td><td>数据面板、列表实时刷新</td></tr>
+  </table></div>
+
+  <h3>🔍 Postgres Changes 的工作原理(深挖点)</h3>
+  <div class="figure">
+    <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+      <g data-anim>
+        <rect x="15" y="50" width="150" height="70" rx="10" fill="var(--accent-soft)"/>
+        <text x="90" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">✏️ 数据写入</text>
+        <text x="90" y="99" text-anchor="middle" font-size="11" fill="var(--ink-soft)">INSERT / UPDATE / DELETE</text>
+      </g>
+      <path d="M168 85 L200 85" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw/>
+      <g data-anim>
+        <rect x="204" y="50" width="170" height="70" rx="10" fill="var(--gold-soft)"/>
+        <text x="289" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--gold)">📜 WAL 逻辑复制</text>
+        <text x="289" y="99" text-anchor="middle" font-size="11" fill="var(--ink-soft)">supabase_realtime 发布</text>
+      </g>
+      <path d="M377 85 L409 85" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw/>
+      <g data-anim>
+        <rect x="413" y="42" width="210" height="86" rx="10" fill="var(--indigo-soft)"/>
+        <text x="518" y="66" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--indigo)">📡 Realtime 服务(Elixir)</text>
+        <text x="518" y="88" text-anchor="middle" font-size="11" fill="var(--ink-soft)">对每个订阅者做 RLS 授权检查</text>
+        <text x="518" y="108" text-anchor="middle" font-size="11" fill="var(--warn)">⚠ 单线程处理以保证顺序</text>
+      </g>
+      <path d="M626 85 L658 85" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw/>
+      <g data-anim>
+        <rect x="662" y="50" width="145" height="70" rx="10" fill="var(--teal-soft)"/>
+        <text x="734" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)">🌐 WebSocket 扇出</text>
+        <text x="734" y="99" text-anchor="middle" font-size="11" fill="var(--ink-soft)">推送到订阅客户端</text>
+      </g>
+      <text x="410" y="170" text-anchor="middle" font-size="12" fill="var(--ink-soft)">吞吐随「订阅者数量」而非「写入速率」下降:官方基准 Micro 实例 500 连接 ≈ 30 变更/秒;3,000 连接 ≈ 5 变更/秒</text>
+      <defs>
+        <marker id="ar3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">Postgres Changes 数据流:WAL → 逻辑复制 → 逐订阅者授权 → WebSocket 推送(依据官方 Postgres Changes 文档绘制)</div>
+  </div>
+
+  <p>订阅端写法(官方参数):可按 schema / 表 / 行三级过滤,filter 支持 <code>eq、neq、lt、gt、in、like</code> 等 PostgREST 风格操作符,还能用 <code>select</code> 参数只接收部分列以减小载荷:</p>
+<pre><code>supabase.channel('room1')
+  .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'orders',
+        filter: 'status=eq.paid' },
+      (payload) => console.log(payload))
+  .subscribe()</code></pre>
+
+  <div class="callout warn">⚠️ <strong>官方文档写明的四条硬限制(面试高频):</strong><br>① <strong>单线程处理</strong>变更以保序——换更大的计算实例并不能显著提升吞吐;<br>② <strong>DELETE 事件不能加 filter</strong>;且 RLS 策略不应用于 DELETE(无法对已删的行验证权限),old 记录通常只含主键;<br>③ 吞吐由订阅者数量决定(见图中基准数字);<br>④ 官方建议:同一变更预计有 <strong>超过约 3,000 个并发订阅者时,改用 Broadcast</strong> 转发数据库变更——变更只发一次,由 Broadcast 扇出,可扩展到高得多的连接数。</div>
+
+  <p>配额方面(官方定价页):免费档 200 个并发连接、200 万条消息/月;Pro 500 个并发(超额 $10/千连接)、500 万条消息/月。</p>
+</section>
+
+<!-- ================= 08 Storage ================= -->
+<section id="storage">
+  <div class="sec-head"><span class="icon">🗂️</span><h2>Storage:文件也归数据库管</h2><span class="en-tag">Object storage</span></div>
+  <p class="sec-lede">Storage 本身不难,考点在「权限怎么做」——答案还是 RLS。</p>
+
+  <p>Storage 是 S3 兼容的对象存储:文件本体存在对象存储里,<strong>元数据(路径、大小、所有者)存在 Postgres 的 <code>storage.objects</code> 表里</strong>。这个设计的直接后果是:文件权限就是往 <code>storage.objects</code> 上写 RLS 策略——和管表数据完全同一套思路,不用再学一门「安全规则语言」(这正是它与 Firebase Security Rules 的对照点)。</p>
+
+  <ul class="practice">
+    <li><span class="ic">📤</span><div><strong>断点续传:</strong>基于 TUS 协议的 resumable uploads,大文件断网可续。</div></li>
+    <li><span class="ic">🌍</span><div><strong>CDN:</strong>官方称全球 285 个城市节点加速分发;支持图片即时缩放/压缩/转换(on-the-fly transformation)。</div></li>
+    <li><span class="ic">🪣</span><div><strong>三种 bucket 类型</strong>(官方文档):Files(通用文件)、Analytics(Apache Iceberg 表格式,做数据湖/日志)、Vectors(向量嵌入,配合 AI 场景)。后两种是较新的能力,面试提到会显得信息很新。</div></li>
+  </ul>
+</section>
+
+<!-- ================= 09 Edge Functions ================= -->
+<section id="functions">
+  <div class="sec-head"><span class="icon">⚙️</span><h2>Edge Functions:全球分发的服务端函数</h2><span class="en-tag">Deno at the edge</span></div>
+  <p class="sec-lede">「自动 API 覆盖不了的服务端逻辑放哪?」——放这里。限制数字要背准,网上旧资料错得很多。</p>
+
+  <p>Edge Functions 是跑在 <strong>Deno 运行时</strong>(TypeScript 优先)上的服务端函数,部署后在<strong>离用户最近的边缘节点</strong>执行。官方列举的典型场景:Webhook 接收器(Stripe、GitHub)、AI 推理 / LLM 编排、按需生成 OG 图、发事务邮件、聊天机器人。本地用 CLI 开发(<code>supabase functions serve</code>),再部署到全球。</p>
+
+  <div class="callout key-gold">📌 <strong>官方限制数字(截至 2026-07 调研,以官方 Limits 页为准):</strong>内存上限 <strong>256MB</strong>;墙钟时长免费档 <strong>150 秒</strong>、付费档 <strong>400 秒</strong>;<strong>CPU 时间上限 2 秒</strong>(不含异步 I/O 等待);函数数量免费 100 / Pro 500 / Team 1000。<br>⚠️ 注意:中文社区不少文章还在写「最长执行 30 秒」,那是过时信息——面试引用数字时说明「以官方当前文档为准」反而是加分项。</div>
+
+  <p>设计约束(官方指引):存在冷启动,函数应短生命周期、幂等;长任务转后台 worker;<strong>在函数里连数据库要用连接池或 serverless 驱动</strong>(呼应第 10 节);密钥放项目 secrets,以环境变量读取。</p>
+</section>
+
+<!-- ================= 10 连接池 ================= -->
+<section id="pooling">
+  <div class="sec-head"><span class="icon">🔀</span><h2>连接与连接池:Supavisor 的两种模式</h2><span class="en-tag">Connection pooling ★</span></div>
+  <p class="sec-lede">这是被公开面经点名的考点(session vs transaction mode)。先懂「为什么需要池」,数字就好记了。</p>
+
+  <div class="def">
+    <div class="row"><span class="tag tag-why">为什么需要</span><div>Postgres 的每个连接都对应服务器上的一个进程,又重又有限。传统长驻后端开几十个连接没问题;但 <strong>serverless / 边缘函数是海量短命实例,每个都要新连接,瞬间就能打爆数据库</strong>。连接池的作用:池子对外接受海量客户端连接,对内只维护少量真实数据库连接,复用着用。</div></div>
+    <div class="row"><span class="tag tag-what">是什么</span><div>Supabase 自研的池化服务叫 <span class="term">Supavisor</span>(Elixir 写的云原生多租户连接池),另有付费的专属 PgBouncer。</div></div>
+  </div>
+
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>连接方式</th><th>端口</th><th>适用场景</th><th>关键限制</th></tr>
+    <tr><td>直连 Direct</td><td>5432</td><td>长驻后端、迁移、pg_dump</td><td>走 IPv6(IPv4 需付费附加)</td></tr>
+    <tr><td>Supavisor Session 模式</td><td>5432</td><td>只有 IPv4 网络的长驻后端</td><td>一客户端独占一真实连接直到断开</td></tr>
+    <tr><td>Supavisor Transaction 模式</td><td>6543</td><td><strong>Serverless / Edge Functions</strong></td><td>事务结束就归还连接;<strong>不支持 prepared statements</strong>(需在驱动里关闭)</td></tr>
+    <tr><td>专属 PgBouncer</td><td>6543</td><td>高性能付费场景</td><td>仅 transaction 模式</td></tr>
+  </table></div>
+
+  <details class="rephrase"><summary>💬 session 和 transaction 模式的区别,一句话版本</summary>
+    <div class="inner"><p><strong>Session 模式像「包车」:</strong>你上车后这辆车整程归你,直到下车(断开连接)——行为和直连几乎一样,但池子帮你管理车队。<strong>Transaction 模式像「拼车」:</strong>每做完一单事务就下车,车马上接下一位——真实连接利用率极高,所以适合海量短命的 serverless 请求;代价是「车上不能留私人物品」——prepared statements 这类依赖连接状态的特性没法用。</p></div>
+  </details>
+
+  <div class="callout key">💡 官方文档补充的两个细节:① Supavisor 与 PgBouncer <strong>共享同一个池大小设置</strong>;② IPv4 附加是「非双栈」——开了它,项目就只能走 IPv4。选型口诀:长驻后端 → 直连或 session;serverless → transaction(记得关 prepared statements)。</div>
+</section>
+
+<!-- ================= 11 AI ================= -->
+<section id="ai">
+  <div class="sec-head"><span class="icon">🤖</span><h2>AI 与 pgvector:顺手的 RAG 后端</h2><span class="en-tag">Vectors &amp; embeddings</span></div>
+  <p class="sec-lede">面 AI 相关岗位时,这一节能把 Supabase 和你的主战场接上。</p>
+
+  <p>官方 AI 文档的口号概括了一切:<strong>「最好的向量数据库,是你已经在用的数据库」</strong>。做法:启用 <code>pgvector</code> 扩展,表里加一个向量列存 embedding,相似度搜索就是一条 SQL——业务数据和向量放在同一个库里,不用再为 RAG 单独引一个 Pinecone/Weaviate,也不用跨库同步。</p>
+
+  <ul class="practice">
+    <li><span class="ic">🔎</span><div><strong>三种搜索</strong>(官方文档):语义搜索(按含义)、关键词搜索(全文检索)、混合搜索(两者结合)。</div></li>
+    <li><span class="ic">🧩</span><div><strong>生态集成:</strong>OpenAI、Hugging Face、LangChain、LlamaIndex、Amazon Bedrock;Edge Functions 里还能跑开源模型生成 embedding。</div></li>
+    <li><span class="ic">📦</span><div><strong>官方列举的迁移案例:</strong>Firecrawl 从 Pinecone 迁到 pgvector,Berri AI 从自托管 RDS 迁入——面试聊「为什么不用专用向量库」时可引用(注意标注是官方案例页口径)。</div></li>
+  </ul>
+</section>
+
+<!-- ================= 12 对比与选型 ================= -->
+<section id="compare">
+  <div class="sec-head"><span class="icon">⚖️</span><h2>对比与选型:vs Firebase</h2><span class="en-tag">Trade-offs</span></div>
+  <p class="sec-lede">「你为什么选 Supabase 而不是 X」是判断你有没有工程判断力的题——答案要讲权衡,不是站队。</p>
+
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>维度</th><th>Supabase</th><th>Firebase</th></tr>
+    <tr><td>数据模型</td><td>PostgreSQL 关系型:完整 SQL、JOIN、CTE、窗口函数、事务</td><td>Firestore 文档型 NoSQL(另有 Realtime DB JSON 树;新推 Data Connect 接 Cloud SQL Postgres)</td></tr>
+    <tr><td>安全模型</td><td>RLS,定义在数据库层,任何入口统一生效</td><td>Security Rules + IAM,定义在平台层</td></tr>
+    <tr><td>实时/离线</td><td>实时强(逻辑复制 + Phoenix);<strong>离线支持仍在成熟中</strong></td><td>离线持久化和自动冲突合并非常成熟,移动端体验最佳</td></tr>
+    <tr><td>开源/锁定</td><td>Apache 2.0,可 Docker/K8s 自托管,pg_dump 随时搬家</td><td>闭源,无自托管路径</td></tr>
+    <tr><td>定价</td><td>固定档位(Free / Pro $25 / Team $599)+ 超额计费,可预测</td><td>按操作量计费,随用量增长,较难预测</td></tr>
+    <tr><td>AI</td><td>pgvector 原生向量搜索</td><td>Firestore 向量搜索 + Firebase AI Logic(Gemini)</td></tr>
+  </table></div>
+  <p style="font-size:13px;color:var(--ink-soft)">对比依据:Bytebase 2026-04 对比文(每年更新)+ 官方文档;「离线成熟度」「定价可预测性」为多家评测的共同结论,属社区共识而非官方口径。</p>
+
+  <div class="cases">
+    <div class="case good"><h4>✅ 选 Supabase 当:</h4>
+      <p>· Web / SaaS 应用,关系型数据 + 复杂查询</p>
+      <p>· 要 AI/RAG 能力(pgvector)</p>
+      <p>· 在乎开源、可自托管、随时能搬家</p>
+      <p>· 团队会 SQL,想把权限收敛到数据库层</p></div>
+    <div class="case bad"><h4>🤔 Firebase 更合适当:</h4>
+      <p>· 移动优先 + 重度离线同步(笔记、外勤类 App)</p>
+      <p>· 深度绑定 Google 生态(Analytics、FCM 推送)</p>
+      <p>· 需要多语言 serverless 运行时(Python/Go/Java)</p></div>
+  </div>
+
+  <div class="callout key-teal">🎯 <strong>面试收尾句(体现趋势观察):</strong>「有意思的是两边在收敛——Firebase 推出 Data Connect 接入 Postgres,说明关系型 + BaaS 这个方向被验证了;而 Supabase 也在补离线和移动端短板。选型时我更看团队能力和数据形态,而不是平台信仰。」</div>
+</section>
+
+<!-- ================= 13 常见坑 ================= -->
+<section id="pitfalls">
+  <div class="sec-head"><span class="icon">🕳️</span><h2>常见坑与限制</h2><span class="en-tag">Pitfalls</span></div>
+  <p class="sec-lede">面试聊「你踩过/知道哪些坑」时,分清「官方明示的限制」和「社区反馈的痛点」会显得非常专业。</p>
+
+  <h3>📕 官方文档明示的</h3>
+  <ul class="practice">
+    <li><span class="ic">1️⃣</span><div><strong>忘开 RLS = 数据裸奔。</strong>暴露 schema 里的表不开 RLS,任何人拿 publishable key 就能读写。官方文档甚至给了「事件触发器自动为新表开 RLS」的方案。上线前必查。</div></li>
+    <li><span class="ic">2️⃣</span><div><strong>用 <code>user_metadata</code> 做授权。</strong>它是用户可改的——把「是否管理员」放这里等于让用户自己发管理员证。授权数据只能放 <code>app_metadata</code>。</div></li>
+    <li><span class="ic">3️⃣</span><div><strong>RLS 策略不优化。</strong>不加索引、不用 <code>(select auth.uid())</code> 包裹,大表查询可以慢出两个数量级(官方基准见第 6 节)。</div></li>
+    <li><span class="ic">4️⃣</span><div><strong>Transaction 模式下用 prepared statements 报错。</strong>ORM/驱动默认常开,连 6543 端口要显式关闭。</div></li>
+    <li><span class="ic">5️⃣</span><div><strong>Postgres Changes 当广播用。</strong>数千订阅者共享一个变更流时吞吐骤降(单线程 + 逐订阅者鉴权),官方建议超 ~3,000 并发订阅改 Broadcast 架构。</div></li>
+    <li><span class="ic">6️⃣</span><div><strong>Edge Functions 干重活。</strong>CPU 时间只有 2 秒、内存 256MB——它是胶水层,不是计算平台。</div></li>
+    <li><span class="ic">7️⃣</span><div><strong>secret key 进了前端或仓库。</strong>绕过 RLS 的钥匙,官方要求当密码级机密管理,泄露立即轮换。</div></li>
+  </ul>
+
+  <h3>💬 社区反馈的(标注来源性质)</h3>
+  <ul class="practice">
+    <li><span class="ic">💰</span><div><strong>规模大了成本上升:</strong>出口带宽、存储、连接数超额费用叠加(多家评测与社区讨论共同提及;不过同类评测也认为其定价可预测性优于按操作计费的 Firebase)。</div></li>
+    <li><span class="ic">🌏</span><div><strong>中国大陆无节点:</strong>访问延迟高、稳定性受网络环境影响,面向大陆用户的产品需慎重(中文社区普遍反馈,如 CSDN、SegmentFault 技术文)。</div></li>
+    <li><span class="ic">🔧</span><div><strong>自托管运维不轻:</strong>十余个服务组成的栈,默认 docker-compose 单节点无高可用,严肃生产需要额外架构(中文社区 PIGSTY 等自托管实践文章反馈)。</div></li>
+    <li><span class="ic">📱</span><div><strong>移动离线短板:</strong>相比 Firebase 成熟的离线同步,Supabase 还在补课(2026 年多家对比评测共同结论)。</div></li>
+  </ul>
+</section>
+
+<!-- ================= 14 面试题 ================= -->
+<section id="interview">
+  <div class="sec-head"><span class="icon">🎯</span><h2>高频面试题自测(28 题)</h2><span class="en-tag">Q&amp;A bank ★</span></div>
+  <p class="sec-lede">题目综合自 Adaface 题库(2024-09)、techinterview.org 考点清单与官方文档;先自己答,再点开对要点。答案均可回溯到前文章节。</p>
+
+  <h3>🧱 A · 基础与架构</h3>
+  <details class="rephrase qa"><summary>1. 用一句话向非技术人解释 Supabase;再用一句话向工程师解释。</summary>
+    <div class="inner"><ul><li>非技术版:「一个让你不用雇后端团队就能做出完整 App 的工具箱——数据、登录、文件、实时通知都替你管好。」</li><li>工程师版:「一个以 Postgres 为核心的开源 BaaS:schema 自动生成 API(PostgREST),JWT 认证(GoTrue),安全下沉到数据库层(RLS),外加 Realtime/Storage/Edge Functions。」</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>2. 讲讲一条请求从客户端到数据库的完整链路。</summary>
+    <div class="inner"><ul><li>客户端带 API key + JWT → Kong 网关验 key、路由 → PostgREST 验 JWT 签名、按 <code>role</code> claim 切换 Postgres 角色 → Postgres 执行 SQL,RLS 策略化为隐式 WHERE → 只返回该用户有权的行。(见第 6 节流程图)</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>3. 为什么 Supabase 选 Postgres 而不是自研或 NoSQL?这个选择的代价是什么?</summary>
+    <div class="inner"><ul><li>官方立场:没有别的数据库能兼顾「对标 Firebase 的功能」和「可扩展性」;且产品原则是扩展现有工具而非重造。</li><li>获得:SQL 全能力、RLS、扩展生态(pgvector 等)、可移植性。</li><li>代价:离线同步等移动端体验不如 Firestore 原生;水平扩展要靠 Postgres 生态手段(读副本、连接池)而非 NoSQL 式自动分片。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>4. Supabase 各组件分别是什么语言写的?为什么面试官爱问这个?</summary>
+    <div class="inner"><ul><li>Postgres(C)、PostgREST(Haskell)、GoTrue(Go)、Realtime(Elixir/Phoenix)、Storage(TS/Node)、Supavisor(Elixir)、Kong(Lua)、Edge Runtime(Deno,TS/Rust)。</li><li>考察点:你是否理解「它是一组独立开源服务的组合」而非单体——每个组件可独立使用和替换。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>5. 自托管 Supabase 和用官方云,怎么权衡?</summary>
+    <div class="inner"><ul><li>官方云:免运维、带 Supavisor/CDN/备份等托管能力,按档位付费。</li><li>自托管:数据主权、成本可控、可进内网;代价是要运维十余个服务,默认单节点无 HA,高可用要自建(社区反馈)。另注意 2026-08 起自托管默认网关从 Kong 换 Envoy。</li></ul></div>
+  </details>
+
+  <h3>🛡️ B · RLS(必考区)</h3>
+  <details class="rephrase qa"><summary>6. 什么是 RLS?为什么 Supabase 的安全模型必须建立在它上面?</summary>
+    <div class="inner"><ul><li>Postgres 原生机制:policy 为每次表访问追加隐式 WHERE。</li><li>因为 API 是自动生成、前端直连的,没有「后端代码」这一层可以写权限——安全必须收敛到数据库层,且好处是所有入口(REST/Realtime/SQL)统一受控。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>7. USING 和 WITH CHECK 的区别?UPDATE 为什么两个都要?</summary>
+    <div class="inner"><ul><li>USING 过滤「已存在的行」(SELECT/UPDATE/DELETE 的可见性);WITH CHECK 校验「写入的新行」(INSERT/UPDATE 的合法性)。</li><li>UPDATE 先要看到旧行(USING),改出的新行也要合规(WITH CHECK);且官方明确 UPDATE 需要配套 SELECT 策略。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>8. RLS 导致查询变慢,你会怎么排查和优化?</summary>
+    <div class="inner"><ul><li>官方六招:策略列加索引;<code>(select auth.uid())</code> 包裹让其只求值一次;复杂逻辑封装 security definer 函数;策略内避免 JOIN 改子查询;<code>to authenticated</code> 提前短路;客户端查询自带过滤条件。配合 EXPLAIN ANALYZE 验证。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>9. auth.uid() 有什么著名陷阱?</summary>
+    <div class="inner"><ul><li>未登录时返回 null,<code>null = user_id</code> 静默为「不为真」——策略看似安全实则行为隐晦;复杂逻辑建议显式 <code>auth.uid() is not null and ...</code>。</li><li>另一个关联陷阱:JWT 里的 metadata 不实时刷新,授权变更旧 token 感知不到。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>10. 什么时候需要绕过 RLS?怎么绕才安全?</summary>
+    <div class="inner"><ul><li>可信服务端场景:后台任务、管理面板、数据修复。</li><li>途径:service_role / secret key,或 <code>bypassrls</code> 角色属性;只存在于服务端环境变量,绝不进前端与源码仓库,泄露立即轮换。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>11. 设计一个多租户 SaaS 的 RLS 方案。</summary>
+    <div class="inner"><ul><li>每表带 <code>org_id</code>;成员关系放 <code>org_members</code> 表或用户的 <code>app_metadata</code>(不可被用户篡改)。</li><li>策略:<code>org_id in (select org_id from org_members where user_id = (select auth.uid()))</code>,或封装成 security definer 函数提高性能与复用。</li><li>加分:提 app_metadata 方案要处理「JWT 不实时刷新」——踢出成员后旧 token 仍带旧团队列表,可用短 token 有效期缓解。</li></ul></div>
+  </details>
+
+  <h3>🔐 C · Auth 与 Key</h3>
+  <details class="rephrase qa"><summary>12. 描述 Supabase Auth 的 JWT 流程。</summary>
+    <div class="inner"><ul><li>登录 → GoTrue 验证凭据 → 签发 JWT(含 sub/role/exp/metadata)→ 客户端每请求携带 → 各服务独立验签 → PostgREST 按 role 切数据库角色。</li><li>会话期间 SDK 自动续期(官方:「只要保持登录就持续签发新 JWT」)。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>13. JWT 的 role claim 如何连接到数据库权限?</summary>
+    <div class="inner"><ul><li>这是「两套体系的接头处」:验签通过后,PostgREST 以 role claim 对应的 Postgres 角色(anon/authenticated)执行 SQL,RLS 策略再用 <code>TO</code> 子句和 <code>auth.uid()</code> 精确到行。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>14. anon/service_role 与新的 publishable/secret key 是什么关系?</summary>
+    <div class="inner"><ul><li>职责相同(标识应用、区分公开/特权),实现升级:legacy 是 JWT 型 key,新体系是 <code>sb_publishable_/sb_secret_</code> 不透明字符串,支持独立轮换。</li><li>细节:新 key 不能放 Authorization: Bearer 头;Edge Functions 用新 key 需 --no-verify-jwt 并自行鉴权;两套可并存平滑迁移。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>15. user_metadata 和 app_metadata 有什么区别?哪个能进授权逻辑?</summary>
+    <div class="inner"><ul><li>user_metadata 用户可自改 → 只能放展示性资料;app_metadata 仅服务端可改 → 可用于授权(团队、角色、订阅等级)。官方 RLS 文档明确此边界。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>16. Supabase 支持哪些登录方式?给产品选型时你怎么推荐?</summary>
+    <div class="inner"><ul><li>密码、magic link、OTP、18+ 家 OAuth、手机短信、SSO、匿名登录、WebAuthn 生物识别(2026-06 起)。</li><li>推荐思路:消费级产品 OAuth + magic link 降摩擦;企业产品 SSO;高安全场景叠加 WebAuthn/MFA。任何 OIDC 兼容源都能接。</li></ul></div>
+  </details>
+
+  <h3>📡 D · Realtime</h3>
+  <details class="rephrase qa"><summary>17. Realtime 的三种能力分别解决什么问题?</summary>
+    <div class="inner"><ul><li>Broadcast:客户端间低延迟消息(聊天、光标);Presence:共享在线状态;Postgres Changes:数据库变更推送(数据面板)。按「消息由谁产生」区分记忆。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>18. Postgres Changes 底层怎么实现的?</summary>
+    <div class="inner"><ul><li>基于 Postgres 逻辑复制:表加入 <code>supabase_realtime</code> publication → Realtime 服务读 WAL 变更流 → 对每个订阅者做 RLS 授权检查 → WebSocket 推送。支持 schema/表/行(filter)三级订阅粒度。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>19. Postgres Changes 有哪些硬限制?</summary>
+    <div class="inner"><ul><li>单线程保序,加大实例无助于吞吐;DELETE 事件不能 filter,且 RLS 不应用于 DELETE(old 记录通常只有主键);吞吐随订阅者数量下降(官方基准:Micro 实例 500 连接 ≈30 变更/秒,3000 连接 ≈5/秒)。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>20. 【系统设计】一万人实时看同一份数据的变更,怎么设计?</summary>
+    <div class="inner"><ul><li>不能直接 Postgres Changes(超官方 ~3,000 并发订阅建议线)。</li><li>官方推荐架构:数据库变更(触发器或服务端)发到 Broadcast → 变更只处理一次,由 Broadcast 扇出到全部连接;需要初始状态就先拉快照再订阅增量。</li><li>加分:提消息裁剪(select 指定列)、2026-07 起 Broadcast 支持二进制载荷。</li></ul></div>
+  </details>
+
+  <h3>🔀 E · 连接与性能</h3>
+  <details class="rephrase qa"><summary>21. 为什么 serverless 环境连 Postgres 是个问题?Supabase 怎么解?</summary>
+    <div class="inner"><ul><li>Postgres 连接 = 进程,昂贵有限;serverless 实例海量短命,直连会耗尽连接。</li><li>解法:Supavisor transaction 模式(6543)——事务级复用真实连接;或 Edge Functions 里用 serverless 驱动。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>22. Supavisor 的 session 模式和 transaction 模式怎么选?</summary>
+    <div class="inner"><ul><li>Session:客户端独占连接到断开,行为等同直连,适合 IPv4 网络的长驻后端。</li><li>Transaction:事务结束即归还,高复用,适合 serverless;代价是不支持 prepared statements 等连接级状态(驱动需关闭)。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>23. 「数据库连接数打满了」你会怎么排查?</summary>
+    <div class="inner"><ul><li>先分来源:长驻后端还是 serverless 突发?→ 前者查连接泄漏/池配置,后者切 transaction 模式。</li><li>注意官方细节:Supavisor 与 PgBouncer 共享池大小设置;必要时升配或加只读副本分流。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>24. 一条查询突然变慢,你的排查顺序?</summary>
+    <div class="inner"><ul><li>EXPLAIN ANALYZE 看计划 → 缺索引?→ RLS 策略是否逐行执行昂贵函数(用 select 包裹、security definer 优化)→ 数据量变化/统计信息过期 → 连接模式是否合适。体现「先测量再动手」。</li></ul></div>
+  </details>
+
+  <h3>🧰 F · 其他服务与场景判断</h3>
+  <details class="rephrase qa"><summary>25. Edge Functions 适合与不适合什么?数字说话。</summary>
+    <div class="inner"><ul><li>适合:webhook、AI 编排、OG 图、邮件等短平快胶水逻辑(全球边缘低延迟)。</li><li>不适合:重计算与长任务——CPU 上限 2 秒、内存 256MB、墙钟 150s(免费)/400s(付费);长活转后台 worker。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>26. Storage 的权限控制怎么做?</summary>
+    <div class="inner"><ul><li>文件元数据在 <code>storage.objects</code> 表,权限就是对它写 RLS policy——与表数据同一套模型,无需单独的规则语言。可按 bucket、路径前缀、所有者字段控制。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>27. 用 Supabase 搭一个 RAG 后端,你的方案?</summary>
+    <div class="inner"><ul><li>pgvector 存 embedding(与业务数据同库);Edge Function 里调 embedding 模型;检索用混合搜索(语义+关键词);权限天然由 RLS 管——多租户知识库每租户只搜自己的向量。</li><li>可引用官方案例:Firecrawl 从 Pinecone 迁到 pgvector。</li></ul></div>
+  </details>
+  <details class="rephrase qa"><summary>28. 什么场景你会劝人不要用 Supabase?(反向题,最见功力)</summary>
+    <div class="inner"><ul><li>重离线的移动优先产品(Firebase 离线同步更成熟);主要用户在中国大陆(无节点,网络不可控);已有成熟微服务体系、只缺个数据库的团队(直接用云 Postgres 更简单);对单组件有极端要求(如百万级实时扇出,需专门方案)。</li><li>答题姿态:诚实讲边界比无脑吹更能赢得信任。</li></ul></div>
+  </details>
+</section>
+
+<!-- ================= 15 一周计划 ================= -->
+<section id="plan">
+  <div class="sec-head"><span class="icon">📅</span><h2>一周学习路径</h2><span class="en-tag">7-day plan</span></div>
+  <p class="sec-lede">你不是零基础——自己的网站就跑在 Supabase 上(建过表、写过 RLS、用过 REST PATCH)。所以这份计划的重心不是「学会用」,而是「讲得出原理」:每天 2–3 小时,动手 + 口述并重。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg">
+      <line x1="40" y1="95" x2="780" y2="95" stroke="var(--line)" stroke-width="3" data-draw/>
+      <g data-anim>
+        <circle cx="80" cy="95" r="7" fill="var(--accent)"/>
+        <text x="80" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">D1</text>
+        <text x="80" y="130" text-anchor="middle" font-size="11" fill="var(--ink-soft)">全景架构</text>
+      </g>
+      <g data-anim>
+        <circle cx="190" cy="95" r="7" fill="var(--accent)"/>
+        <text x="190" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">D2</text>
+        <text x="190" y="130" text-anchor="middle" font-size="11" fill="var(--ink-soft)">PostgREST+SQL</text>
+      </g>
+      <g data-anim>
+        <circle cx="300" cy="95" r="9" fill="var(--warn)"/>
+        <text x="300" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--warn)">D3 ★</text>
+        <text x="300" y="130" text-anchor="middle" font-size="11" fill="var(--ink-soft)">RLS 专项</text>
+      </g>
+      <g data-anim>
+        <circle cx="410" cy="95" r="7" fill="var(--accent)"/>
+        <text x="410" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">D4</text>
+        <text x="410" y="130" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Auth+JWT</text>
+      </g>
+      <g data-anim>
+        <circle cx="520" cy="95" r="7" fill="var(--accent)"/>
+        <text x="520" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">D5</text>
+        <text x="520" y="130" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Realtime 三件套</text>
+      </g>
+      <g data-anim>
+        <circle cx="630" cy="95" r="7" fill="var(--accent)"/>
+        <text x="630" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)">D6</text>
+        <text x="630" y="130" text-anchor="middle" font-size="11" fill="var(--ink-soft)">连接池+系统设计</text>
+      </g>
+      <g data-anim>
+        <circle cx="740" cy="95" r="9" fill="var(--teal)"/>
+        <text x="740" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)">D7 ★</text>
+        <text x="740" y="130" text-anchor="middle" font-size="11" fill="var(--ink-soft)">全量自测+Mock</text>
+      </g>
+    </svg>
+    <div class="fig-cap">一周路径:D3(RLS)和 D7(自测)是两个重心日</div>
+  </div>
+
+  <ol class="steps">
+    <li data-n="1"><b>Day 1 · 全景与架构</b><span>读本文 §1–3 + 官方 Architecture 文档。<strong>动手:</strong>白纸默画架构图(网关→五服务→Postgres,标语言),对照本文检查。<strong>口述练习:</strong>3 分钟讲「Supabase 是什么、架构长什么样」,录音回听。</span></li>
+    <li data-n="2"><b>Day 2 · PostgREST 与 SQL 补强</b><span>读官方 REST API 文档。<strong>动手:</strong>用 curl 直接调你自己网站项目的 REST 端点(带 apikey header),观察响应;对 resources 表跑一次 EXPLAIN ANALYZE,看懂执行计划。<strong>自问:</strong>「schema 即接口」的安全前提是什么?</span></li>
+    <li data-n="3"><b>Day 3 · RLS 专项(重心日)</b><span>精读本文 §6 + 官方 RLS 文档。<strong>动手:</strong>在自己项目找一张表(比如你做过的 reading_status)把四种 policy 写全;用 Dashboard 的 RLS Tester 扮演另一个用户验证;给策略列加索引前后各测一次耗时。<strong>口述:</strong>USING vs WITH CHECK、六个优化招。</span></li>
+    <li data-n="4"><b>Day 4 · Auth 与 JWT</b><span>读本文 §5 + 官方 JWT 文档。<strong>动手:</strong>把自己项目的 access token 粘进 jwt.io,逐个 claim 对照含义;找到项目里 anon/service key 的使用处,想清楚每处为什么用那把 key。<strong>自问:</strong>app_metadata 为什么能进授权而 user_metadata 不能?</span></li>
+    <li data-n="5"><b>Day 5 · Realtime + Storage + Edge Functions</b><span>读本文 §7–9。<strong>动手:</strong>本地写 20 行代码订阅一张表的 postgres_changes 并触发一次 UPDATE 看 payload;部署一个 hello-world Edge Function。<strong>背数字:</strong>单线程/3000 订阅线/2 秒 CPU/256MB。</span></li>
+    <li data-n="6"><b>Day 6 · 连接池 + pgvector + 系统设计</b><span>读本文 §10–11。<strong>动手:</strong>找到自己项目连接串用的端口,判断走的哪种模式。<strong>口述:</strong>完整答一遍第 20 题(万人订阅设计)和第 28 题(何时不用 Supabase),计时 5 分钟。</span></li>
+    <li data-n="7"><b>Day 7 · 全量自测 + 项目故事(重心日)</b><span>§14 的 28 题全部盲答,答不出的回读对应章节。<strong>压轴任务:</strong>把你自己的网站整理成 2 分钟项目故事——「TanStack Start + Supabase 全栈站:RLS 保护的私有阅读状态表、REST PATCH 做内容运维、静态资源同步管线」——真实项目经验是面试里最硬的通货。</span></li>
+  </ol>
+
+  <div class="callout key">💡 <strong>学习方法提醒:</strong>每天的「口述练习」不是可选项。面试考的是「讲出来」的能力,读懂和讲清之间隔着一次真实输出——录音回听是发现卡壳点最快的办法。</div>
+</section>
+
+<!-- ================= 16 资源清单 ================= -->
+<section id="resources">
+  <div class="sec-head"><span class="icon">📚</span><h2>学习资源清单</h2><span class="en-tag">Keep learning</span></div>
+  <p class="sec-lede">按学习顺序排列,全部为调研中实际核对过的来源。</p>
+  <ul class="practice">
+    <li><span class="ic">🏛️</span><div><strong>官方架构文档</strong>(必读第一篇):<a href="https://supabase.com/docs/guides/getting-started/architecture">supabase.com/docs/guides/getting-started/architecture</a></div></li>
+    <li><span class="ic">🛡️</span><div><strong>RLS 官方指南</strong>(必读,含性能优化基准):<a href="https://supabase.com/docs/guides/database/postgres/row-level-security">…/database/postgres/row-level-security</a></div></li>
+    <li><span class="ic">🎫</span><div><strong>JWT 与 Auth</strong>:<a href="https://supabase.com/docs/guides/auth/jwts">…/auth/jwts</a> · <a href="https://supabase.com/docs/guides/auth">…/auth</a> · <a href="https://supabase.com/docs/guides/api/api-keys">…/api/api-keys</a></div></li>
+    <li><span class="ic">📡</span><div><strong>Postgres Changes(含扩展性限制)</strong>:<a href="https://supabase.com/docs/guides/realtime/postgres-changes">…/realtime/postgres-changes</a></div></li>
+    <li><span class="ic">🔀</span><div><strong>数据库连接方式</strong>:<a href="https://supabase.com/docs/guides/database/connecting-to-postgres">…/database/connecting-to-postgres</a></div></li>
+    <li><span class="ic">⚙️</span><div><strong>Edge Functions 限制数字</strong>:<a href="https://supabase.com/docs/guides/functions/limits">…/functions/limits</a></div></li>
+    <li><span class="ic">🤖</span><div><strong>AI 与向量</strong>:<a href="https://supabase.com/docs/guides/ai">…/guides/ai</a></div></li>
+    <li><span class="ic">📰</span><div><strong>Changelog</strong>(跟进新特性,面试谈资):<a href="https://supabase.com/changelog">supabase.com/changelog</a></div></li>
+    <li><span class="ic">⚖️</span><div><strong>对比文</strong>:Bytebase《Supabase vs Firebase》(每年更新):<a href="https://www.bytebase.com/blog/supabase-vs-firebase/">bytebase.com/blog/supabase-vs-firebase</a></div></li>
+    <li><span class="ic">🎯</span><div><strong>题库补充</strong>:Adaface 80 题:<a href="https://www.adaface.com/blog/supabase-interview-questions/">adaface.com/blog/supabase-interview-questions</a> · techinterview.org 考点:<a href="https://www.techinterview.org/companies/supabase/">techinterview.org/companies/supabase</a></div></li>
+  </ul>
+</section>
+
+<div class="final">
+  <h2>🎓 收尾:面试前的最后三句话</h2>
+  <p>① Supabase 的一切从「database-centric」出发——架构、安全、实时,答什么题都可以往这个锚点收。</p>
+  <p>② 数字要新:Edge Functions 150/400 秒、CPU 2 秒、Realtime 3000 订阅线、RLS 优化六招——引用时加一句「以官方当前文档为准」。</p>
+  <p>③ 你有真实生产项目在 Supabase 上跑,这比任何背题都值钱——把它讲成故事。</p>
+</div>
+
+<footer>
+  <p>📅 调研时间:2026-07-19 · 由全网调研整理,关键事实均核对官方文档;快速迭代产品,使用时以官方最新文档为准。</p>
+  <p>整理方式:官方文档为事实基线 + 社区评测标注来源性质 + 面试题综合题库与考点清单。</p>
+  <details class="rephrase" style="text-align:left;max-width:720px;margin:14px auto 0">
+    <summary>📎 完整来源清单(20 项)</summary>
+    <div class="inner">
+      <ul class="srcs" style="list-style:none">
+        <li>官方文档(2026-07-19 抓取):Architecture / Row Level Security / Auth / JWTs / API Keys / Realtime / Postgres Changes / Edge Functions / Functions Limits / Connecting to Postgres / Storage / AI &amp; Vectors / Pricing — supabase.com</li>
+        <li>官方 Changelog:Developer Update June 2026、July 2026 — supabase.com/changelog</li>
+        <li>官方博客:1000 Y Combinator Founders Choose Supabase — supabase.com/blog</li>
+        <li>Bytebase:Supabase vs. Firebase Complete Comparison(2026-04-19)— bytebase.com</li>
+        <li>dev.to(Pockit):Supabase vs Firebase in 2026 — 生产使用对比(社区观点)</li>
+        <li>Craft Ventures:Inside Supabase's Breakout Growth(4.5M 开发者数据来源)</li>
+        <li>Adaface:80 Supabase Interview Questions(2024-09-09)</li>
+        <li>techinterview.org:Supabase Interview Guide 2026(考点:RLS、Supavisor、逻辑复制、系统设计)</li>
+        <li>中文社区:CSDN《Supabase 适用场景全解析》、SegmentFault 迁回国内踩坑记录、PIGSTY 自建 Supabase 实践(社区反馈来源)</li>
+      </ul>
+    </div>
+  </details>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var toc = document.getElementById('sideToc');
+  var toggle = document.getElementById('tocToggle');
+  toggle.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){
+    if(e.target.closest('a') && window.innerWidth < 1180) toc.classList.remove('open');
+  });
+
+  // 阅读进度
+  var pctNum = document.getElementById('pctNum');
+  var pctFill = document.getElementById('pctFill');
+  var topBar = document.getElementById('topProgress');
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? Math.min(100, Math.round(h.scrollTop / max * 100)) : 0;
+    pctNum.textContent = p + '%';
+    pctFill.style.width = p + '%';
+    topBar.style.width = p + '%';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  // 滚动高亮当前章节
+  var links = toc.querySelectorAll('a[href^="#"]');
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var secObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('active'); });
+        var a = map[en.target.id];
+        if(a) a.classList.add('active');
+      }
+    });
+  }, {rootMargin:'-35% 0px -55% 0px'});
+  document.querySelectorAll('section[id]').forEach(function(s){ secObs.observe(s); });
+
+  // figure 入场动画
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.figure [data-draw]').forEach(function(p){
+    if(reduced || p.getAttribute('stroke-dasharray')) return;
+    try{
+      var len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+    }catch(e){}
+  });
+  var figObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(!en.isIntersecting) return;
+      var fig = en.target;
+      fig.classList.add('in');
+      var anims = fig.querySelectorAll('[data-anim]');
+      anims.forEach(function(el,i){ el.style.transitionDelay = (0.15 + i*0.14) + 's'; });
+      var draws = fig.querySelectorAll('[data-draw]');
+      draws.forEach(function(p,i){
+        p.style.transitionDelay = (0.3 + i*0.22) + 's';
+        requestAnimationFrame(function(){ p.style.strokeDashoffset = 0; });
+      });
+      figObs.unobserve(fig);
+    });
+  }, {threshold:0.25});
+  document.querySelectorAll('.figure').forEach(function(f){ figObs.observe(f); });
+})();
+</script>
+</body>
+</html>
