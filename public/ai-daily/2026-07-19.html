@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多模型路由 Model Routing:把每个请求送给「最便宜的够用模型」</title>
+<style>
+:root{
+  --bg:#eef4fb; --card:#ffffff; --ink:#1c2b3a; --ink2:#4a5e72; --ink3:#7b8fa3;
+  --blue:#1769d0; --blue-d:#0d3f7e; --blue-dd:#092c5a; --blue-l:#dcebfc; --blue-ll:#f2f8ff;
+  --ok:#1f9d6b; --warn:#c47f17; --warn-bg:#fdf6e8; --danger:#c2453f;
+  --mono:'SF Mono',Consolas,Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.88}
+#progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--blue),#5aa4f2);width:0;z-index:99}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px 80px}
+.hero{background:linear-gradient(135deg,var(--blue-dd),var(--blue-d) 60%,#155ab4);color:#fff;border-radius:0 0 26px 26px;padding:54px 26px 44px;margin:0 -20px 34px;text-align:center}
+.hero .tag{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:3px 16px;font-size:13.5px;margin-bottom:16px;letter-spacing:1px}
+.hero h1{font-size:clamp(24px,4.6vw,36px);line-height:1.4;margin-bottom:14px}
+.hero p{color:#cfe2f8;font-size:15.5px;max-width:620px;margin:0 auto}
+section{background:var(--card);border-radius:18px;padding:30px 28px;margin-bottom:26px;box-shadow:0 2px 14px rgba(23,60,110,.06)}
+h2{font-size:22px;color:var(--blue-d);margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid var(--blue-l)}
+h3{font-size:18px;color:var(--blue-d);margin:24px 0 10px}
+p{margin-bottom:13px;color:var(--ink)}
+strong{color:var(--blue-d)}
+ul,ol{margin:0 0 14px 1.4em}
+li{margin-bottom:7px}
+a{color:var(--blue);text-decoration:none;word-break:break-all}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.86em;background:var(--blue-ll);border:1px solid var(--blue-l);border-radius:5px;padding:1px 6px;color:var(--blue-d)}
+pre{background:#0f2038;color:#dbe9fb;border-radius:12px;padding:18px 16px;overflow-x:auto;font-family:var(--mono);font-size:13.2px;line-height:1.72;margin:12px 0 16px}
+pre code{background:none;border:none;color:inherit;padding:0}
+.def{background:var(--blue-ll);border:1px solid var(--blue-l);border-radius:14px;padding:18px 20px;margin:14px 0 18px}
+.def .d1{font-weight:700;color:var(--blue-d);margin-bottom:6px}
+.def .d2{margin-bottom:6px}
+.def .d3{color:var(--ink2);font-size:15.3px;margin-bottom:0}
+.callout{border-radius:12px;padding:15px 18px;margin:14px 0 18px;font-size:15.8px}
+.callout.key{background:var(--blue-ll);border-left:4px solid var(--blue)}
+.callout.warn{background:var(--warn-bg);border-left:4px solid var(--warn)}
+.callout p:last-child{margin-bottom:0}
+.analogy{background:#f4f9f2;border:1px dashed #9cc79a;border-radius:14px;padding:16px 20px;margin:14px 0 18px;font-size:15.8px}
+.analogy .t{font-weight:700;color:#2f7d4f;margin-bottom:6px}
+.steps{counter-reset:st;margin:16px 0 18px}
+.step{position:relative;padding:12px 16px 12px 54px;background:var(--blue-ll);border-radius:12px;margin-bottom:10px}
+.step::before{counter-increment:st;content:counter(st);position:absolute;left:14px;top:13px;width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14.5px}
+.step .st-t{font-weight:700;color:var(--blue-d)}
+table{width:100%;border-collapse:collapse;margin:14px 0 18px;font-size:15px}
+th{background:var(--blue-d);color:#fff;padding:10px 12px;text-align:left;font-weight:600}
+td{padding:10px 12px;border-bottom:1px solid #e3edf8;vertical-align:top}
+tr:nth-child(even) td{background:var(--blue-ll)}
+.figure{margin:20px 0 22px;text-align:center}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:14px;color:var(--ink3);margin-top:8px}
+.glossary{margin:14px 0 18px}
+.glossary .g{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed #d6e4f4;flex-wrap:wrap}
+.glossary .g b{flex:0 0 200px;color:var(--blue-d)}
+.glossary .g span{flex:1;min-width:240px;color:var(--ink2);font-size:15.5px}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 18px}
+.stat{flex:1;min-width:140px;background:var(--blue-ll);border-radius:14px;padding:16px 14px;text-align:center}
+.stat .n{font-size:24px;font-weight:800;color:var(--blue)}
+.stat .l{font-size:13.5px;color:var(--ink2);margin-top:4px}
+.src{font-size:13.5px;color:var(--ink3)}
+footer{background:var(--card);border-radius:18px;padding:26px 28px;font-size:14px;color:var(--ink2)}
+footer li{margin-bottom:6px}
+#toc-btn{position:fixed;left:14px;bottom:18px;z-index:60;width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 14px rgba(23,105,208,.4);display:none}
+#toc{position:fixed;left:22px;top:90px;width:212px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #dbe8f7;border-radius:16px;padding:16px 8px;z-index:50;max-height:74vh;overflow-y:auto}
+#toc .tt{font-size:13px;font-weight:700;color:var(--ink3);padding:0 12px 8px;letter-spacing:2px}
+#toc a{display:block;padding:6px 12px;font-size:13.8px;color:var(--ink2);border-radius:8px;line-height:1.4}
+#toc a.on{background:var(--blue-l);color:var(--blue-d);font-weight:700}
+@media(max-width:1360px){
+  #toc{display:none;left:14px;bottom:76px;top:auto;max-height:60vh}
+  #toc.open{display:block}
+  #toc-btn{display:block}
+}
+@media(max-width:640px){
+  body{font-size:16px}
+  section{padding:22px 18px}
+  .glossary .g b{flex-basis:100%}
+}
+@media(prefers-reduced-motion:no-preference){
+  [data-anim]{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+  [data-anim].in{opacity:1;transform:none}
+  svg [data-draw]{stroke-dasharray:1000;stroke-dashoffset:1000;transition:stroke-dashoffset 1.4s ease .2s}
+  svg.in [data-draw]{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<button id="toc-btn" aria-label="目录">☰</button>
+<nav id="toc">
+  <div class="tt">目 录</div>
+  <a href="#s0">30 秒速览</a>
+  <a href="#s1">背景与动机</a>
+  <a href="#s2">核心概念</a>
+  <a href="#s3">路由决策的四种做法</a>
+  <a href="#s4">怎么用:自托管 RouteLLM</a>
+  <a href="#s5">怎么用:托管 OpenRouter</a>
+  <a href="#s6">怎么用:云厂商内置路由</a>
+  <a href="#s7">使用场景与案例</a>
+  <a href="#s8">对比与选型</a>
+  <a href="#s9">常见坑与限制</a>
+  <a href="#s10">学习资源</a>
+</nav>
+
+<div class="wrap">
+<div class="hero">
+  <div class="tag">Agent 工程 · 推理层基础设施</div>
+  <h1>多模型路由 Model Routing<br>把每个请求送给「最便宜的够用模型」</h1>
+  <p>Microsoft 刚曝光的 Project Perception 在三家模型间按任务路由;RouteLLM 实测省 85% 成本保 95% 质量。「用哪个模型」正在从人工选择变成一个工程系统——这就是路由层。</p>
+</div>
+
+<section id="s0" data-anim>
+<h2>⚡ 30 秒速览</h2>
+<p>你的应用每天发出成千上万次 LLM 请求,其中大部分是「帮我改个措辞」这种简单活,少部分是「重构这个模块」这种硬活。<strong>全部用旗舰模型,是拿大炮打蚊子,账单爆炸;全部用便宜模型,硬活答不好,质量崩盘。</strong></p>
+<p><strong>模型路由器(Model Router)</strong>就是解决这个两难的中间层:它先看一眼每个请求,判断难度和类型,再把它转发给「能答好的模型里最便宜的那个」。应用只管调一个统一入口,后面用了谁由路由器决定。</p>
+<div class="figure">
+<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="请求经过路由器分流到不同档位模型的示意图">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1769d0"/></marker></defs>
+  <rect x="12" y="88" width="130" height="64" rx="12" fill="#f2f8ff" stroke="#1769d0" stroke-width="2"/>
+  <text x="77" y="115" text-anchor="middle" font-size="15" fill="#0d3f7e" font-weight="700">应用请求</text>
+  <text x="77" y="136" text-anchor="middle" font-size="12" fill="#4a5e72">简单的、难的混在一起</text>
+  <line x1="142" y1="120" x2="230" y2="120" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar)" data-draw/>
+  <rect x="234" y="76" width="150" height="88" rx="14" fill="#0d3f7e"/>
+  <text x="309" y="112" text-anchor="middle" font-size="16" fill="#fff" font-weight="700">路由器</text>
+  <text x="309" y="134" text-anchor="middle" font-size="12" fill="#cfe2f8">判断难度 → 选模型</text>
+  <line x1="384" y1="96" x2="500" y2="46" stroke="#1f9d6b" stroke-width="2.5" marker-end="url(#ar)" data-draw/>
+  <line x1="384" y1="120" x2="500" y2="120" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar)" data-draw/>
+  <line x1="384" y1="144" x2="500" y2="196" stroke="#c47f17" stroke-width="2.5" marker-end="url(#ar)" data-draw/>
+  <rect x="504" y="22" width="200" height="50" rx="10" fill="#effaf4" stroke="#1f9d6b" stroke-width="2"/>
+  <text x="604" y="43" text-anchor="middle" font-size="13.5" fill="#166b48" font-weight="700">简单请求 → 轻量模型</text>
+  <text x="604" y="61" text-anchor="middle" font-size="11.5" fill="#4a5e72">例:$1 / 百万 token 档</text>
+  <rect x="504" y="95" width="200" height="50" rx="10" fill="#f2f8ff" stroke="#1769d0" stroke-width="2"/>
+  <text x="604" y="116" text-anchor="middle" font-size="13.5" fill="#0d3f7e" font-weight="700">中等请求 → 中档模型</text>
+  <text x="604" y="134" text-anchor="middle" font-size="11.5" fill="#4a5e72">例:$2.5 / 百万 token 档</text>
+  <rect x="504" y="170" width="200" height="50" rx="10" fill="#fdf6e8" stroke="#c47f17" stroke-width="2"/>
+  <text x="604" y="191" text-anchor="middle" font-size="13.5" fill="#8a5a10" font-weight="700">硬核请求 → 旗舰模型</text>
+  <text x="604" y="209" text-anchor="middle" font-size="11.5" fill="#4a5e72">例:$5 / 百万 token 档</text>
+</svg>
+<div class="fig-cap">路由器的核心工作:让「难度」和「模型档位」匹配起来。价格档参考 GPT-5.6 三档定价(Luna $1 / Terra $2.5 / Sol $5 每百万输入 token,官方公布)。</div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="n">85%</div><div class="l">RouteLLM 实测最高省成本<br>(MT Bench,保 95% GPT-4 质量)</div></div>
+  <div class="stat"><div class="n">30%</div><div class="l">AWS Bedrock 官方宣称<br>不损精度的成本降幅上限</div></div>
+  <div class="stat"><div class="n">40-85%</div><div class="l">2026 年业界综述报告的<br>调优路由层账单降幅区间</div></div>
+</div>
+<p class="src">数据来源:RouteLLM 官方 README(lm-sys)、AWS Bedrock 官方产品页、Braintrust / Digital Applied 2026 综述(第三方,见文末来源清单)。</p>
+</section>
+
+<section id="s1" data-anim>
+<h2>🧭 背景与动机:为什么 2026 年它突然变成必修课</h2>
+<h3>之前的世界:一个应用绑一个模型</h3>
+<p>两年前做 LLM 应用,标准做法是选定一个模型,把 API key 写进配置,完事。那时模型选择少、价差小,「选型」是上线前做一次的决定。</p>
+<p>现在的局面完全不同。同一件事可用的模型太多了,而且<strong>价差拉到了几十倍</strong>:GPT-5.6 一家就分 Sol($5/$30 每百万输入/输出 token)、Terra($2.5/$15)、Luna($1/$6)三档;Kimi K3 这样的开源前沿模型 API 定价 $3/$15,还能自己部署;Thinking Machines 的 Inkling 干脆 Apache 2.0 放出权重。模型能力此消彼长,上个月的最优选这个月就可能被超越。</p>
+<h3>手工选型撑不住了</h3>
+<p>面对这个局面,如果还靠工程师拍脑袋定「我们全用旗舰」,会遇到三个具体的痛:</p>
+<ul>
+<li><strong>钱的痛</strong>:混合流量里大量简单请求根本用不着旗舰模型。按 2026 年多家综述的说法,没有路由层的团队通常在为 60-80% 的「杀鸡」请求支付「宰牛刀」价格。</li>
+<li><strong>可用性的痛</strong>:单一供应商限流或宕机,你的应用直接 500。OpenRouter 官方博客的开场白就是这句:「如果 Anthropic 在流量高峰限流了你,你的应用不该返回 500」。</li>
+<li><strong>能力错配的痛</strong>:不同模型各有专长。一套系统里,代码审查、威胁分析、文案润色的「最优模型」可能是三家的。Microsoft 被曝的 Project Perception 安全产品正是这么设计的:据 The Information 报道,它同时接 Microsoft、OpenAI、Anthropic 三家模型,由路由层按安全任务类型(漏洞分析、代码审查、威胁检测、事件响应)选择性价比最优的那个。</li>
+</ul>
+<div class="callout key">
+<p><strong>一句话动机</strong>:当「可选模型 × 价格档位 × 能力差异」的组合复杂到人脑管不过来,「用哪个模型」就必须从<strong>配置项</strong>变成<strong>系统的运行时决策</strong>——这个决策系统就是路由层。</p>
+</div>
+<div class="analogy">
+<div class="t">🏥 类比:医院分诊台</div>
+挂号大厅的分诊护士不给你看病,但她决定你去全科还是专科:感冒去全科(便宜、快),疑难杂症转专家号(贵、强)。模型路由器就是 LLM 世界的分诊台——它自己不回答问题,只负责「这个问题值得花多少钱、交给谁」。分诊错了有两种代价:小病挂专家号(浪费钱),大病进全科(耽误事)。路由器的全部技术,都是在压低这两种错误的概率。
+</div>
+</section>
+
+<section id="s2" data-anim>
+<h2>🧩 核心概念</h2>
+<h3>路由器(Router)vs 网关(Gateway)</h3>
+<p>这两个词经常混用,但 OpenRouter 官方博客给了清晰的区分:</p>
+<div class="def">
+<div class="d1">网关(Gateway)= 统一入口</div>
+<div class="d2">一个端点、一套鉴权、统一限流和可观测。它解决「接入乱」的问题——你不用为每家供应商各写一套客户端。</div>
+<div class="d3">类比:公司前台。所有访客从这进,登记、发牌、指路。</div>
+</div>
+<div class="def">
+<div class="d1">路由器(Router)= 每次请求的分发决策</div>
+<div class="d2">决定「这一条请求由哪个模型、哪个供应商来处理」。它解决「选谁」的问题。</div>
+<div class="d3">类比:前台背后的调度员,决定这位访客具体见哪个部门的哪个人。很多产品既是网关又是路由器(如 OpenRouter、LiteLLM)。</div>
+</div>
+<h3>路由的两层决策</h3>
+<p>OpenRouter 官方把路由拆成两个<strong>相互独立</strong>的决策,这个拆分对理解一切路由产品都适用:</p>
+<div class="figure">
+<svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="模型路由与供应商路由两层决策示意图">
+  <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1769d0"/></marker></defs>
+  <rect x="16" y="95" width="110" height="56" rx="10" fill="#f2f8ff" stroke="#1769d0" stroke-width="2"/>
+  <text x="71" y="128" text-anchor="middle" font-size="14.5" fill="#0d3f7e" font-weight="700">请求</text>
+  <line x1="126" y1="123" x2="196" y2="123" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw/>
+  <rect x="200" y="78" width="180" height="90" rx="12" fill="#0d3f7e"/>
+  <text x="290" y="110" text-anchor="middle" font-size="14.5" fill="#fff" font-weight="700">第 1 层:模型路由</text>
+  <text x="290" y="132" text-anchor="middle" font-size="12" fill="#cfe2f8">哪个「模型」来回答?</text>
+  <text x="290" y="152" text-anchor="middle" font-size="11.5" fill="#9dc3ee">按难度 / 任务类型 / 成本档</text>
+  <line x1="380" y1="123" x2="450" y2="123" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar2)" data-draw/>
+  <rect x="454" y="78" width="180" height="90" rx="12" fill="#155ab4"/>
+  <text x="544" y="110" text-anchor="middle" font-size="14.5" fill="#fff" font-weight="700">第 2 层:供应商路由</text>
+  <text x="544" y="132" text-anchor="middle" font-size="12" fill="#cfe2f8">同一模型,哪家「来源」服务?</text>
+  <text x="544" y="152" text-anchor="middle" font-size="11.5" fill="#9dc3ee">按价格 / 时延 / 稳定性 / 合规</text>
+  <text x="290" y="205" text-anchor="middle" font-size="12.5" fill="#4a5e72">例:这条请求该用 Claude 还是轻量模型?</text>
+  <text x="544" y="205" text-anchor="middle" font-size="12.5" fill="#4a5e72">例:这个开源模型走官方 API 还是某推理云?</text>
+</svg>
+<div class="fig-cap">两层路由决策(依据 OpenRouter 官方博客的框架)。自托管闭源模型时第 2 层退化,但用开源模型时它非常关键——同一模型在不同供应商那里价格、速度、量化精度都不同。</div>
+</div>
+<h3>术语表</h3>
+<div class="glossary">
+<div class="g"><b>强/弱模型对(model pair)</b><span>RouteLLM 的基本设定:一个贵而强的模型 + 一个便宜但弱的模型,路由器只需二选一。是学习型路由最简洁的形态。</span></div>
+<div class="g"><b>胜率预测(win rate)</b><span>路由器对「强模型的回答会比弱模型好多少」的预估。RouteLLM 路由器的唯一核心接口就是:给定提示词,算出强模型的预期胜率。</span></div>
+<div class="g"><b>成本阈值(cost threshold)</b><span>胜率超过阈值才动用强模型。阈值调高=更省钱但质量风险大,调低=更保质量但更贵。它是路由系统的「总旋钮」。</span></div>
+<div class="g"><b>回退(fallback)</b><span>首选模型/供应商失败时自动尝试下一个。OpenRouter 里模型级回退用 <code>models</code> 数组,供应商级回退默认开启。</span></div>
+<div class="g"><b>量化(quantization)</b><span>把模型权重压缩成低精度以省显存提速。同一开源模型,不同供应商可能跑不同量化版本,质量有差异——OpenRouter 官方明确承认这一点。</span></div>
+<div class="g"><b>响应质量差(quality difference)</b><span>AWS Bedrock 的路由判据:只有当另一个模型的预测回答质量比「锚定模型」好出设定幅度(如 10%),才切换过去。</span></div>
+<div class="g"><b>Bandit 在线路由</b><span>把路由当「多臂老虎机」问题:边服务边根据真实反馈调整策略,不依赖离线训练好的静态分类器。据 2026 年综述(BaRP、PILOT 等),这是当前研究前沿。</span></div>
+</div>
+</section>
+
+<section id="s3" data-anim>
+<h2>⚙️ 路由决策的四种做法(由浅入深)</h2>
+<p>「看一眼请求就知道该给谁」听起来玄,拆开看其实是四代技术,一代比一代聪明:</p>
+<div class="steps">
+<div class="step"><span class="st-t">规则路由(if-else)</span><br>按请求元数据手写规则:带 <code>code</code> 标签的走编码强的模型、超长上下文走 1M 窗口模型、内部工具走便宜档。零训练成本、完全可控、可审计,但规则粒度粗,覆盖不了「同类任务难度不同」的情况。绝大多数团队的第一步。</div>
+<div class="step"><span class="st-t">学习型分类器(RouteLLM 代表)</span><br>用真实偏好数据(如 Chatbot Arena 的人类投票)训练一个小模型,预测「强模型能赢弱模型多少」,再拿胜率和阈值比大小。RouteLLM 提供 4 种开箱路由器:矩阵分解 <code>mf</code>(官方推荐)、加权 Elo 的 <code>sw_ranking</code>、BERT 分类器、LLM 分类器 <code>causal_llm</code>。官方强调:虽然它们在 GPT-4/Mixtral 这对模型上训练,但<strong>换成别的强弱模型对也能泛化,无需重训</strong>。</div>
+<div class="step"><span class="st-t">质量预测路由(云厂商代表)</span><br>AWS Bedrock 的智能提示词路由对每条请求<strong>预测每个候选模型的回答质量</strong>,再结合「响应质量差」判据和回退模型做选择;Azure AI Foundry 的 model router 同样用一个训练过的小模型实时选路,提供平衡/成本/质量三种模式(Azure 部分为多来源转述,细节以微软官方文档为准)。与第 2 代的区别:不只分「难/易」,而是直接估「谁答得好」。</div>
+<div class="step"><span class="st-t">在线学习路由(研究前沿)</span><br>静态分类器有个死穴:训练分布和你的真实流量不一致就会失准。Bandit 路由(据 2026 年综述提到的 BaRP、PILOT 等工作)在线上边跑边学,用真实反馈持续修正路由策略。2026 年的一篇动态路由综述把设计空间归纳为三轴:<strong>何时决策、依据什么信息、怎么计算</strong>——并指出设计良好的路由系统可以胜过任何单一最强模型。</div>
+</div>
+<h3>拿 RouteLLM 把机制看透</h3>
+<p>以最经典的第 2 代为例,一条请求进来后发生了什么:</p>
+<div class="figure">
+<svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RouteLLM 胜率与阈值比较的分叉决策图">
+  <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1769d0"/></marker></defs>
+  <rect x="20" y="100" width="128" height="58" rx="10" fill="#f2f8ff" stroke="#1769d0" stroke-width="2"/>
+  <text x="84" y="126" text-anchor="middle" font-size="14" fill="#0d3f7e" font-weight="700">用户提示词</text>
+  <text x="84" y="146" text-anchor="middle" font-size="11.5" fill="#4a5e72">"帮我证明这个不等式"</text>
+  <line x1="148" y1="129" x2="216" y2="129" stroke="#1769d0" stroke-width="2.5" marker-end="url(#ar3)" data-draw/>
+  <rect x="220" y="88" width="172" height="82" rx="12" fill="#0d3f7e"/>
+  <text x="306" y="116" text-anchor="middle" font-size="14" fill="#fff" font-weight="700">路由器(如 mf)</text>
+  <text x="306" y="138" text-anchor="middle" font-size="12" fill="#cfe2f8">预测强模型胜率</text>
+  <text x="306" y="158" text-anchor="middle" font-size="12.5" fill="#8fd4b4" font-weight="700">win rate = 0.34</text>
+  <line x1="392" y1="110" x2="470" y2="62" stroke="#c47f17" stroke-width="2.5" marker-end="url(#ar3)" data-draw/>
+  <line x1="392" y1="150" x2="470" y2="198" stroke="#1f9d6b" stroke-width="2.5" marker-end="url(#ar3)" data-draw/>
+  <rect x="474" y="30" width="226" height="62" rx="10" fill="#fdf6e8" stroke="#c47f17" stroke-width="2"/>
+  <text x="587" y="55" text-anchor="middle" font-size="13.5" fill="#8a5a10" font-weight="700">胜率 &gt; 阈值 0.116 → 强模型</text>
+  <text x="587" y="76" text-anchor="middle" font-size="11.5" fill="#4a5e72">强模型明显更好,值得花钱</text>
+  <rect x="474" y="168" width="226" height="62" rx="10" fill="#effaf4" stroke="#1f9d6b" stroke-width="2"/>
+  <text x="587" y="193" text-anchor="middle" font-size="13.5" fill="#166b48" font-weight="700">胜率 ≤ 阈值 → 弱模型</text>
+  <text x="587" y="214" text-anchor="middle" font-size="11.5" fill="#4a5e72">差距不大,便宜的就够用</text>
+  <text x="306" y="245" text-anchor="middle" font-size="12.5" fill="#4a5e72">阈值从哪来?用你自己的流量样本「校准」出来(见下)</text>
+</svg>
+<div class="fig-cap">RouteLLM 的决策核心:预测胜率 → 和阈值比大小。本例胜率 0.34 &gt; 阈值 0.116,走强模型。(机制与数值示例来自 RouteLLM 官方 README)</div>
+</div>
+<p><strong>阈值不是拍脑袋定的,是「校准」出来的</strong>:你告诉工具「我希望大约 50% 的请求走强模型」,它在数据集上反推出对应阈值(官方示例:50% 对应 0.11593)。官方同时提醒——默认用 Chatbot Arena 数据校准,你的真实流量分布和 Arena 不同,所以<strong>应该用贴近自己业务的查询样本重新校准</strong>,否则实际分流比例会跑偏。</p>
+</section>
+
+<section id="s4" data-anim>
+<h2>🔧 怎么用(路径一):自托管开源框架 RouteLLM</h2>
+<p>适合:想把路由逻辑握在自己手里、有工程能力自己部署的团队。RouteLLM 是 LMSYS(Chatbot Arena 团队)出品,Apache 2.0,GitHub 约 5k star。以下步骤和代码全部来自官方 README:</p>
+<div class="steps">
+<div class="step"><span class="st-t">安装</span><br><code>pip install "routellm[serve,eval]"</code></div>
+<div class="step"><span class="st-t">初始化控制器:替换 OpenAI 客户端</span><br>指定路由器与强/弱模型对。</div>
+</div>
+<pre><code>import os
+from routellm.controller import Controller
+
+os.environ["OPENAI_API_KEY"] = "sk-XXXXXX"
+# 弱模型走 Anyscale 的 Mixtral(官方示例,可换任意供应商)
+os.environ["ANYSCALE_API_KEY"] = "esecret_XXXXXX"
+
+client = Controller(
+  routers=["mf"],                      # 官方推荐的矩阵分解路由器
+  strong_model="gpt-4-1106-preview",   # 强模型
+  weak_model="anyscale/mistralai/Mixtral-8x7B-Instruct-v0.1",  # 弱模型
+)</code></pre>
+<div class="steps">
+<div class="step"><span class="st-t">校准阈值</span><br>告诉它你想要的强模型占比,反推阈值:</div>
+</div>
+<pre><code>&gt; python -m routellm.calibrate_threshold --routers mf \
+    --strong-model-pct 0.5 --config config.example.yaml
+For 50.0% strong model calls for mf, threshold = 0.11593</code></pre>
+<div class="steps">
+<div class="step"><span class="st-t">发请求:model 字段写成「路由器-阈值」</span></div>
+</div>
+<pre><code>response = client.chat.completions.create(
+  model="router-mf-0.11593",   # 用 mf 路由器、阈值 0.11593 路由本请求
+  messages=[{"role": "user", "content": "Hello!"}]
+)</code></pre>
+<p>不想改代码?它还能起一个 <strong>OpenAI 兼容服务器</strong>(<code>python -m routellm.openai_server ...</code>),任何现有 OpenAI 客户端把 base URL 指过来就接上了路由。模型接入靠 LiteLLM 打底,支持大量开源/闭源供应商,也支持 Ollama 本地模型。</p>
+<div class="callout warn">
+<p><strong>两个官方注明的细节</strong>:① 无论用哪对模型,<code>mf</code> 和 <code>sw_ranking</code> 路由器目前都需要 <code>OPENAI_API_KEY</code> 来算嵌入;② 仓库研究底座是 2024 年论文(arXiv:2406.18665),工程上活跃但理念偏「双模型对」,要在 3 个以上模型间路由需自行扩展 <code>Router</code> 抽象类(只需实现 <code>calculate_strong_win_rate</code> 一个方法)。</p>
+</div>
+</section>
+
+<section id="s5" data-anim>
+<h2>🌐 怎么用(路径二):托管服务 OpenRouter</h2>
+<p>适合:不想自己运维路由层,希望一个 API key 接入所有模型的团队。OpenRouter 是「你直接调用的路由器」:一个 OpenAI 兼容端点,前面 400+ 模型、60+ 供应商,月处理 100 万亿 token(官方数字)。以下机制与代码均来自其官方博客(2026-06-12)与文档:</p>
+<h3>最小接入:一行换模型</h3>
+<pre><code>from openrouter import OpenRouter
+
+client = OpenRouter(api_key="&lt;OPENROUTER_API_KEY&gt;")
+resp = client.chat.send(
+    model="anthropic/claude-sonnet-4.6",   # 改这个字符串就是换模型
+    messages=[{"role": "user", "content": "Summarize this changelog."}],
+)
+# 已在用 OpenAI SDK?把 base URL 指到 https://openrouter.ai/api/v1 即可</code></pre>
+<h3>默认的供应商路由:平方反比价格加权</h3>
+<p>同一个模型有多家供应商时,你不配置任何东西的话,OpenRouter 按三步走:① 近 30 秒内出过故障的供应商排到队尾;② 在稳定供应商里按「价格的平方反比」加权抽选;③ 其余作为回退。官方算例:A($1/M)、B($2/M,刚出过故障)、C($3/M)三家,A 被优先尝试的概率约是 C 的 9 倍(1/1² 对 1/3²),B 垫底。<strong>平方的意义是把流量狠狠推向最便宜的健康供应商</strong>,而不是均匀摊。</p>
+<h3>常用控制手段</h3>
+<table>
+<tr><th>需求</th><th>写法</th><th>效果</th></tr>
+<tr><td>合规要求只走指定供应商</td><td><code>provider.order</code> + <code>allow_fallbacks: false</code></td><td>按序尝试,失败即止,绝不静默回退到第三方</td></tr>
+<tr><td>用户对话,时延敏感</td><td>模型名后加 <code>:nitro</code></td><td>等价 <code>sort:"throughput"</code>,按吞吐路由</td></tr>
+<tr><td>批处理,成本封顶</td><td>模型名后加 <code>:floor</code>,配 <code>max_price</code></td><td>等价 <code>sort:"price"</code>,按最低价路由</td></tr>
+<tr><td>跨模型容灾</td><td><code>models: ["主模型","备模型"]</code> 数组</td><td>整个模型不可用时按序降级;失败请求不计费</td></tr>
+<tr><td>嫌某供应商量化版本质量差</td><td><code>provider.ignore</code> / <code>quantizations</code></td><td>拉黑或限定精度等级</td></tr>
+<tr><td>不知道用户会发什么</td><td><code>model: "openrouter/auto"</code></td><td>交给 Auto Router 逐条选模型(NotDiamond 驱动)</td></tr>
+</table>
+<h3>Auto Router:逐条请求自动选模型</h3>
+<pre><code>{
+  "model": "openrouter/auto",
+  "plugins": [{
+    "id": "auto-router",
+    "cost_quality_tradeoff": 3,              // 0-10 旋钮:0 最重质量,10 最重省钱,默认 7
+    "allowed_models": ["anthropic/*", "openai/*"]   // 限定候选池
+  }]
+}</code></pre>
+<p>响应里的 <code>model</code> 字段会告诉你实际是谁答的。官方明确:Auto Router 不额外收费,按被选中模型的标准价计费。另一个容易忽略的默认行为:<strong>带工具调用的请求默认走 Auto Exacto</strong>——一个「质量优先」的路由步骤,按工具调用质量给供应商分层(层内保持价格排序);想让工具请求回到纯价格路由,需显式加 <code>:floor</code> 或 <code>sort:"price"</code>。</p>
+</section>
+
+<section id="s6" data-anim>
+<h2>☁️ 怎么用(路径三):云厂商内置路由</h2>
+<p>适合:已经在某朵云上、想要「打开开关就有」的托管路由。以 AWS Bedrock 智能提示词路由为例(以下来自 AWS 官方文档):</p>
+<ul>
+<li><strong>形态</strong>:一个 serverless 统一端点,在<strong>同一模型家族内的两个模型</strong>之间路由(如 Claude 家族的 Haiku + Sonnet,Llama 家族的 8B + 70B,Nova Lite + Pro)。官方宣称最多省 30% 成本不损精度。</li>
+<li><strong>机制</strong>:对每条请求预测各候选模型的<strong>响应质量</strong>;你配置一个「锚定用的回退模型」和「响应质量差」判据——例如设 10%,表示只有另一个模型的预测质量比回退模型好出 10% 以上才切换。</li>
+<li><strong>用法</strong>:控制台 Prompt Routers 页面开箱即用默认路由器,或用 API 建自己的:</li>
+</ul>
+<pre><code>aws bedrock create-prompt-router \
+    --prompt-router-name my-router \
+    --models '[{"modelArn": "arn:aws:bedrock:&lt;region&gt;::foundation-model/&lt;modelA&gt;"}]' \
+    --fallback-model '[{"modelArn": "arn:aws:bedrock:&lt;region&gt;::foundation-model/&lt;modelB&gt;"}]' \
+    --routing-criteria '{"responseQualityDifference": 0.5}'</code></pre>
+<div class="callout warn">
+<p><strong>官方自己列出的三条限制</strong>:只对英文提示词做过优化;不能根据你应用的实际表现数据调整路由决策;对特殊/垂直场景未必给出最优路由(效果取决于其训练数据)。这三条基本框定了「云内置路由」的适用边界:通用负载好用,深度定制乏力。</p>
+</div>
+<p>微软侧对应产品是 Azure AI Foundry 的 <strong>model router</strong>:用训练过的小模型逐条实时选择 Azure 托管模型,提供平衡/成本/质量三种模式和自动故障转移(此段来自多家第三方转述,具体能力以微软官方文档为准)。</p>
+</section>
+
+<section id="s7" data-anim>
+<h2>🎯 使用场景与案例</h2>
+<h3>场景一:多模型安全运营(本周时事)</h3>
+<p><strong>谁</strong>:Microsoft(内部代号 Project Perception,据 The Information 报道,尚未正式发布)。<strong>问题</strong>:安全工作负载差异极大——漏洞分析、代码审查、威胁检测、事件响应对模型能力的要求各不相同,且单一供应商锁定既贵又有风险。<strong>做法</strong>:产品同时接入 Microsoft、OpenAI、Anthropic 三家模型,路由层按任务把请求发给「性能、速度、成本平衡最优」的那个。<strong>意义</strong>:被广泛解读为「把模型竞争变成平台机会」——不论哪家模型在单项跑分领先,平台靠路由层都能吃到红利。</p>
+<h3>场景二:混合流量的成本工程</h3>
+<p><strong>谁</strong>:任何客服机器人、编码助手、文档处理类应用。<strong>问题</strong>:流量里「查订单状态」和「分析合同风险」混在一起,全走旗舰模型账单失控。<strong>做法</strong>:规则路由打底(按功能分档)+ 学习型路由器处理灰色地带。<strong>效果参考</strong>:RouteLLM 在 MT Bench 上实测最多省 85% 成本、保住 95% 的 GPT-4 质量,且比商业路由方案便宜 40% 以上(官方 README);2026 年多家综述给出的实践区间是 40-85%(第三方数字,你的里程可能不同)。</p>
+<h3>场景三:高可用容灾</h3>
+<p><strong>谁</strong>:对可用性有 SLA 的生产应用。<strong>问题</strong>:供应商限流/宕机直接打穿服务。<strong>做法</strong>:供应商级自动回退(OpenRouter 默认开启,故障供应商 30 秒降权)+ 模型级回退数组兜底(触发条件包括上下文超限、审核拦截、限流、宕机);失败请求不计费(zero-completion insurance)。</p>
+<div class="callout key">
+<p><strong>为什么说它是 2026 的「推理层显学」</strong>:本周 Fireworks AI 以 $175 亿估值融资 $15 亿(据 Axios),其核心叙事正是「企业会多模型并用,推理层是持续大头」;MCP Gateway 也在向统一控制面演化(2026 综述)。路由不再是省钱小技巧,而是多模型时代的默认架构层。</p>
+</div>
+</section>
+
+<section id="s8" data-anim>
+<h2>⚖️ 对比与选型</h2>
+<table>
+<tr><th>方案</th><th>形态</th><th>路由智能</th><th>适合谁</th></tr>
+<tr><td><strong>RouteLLM</strong>(lm-sys)</td><td>自托管框架,Apache 2.0</td><td>学习型胜率路由(4 种路由器)+ 阈值校准 + 评测框架</td><td>想拥有路由逻辑、能自己部署调优、以双模型对为主的团队</td></tr>
+<tr><td><strong>OpenRouter</strong></td><td>托管网关+路由器,直接调用</td><td>供应商价格加权 + 故障降权 + 双层回退 + Auto Router 逐条选模型</td><td>想一个 key 用遍 400+ 模型、把运维交出去的团队</td></tr>
+<tr><td><strong>LiteLLM</strong></td><td>自托管网关(开源 SDK/代理)</td><td>统一 100+ 模型接口,路由规则自己写</td><td>需要自托管控制面、审计、per-team RBAC 的团队(OpenRouter 官方也承认这类需求该找 LiteLLM/Portkey)</td></tr>
+<tr><td><strong>AWS Bedrock 提示词路由</strong></td><td>云内置,serverless 端点</td><td>响应质量预测 + 质量差判据 + 回退模型;同家族二选一</td><td>已在 AWS、负载以英文为主、想零运维起步的团队</td></tr>
+<tr><td><strong>Azure model router</strong></td><td>云内置(AI Foundry)</td><td>小模型实时选路,平衡/成本/质量三模式(第三方转述)</td><td>已在 Azure 生态的团队</td></tr>
+</table>
+<h3>怎么选:三个判断题</h3>
+<ul>
+<li><strong>路由逻辑是不是你的核心竞争力?</strong> 是(比如你按任务微调过专用模型)→ 自托管(RouteLLM / LiteLLM + 自研规则);不是 → 托管或云内置。</li>
+<li><strong>有没有合规/审计/数据驻留要求?</strong> 有 → 自托管,或用托管服务的供应商白名单+ZDR(零数据保留)约束;OpenRouter 官方明说「需要可审计基础设施的团队今天不适合它」。</li>
+<li><strong>流量结构清楚吗?</strong> 清楚(可枚举任务类型)→ 规则路由就能拿走大部分收益;不清楚(开放式用户输入)→ 学习型/Auto 路由更值。</li>
+</ul>
+<p>普遍的务实路径:<strong>规则打底 → 网关统一接入 → 灰色地带上学习型路由 → 有真实反馈后考虑在线学习</strong>,每一步都能独立产生收益。</p>
+</section>
+
+<section id="s9" data-anim>
+<h2>🕳️ 常见坑与限制</h2>
+<ul>
+<li><strong>「省了钱但答错了」是隐性成本</strong>:路由评测只看基准分,你的业务错误(客服答错政策、代码引入 bug)不在里面。上线前用自己的评测集对比「全旗舰 vs 路由后」的真实质量差,别只看账单。(通用工程经验)</li>
+<li><strong>训练分布外失准</strong>:RouteLLM 官方提醒默认阈值按 Chatbot Arena 校准,实际分流比例会随你的流量漂移——务必用自己的查询样本重新校准,并定期复查。</li>
+<li><strong>云内置路由的边界</strong>:Bedrock 官方自列——仅英文优化、不吃应用反馈、垂直场景未必最优;且只能同家族两模型。中文为主的负载要实测再上。</li>
+<li><strong>同一模型≠同一质量</strong>:开源模型在不同供应商处可能是不同量化版本,质量参差(OpenRouter 官方承认,且没有可排序的质量分)。用 <code>ignore</code>/<code>quantizations</code> 控制,或固定供应商。</li>
+<li><strong>管理面自己是单点</strong>:托管路由能绕开供应商故障,绕不开它自己——OpenRouter 2025 年 8 月曾因数据库故障全站宕机约 50 分钟,回退也一起失效(官方状态页)。高 SLA 应用要为「路由层挂了」准备直连兜底。</li>
+<li><strong>流式中断照样计费</strong>:OpenRouter 文档注明,在 Bedrock、Groq、Google、Mistral 等部分供应商上,中止流式响应不会停止计费。</li>
+<li><strong>默认行为要读文档</strong>:比如 OpenRouter 带工具调用的请求默认走质量优先的 Auto Exacto 而非价格加权——不知道这点,成本模型就会和预期对不上。</li>
+<li><strong>多轮对话的路由抖动</strong>:逐条路由可能让同一会话在不同模型间跳来跳去,风格与上下文理解不连贯。会话级粘性(同一会话锁定模型)是常见缓解,需要自己实现。(社区普遍经验)</li>
+</ul>
+</section>
+
+<section id="s10" data-anim>
+<h2>📚 学习资源</h2>
+<ul>
+<li>开源框架:<a href="https://github.com/lm-sys/RouteLLM">RouteLLM(lm-sys,含论文与评测框架)</a> · <a href="https://arxiv.org/abs/2406.18665">RouteLLM 论文(arXiv:2406.18665)</a> · <a href="https://github.com/ulab-uiuc/LLMRouter">LLMRouter(UIUC,开源路由库)</a></li>
+<li>托管服务:<a href="https://openrouter.ai/blog/insights/model-routing/">OpenRouter 官方《How Model Routing Works》(2026-06,本文机制主来源)</a> · <a href="https://openrouter.ai/docs/guides/routing/routers/auto-router">Auto Router 文档</a></li>
+<li>云厂商:<a href="https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-routing.html">AWS Bedrock 智能提示词路由官方文档</a> · <a href="https://aws.amazon.com/bedrock/intelligent-prompt-routing/">产品页</a></li>
+<li>2026 生态综述(第三方):<a href="https://www.braintrust.dev/articles/best-llm-routers-2026">Braintrust:2026 路由器与网关盘点</a> · <a href="https://www.digitalapplied.com/blog/llm-model-routing-2026-cost-quality-optimization-engineering-guide">Digital Applied:成本-质量优化工程指南</a></li>
+<li>时事背景:<a href="https://techstartups.com/2026/07/17/top-tech-news-today-july-17-2026-anthropic-apple-google-meta-moonshot-ai-nvidia-more/">Microsoft Project Perception 报道(Tech Startups 引 The Information,2026-07-17)</a></li>
+</ul>
+</section>
+
+<footer>
+<p><strong>调研时间:2026-07-19</strong> · 模型路由生态迭代快(尤其各家支持的模型列表与定价),请以各官方最新文档为准。本文关键事实来自以下实际抓取/检索的来源:</p>
+<ul>
+<li>OpenRouter 官方博客《How OpenRouter Model Routing Works》(2026-06-12)— openrouter.ai/blog/insights/model-routing/(已通读全文;两层路由、平方反比加权、回退机制、Auto Router、局限自述均出自此文)</li>
+<li>RouteLLM 官方 README — github.com/lm-sys/RouteLLM(已通读全文;安装、代码示例、4 种路由器、阈值校准、85%/95% 数据出自此处)</li>
+<li>AWS Bedrock 官方文档《Understanding intelligent prompt routing》— docs.aws.amazon.com/bedrock/latest/userguide/prompt-routing.html(已通读全文;机制、判据、限制、CLI 示例出自此处)</li>
+<li>Braintrust《Best LLM routers 2026》/ Digital Applied 2026 工程指南 / Inworld 综述(第三方,40-85% 区间、bandit 路由趋势等,已按多来源综述措辞)</li>
+<li>Microsoft Project Perception:Tech Startups 2026-07-17 引 The Information(单源爆料,文中已注明「据报道、尚未正式发布」)</li>
+<li>GPT-5.6 三档定价:openai.com/index/gpt-5-6/ 及 TechCrunch 2026-07-09 报道(检索结果)</li>
+<li>Azure model router:多家第三方转述(检索结果),文中已注明以微软官方文档为准</li>
+</ul>
+</footer>
+</div>
+
+<script>
+(function(){
+  var bar=document.getElementById('progress');
+  addEventListener('scroll',function(){
+    var h=document.documentElement, p=h.scrollTop/(h.scrollHeight-h.clientHeight);
+    bar.style.width=(p*100)+'%';
+  },{passive:true});
+  var toc=document.getElementById('toc'), btn=document.getElementById('toc-btn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A')toc.classList.remove('open')});
+  var links=[].slice.call(toc.querySelectorAll('a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))});
+  addEventListener('scroll',function(){
+    var i=secs.length-1;
+    while(i>0 && secs[i].getBoundingClientRect().top>140) i--;
+    links.forEach(function(a,j){a.classList.toggle('on',j===i)});
+  },{passive:true});
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('in');
+      e.target.querySelectorAll('svg').forEach(function(s){s.classList.add('in')});
+      io.unobserve(e.target);}
+  })},{threshold:.08});
+  document.querySelectorAll('[data-anim]').forEach(function(el){io.observe(el)});
+})();
+</script>
+</body>
+</html>
