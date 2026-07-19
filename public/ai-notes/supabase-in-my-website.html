@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的网站没有后端:拿 mingyuyang.com 讲透 Supabase</title>
+<style>
+:root{
+  --bg:#eef4fb;
+  --card:#ffffff;
+  --ink:#1c2b3a;
+  --ink-soft:#4a5d72;
+  --accent:#2563eb;
+  --accent-deep:#1e40af;
+  --accent-soft:#dbeafe;
+  --teal:#0d9488;
+  --teal-soft:#ccfbf1;
+  --indigo:#4f46e5;
+  --indigo-soft:#e0e7ff;
+  --gold:#b45309;
+  --gold-soft:#fef3c7;
+  --warn:#b91c1c;
+  --warn-soft:#fee2e2;
+  --line:#d7e3f2;
+  --hero-g1:#0f2a52;
+  --hero-g2:#1d4ed8;
+  --radius:14px;
+  --shadow:0 2px 12px rgba(30,64,175,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);
+  font-size:17px;line-height:1.88;
+}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:99;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .15s linear}
+.side-toc{
+  position:fixed;left:18px;top:50%;transform:translateY(-50%);
+  width:218px;max-height:82vh;overflow-y:auto;z-index:60;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:16px;padding:16px 14px;
+  box-shadow:0 6px 24px rgba(15,42,82,.10);
+}
+.st-brand{font-weight:700;font-size:14px;color:var(--accent-deep);letter-spacing:.5px}
+.st-sub{font-size:11.5px;color:var(--ink-soft);margin:2px 0 10px}
+.st-progress{margin-bottom:12px}
+.st-progress .pct{font-size:11.5px;color:var(--ink-soft);margin-bottom:4px}
+.st-progress .bar{height:5px;border-radius:3px;background:var(--accent-soft);overflow:hidden}
+.st-progress .fill{height:100%;width:0;border-radius:3px;
+  background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .2s}
+.side-toc ol{list-style:none}
+.side-toc li a{
+  display:flex;gap:8px;align-items:baseline;text-decoration:none;
+  font-size:12.8px;color:var(--ink-soft);padding:5.5px 8px;border-radius:8px;line-height:1.45;
+}
+.side-toc li a .no{font-size:10.5px;color:#94a3b8;font-variant-numeric:tabular-nums;min-width:16px}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc li a.active{background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+.side-toc li a.active .no{color:var(--accent)}
+.toc-toggle{
+  display:none;position:fixed;top:14px;left:14px;z-index:70;
+  width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
+  font-size:19px;color:var(--accent-deep);cursor:pointer;box-shadow:var(--shadow);
+}
+@media (max-width:1179px){
+  .side-toc{display:none}
+  .side-toc.open{display:block;top:66px;transform:none;left:14px}
+  .toc-toggle{display:block}
+}
+.wrap{max-width:840px;margin:0 auto;padding:34px 22px 80px}
+@media (min-width:1180px){.wrap{margin-left:calc(50% - 420px + 60px)}}
+@media (min-width:1420px){.wrap{margin-left:auto}}
+.hero{
+  background:linear-gradient(135deg,var(--hero-g1),var(--hero-g2));
+  border-radius:20px;color:#fff;padding:46px 40px 40px;margin-bottom:34px;
+  box-shadow:0 10px 30px rgba(15,42,82,.25);
+}
+.hero .kicker{font-size:13px;letter-spacing:2.5px;color:#93c5fd;font-weight:600;margin-bottom:12px}
+.hero h1{font-size:31px;line-height:1.4;margin-bottom:8px}
+.hero .en{font-size:15px;color:#bfdbfe;font-style:italic;margin-bottom:16px}
+.hero .subtitle{font-size:16.5px;color:#dbeafe;border-left:3px solid #60a5fa;padding-left:12px;margin-bottom:20px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px;font-size:12.5px}
+.hero .meta span{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+  padding:3px 11px;border-radius:99px;color:#e0edff}
+section{margin-bottom:42px}
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.sec-head .icon{font-size:24px}
+.sec-head h2{font-size:23px;color:var(--accent-deep);line-height:1.5}
+.sec-head .en-tag{font-size:12.5px;color:#94a3b8;font-style:italic}
+.sec-lede{color:var(--ink-soft);font-size:15px;margin-bottom:16px;padding-left:34px}
+h3{font-size:18px;color:var(--ink);margin:24px 0 10px}
+p{margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.term{background:var(--accent-soft);color:var(--accent-deep);padding:1px 6px;border-radius:5px;font-weight:600}
+.hl{background:linear-gradient(transparent 62%,#bfdbfe 62%);font-weight:600}
+.def{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);margin-bottom:16px}
+.def .row{display:flex;gap:10px;margin-bottom:10px}
+.def .row:last-child{margin-bottom:0}
+.def .tag{flex-shrink:0;font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;
+  height:fit-content;margin-top:5px;white-space:nowrap}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--teal-soft);color:var(--teal)}
+.tag-eg{background:var(--gold-soft);color:var(--gold)}
+.def .row div{flex:1}
+.callout{border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;font-size:15.5px}
+.callout.key{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.callout.key-teal{background:var(--teal-soft);border-left:4px solid var(--teal)}
+.callout.key-gold{background:var(--gold-soft);border-left:4px solid var(--gold)}
+.callout.warn{background:var(--warn-soft);border-left:4px solid var(--warn)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  text-align:center;padding:18px 10px;box-shadow:var(--shadow)}
+.stat .num{font-size:26px;font-weight:800;color:var(--accent);line-height:1.3}
+.stat .lab{font-size:12.8px;color:var(--ink-soft);margin-top:4px;line-height:1.5}
+@media (max-width:640px){.stats{grid-template-columns:1fr}}
+.steps{list-style:none;margin-bottom:16px}
+.steps li{position:relative;padding:0 0 18px 44px}
+.steps li::before{content:attr(data-n);position:absolute;left:0;top:2px;width:28px;height:28px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+.steps li:not(:last-child)::after{content:"";position:absolute;left:13.5px;top:32px;bottom:2px;
+  width:1.5px;background:var(--line)}
+.steps li b{display:block;font-size:15.8px;margin-bottom:2px}
+.steps li span{font-size:14.5px;color:var(--ink-soft)}
+.analogy{display:flex;border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow);background:var(--card)}
+.analogy .side{flex-shrink:0;writing-mode:vertical-rl;background:var(--indigo-soft);color:var(--indigo);
+  font-size:12.5px;font-weight:700;letter-spacing:3px;padding:14px 8px;display:flex;align-items:center}
+.analogy .body{padding:16px 20px;font-size:15.3px}
+.analogy .body .note{font-size:12.5px;color:#94a3b8;margin-top:6px}
+.rephrase{border:1px dashed #a8c3e8;border-radius:12px;margin-bottom:16px;background:#f6faff}
+.rephrase summary{cursor:pointer;padding:11px 18px;font-size:14.2px;font-weight:600;color:var(--accent-deep);
+  list-style:none}
+.rephrase summary::-webkit-details-marker{display:none}
+.rephrase summary::before{content:"▸ ";color:var(--accent)}
+.rephrase[open] summary::before{content:"▾ "}
+.rephrase .inner{padding:2px 20px 14px;font-size:14.8px;color:var(--ink-soft)}
+.glossary{width:100%;border-collapse:collapse;margin-bottom:16px;background:var(--card);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);font-size:14.8px}
+.glossary th{background:var(--accent-soft);color:var(--accent-deep);text-align:left;
+  padding:10px 16px;font-size:13.5px}
+.glossary td{border-top:1px solid var(--line);padding:10px 16px;vertical-align:top}
+.glossary td:first-child{white-space:nowrap;font-weight:700;color:var(--accent-deep)}
+@media (max-width:640px){.glossary td:first-child{white-space:normal}}
+.tbl-scroll{overflow-x:auto;margin-bottom:16px}
+.tbl-scroll .glossary{margin-bottom:0;min-width:560px}
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.case{border-radius:var(--radius);padding:18px 20px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+.case.good{border-top:4px solid var(--teal)}
+.case.bad{border-top:4px solid var(--warn)}
+.case h4{font-size:15.5px;margin-bottom:8px}
+.case p{font-size:14.3px;color:var(--ink-soft);margin-bottom:6px}
+@media (max-width:640px){.cases{grid-template-columns:1fr}}
+.practice{list-style:none;margin-bottom:16px}
+.practice li{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px 18px;margin-bottom:10px;box-shadow:var(--shadow);font-size:15.3px;display:flex;gap:10px}
+.practice li .ic{flex-shrink:0}
+pre{background:#0f2440;color:#dbeafe;border-radius:12px;padding:16px 18px;font-size:13.5px;
+  line-height:1.7;overflow-x:auto;margin-bottom:16px;
+  font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace}
+pre .cm{color:#7fb0f0;font-style:italic}
+pre .out{color:#86efac}
+code{background:#e4edfb;color:#1e40af;padding:1px 6px;border-radius:5px;font-size:14px;
+  font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace}
+pre code{background:none;color:inherit;padding:0;font-size:inherit}
+.src-tag{font-size:12px;color:#94a3b8;margin:-12px 0 14px 4px}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 18px 12px;margin-bottom:18px;box-shadow:var(--shadow);
+  opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{text-align:center;font-size:13px;color:var(--ink-soft);padding:8px 10px 4px}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{transition:stroke-dashoffset 1s ease}
+.final{background:linear-gradient(135deg,var(--hero-g1),var(--hero-g2));color:#dbeafe;
+  border-radius:20px;padding:34px 36px;margin-top:10px}
+.final h2{color:#fff;font-size:20px;margin-bottom:12px}
+.final a{color:#93c5fd}
+footer{text-align:center;font-size:12.8px;color:#8aa2bd;margin-top:36px;line-height:1.8}
+a{color:var(--accent)}
+.prereq{font-size:13.5px;color:var(--ink-soft);background:#f2f7ff;border:1px solid var(--line);
+  border-radius:8px;padding:6px 12px;display:inline-block;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .figure,.figure [data-anim]{opacity:1 !important;transform:none !important;transition:none !important}
+  .figure [data-draw]{stroke-dasharray:none !important;stroke-dashoffset:0 !important;transition:none !important}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .hero{padding:32px 24px 28px}
+  .hero h1{font-size:24px}
+  .wrap{padding:22px 14px 60px}
+  .card,.def{padding:16px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="打开目录">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand">🧩 拿我的站讲 Supabase</div>
+  <div class="st-sub">真实代码 · 真实探针 · 实战篇</div>
+  <div class="st-progress">
+    <div class="pct">已读 <span id="pctNum">0%</span></div>
+    <div class="bar"><div class="fill" id="pctFill"></div></div>
+  </div>
+  <ol>
+    <li><a href="#intro"><span class="no">01</span>我的网站没有后端</a></li>
+    <li><a href="#map"><span class="no">02</span>全景对号入座</a></li>
+    <li><a href="#db"><span class="no">03</span>数据库:resources 表</a></li>
+    <li><a href="#api"><span class="no">04</span>自动 API:PostgREST</a></li>
+    <li><a href="#auth"><span class="no">05</span>登录:GoTrue</a></li>
+    <li><a href="#rls1"><span class="no">06</span>RLS 标本一:公开表</a></li>
+    <li><a href="#rls2"><span class="no">07</span>RLS 标本二:私有表 ★</a></li>
+    <li><a href="#probe"><span class="no">08</span>实证:匿名探针</a></li>
+    <li><a href="#keys"><span class="no">09</span>两把钥匙</a></li>
+    <li><a href="#storage"><span class="no">10</span>Storage 文件</a></li>
+    <li><a href="#unused"><span class="no">11</span>我没用的两块</a></li>
+    <li><a href="#journey"><span class="no">12</span>一次点击的完整旅程</a></li>
+    <li><a href="#talk"><span class="no">13</span>讲给面试官听</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">CASE STUDY · 实战篇</div>
+  <h1>🧩 我的网站没有后端:拿 mingyuyang.com 讲透 Supabase</h1>
+  <div class="en">Supabase by example — my own site, real code, real probes</div>
+  <div class="subtitle">mingyuyang.com 上线至今,我没写过一行自建后端接口、没管过一个密码、没搭过一台数据库服务器——因为这些全是 Supabase 在干。这篇文档把我仓库里的真实代码逐段拆开,讲清 Supabase 每个组件到底替我干了什么活。所有代码都能在仓库里找到,所有探针命令都真实跑过。</div>
+  <div class="meta">
+    <span>📅 2026-07-19</span>
+    <span>💻 代码全部来自我的仓库</span>
+    <span>🧪 探针输出真实可复现</span>
+    <span>📖 理论篇:Supabase 面试备考指南</span>
+  </div>
+</div>
+
+<!-- ================= 01 ================= -->
+<section id="intro">
+  <div class="sec-head"><span class="icon">🎬</span><h2>我的网站没有后端</h2><span class="en-tag">No backend, on purpose</span></div>
+  <p class="sec-lede">先交代这个站是什么、我在里面写了什么、没写什么——「没写的部分」就是 Supabase 的作用。</p>
+
+  <p>mingyuyang.com 是我的个人资料站:AI 学习笔记、公众号文章、每日简报,访客可以浏览搜索,我登录后能管理内容,登录用户还能给每篇文章打「待读/已读」标记。技术栈是 <span class="term">TanStack Start</span>(React 19)跑在 Cloudflare Workers 上——但这只是「壳」,负责渲染页面。真正的后端三件事:<strong>存数据、认身份、管权限</strong>,我一行都没写。</p>
+
+  <div class="stats">
+    <div class="stat"><div class="num">0 行</div><div class="lab">我自己写的后端接口代码</div></div>
+    <div class="stat"><div class="num">78 行</div><div class="lab">resources 表当前数据量(2026-07-19 实测)</div></div>
+    <div class="stat"><div class="num">8 条</div><div class="lab">RLS policy 撑起全站权限(两张业务表 + 存储)</div></div>
+  </div>
+
+  <p>换句话说:如果把 Supabase 从我的站里抽走,剩下的只是一个漂亮但空心的前端。这正是讲解它的最好角度——<strong>不讲概念,讲「它替我干了哪些我本来要自己干的活」</strong>。</p>
+
+  <div class="callout key">💡 本篇是<a href="https://mingyuyang.com/articles/ai-notes-supabase-interview-guide">《Supabase 面试备考指南》</a>的实战篇:那篇讲通用原理和面试题,这篇把每个概念钉到我自己仓库的具体文件上。两篇对照读,「会用」和「能讲」就都有了。</div>
+</section>
+
+<!-- ================= 02 ================= -->
+<section id="map">
+  <div class="sec-head"><span class="icon">🗺️</span><h2>全景对号入座</h2><span class="en-tag">The big picture</span></div>
+  <p class="sec-lede">一张图看清我的站和 Supabase 的分工——后面每一节展开图里的一块。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 430" xmlns="http://www.w3.org/2000/svg">
+      <g data-anim>
+        <rect x="40" y="16" width="420" height="66" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="250" y="43" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent-deep)">我的网站前端(浏览器 / Cloudflare Workers 壳)</text>
+        <text x="250" y="66" text-anchor="middle" font-size="12" fill="var(--ink-soft)">supabase-js + sb_publishable_ key(公开,内联在构建产物里)</text>
+      </g>
+      <g data-anim>
+        <rect x="560" y="16" width="220" height="66" rx="12" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="1.5"/>
+        <text x="670" y="43" text-anchor="middle" font-size="14" font-weight="700" fill="var(--gold)">本机 sync 脚本</text>
+        <text x="670" y="66" text-anchor="middle" font-size="12" fill="var(--ink-soft)">service_role key(仓库外,绕过 RLS)</text>
+      </g>
+      <path d="M120 82 L120 140" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arM)" data-draw/>
+      <path d="M300 82 L360 140" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arM)" data-draw/>
+      <path d="M430 82 L620 140" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arM)" data-draw/>
+      <path d="M670 82 L420 140" stroke="var(--gold)" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#arMg)" data-draw/>
+      <text x="330" y="118" font-size="11.5" fill="var(--ink-soft)">带 JWT</text>
+      <text x="520" y="112" font-size="11.5" fill="var(--gold)">特权路径</text>
+      <g data-anim>
+        <rect x="40" y="144" width="220" height="64" rx="10" fill="var(--teal-soft)"/>
+        <text x="150" y="170" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--teal)">🔐 GoTrue 认证</text>
+        <text x="150" y="192" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">Google 登录 · 签发 JWT · §5</text>
+      </g>
+      <g data-anim>
+        <rect x="290" y="144" width="240" height="64" rx="10" fill="var(--indigo-soft)"/>
+        <text x="410" y="170" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--indigo)">🔌 PostgREST 自动 API</text>
+        <text x="410" y="192" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">表结构直接变 REST 端点 · §4</text>
+      </g>
+      <g data-anim>
+        <rect x="560" y="144" width="220" height="64" rx="10" fill="var(--gold-soft)"/>
+        <text x="670" y="170" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--gold)">🗂 Storage 文件</text>
+        <text x="670" y="192" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">封面与附件上传 · §10</text>
+      </g>
+      <path d="M150 208 L150 252 M410 208 L410 252 M670 208 L670 252" stroke="var(--line)" stroke-width="2" fill="none" data-draw/>
+      <g data-anim>
+        <rect x="40" y="256" width="740" height="150" rx="14" fill="#f0f6ff" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="410" y="284" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent-deep)">🐘 Postgres 数据库 —— RLS 在这一层把关(§6–§8)</text>
+        <rect x="65" y="300" width="215" height="88" rx="10" fill="#fff" stroke="var(--line)"/>
+        <text x="172" y="326" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">resources 表</text>
+        <text x="172" y="348" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">首页每张卡片一行(78 行)</text>
+        <text x="172" y="368" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">人人可读 · owner/admin 可写</text>
+        <rect x="300" y="300" width="215" height="88" rx="10" fill="#fff" stroke="var(--line)"/>
+        <text x="407" y="326" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">reading_status 表</text>
+        <text x="407" y="348" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">待读/已读标记</text>
+        <text x="407" y="368" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">RLS 限本人,匿名读 = []</text>
+        <rect x="535" y="300" width="225" height="88" rx="10" fill="#fff" stroke="var(--line)"/>
+        <text x="647" y="326" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">auth.users · storage.objects</text>
+        <text x="647" y="348" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">用户表(Supabase 管)</text>
+        <text x="647" y="368" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">文件元数据也是表</text>
+      </g>
+      <defs>
+        <marker id="arM" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/></marker>
+        <marker id="arMg" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--gold)"/></marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">mingyuyang.com 与 Supabase 的分工全景:前端拿公开钥匙走正门,本机脚本拿特权钥匙走侧门,所有门都通向同一个 Postgres</div>
+  </div>
+
+  <p>记住这张图的三个要点,后面全是展开:① 所有数据(包括用户、文件清单)都是 Postgres 里的表;② 前端不经过任何自建服务器,直接和 Supabase 的三个服务对话;③ 权限不写在代码里,写在数据库的 RLS policy 里。</p>
+</section>
+
+<!-- ================= 03 ================= -->
+<section id="db">
+  <div class="sec-head"><span class="icon">🐘</span><h2>数据库:resources 表就是整个网站</h2><span class="en-tag">Postgres</span></div>
+  <p class="sec-lede">Supabase 的第一重身份:一个我不用运维的完整 PostgreSQL。</p>
+
+  <p>我的站首页每张资料卡、搜索出的每条结果、文章页的每个标题,都是 <code>resources</code> 表里的一行。这张表长这样(摘自我仓库的 <code>supabase/schema.sql</code>,原文照录):</p>
+
+<pre><code>CREATE TABLE IF NOT EXISTS public.resources (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  slug TEXT UNIQUE,
+  type TEXT NOT NULL CHECK (type IN ('article','video','link','file','note')),
+  title TEXT,
+  summary TEXT,
+  content TEXT,
+  url TEXT,
+  cover_url TEXT,
+  category TEXT,
+  subcategory TEXT,
+  tags TEXT[] NOT NULL DEFAULT '{}',
+  owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  ...
+);</code></pre>
+  <p class="src-tag">来源:my-shared-memories 仓库 supabase/schema.sql(节选,省略部分列)</p>
+
+  <p>几个值得停下来看的细节:</p>
+  <ul class="practice">
+    <li><span class="ic">🏷️</span><div><code>tags TEXT[]</code> 是 <strong>Postgres 原生数组类型</strong>——NoSQL 时代要么存 JSON 字符串要么建关联表,这里一列搞定,还能按元素查询。这是「底座是真 Postgres,不是阉割版」的直接证据。</div></li>
+    <li><span class="ic">🔗</span><div><code>owner_id REFERENCES auth.users(id)</code>——业务表直接<strong>外键关联认证系统的用户表</strong>。因为用户表就是同一个库里的普通表,这种关联在 Firebase 里做不到(用户在另一个系统里)。</div></li>
+    <li><span class="ic">✅</span><div><code>CHECK (type IN (...))</code>——约束写在数据库层,任何入口写入非法类型都会被拒,不依赖前端自觉。</div></li>
+  </ul>
+
+  <p>这张表现在有 <strong>78 行</strong>(下文探针实测),来源有三路,也顺便展示了「往 Supabase 写数据」的三种姿势:</p>
+  <div class="tbl-scroll"><table class="glossary">
+    <tr><th>来源</th><th>写入方式</th><th>用的钥匙</th></tr>
+    <tr><td>静态学习文档</td><td>部署时 sync 脚本扫 public/ 目录,REST upsert(只新增不覆盖)</td><td>service_role(本机)</td></tr>
+    <tr><td>微信公众号文章</td><td>导入脚本抓取后写库</td><td>service_role(本机)</td></tr>
+    <tr><td>后台手动添加/修改</td><td>/admin 页面里登录操作,走 supabase-js</td><td>publishable + 我的 JWT(admin 角色)</td></tr>
+  </table></div>
+
+  <div class="analogy">
+    <div class="side">🔗 类比</div>
+    <div class="body">把传统建站比作开餐厅:你得自己租厨房(数据库服务器)、雇厨师(后端服务)、定规矩(权限代码)。Supabase 相当于一个「共享中央厨房」:厨房、灶台、冷库全是现成的,我只需要决定菜单(表结构)和谁能进哪个储藏间(RLS)。<div class="note">类比帮助理解分工,不对应具体技术细节。</div></div>
+  </div>
+</section>
+
+<!-- ================= 04 ================= -->
+<section id="api">
+  <div class="sec-head"><span class="icon">🔌</span><h2>自动 API:我从没写过接口,但接口一直都在</h2><span class="en-tag">PostgREST</span></div>
+  <p class="sec-lede">「建了表就有 API」听起来像魔法——看我站里的真实调用就祛魅了。</p>
+
+  <p>首页加载资料列表的代码,在 <code>src/lib/resources.ts</code> 里,原文如下:</p>
+
+<pre><code><span class="cm">// 首页拉资料列表(节选自 src/lib/resources.ts)</span>
+let q = supabase
+  .from("resources")
+  .select("*")
+  .order("published_at", { ascending: false });
+if (opts?.type)  q = q.eq("type", opts.type);
+if (opts?.limit) q = q.limit(opts.limit);
+const { data, error } = await q;</code></pre>
+
+  <p>这段代码<strong>在访客的浏览器里执行</strong>。它没有请求我的任何服务器——supabase-js 把这个链式调用翻译成一个 HTTP 请求,直接打到 PostgREST 自动生成的端点上。翻译出来大概是:</p>
+
+<pre><code>GET https://&lt;项目ref&gt;.supabase.co/rest/v1/resources
+    ?select=*&amp;order=published_at.desc&amp;type=eq.article
+    apikey: sb_publishable_...</code></pre>
+
+  <p>为什么这个端点存在?因为 <span class="term">PostgREST</span> 读了我的表结构:<code>resources</code> 表存在,于是 <code>/rest/v1/resources</code> 就存在;表里有 <code>type</code> 列,于是 <code>?type=eq.article</code> 这个过滤器就能用。<strong>我加一列,API 立刻多一个可查询字段;我删一列,对应查询立刻 400</strong>。schema 即接口,没有中间商。</p>
+
+  <h3>🔧 我平时的内容运维,其实是在「裸用」这套 API</h3>
+  <p>给已入库的文章改标题、加标签时,我不开后台页面,直接在终端 PATCH REST 端点(这是我真实干过的事:给 W4 六篇文章补「CS146S Week4」标签,6 条 PATCH 全部成功):</p>
+
+<pre><code><span class="cm"># 真实运维操作:直接 PATCH 一行数据(service_role key 存在仓库外)</span>
+curl -X PATCH "https://&lt;项目ref&gt;.supabase.co/rest/v1/resources?slug=eq.ai-notes-xxx" \
+  -H "apikey: $SERVICE_KEY" -H "Authorization: Bearer $SERVICE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"tags": ["CS146S Week4", "AI", "Claude Code"]}'</code></pre>
+
+  <div class="callout key-gold">📌 一个我踩过才记住的细节:PATCH 会触发表上的 <code>updated_at</code> 自动更新触发器,于是那六篇文章页面上都显示了「更新于 7月7日」——数据库触发器不管你从哪个入口写,一视同仁。这个「副作用」反过来证明了:<strong>REST API、后台页面、脚本写入,底下是同一张表、同一套触发器、同一套规则</strong>。</div>
+</section>
+
+<!-- ================= 05 ================= -->
+<section id="auth">
+  <div class="sec-head"><span class="icon">🔐</span><h2>登录:六行代码的 Google 登录</h2><span class="en-tag">GoTrue &amp; JWT</span></div>
+  <p class="sec-lede">我的站有完整的 Google 账号登录,而我写的相关代码,全文如下。</p>
+
+<pre><code><span class="cm">// src/routes/auth.tsx —— Google 登录的全部业务代码,原文照录</span>
+const signInGoogle = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${window.location.origin}/admin` },
+  });
+  if (error) toast.error(error.message || "Google 登录失败");
+};</code></pre>
+
+  <p>这六行背后,<span class="term">GoTrue</span>(Supabase 的认证服务)替我做了整条链:跳转 Google 授权页 → 接住回调 → 和 Google 换取用户信息 → 在 <code>auth.users</code> 表建立/匹配用户 → <strong>签发一张 JWT</strong> 交还给浏览器 → 之后 supabase-js 自动在每个请求上带着它、并在过期前自动续期。我没有存过密码,没有写过 session 管理,没有碰过 OAuth 的 token 交换细节。</p>
+
+  <div class="def">
+    <div class="row"><span class="tag tag-what">JWT 是什么</span><div>一段签过名的「身份证明」,里面写着:<code>sub</code>(我在 auth.users 里的用户 ID)、<code>role</code>(数据库角色,登录后是 authenticated)、<code>exp</code>(过期时间)等。任何 Supabase 服务拿到它验个签名就知道「这是谁、有什么身份」,不用回数据库查。</div></div>
+    <div class="row"><span class="tag tag-why">为什么关键</span><div>它是下一节 RLS 的输入:policy 里的 <code>auth.uid()</code> 读的就是这张 JWT 里的 <code>sub</code>。<strong>登录系统和数据库权限系统就是在这里接上头的</strong>——这是 Supabase 安全模型最精妙的一环。</div></div>
+    <div class="row"><span class="tag tag-eg">动手验证</span><div>浏览器登录我的站后,开发者工具里找到 access token 粘到 jwt.io,就能看到上述字段。我复习时做过一遍,面试可以当经验讲。</div></div>
+  </div>
+
+  <p>顺带一提:我的站还有「管理员」概念——admin 能在后台管理所有资料。这<strong>不是</strong>写在 JWT 里的,而是一张 <code>user_roles</code> 表 + 一个 <code>has_role()</code> 数据库函数,RLS policy 里直接查(下一节能看到它出场)。角色数据放数据库而不是放 token,好处是改角色立刻生效,不用等 token 刷新。</p>
+</section>
+
+<!-- ================= 06 ================= -->
+<section id="rls1">
+  <div class="sec-head"><span class="icon">🌐</span><h2>RLS 标本一:公开内容表怎么写策略</h2><span class="en-tag">resources 的 policy</span></div>
+  <p class="sec-lede">我的站有两张业务表,恰好是 RLS 的两种典型配方。先看「公开读、受控写」的这张。</p>
+
+  <p><code>resources</code> 表的诉求很朴素:<strong>谁都能看,但不能乱写</strong>。它的 policy 原文(schema.sql + 后来的 admin 补丁):</p>
+
+<pre><code><span class="cm">-- 读:对所有人放行(所以我的资料库不登录也能浏览)</span>
+CREATE POLICY "Resources are readable by everyone"
+  ON public.resources FOR SELECT USING (true);
+
+<span class="cm">-- 写:本人或管理员(20260702-admin-manage-resources.sql 补丁原文)</span>
+CREATE POLICY "Owners or admins update resources"
+  ON public.resources FOR UPDATE TO authenticated
+  USING      (auth.uid() = owner_id OR public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (auth.uid() = owner_id OR public.has_role(auth.uid(), 'admin'));</code></pre>
+
+  <p>这里有一个我真实踩过的坑,比任何教程都说明问题:</p>
+  <div class="callout warn">⚠️ <strong>踩坑实录:「谁都删不掉」的行。</strong>最初的 UPDATE/DELETE policy 只放行 <code>auth.uid() = owner_id</code>(本人)。但脚本导入的文章 <code>owner_id</code> 是空的——于是这些行<strong>连我这个管理员登录后都删不掉</strong>:policy 条件 <code>auth.uid() = NULL</code> 永远不为真,数据库默默过滤,后台删除按钮点了没反应、还不报错。修复就是上面的补丁:条件里加 <code>OR has_role(auth.uid(), 'admin')</code>。这个坑教会我两件事:① RLS 拒绝的方式是「装作没这行」而不是报错,排查时要想到它;② <strong>NULL 参与比较永远不为真</strong>——这正是理论篇里 auth.uid() 陷阱的现实版本。</div>
+
+  <p>还有一个细节:policy 拒绝写入时,REST 返回的可能是「成功,影响 0 行」。所以我后台的删除代码专门<strong>核对返回行数</strong>来防「RLS 假成功」——这也是实战里才会长出来的防御。</p>
+</section>
+
+<!-- ================= 07 ================= -->
+<section id="rls2">
+  <div class="sec-head"><span class="icon">🛡️</span><h2>RLS 标本二:用户私有表的完整配方</h2><span class="en-tag">reading_status ★</span></div>
+  <p class="sec-lede">「待读/已读」功能是我 2026 年 7 月自己上线的,它的 SQL 是一份可以背下来的 RLS 全套模板。</p>
+  <div class="prereq">📎 需先理解 <a href="#auth">上一节的 JWT</a>:下面所有 <code>auth.uid()</code> 读的都是 JWT 里的用户 ID</div>
+
+  <p>需求:登录用户可以给任何文章打「待读」或「已读」标记,<strong>标记只有自己能看见、能修改</strong>。表结构 + 全部四条 policy,原文照录自我仓库的 <code>supabase/patches/2026-07-13-reading-status.sql</code>:</p>
+
+<pre><code>CREATE TABLE IF NOT EXISTS public.reading_status (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  resource_id uuid NOT NULL REFERENCES public.resources(id) ON DELETE CASCADE,
+  status text NOT NULL CHECK (status IN ('read', 'to_read')),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, resource_id)
+);
+
+ALTER TABLE public.reading_status ENABLE ROW LEVEL SECURITY;
+
+<span class="cm">-- ① 看:只能看自己的行</span>
+CREATE POLICY "Users can view their own reading status" ON public.reading_status
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+<span class="cm">-- ② 增:只能以自己的身份写入</span>
+CREATE POLICY "Users can add their own reading status" ON public.reading_status
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+<span class="cm">-- ③ 改:旧行得是自己的(USING),改完还得是自己的(WITH CHECK)</span>
+CREATE POLICY "Users can update their own reading status" ON public.reading_status
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+<span class="cm">-- ④ 删:只能删自己的行</span>
+CREATE POLICY "Users can remove their own reading status" ON public.reading_status
+  FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_reading_status_user
+  ON public.reading_status(user_id, status, updated_at DESC);</code></pre>
+
+  <p>逐条拆开,这份 SQL 里藏着理论篇讲过的<strong>四个知识点的实物</strong>:</p>
+  <ul class="practice">
+    <li><span class="ic">1️⃣</span><div><strong>USING vs WITH CHECK 的分工</strong>:SELECT/DELETE 只有 USING(过滤已存在的行);INSERT 只有 WITH CHECK(校验新行);UPDATE 两个都要。对照上面 ①–④ 看一遍,这对概念就再也不会混了。</div></li>
+    <li><span class="ic">2️⃣</span><div><strong><code>TO authenticated</code></strong>:四条 policy 全部显式限定角色——匿名请求在角色这一关就被短路,不用逐行算条件。这是官方性能优化六招之一,写的时候顺手,收益免费。</div></li>
+    <li><span class="ic">3️⃣</span><div><strong>策略列上建索引</strong>:<code>idx_reading_status_user</code> 把 policy 要比对的 <code>user_id</code> 放在索引首位——官方基准里这一招对大表提速两个数量级。</div></li>
+    <li><span class="ic">4️⃣</span><div><strong>约束进数据库</strong>:<code>UNIQUE (user_id, resource_id)</code> 保证一人一文一条标记,前端的 upsert 逻辑因此可以放心写;<code>CHECK (status IN ...)</code> 挡住非法状态。</div></li>
+  </ul>
+
+  <p>而前端那边,「看不见别人的标记」这件事<strong>零代码</strong>:组件里就是普通的 <code>select</code>,返回的天然只有自己的行。权限逻辑从 UI 层彻底消失了——这就是「安全下沉到数据库」的直观体感。</p>
+</section>
+
+<!-- ================= 08 ================= -->
+<section id="probe">
+  <div class="sec-head"><span class="icon">🧪</span><h2>实证:两条匿名探针</h2><span class="en-tag">Prove it</span></div>
+  <p class="sec-lede">口说无凭。下面两条命令我在写这篇文档时(2026-07-19)真实跑过,输出原样贴上。</p>
+
+  <p>用的就是前端公开的那把 <code>sb_publishable_</code> key,不带任何登录态,模拟「任何一个陌生人」的访问:</p>
+
+<pre><code><span class="cm"># 探针 1:匿名读公开表 resources —— 应该有数据</span>
+curl -s "https://&lt;项目ref&gt;.supabase.co/rest/v1/resources?select=title&amp;order=published_at.desc&amp;limit=3" \
+  -H "apikey: $PUBLISHABLE_KEY"
+<span class="out">[{"title":"Supabase 面试备考指南:架构 · RLS · Auth · 一周学习路径"},
+ {"title":"多模型路由 Model Routing:把每个请求送给「最便宜的够用模型」"},
+ {"title":"MCP Apps:让 MCP 服务器「长出界面」的交互 UI 扩展"}]</span>
+
+<span class="cm"># 顺带看总量(响应头 content-range)</span>
+<span class="out">content-range: 0-77/78        # 78 行</span>
+
+<span class="cm"># 探针 2:匿名读私有表 reading_status —— 应该什么都看不到</span>
+curl -s "https://&lt;项目ref&gt;.supabase.co/rest/v1/reading_status?select=*" \
+  -H "apikey: $PUBLISHABLE_KEY"
+<span class="out">[]</span></code></pre>
+
+  <p>注意第二条:<strong>不是 401、不是 403,是空数组</strong>。请求是合法的、表是存在的、查询执行了——只是 RLS 把每一行都过滤掉了,匿名用户「看不见任何行」。同一把钥匙、同一套 API,一张表全量放行、一张表滴水不漏,差别只在 policy。这两条命令就是「安全写在数据库层」的最短证明,面试时可以直接口述这个实验。</p>
+
+  <div class="callout key-teal">🎯 面试加分句:「我上线阅读状态功能那天,验收清单里专门有一条:用匿名身份直接 curl REST 端点,确认返回空数组。前端看不到入口不等于安全,<strong>绕过前端直接打 API 还拿不到数据才算安全</strong>。」——这句话能把你和只会点后台的人区分开。</div>
+</section>
+
+<!-- ================= 09 ================= -->
+<section id="keys">
+  <div class="sec-head"><span class="icon">🗝️</span><h2>两把钥匙:我的部署流程就是教科书</h2><span class="en-tag">Key management</span></div>
+  <p class="sec-lede">「key 能不能公开」不取决于藏得多深,取决于它对应什么数据库角色。我的站两把钥匙待遇天差地别。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+      <g data-anim>
+        <rect x="290" y="16" width="240" height="56" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="410" y="40" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--accent-deep)">「什么应用在访问我的项目?」</text>
+        <text x="410" y="60" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">API Key 回答的问题</text>
+      </g>
+      <path d="M340 72 L215 118" stroke="var(--teal)" stroke-width="2" fill="none" marker-end="url(#arK)" data-draw/>
+      <path d="M480 72 L605 118" stroke="var(--warn)" stroke-width="2" fill="none" marker-end="url(#arKw)" data-draw/>
+      <g data-anim>
+        <rect x="60" y="122" width="310" height="140" rx="12" fill="var(--teal-soft)"/>
+        <text x="215" y="150" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--teal)">sb_publishable_...(公开钥匙)</text>
+        <text x="215" y="176" text-anchor="middle" font-size="11.8" fill="var(--ink-soft)">写在 .env,构建时内联进前端产物</text>
+        <text x="215" y="196" text-anchor="middle" font-size="11.8" fill="var(--ink-soft)">全世界可见 —— 故意的</text>
+        <text x="215" y="222" text-anchor="middle" font-size="11.8" fill="var(--teal)">只能以 anon / authenticated 角色行动</text>
+        <text x="215" y="242" text-anchor="middle" font-size="11.8" fill="var(--teal)">每一行数据都有 RLS 兜底</text>
+      </g>
+      <g data-anim>
+        <rect x="450" y="122" width="310" height="140" rx="12" fill="var(--warn-soft)"/>
+        <text x="605" y="150" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--warn)">service_role(特权钥匙)</text>
+        <text x="605" y="176" text-anchor="middle" font-size="11.8" fill="var(--ink-soft)">存在仓库外 ~/.ms-supabase-admin</text>
+        <text x="605" y="196" text-anchor="middle" font-size="11.8" fill="var(--ink-soft)">chmod 600 · 永不进 git · 不打包</text>
+        <text x="605" y="222" text-anchor="middle" font-size="11.8" fill="var(--warn)">绕过一切 RLS —— 整库钥匙</text>
+        <text x="605" y="242" text-anchor="middle" font-size="11.8" fill="var(--warn)">只有本机 sync/运维脚本能碰</text>
+      </g>
+      <defs>
+        <marker id="arK" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--teal)"/></marker>
+        <marker id="arKw" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--warn)"/></marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">同一个项目的两把钥匙:一把印在传单上到处发,一把锁在保险柜里——因为它们对应的数据库角色权限天差地别</div>
+  </div>
+
+  <p>为什么 publishable key 敢公开?<strong>因为公开它等于什么都没泄露</strong>:拿到它的人只能以 <code>anon</code> 角色发请求,而 anon 能看什么、不能看什么,上一节的探针已经演示过了——全由 RLS 决定。反过来,service_role key 绕过所有 RLS,所以我的仓库规范里它一条红线写死:<strong>永不进 .env、永不进 git、永不打包</strong>,只存在部署机的一个 600 权限文件里。</p>
+
+  <h3>🥚 一个藏在我仓库里的彩蛋</h3>
+  <p>我的站用的是 2025 年后的<strong>新版 key 体系</strong>(<code>sb_publishable_</code> 前缀)。新 key 有个官方文档里写明的坑:它是不透明字符串、不是 JWT,<strong>不能放在 <code>Authorization: Bearer</code> 头里</strong>。而我仓库的 <code>src/integrations/supabase/client.ts</code> 里恰好有这么一段(原文照录):</p>
+
+<pre><code><span class="cm">// src/integrations/supabase/client.ts(节选)</span>
+function isNewSupabaseApiKey(value: string): boolean {
+  return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
+}
+<span class="cm">// New Supabase API keys are opaque strings, not bearer JWTs.</span>
+if (isNewSupabaseApiKey(supabaseKey) &amp;&amp; headers.get('Authorization') === `Bearer ${supabaseKey}`) {
+  headers.delete('Authorization');   <span class="cm">// 把误放进 Bearer 头的新 key 摘出去</span>
+}
+headers.set('apikey', supabaseKey);</code></pre>
+
+  <p>理论篇里那句「新 key 不能走 Bearer 头」的迁移细节,在我自己的代码库里就有现成实现。读文档时觉得琐碎的知识点,原来早就在生产代码里替我干活了——这种「原来如此」的时刻,就是拿自己项目复习的最大红利。</p>
+</section>
+
+<!-- ================= 10 ================= -->
+<section id="storage">
+  <div class="sec-head"><span class="icon">🗂️</span><h2>Storage:管文件和管数据是同一套思路</h2><span class="en-tag">storage.objects</span></div>
+  <p class="sec-lede">封面图和附件传到哪去了?权限怎么管?答案还是「表 + policy」。</p>
+
+  <p>我的站有一个叫 <code>resources</code> 的存储桶(bucket),后台上传的封面图、文件附件都进这里。文件本体存在对象存储里,但<strong>每个文件的元数据是 <code>storage.objects</code> 表里的一行</strong>——所以文件权限就是往这张表上写 RLS policy,和管业务表一模一样(schema.sql 原文):</p>
+
+<pre><code><span class="cm">-- 谁都能看这个桶里的文件(封面图要公开展示)</span>
+CREATE POLICY "Public can read resources bucket"
+  ON storage.objects FOR SELECT USING (bucket_id = 'resources');
+
+<span class="cm">-- 登录用户只能上传属于自己的文件</span>
+CREATE POLICY "Authenticated users can upload to resources"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'resources' AND owner = auth.uid());</code></pre>
+
+  <p>对比一下 Firebase:它的文件权限要用单独的 Security Rules 语言再学一遍。这里我把管 <code>reading_status</code> 的那套思路原封不动搬过来就行——<strong>少学一门方言</strong>,这是「一切皆 Postgres」设计的又一次分红。顺便:这个桶不是自动出现的,是我在 schema.sql 里用 <code>INSERT INTO storage.buckets</code> 幂等建的——桶本身也是表里的一行,贯彻到底。</p>
+</section>
+
+<!-- ================= 11 ================= -->
+<section id="unused">
+  <div class="sec-head"><span class="icon">🧘</span><h2>我没用的两块,和为什么没用</h2><span class="en-tag">What I skipped</span></div>
+  <p class="sec-lede">讲清「为什么不用」和讲清「为什么用」同样重要——这是选型能力的体现。</p>
+
+  <div class="cases">
+    <div class="case bad"><h4>📡 Realtime —— 没用</h4>
+      <p>我的站是内容站:文章更新频率以「天」计,访客没有「盯着别人实时改动」的场景。为一个不存在的需求维持 WebSocket 长连接,纯属浪费。</p>
+      <p><strong>什么时候会用:</strong>如果以后做「多人同时给文章写批注、互相实时可见」,那就是 Postgres Changes(或 Broadcast)的活。</p></div>
+    <div class="case bad"><h4>λ Edge Functions —— 没用</h4>
+      <p>我的服务端逻辑(SSR 渲染、AI 自动分类调 Claude API)跑在 Cloudflare Workers 上——站本身部署在那里,逻辑放同处更顺。同类能力二选一即可。</p>
+      <p><strong>什么时候会用:</strong>如果没有 Workers 这层壳,「收 Stripe webhook」「服务端调 LLM」这类活就该放 Edge Functions。</p></div>
+  </div>
+
+  <p>这件事本身就是 Supabase 的一个设计原则的体现:官方架构文档说每个组件「可作为独立工具运行」。我实际取用的是<strong>数据库 + 自动 API + 认证 + 存储</strong>四件,Realtime 和 Edge Functions 一根线都没连——平台没有强迫我全家桶,这才是「组件化」的诚意。</p>
+</section>
+
+<!-- ================= 12 ================= -->
+<section id="journey">
+  <div class="sec-head"><span class="icon">🚄</span><h2>一次点击的完整旅程</h2><span class="en-tag">End to end</span></div>
+  <p class="sec-lede">把前面所有零件串起来:我在文章页点一下「已读」,这 200 毫秒里发生了什么。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 820 196" xmlns="http://www.w3.org/2000/svg">
+      <g data-anim>
+        <rect x="15" y="48" width="140" height="76" rx="10" fill="var(--accent-soft)"/>
+        <text x="85" y="76" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">① 点「已读」</text>
+        <text x="85" y="98" text-anchor="middle" font-size="11" fill="var(--ink-soft)">supabase-js 发 upsert</text>
+        <text x="85" y="114" text-anchor="middle" font-size="11" fill="var(--ink-soft)">自动带上我的 JWT</text>
+      </g>
+      <path d="M158 86 L186 86" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arJ)" data-draw/>
+      <g data-anim>
+        <rect x="190" y="48" width="150" height="76" rx="10" fill="#e8eefc"/>
+        <text x="265" y="76" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)">② 网关验 key</text>
+        <text x="265" y="98" text-anchor="middle" font-size="11" fill="var(--ink-soft)">sb_publishable_ 合法</text>
+        <text x="265" y="114" text-anchor="middle" font-size="11" fill="var(--ink-soft)">路由给 PostgREST</text>
+      </g>
+      <path d="M343 86 L371 86" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arJ)" data-draw/>
+      <g data-anim>
+        <rect x="375" y="48" width="160" height="76" rx="10" fill="var(--teal-soft)"/>
+        <text x="455" y="76" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)">③ PostgREST 验 JWT</text>
+        <text x="455" y="98" text-anchor="middle" font-size="11" fill="var(--ink-soft)">签名有效,role claim</text>
+        <text x="455" y="114" text-anchor="middle" font-size="11" fill="var(--ink-soft)">→ 切到 authenticated</text>
+      </g>
+      <path d="M538 86 L566 86" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arJ)" data-draw/>
+      <g data-anim>
+        <rect x="570" y="48" width="160" height="76" rx="10" fill="var(--gold-soft)"/>
+        <text x="650" y="76" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--gold)">④ RLS 逐条把关</text>
+        <text x="650" y="98" text-anchor="middle" font-size="11" fill="var(--ink-soft)">WITH CHECK:user_id</text>
+        <text x="650" y="114" text-anchor="middle" font-size="11" fill="var(--ink-soft)">= auth.uid() ✓ 写入</text>
+      </g>
+      <path d="M733 86 L761 86" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arJ)" data-draw/>
+      <g data-anim>
+        <rect x="765" y="48" width="42" height="76" rx="10" fill="var(--teal-soft)"/>
+        <text x="786" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)">⑤</text>
+        <text x="786" y="102" text-anchor="middle" font-size="11" fill="var(--teal)">徽章</text>
+        <text x="786" y="118" text-anchor="middle" font-size="11" fill="var(--teal)">变色</text>
+      </g>
+      <text x="410" y="168" text-anchor="middle" font-size="12" fill="var(--ink-soft)">全程没有经过我写的任何服务器代码;UNIQUE 约束保证重复点击是更新而非重复插入</text>
+      <defs>
+        <marker id="arJ" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/></marker>
+      </defs>
+    </svg>
+    <div class="fig-cap">「标记已读」的 200 毫秒:五步里每一步都是前面章节讲过的零件在协作</div>
+  </div>
+
+  <ol class="steps">
+    <li data-n="1"><b>浏览器:supabase-js 发出 upsert</b><span>组件调用 hook,对 <code>reading_status</code> 表 upsert 一行 <code>{ resource_id, status: 'read' }</code>;SDK 自动附上我的 JWT 和公开 key。注意请求体里<strong>不用传 user_id</strong>——身份由 JWT 说了算,前端连伪造的机会都没有。</span></li>
+    <li data-n="2"><b>网关:验的是「什么应用」</b><span>publishable key 合法 → 放行并路由。这一层不关心我是谁,只关心请求来自我的项目。</span></li>
+    <li data-n="3"><b>PostgREST:验的是「哪个人」</b><span>JWT 验签通过,读出 <code>role: authenticated</code> 和 <code>sub</code>(我的用户 ID),以 authenticated 角色执行 SQL。</span></li>
+    <li data-n="4"><b>Postgres:RLS 最后把关</b><span>INSERT 撞上 UNIQUE 约束转为 UPDATE;policy ③ 的 USING 确认旧行是我的、WITH CHECK 确认新行还是我的。任何一步不满足,这行就像不存在。</span></li>
+    <li data-n="5"><b>浏览器:UI 更新</b><span>返回成功,徽章变色。整条链路里,权限判断只存在于第 4 步的两行 SQL 里。</span></li>
+  </ol>
+</section>
+
+<!-- ================= 13 ================= -->
+<section id="talk">
+  <div class="sec-head"><span class="icon">🎤</span><h2>把这些讲给面试官听</h2><span class="en-tag">The 2-minute story</span></div>
+  <p class="sec-lede">素材都有了,最后组装成一段两分钟的项目陈述。斜体处换成你面试当下的自然表达。</p>
+
+  <div class="quote-box">
+    <p class="zh">「我的个人网站用 Supabase 做全部后端,前端是 TanStack Start 部署在 Cloudflare Workers。选它的核心原因是 database-centric 的设计:内容表、用户表、文件元数据都是同一个 Postgres 里的表,权限全部用 RLS 收在数据库层——我一行后端接口代码都没写,PostgREST 把表结构直接映射成 REST API。</p>
+    <p class="zh">权限上我写过两种典型配方:公开内容表是『人人可读、owner 或 admin 可写』,管理员走 user_roles 表加 has_role 函数;用户私有的阅读状态表是四条 policy 全套,USING 管旧行、WITH CHECK 管新行,策略列建了索引、显式限定 TO authenticated。上线验收时我专门用匿名身份 curl 过 REST 端点,确认私有表返回空数组——绕过前端直接打 API 拿不到数据,才算安全。</p>
+    <p class="zh">密钥管理是两把钥匙:publishable key 内联在前端产物里公开无妨,因为 RLS 兜底;service_role key 绕过 RLS,只存在部署机的 600 权限文件里,永不进 git。Realtime 和 Edge Functions 我评估过但没用——站里没有实时需求,服务端逻辑已经在 Workers 上,没必要为用而用。」</p>
+    <p class="src">配合追问储备:RLS 假成功(影响 0 行)踩坑、NULL 比较陷阱、updated_at 触发器副作用、新版 key 不走 Bearer 头</p>
+  </div>
+
+  <p>这段话的结构是刻意的:<strong>选型理由 → 具体实现(带术语)→ 安全验证(带实验)→ 边界判断(不用什么)</strong>。四层递进,每一层都能接住追问——追问落点就是本文档的对应章节。</p>
+
+  <div class="callout key">💡 最后提醒:面试官对「真实踩过的坑」的兴趣远大于「背下来的特性」。本文档里有四个真坑(admin 删不掉空 owner 的行、RLS 假成功、PATCH 触发 updated_at、新 key 的 Bearer 头),每个都值得练成 30 秒小故事。</div>
+</section>
+
+<div class="final">
+  <h2>🎓 收尾</h2>
+  <p>Supabase 的作用,用我的站一句话总结:<strong>它让「一个人 + 一个前端仓库」等于「一支配齐了 DBA、后端和安全工程师的团队」</strong>——数据库它托管,API 它生成,身份它认证,权限我只写 policy。</p>
+  <p>理论篇(概念、面试题、一周计划):<a href="https://mingyuyang.com/articles/ai-notes-supabase-interview-guide">Supabase 面试备考指南</a></p>
+</div>
+
+<footer>
+  <p>📅 写于 2026-07-19 · 所有代码原文摘自我的仓库 nuan623-code/my-shared-memories(schema.sql、patches/、src/),探针输出为当日实测。</p>
+  <p>整理方式:第一人称实战讲解;通用原理与官方数据见理论篇,本篇只讲我自己站里的真实实现。</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var toc = document.getElementById('sideToc');
+  var toggle = document.getElementById('tocToggle');
+  toggle.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){
+    if(e.target.closest('a') && window.innerWidth < 1180) toc.classList.remove('open');
+  });
+
+  var pctNum = document.getElementById('pctNum');
+  var pctFill = document.getElementById('pctFill');
+  var topBar = document.getElementById('topProgress');
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? Math.min(100, Math.round(h.scrollTop / max * 100)) : 0;
+    pctNum.textContent = p + '%';
+    pctFill.style.width = p + '%';
+    topBar.style.width = p + '%';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  var links = toc.querySelectorAll('a[href^="#"]');
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var secObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('active'); });
+        var a = map[en.target.id];
+        if(a) a.classList.add('active');
+      }
+    });
+  }, {rootMargin:'-35% 0px -55% 0px'});
+  document.querySelectorAll('section[id]').forEach(function(s){ secObs.observe(s); });
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.figure [data-draw]').forEach(function(p){
+    if(reduced || p.getAttribute('stroke-dasharray')) return;
+    try{
+      var len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+    }catch(e){}
+  });
+  var figObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(!en.isIntersecting) return;
+      var fig = en.target;
+      fig.classList.add('in');
+      var anims = fig.querySelectorAll('[data-anim]');
+      anims.forEach(function(el,i){ el.style.transitionDelay = (0.15 + i*0.14) + 's'; });
+      var draws = fig.querySelectorAll('[data-draw]');
+      draws.forEach(function(p,i){
+        p.style.transitionDelay = (0.3 + i*0.22) + 's';
+        requestAnimationFrame(function(){ p.style.strokeDashoffset = 0; });
+      });
+      figObs.unobserve(fig);
+    });
+  }, {threshold:0.25});
+  document.querySelectorAll('.figure').forEach(function(f){ figObs.observe(f); });
+})();
+</script>
+</body>
+</html>
