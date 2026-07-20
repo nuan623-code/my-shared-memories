@@ -19,9 +19,12 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchTopViewed } from "@/lib/views";
 
 
+// 取全量:曾经的 limit:60 会按时间倒序截断,把最老的公众号文章从首页挤掉
+// (每日简报每天 +1,挤一篇老文)。Supabase 单请求上限 1000,足够用很久;
+// 接近时再做分页。
 const resourcesQO = queryOptions({
   queryKey: ["resources", "home"],
-  queryFn: () => fetchResources({ limit: 60 }),
+  queryFn: () => fetchResources({}),
 });
 
 // 我自己做的小工具。它们是 public/ 下的独立静态页面(projects/、ai-daily/ 等,在 React Router 之外),
