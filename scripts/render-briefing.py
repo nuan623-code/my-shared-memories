@@ -56,6 +56,7 @@ footer a{{color:var(--accent);text-decoration:none}}
 </style>
 </head>
 <body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 14px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18)">← 主页</a>
 <header class="hero"><div class="wrap">
   <span class="date">{cn_date}</span>
   <h1>{title}</h1>
