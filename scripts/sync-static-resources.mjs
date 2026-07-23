@@ -30,7 +30,8 @@ const ADMIN_KEY_FILE = join(homedir(), ".ms-supabase-admin");
 const SCAN = [
   { dir: "ai-notes", prefix: "ai-notes-", category: "ai", subcategory: "notes", tags: ["AI"] },
   { dir: "overseas", prefix: "overseas-", category: "article", subcategory: "industry", tags: ["移动广告"] },
-  { dir: "ai-daily", prefix: "ai-daily-", category: "ai", subcategory: "daily", tags: ["AI 简报"], preferTitleTag: true },
+  { dir: "ai-daily", prefix: "ai-daily-", category: "ai", subcategory: "daily", tags: ["AI 深度学习"], preferTitleTag: true },
+  { dir: "ai-briefing", prefix: "ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI 简报"], preferTitleTag: true },
   { dir: "", prefix: "", category: "ai", subcategory: null, tags: ["AI"] }, // public/ 根
 ];
 

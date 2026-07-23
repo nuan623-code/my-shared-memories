@@ -38,9 +38,15 @@ const TOOLS: { title: string; href: string; desc: string; tags: string[] }[] = [
   },
   {
     title: "AI 每日简报",
+    href: "/ai-briefing/",
+    desc: "每天的 AI 技术情报速览：官方发布、Agent 工程、学术与行业动态，列表即当日头条。",
+    tags: ["AI", "情报", "每日更新"],
+  },
+  {
+    title: "AI 深度学习",
     href: "/ai-daily/",
-    desc: "每天自动精选一个 AI 主题生成深度简报，按日归档。由 Cowork 定时任务生成、本机自动部署。",
-    tags: ["AI", "每日更新", "自动化"],
+    desc: "每天自动精选一个 AI 主题生成深度学习文档，按日归档。由 Cowork 定时任务生成、本机自动部署。",
+    tags: ["AI", "深度学习", "自动化"],
   },
 ];
 
