@@ -80,7 +80,10 @@ def main() -> None:
     if m:
         md = md[m.end():]
 
-    headline_m = re.search(r"\*\*\s*1\.\s*(.+?)\s*\*\*", md)
+    # 头条两种历史格式:新版「**1. 标题**」/ 旧版「1. **标题**」
+    headline_m = re.search(r"\*\*\s*1\.\s*(.+?)\s*\*\*", md) or re.search(
+        r"^\s*1\.\s+\*\*(.+?)\*\*", md, re.M
+    )
     headline = headline_m.group(1).strip() if headline_m else "AI 技术情报简报"
     if len(headline) > 48:
         headline = headline[:47] + "…"
