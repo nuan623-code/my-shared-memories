@@ -30,8 +30,11 @@ const ADMIN_KEY_FILE = join(homedir(), ".ms-supabase-admin");
 const SCAN = [
   { dir: "ai-notes", prefix: "ai-notes-", category: "ai", subcategory: "notes", tags: ["AI"] },
   { dir: "overseas", prefix: "overseas-", category: "article", subcategory: "industry", tags: ["移动广告"] },
-  { dir: "ai-daily", prefix: "ai-daily-", category: "ai", subcategory: "daily", tags: ["AI 深度学习"], preferTitleTag: true },
-  { dir: "ai-briefing", prefix: "ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI 简报"], preferTitleTag: true },
+  { dir: "ai-daily", prefix: "ai-daily-", category: "ai", subcategory: "daily", tags: ["AI 深度学习"], preferTitleTag: true, keyPrefix: "ai-daily" },
+  { dir: "ai-briefing", prefix: "ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI 简报"], preferTitleTag: true, keyPrefix: "ai-briefing" },
+  // 英文版每日内容:与中文版共享 i18n_key(= 目录+日期),供 hreflang 互指与语言切换
+  { dir: "en/ai-daily", prefix: "en-ai-daily-", category: "ai", subcategory: "daily", tags: ["AI deep dive"], preferTitleTag: true, lang: "en", keyPrefix: "ai-daily" },
+  { dir: "en/ai-briefing", prefix: "en-ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI briefing"], preferTitleTag: true, lang: "en", keyPrefix: "ai-briefing" },
   { dir: "", prefix: "", category: "ai", subcategory: null, tags: ["AI"] }, // public/ 根
 ];
 
@@ -114,6 +117,11 @@ for (const s of SCAN) {
       subcategory: o.subcategory ?? s.subcategory,
       tags: o.tags || s.tags,
       url: urlPath,
+      lang: s.lang ?? "zh",
+      // 同一天的中英版本共享 key(= 栏目+日期),前端据此做 hreflang 与语言切换
+      i18n_key: s.keyPrefix && /(\d{4}-\d{2}-\d{2})/.test(base)
+        ? `${s.keyPrefix}-${base.match(/(\d{4}-\d{2}-\d{2})/)[1]}`
+        : null,
     });
   }
 }
