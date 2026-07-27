@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>An afternoon on Supabase: pgvector, a 44× query plan, and two RLS lessons</title>
+<meta name="description" content="Porting an AI pipeline's memory layer to Supabase and pgvector: a 44x query-plan optimization, and why RLS has two gates.">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fdfdfb; color: #1d1d1b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 16.5px; line-height: 1.75; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 90px; }
+  .meta { font-size: 13px; color: #8a8a82; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 14px; }
+  h1 { font-size: 34px; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 10px; font-weight: 800; }
+  .standfirst { font-size: 15px; color: #6b6b66; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #1d1d1b; }
+  h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.015em; margin: 46px 0 14px; }
+  h3 { font-size: 19px; margin: 30px 0 10px; }
+  p { margin: 0 0 16px; }
+  pre { background: #16161a; color: #e6e6e1; border-radius: 8px; padding: 16px 18px; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; margin: 0 0 18px; }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 0.88em; background: #efefe9; padding: 1px 6px; border-radius: 4px; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 0 0 18px; }
+  th { background: #1d1d1b; color: #fdfdfb; text-align: left; padding: 9px 13px; font-size: 13px; }
+  td { border: 1px solid #ddddd4; padding: 9px 13px; vertical-align: top; }
+  ul { margin: 0 0 16px; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+  b { font-weight: 700; }
+  hr { border: 0; border-top: 1px solid #ddddd4; margin: 28px 0; }
+  blockquote { border-left: 3px solid #3ecf8e; margin: 0 0 16px; padding: 4px 16px; color: #55554f; background: #f4f4ee; border-radius: 0 6px 6px 0; }
+  @media (max-width: 640px) { h1 { font-size: 27px; } .wrap { padding: 30px 16px 60px; } }
+</style>
+
+<!-- ms-seo -->
+<meta property="og:title" content="An afternoon on Supabase: pgvector, a 44× query plan, and two RLS lessons">
+<meta property="og:description" content="Porting an AI pipeline&#x27;s memory layer to Supabase and pgvector: a 44x query-plan optimization, and why RLS has two gates.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-notes/supabase-pgvector-afternoon.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-notes/supabase-pgvector-afternoon.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "An afternoon on Supabase: pgvector, a 44× query plan, and two RLS lessons", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-notes/supabase-pgvector-afternoon.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}}</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="wrap">
+<div class="meta">Engineering notes · July 2026 · Mingyu Yang</div>
+<h1>An afternoon on Supabase: pgvector, a 44× query plan, and two RLS lessons</h1>
+<div class="standfirst">Porting my AI briefing pipeline's memory layer onto Supabase and pgvector — with the raw EXPLAIN outputs, one 44&times; speedup, and two row-level-security lessons the docs didn't teach me.</div>
+<p>I run a small daily AI-briefing pipeline on my personal site — a scheduled agent researches one AI topic a day, writes it up, and publishes it. The pipeline had no real memory: retrieval meant grepping files. I wanted a proper memory layer — semantic search over everything the pipeline has ever written — and I wanted it on Postgres.</p>
+<p>There was a second reason. I lead a customer-facing technical team for a living, and the only way I trust myself to talk about a platform is to run it, break it, and fix it myself. Reading docs produces opinions; running the thing produces judgment. So: one afternoon, local Supabase stack, real data, and a promise to write down whatever surprised me.</p>
+<p>It surprised me twice.</p>
+<h2>What I built</h2>
+<p>The whole thing is small on purpose:</p>
+<ul>
+<li><b>Local stack</b> via the Supabase CLI on OrbStack. <code>supabase init &amp;&amp; supabase start</code> — about ten minutes including image pulls, and I had Postgres, auth, storage, a REST API, and a dashboard on localhost.</li>
+<li><b>One migration</b>: a <code>briefings</code> table with a <code>vector(384)</code> column, a <code>match_briefings()</code> SQL function for cosine search, and a row-level-security policy for anonymous reads.</li>
+<li><b>Ingest</b> in Python: 18 real briefings from my pipeline, embedded locally with <code>all-MiniLM-L6-v2</code> — no API keys, embeddings computed on my laptop.</li>
+<li><b>An Edge Function</b> (Deno/TypeScript) that takes a query embedding over HTTP and calls <code>match_briefings</code> via RPC.</li>
+</ul>
+<p>The schema is the only part worth showing:</p>
+<pre>
+create extension if not exists vector;
+
+create table briefings (
+  id           bigint generated always as identity primary key,
+  title        text not null,
+  content      text not null,
+  source_url   text,
+  published_at timestamptz default now(),
+  embedding    vector(384)
+);
+
+create function match_briefings(query_embedding vector(384), match_count int default 5)
+returns table (id bigint, title text, source_url text, similarity float)
+language sql stable as $$
+  select b.id, b.title, b.source_url,
+         1 - (b.embedding &lt;=&gt; query_embedding) as similarity
+  from briefings b
+  where b.embedding is not null
+  order by b.embedding &lt;=&gt; query_embedding
+  limit match_count;
+$$;
+</pre>
+<p>First search, real data, and it just worked: querying "MCP tool design" returned my four MCP-related briefings at the top, correctly ranked. Good. Now for the part I actually came for.</p>
+<h2>The query plan story</h2>
+<p>I ran the first search with <code>EXPLAIN ANALYZE</code> on. The plan:</p>
+<pre>
+Limit -&gt; Sort (top-N heapsort) -&gt; Seq Scan on briefings (rows=18)
+Execution Time: 0.070 ms
+</pre>
+<p>A sequential scan — and that is the <b>correct</b> plan. At 18 rows, walking the whole table costs nothing; an index would be pure overhead. If your reflex is "seq scan = add an index," the planner is smarter than your reflex. This matters in real support conversations: an index recommendation without row counts is a guess wearing a lab coat.</p>
+<p>But 18 rows proves nothing about scale, so I made the problem real: a demo table with <b>20,000 random 384-dimension vectors</b>, no index, nearest-neighbor query.</p>
+<p><b>Before:</b></p>
+<pre>
+Limit  (cost=4590.50..4590.51 rows=5 ...) (actual time=3.472..3.472 rows=5)
+  -&gt;  Sort  (top-N heapsort, Memory: 25kB)
+        Sort Key: ((vec_demo.embedding &lt;=&gt; ...))
+        -&gt;  Seq Scan on vec_demo  (rows=20000) (actual time=0.011..2.977)
+Execution Time: 3.497 ms
+</pre>
+<p>Exactly what it looks like: Postgres computes the distance for all 20,000 rows, then keeps the top 5. There is no index that helps an <code>ORDER BY distance</code> — until you install one designed for it.</p>
+<pre>
+create index on vec_demo using hnsw (embedding vector_cosine_ops);
+-- Time: 625.067 ms
+</pre>
+<p><b>After:</b></p>
+<pre>
+Limit  (cost=582.38..591.21 rows=5 ...) (actual time=0.063..0.066 rows=5)
+  -&gt;  Index Scan using vec_demo_hnsw on vec_demo
+        Order By: (embedding &lt;=&gt; ...)
+Execution Time: 0.079 ms
+</pre>
+<p><b>3.497 ms → 0.079 ms. A 44× speedup</b>, from one index.</p>
+<p>Three honest footnotes, because the headline number hides them:</p>
+<ul>
+<li><b>1.</b> <b>The index wasn't free.</b> 625 ms to build on 20k rows. On a production table with millions of rows, index builds are a scheduled event, not a casual one.</li>
+<li><b>2.</b> <b>HNSW is approximate.</b> You trade a sliver of recall for that 44×. For "find related briefings," ideal. For "find every matching transaction," read the fine print.</li>
+<li><b>3.</b> <b>At 3.5 ms, nobody was suffering yet.</b> The interesting question is never "is it slow today" — it's "what does the curve look like." This query's cost is linear in table size. At 200,000 rows the seq scan is ~35 ms; at 2 million it's a product incident. The plan tells you the future if you read it.</li>
+</ul>
+<h2>What surprised me: RLS has two gates</h2>
+<p>Here's the part I didn't get from the docs.</p>
+<p>My migration had a clean RLS policy:</p>
+<pre>
+alter table briefings enable row level security;
+create policy &quot;public read&quot; on briefings for select to anon using (true);
+</pre>
+<p>Policy says: anonymous users can read everything. So I called my Edge Function (which runs as <code>anon</code>) and got:</p>
+<pre>
+{ &quot;error&quot;: &quot;permission denied for table briefings&quot; }
+</pre>
+<p>Permission denied — with a policy that literally says <code>using (true)</code>. The diagnosis was one command:</p>
+<pre>
+\dp briefings
+  anon=Dxtm/postgres        &lt;- no &quot;r&quot;
+</pre>
+<p>The <code>anon</code> role had never been <b>granted</b> <code>SELECT</code> on the table. And that's the lesson: <b>Postgres has two gates, and RLS is the second one.</b> <code>GRANT</code> decides whether you may touch the table at all. Policies decide which rows you see once you're in. Writing a policy without a grant is opening the inner door while the outer door stays locked.</p>
+<pre>
+grant select on briefings to anon, authenticated;
+</pre>
+<p>Fixed — and baked back into the migration so <code>db reset</code> stays reproducible.</p>
+<p>Then I ran the experiment in reverse: grants in place, but the policy flipped to <code>using (false)</code>. Now the same request returns:</p>
+<pre>
+{ &quot;results&quot;: [] }
+</pre>
+<p>No error. HTTP 200. Just… nothing. And this is the operationally interesting part — <b>the two gates fail with different fingerprints</b>:</p>
+<table>
+<tr><th>Symptom</th><th>Broken gate</th><th>First command</th></tr>
+<tr><td><code>permission denied</code> error</td><td>GRANT (outer gate)</td><td><code>\dp &lt;table&gt;</code></td></tr>
+<tr><td>Empty result, no error</td><td>Policy (inner gate)</td><td><code>select * from pg_policies</code></td></tr>
+<tr><td>service_role works, anon doesn't</td><td>One of the two above</td><td>Compare the same query with both keys</td></tr>
+<tr><td>"But I can see the data in the dashboard!"</td><td>Nothing — Studio runs as <code>postgres</code>, which bypasses RLS</td><td>Stop debugging in the dashboard</td></tr>
+</table>
+<p>That last row deserves a sentence. The dashboard proves your data <b>exists</b>. It proves nothing about whether any API path can reach it — the dashboard walks in through the staff entrance. If I had a euro for every debugging session that starts with "but it's right there in the admin panel," I could fund the index builds.</p>
+<h2>If this were a customer proof-of-value</h2>
+<p>My day job is running technical evaluations and competitive migrations — I led a displacement program in the mobile-measurement world that switched 300+ accounts on a playbook I wrote — so I can't help scoping this like one. If a team were evaluating Supabase against their incumbent backend, I'd insist on three things before anyone writes code:</p>
+<ul>
+<li><b>1.</b> <b>Written success criteria</b> — p95 latency on <i>their</i> real query patterns, auth-flow parity, cost at their scale. Agreed before the PoV starts, so the result is a decision, not a debate.</li>
+<li><b>2.</b> <b>One bounded workload</b> — not the whole app. This memory layer is exactly the right size.</li>
+<li><b>3.</b> <b>A parallel run with a parity gate</b> — old system and new system side by side, and you don't switch until the numbers match. The 44× story above is the kind of evidence that belongs in that report.</li>
+</ul>
+<p>PoVs die of scope drift. The criteria document is the vaccine.</p>
+<h2>What I'd explore next</h2>
+<ul>
+<li>Wire the write path into the live pipeline, so every new briefing embeds on publish.</li>
+<li>Measure HNSW recall properly and play with <code>hnsw.ef_search</code> instead of trusting defaults.</li>
+<li>A text-in query path on the Edge Function (right now the client supplies the embedding; an embeddings API would make it end-to-end).</li>
+<li>Per-user policies when this memory becomes multi-tenant — now that I know where both gates are.</li>
+</ul>
+<p>The whole project — migration, scripts, Edge Function, and the raw <code>EXPLAIN</code> archives from this post — runs locally with <code>supabase start</code>. One afternoon, two genuine surprises, and a query planner that turned out to have better judgment than my reflexes. That's a good trade.</p>
+</div>
+</body>
+</html>
