@@ -15,6 +15,7 @@ import {
 import { fetchResources, isNew, type Resource } from "@/lib/resources";
 import { categories } from "@/lib/data";
 import { SubscribeForm } from "@/components/SubscribeForm";
+import { SUIREAD_APP_STORE_URL } from "@/components/SuiReadPromo";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTopViewed } from "@/lib/views";
 
@@ -29,7 +30,26 @@ const resourcesQO = queryOptions({
 
 // 我自己做的小工具。它们是 public/ 下的独立静态页面(projects/、ai-daily/ 等,在 React Router 之外),
 // 所以用普通 <a href> 而不是 <Link>。以后新增工具往这个数组里加即可。
-const TOOLS: { title: string; href: string; desc: string; tags: string[] }[] = [
+// icon / cta / gaEvent 为可选:随读是上架 App(外链 App Store、有自己的图标),
+// 其余站内工具不传这三项,表现与原来一致。
+const TOOLS: {
+  title: string;
+  href: string;
+  desc: string;
+  tags: string[];
+  icon?: string;
+  cta?: string;
+  gaEvent?: string;
+}[] = [
+  {
+    title: "随读 SuiRead(iOS App)",
+    href: SUIREAD_APP_STORE_URL,
+    desc: "我做的 HTML 阅读器。把本站文章下载成 HTML 导入,就能离线阅读、高亮标注,进度自动记忆。",
+    tags: ["iOS", "阅读器", "App Store"],
+    icon: "/suiread-icon.png",
+    cta: "App Store",
+    gaEvent: "suiread_home_tool_click",
+  },
   {
     title: "公众号 Markdown 排版",
     href: "/projects/wechat-md/",
@@ -349,15 +369,37 @@ function HomePage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {TOOLS.map((t) => (
-                <a key={t.href} href={t.href} target="_blank" rel="noreferrer">
+                <a
+                  key={t.href}
+                  href={t.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => {
+                    if (t.gaEvent) {
+                      (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag?.(
+                        "event",
+                        t.gaEvent,
+                      );
+                    }
+                  }}
+                >
                   <article className="group flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
                     <div>
                       <div className="mb-3 flex items-center justify-between">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 transition group-hover:bg-primary/20">
-                          <Wrench className="h-4 w-4 text-primary" />
-                        </span>
+                        {t.icon ? (
+                          <img
+                            src={t.icon}
+                            alt=""
+                            className="h-9 w-9 rounded-xl border border-border/60"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 transition group-hover:bg-primary/20">
+                            <Wrench className="h-4 w-4 text-primary" />
+                          </span>
+                        )}
                         <span className="inline-flex items-center gap-1 text-xs text-primary opacity-0 transition group-hover:opacity-100">
-                          打开
+                          {t.cta ?? "打开"}
                           <ArrowUpRight className="h-3 w-3" />
                         </span>
                       </div>
