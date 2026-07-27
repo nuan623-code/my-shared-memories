@@ -92,7 +92,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Mingyu's Library" },
       { property: "og:description", content: "Mingyu 想分享的任何东西" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Mingyu's Library" },
+      // 全站默认分享图(绝对 URL;OG 不接受相对路径,也不接受 SVG)
+      { property: "og:image", content: "https://mingyuyang.com/share-card.png" },
+      { property: "og:image:width", content: "1024" },
+      { property: "og:image:height", content: "1024" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:image", content: "https://mingyuyang.com/share-card.png" },
     ],
     links: [
       {

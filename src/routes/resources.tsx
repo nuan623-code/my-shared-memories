@@ -17,7 +17,9 @@ export const Route = createFileRoute("/resources")({
       { name: "description", content: "浏览所有文章、视频、链接、文件与碎片笔记。" },
       { property: "og:title", content: "资源库 — Mingyu's Library" },
       { property: "og:description", content: "浏览所有内容资源" },
+      { property: "og:url", content: "https://mingyuyang.com/resources" },
     ],
+    links: [{ rel: "canonical", href: "https://mingyuyang.com/resources" }],
   }),
   component: ResourcesPage,
   errorComponent: ({ error }) => (

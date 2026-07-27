@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
+import { absUrl, SHARE_IMAGE } from "@/lib/site";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
@@ -26,8 +27,12 @@ export const Route = createFileRoute("/articles/$slug")({
     const a = loaderData?.article;
     const title = `${a?.title ?? "文章"} — Mingyu's Library`;
     const description = (a?.summary || a?.title || "Mingyu 的文章与笔记").slice(0, 200);
-    const url = `/articles/${params.slug}`;
-    const ogImage = `/api/og/articles/${params.slug}`;
+    // OG/canonical 必须绝对 URL;og:image 用静态 PNG(SVG 会被所有社交爬虫忽略)
+    const url = absUrl(`/articles/${params.slug}`);
+    const ogImage = SHARE_IMAGE;
+    // 站内静态 HTML 文档以直链为规范地址(正文在 iframe 里,爬虫按直链索引全文)
+    const canonical =
+      a?.url && a.url.startsWith("/") && a.url.endsWith(".html") ? absUrl(a.url) : url;
     return {
       meta: [
         { title },
@@ -39,8 +44,8 @@ export const Route = createFileRoute("/articles/$slug")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
         { property: "og:image", content: ogImage },
-        { property: "og:image:width", content: "1200" },
-        { property: "og:image:height", content: "630" },
+        { property: "og:image:width", content: "1024" },
+        { property: "og:image:height", content: "1024" },
         { property: "og:image:alt", content: a?.title ?? "Mingyu's Library" },
         { property: "og:site_name", content: "Mingyu's Library" },
         ...(a?.published_at ? [{ property: "article:published_time", content: new Date(a.published_at).toISOString() }] : []),
@@ -52,7 +57,7 @@ export const Route = createFileRoute("/articles/$slug")({
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: ogImage },
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [{ rel: "canonical", href: canonical }],
     };
   },
   component: ArticleDetailPage,

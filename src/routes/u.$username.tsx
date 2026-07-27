@@ -40,7 +40,11 @@ export const Route = createFileRoute("/u/$username")({
     meta: [
       { title: `${params.username} 的主页 — Mingyu's Library` },
       { name: "description", content: `${params.username} 在 Mingyu's Library 发布的内容` },
+      { property: "og:title", content: `${params.username} 的主页 — Mingyu's Library` },
+      { property: "og:description", content: `${params.username} 在 Mingyu's Library 发布的内容` },
+      { property: "og:url", content: `https://mingyuyang.com/u/${encodeURIComponent(params.username)}` },
     ],
+    links: [{ rel: "canonical", href: `https://mingyuyang.com/u/${encodeURIComponent(params.username)}` }],
   }),
   component: PublicProfilePage,
   errorComponent: ({ error }) => <div className="p-8 text-center text-sm text-muted-foreground">{error.message}</div>,

@@ -17,7 +17,9 @@ export const Route = createFileRoute("/about")({
       { name: "description", content: "了解 Mingyu Yang 的背景、经验和兴趣方向。" },
       { property: "og:title", content: "关于 — Mingyu Yang" },
       { property: "og:description", content: "了解 Mingyu Yang 的背景与经验" },
+      { property: "og:url", content: "https://mingyuyang.com/about" },
     ],
+    links: [{ rel: "canonical", href: "https://mingyuyang.com/about" }],
   }),
   component: AboutPage,
 });
