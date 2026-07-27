@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM 幻觉评测与缓解 —— 两把尺子与一套防线 | 深度学习文档 2026-07-25</title>
+<style>
+:root{
+  --bg:#0f1417;--bg2:#131b20;--card:#162027;--card2:#1c2830;
+  --ink:#e6eef2;--ink-dim:#9fb2bd;--ink-faint:#6b8090;
+  --teal:#3fb9c4;--teal-hi:#5fe3ef;--lime:#8fd14f;--amber:#e8b04b;--rose:#e0685c;
+  --line:#26343d;--code-bg:#0b1013;--radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:17px;line-height:1.85;overflow-x:hidden}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--teal),var(--teal-hi));z-index:99}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
+.hero{padding:72px 22px 54px;background:radial-gradient(1100px 460px at 82% -10%,rgba(63,185,196,.16),transparent 60%),radial-gradient(800px 380px at 0% 110%,rgba(143,209,79,.08),transparent 55%),var(--bg2);border-bottom:1px solid var(--line)}
+.hero-inner{max-width:880px;margin:0 auto}
+.kicker{display:inline-block;font-size:13px;letter-spacing:.18em;color:var(--teal-hi);border:1px solid rgba(63,185,196,.4);padding:4px 12px;border-radius:999px;margin-bottom:22px}
+h1.title{font-size:clamp(27px,5.2vw,44px);line-height:1.25;font-weight:800}
+h1.title em{font-style:normal;color:var(--teal-hi)}
+.sub{margin-top:16px;color:var(--ink-dim);font-size:16.5px;max-width:650px}
+.hero-tags{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px}
+.hero-tags span{font-size:13px;color:var(--ink-dim);background:rgba(63,185,196,.08);border:1px solid var(--line);padding:5px 12px;border-radius:8px}
+#toc{position:fixed;top:80px;left:24px;width:210px;z-index:50;background:rgba(19,27,32,.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:var(--radius);padding:16px 8px;max-height:calc(100vh - 140px);overflow-y:auto}
+#toc .toc-title{font-size:12px;letter-spacing:.2em;color:var(--ink-faint);padding:0 12px 8px}
+#toc a{display:block;font-size:13.5px;color:var(--ink-dim);text-decoration:none;padding:6px 12px;border-radius:8px;border-left:2px solid transparent;line-height:1.4}
+#toc a:hover{color:var(--teal-hi);background:rgba(63,185,196,.07)}
+#toc a.on{color:var(--teal-hi);border-left-color:var(--teal);background:rgba(63,185,196,.1)}
+#tocBtn{display:none;position:fixed;bottom:22px;right:20px;z-index:60;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:rgba(19,27,32,.9);backdrop-filter:blur(10px);color:var(--teal-hi);font-size:20px;cursor:pointer}
+@media(max-width:1330px){#toc{display:none;left:auto;right:20px;bottom:82px;top:auto;width:230px}#toc.open{display:block}#tocBtn{display:block}}
+section{margin-top:64px;scroll-margin-top:24px}
+h2{font-size:26px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+h2 .no{font-size:13px;color:var(--teal);border:1px solid rgba(63,185,196,.45);border-radius:6px;padding:1px 8px;letter-spacing:.08em;flex:none}
+h3{font-size:19.5px;font-weight:700;margin:34px 0 10px;color:var(--teal-hi)}
+p{margin:14px 0}
+p.dim,li.dim{color:var(--ink-dim)}
+strong{color:var(--teal-hi);font-weight:700}
+a{color:var(--teal);text-decoration:none;border-bottom:1px dashed rgba(63,185,196,.5)}
+a:hover{color:var(--teal-hi)}
+ul,ol{margin:12px 0 12px 22px}
+li{margin:8px 0}
+.lede{color:var(--ink-dim);font-size:16.5px;border-left:3px solid var(--lime);padding-left:14px;margin:10px 0 22px}
+.def{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin:20px 0}
+.def .d-term{font-weight:800;color:var(--teal-hi);font-size:17px}
+.def .d-plain{margin-top:8px}
+.def .d-formal{margin-top:10px;font-size:15px;color:var(--ink-dim);border-top:1px dashed var(--line);padding-top:10px}
+.callout{border-radius:var(--radius);padding:18px 20px;margin:20px 0;border:1px solid}
+.callout .c-head{font-weight:800;margin-bottom:6px;font-size:15.5px}
+.callout.key{background:rgba(63,185,196,.08);border-color:rgba(63,185,196,.4)}
+.callout.key .c-head{color:var(--teal-hi)}
+.callout.warn{background:rgba(224,104,92,.09);border-color:rgba(224,104,92,.45)}
+.callout.warn .c-head{color:var(--rose)}
+.analogy{background:linear-gradient(135deg,rgba(143,209,79,.09),transparent 70%);border:1px solid rgba(143,209,79,.3);border-radius:var(--radius);padding:18px 20px;margin:20px 0}
+.analogy .c-head{color:var(--lime);font-weight:800;margin-bottom:6px;font-size:15.5px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:center}
+.stat .v{font-size:23px;font-weight:800;color:var(--teal-hi);line-height:1.2}
+.stat .k{font-size:13px;color:var(--ink-dim);margin-top:6px;line-height:1.45}
+.steps{margin:20px 0}
+.step{position:relative;padding:14px 16px 14px 56px;background:var(--card);border:1px solid var(--line);border-radius:12px;margin:10px 0}
+.step .n{position:absolute;left:16px;top:16px;width:26px;height:26px;border-radius:8px;background:rgba(63,185,196,.15);color:var(--teal-hi);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid rgba(63,185,196,.4)}
+.step b{color:var(--teal-hi)}
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:15px;line-height:1.6}
+th{background:var(--card2);color:var(--teal-hi);text-align:left;padding:10px 12px;border:1px solid var(--line);font-size:14px}
+td{padding:10px 12px;border:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl-scroll table{min-width:560px}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;margin:16px 0;font-size:14px;line-height:1.7}
+code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;color:#8fe3d6}
+p code,li code,td code{background:rgba(63,185,196,.1);padding:1px 6px;border-radius:5px;font-size:.88em}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin:24px 0}
+.fig-cap{font-size:13.5px;color:var(--ink-faint);margin-top:12px;text-align:center}
+.figure svg{width:100%;height:auto;display:block}
+footer{margin-top:80px;border-top:1px solid var(--line);padding-top:28px;font-size:14px;color:var(--ink-dim)}
+footer ol{margin-left:20px}
+footer li{margin:6px 0;overflow-wrap:anywhere}
+[data-anim]{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+[data-anim].in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){[data-anim]{opacity:1;transform:none;transition:none}}
+@media(max-width:640px){body{font-size:16px}.hero{padding:52px 18px 40px}section{margin-top:48px}h2{font-size:22px}}
+</style>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 14px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18)">← 主页</a>
+<div id="progress"></div>
+
+<div class="hero"><div class="hero-inner">
+  <div class="kicker">AI DAILY · 深度学习文档 · 2026-07-25</div>
+  <h1 class="title">LLM 幻觉评测与缓解<br>—— <em>两把尺子</em>,和一套能落地的防线</h1>
+  <p class="sub">「幻觉率」这个词几乎每篇模型对比都在用,却是最容易被误读的一块。准确率高不代表幻觉低,会推理的模型反而更爱编。这份文档讲清两种测法的区别,以及生产里怎么真的把幻觉压下去。</p>
+  <div class="hero-tags"><span>📏 Vectara HHEM</span><span>🧭 AA-Omniscience</span><span>🧠 推理税</span><span>🛡️ RAG + 引用契约</span><span>🔬 分层防御</span></div>
+</div></div>
+
+<nav id="toc">
+  <div class="toc-title">目录</div>
+  <a href="#s0">30 秒速览</a>
+  <a href="#s1">幻觉到底是什么</a>
+  <a href="#s2">两把尺子:HHEM 与 Omniscience</a>
+  <a href="#s3">推理税与三个反直觉</a>
+  <a href="#s4">怎么压低:分层防御</a>
+  <a href="#s5">怎么选模型</a>
+  <a href="#s6">常见坑</a>
+  <a href="#s7">学习资源</a>
+</nav>
+<button id="tocBtn" aria-label="目录">☰</button>
+
+<div class="wrap">
+
+<section id="s0" data-anim>
+  <h2><span class="no">00</span>30 秒速览</h2>
+  <p class="lede">先把结论摆出来,后面再逐层解释。</p>
+  <p>「LLM 幻觉」= 模型<strong>自信地说出不真实的内容</strong>。测它有两种彼此独立、经常打架的尺子:<strong>Vectara HHEM</strong> 测「总结时会不会脱离原文瞎编」(考的是「忠于来源」),<strong>AA-Omniscience</strong> 测「不知道答案时会不会承认」(考的是「知不知道自己不知道」)。一个模型可能一把尺子满分、另一把不及格。</p>
+  <p>最反直觉的一条:<strong>会「推理」的模型幻觉更多</strong>——同一模型开启思考模式,幻觉率普遍是基础版的 2–3 倍。因为它想得越多,越容易生成「听起来合理但其实错」的细节。所以总结类、事实类任务应该用基础(非推理)模型。</p>
+  <p>压低幻觉没有银弹,靠<strong>分层防御</strong>:RAG 接地 + 强制引用 + groundedness 判官 + 评测门禁 CI。多层叠加能把幻觉砍掉 71–89%。而最大的杠杆其实是<strong>数据治理</strong>——同一个模型,喂治理过的数据几乎零编造,喂未治理数据 52% 的回答含编造。</p>
+  <div class="stats">
+    <div class="stat"><div class="v">2 把尺子</div><div class="k">HHEM(忠于来源)vs Omniscience(承认无知)</div></div>
+    <div class="stat"><div class="v">2–3×</div><div class="k">推理模式带来的幻觉放大</div></div>
+    <div class="stat"><div class="v">71–89%</div><div class="k">分层防御相比无防护的幻觉削减</div></div>
+    <div class="stat"><div class="v">52% → ≈0</div><div class="k">未治理 vs 治理数据上的编造率</div></div>
+  </div>
+</section>
+
+<section id="s1" data-anim>
+  <h2><span class="no">01</span>幻觉到底是什么,为什么它压不干净</h2>
+  <p class="lede">先搞清「痛点」,才知道后面每种测法和防线在防什么。</p>
+  <p>大语言模型的本质是「预测下一个最可能的词」。它没有一个「事实数据库」去核对,只有从训练语料里学到的统计规律。所以当它不知道答案时,<strong>它不会像人一样说「我不确定」,而是顺着语言的惯性,生成一段读起来最流畅、最像那么回事的话</strong>——哪怕内容是错的。这就是幻觉的根。</p>
+  <div class="analogy">
+    <div class="c-head">🎭 类比:一个从不说「不知道」的博学者</div>
+    <p style="margin:6px 0 0">想象一个读书极多、口才极好的人,但他有个毛病:被问到任何问题都必须张口就答,绝不允许自己说「这个我不清楚」。大部分时候他答得对,可一旦碰到知识盲区,他会用同样自信的语气编一个听起来很专业的答案。幻觉就是模型的这个毛病。「压低幻觉」在很大程度上,就是<strong>教会它在该闭嘴的时候闭嘴</strong>。</p>
+  </div>
+  <p>这也解释了为什么幻觉「压不干净」:让模型更保守(多拒答)会牺牲有用性;让它更博学(多回答)又会增加编造。这是一个<strong>准确率与幻觉率之间的权衡</strong>,不是一个能单向优化到底的 bug。理解这个权衡,是读懂所有幻觉评测的前提。</p>
+</section>
+
+<section id="s2" data-anim>
+  <h2><span class="no">02</span>两把尺子:它们测的根本不是一回事</h2>
+  <p class="lede">这是全文最容易被误读的地方。看懂这两把尺子的区别,你就不会再被「幻觉率」这个词忽悠。</p>
+  <div class="figure">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="两种幻觉评测的区别">
+      <rect x="40" y="40" width="330" height="220" rx="14" fill="#16202700" stroke="#3fb9c4"/>
+      <text x="205" y="72" text-anchor="middle" fill="#5fe3ef" font-size="17" font-weight="bold">Vectara HHEM</text>
+      <text x="205" y="96" text-anchor="middle" fill="#9fb2bd" font-size="13">问:总结时忠于原文吗?</text>
+      <rect x="70" y="116" width="270" height="42" rx="8" fill="#1c2830" stroke="#26343d"/>
+      <text x="205" y="142" text-anchor="middle" fill="#e6eef2" font-size="13">给一篇文档 → 让模型总结</text>
+      <text x="205" y="182" text-anchor="middle" fill="#9fb2bd" font-size="12.5">数编造了多少原文没有的事实</text>
+      <text x="205" y="206" text-anchor="middle" fill="#8fd14f" font-size="13">越低越好 · &lt;5% 优秀 · &gt;10% 危险</text>
+      <text x="205" y="236" text-anchor="middle" fill="#6b8090" font-size="11.5">7700+ 篇法律/医疗/金融文档</text>
+
+      <rect x="390" y="40" width="330" height="220" rx="14" fill="#16202700" stroke="#e8b04b"/>
+      <text x="555" y="72" text-anchor="middle" fill="#e8b04b" font-size="17" font-weight="bold">AA-Omniscience</text>
+      <text x="555" y="96" text-anchor="middle" fill="#9fb2bd" font-size="13">问:不知道时会承认吗?</text>
+      <rect x="420" y="116" width="270" height="42" rx="8" fill="#1c2830" stroke="#26343d"/>
+      <text x="555" y="142" text-anchor="middle" fill="#e6eef2" font-size="13">6000 道知识题 → 看它答/拒</text>
+      <text x="555" y="182" text-anchor="middle" fill="#9fb2bd" font-size="12.5">奖对、罚错、拒答不罚</text>
+      <text x="555" y="206" text-anchor="middle" fill="#8fd14f" font-size="13">Index 越高越好 · &gt;25 优秀</text>
+      <text x="555" y="236" text-anchor="middle" fill="#6b8090" font-size="11.5">42 主题 × 6 领域</text>
+    </svg>
+    <div class="fig-cap">两把尺子测的是两种不同的失败:HHEM 防「脱离给定材料瞎编」,Omniscience 防「碰到知识盲区硬答」。(整理自 CodingFleet 幻觉排名、Artificial Analysis 官网)</div>
+  </div>
+  <div class="def">
+    <div class="d-term">Vectara HHEM(Hughes Hallucination Evaluation Model)</div>
+    <div class="d-plain">给模型一篇文档、让它总结,再用一个专门的判别模型检查:总结里有没有原文根本没说的内容。它测的是<strong>「接地性」</strong>——你手里明明有材料,还编不编。适合评估 RAG、总结、文档问答这类「有给定上下文」的场景。</div>
+    <div class="d-formal">注意陷阱:模型可以靠「拒绝总结」来刷低分,所以看 HHEM 必须同时看「回答率(answer rate)」是否 ≥95%。(来源:CodingFleet)</div>
+  </div>
+  <div class="def">
+    <div class="d-term">AA-Omniscience Index(Artificial Analysis)</div>
+    <div class="d-plain">6000 道跨领域知识题,算一个 -100 到 100 的分数:<strong>答对加分、答错(幻觉)扣分、拒答不扣分</strong>。0 分代表「答对的和答错的一样多」。它测的是<strong>「校准度」</strong>——模型知不知道自己的知识边界在哪。</div>
+    <div class="d-formal">官方给的幻觉率定义:incorrect / (incorrect + partial + not attempted),即「在所有非正确回答里,有多少是自信答错而非老实拒答」。论文 arXiv:2511.13029;截至评测,仅三个模型 Index 为正,可见前沿模型的事实校准普遍偏弱。</div>
+  </div>
+  <div class="callout key">
+    <div class="c-head">🔑 一个把两把尺子说清楚的例子</div>
+    <p style="margin:6px 0 0">Claude Opus 4.7:Vectara 12.0%(偏高,总结时爱编)但 AA-Omniscience Index 26.2(优秀,很会说「我不确定」)。同一个模型,一把尺子差、一把尺子好——因为「总结时忠不忠于材料」和「知不知道自己不知道」是两种能力。<strong>选模型要按任务选尺子</strong>:做 RAG/总结看 HHEM,做开放知识问答看 Omniscience。</p>
+  </div>
+</section>
+
+<section id="s3" data-anim>
+  <h2><span class="no">03</span>推理税:越「聪明」的模型越爱编</h2>
+  <p class="lede">数据里最反直觉的一条,也是最实用的一条。</p>
+  <p>直觉上你会以为:模型越强、越会「思考」,答案越可靠。数据说反了。同一个模型,开启<strong>推理模式(spend 更多 token 想问题)后,幻觉率普遍是基础版的 2–3 倍</strong>。</p>
+  <div class="tbl-scroll"><table>
+    <tr><th>模型对</th><th>基础版幻觉</th><th>推理模式</th><th>放大</th></tr>
+    <tr><td>GPT-5.4 → GPT-5(高推理)</td><td>~7%</td><td>&gt;10%</td><td>~1.5×</td></tr>
+    <tr><td>DeepSeek V3.2 → R1</td><td>5.3%</td><td>11.3%</td><td>2.1×</td></tr>
+    <tr><td>Grok 3 → Grok 4 Fast(推理)</td><td>5.8%</td><td>20.2%</td><td>3.5×</td></tr>
+  </table></div>
+  <p class="dim">来源:CodingFleet 汇总(Vectara HHEM 口径)。</p>
+  <p>为什么?主流解释是「想太多会跑偏」:推理模型生成一长串内部思考链,链条越长,越容易一步步偏离原始材料,给「编造听起来合理的细节」创造机会。落到实践就是一条明确的规则:</p>
+  <div class="callout warn">
+    <div class="c-head">⚠️ 实用规则</div>
+    <p style="margin:6px 0 0"><strong>总结、事实接地类任务用基础(非推理)模型</strong>;把推理模式留给数学、编码、逻辑题这类「编造风险本来就低、且需要多步推演」的任务。别因为一个模型「更贵、更聪明」就默认它更可信。</p>
+  </div>
+  <h3>另外两个反直觉</h3>
+  <ul>
+    <li><strong>能力强的模型里,越小的常常越诚实。</strong>GPT-5.4 Mini(5.5%)在 Vectara 上大幅优于 GPT-5.5(9.3%)和 Opus 4.7(12.0%)。但别外推到极小模型——GPT-5.4 Nano 只有 3.1%,是因为它<strong>根本干不了复杂任务</strong>,不是更诚实。低幻觉 ≠ 好模型。</li>
+    <li><strong>同一模型换供应商,幻觉率能差 20%。</strong>2026 年的新现象:量化、system prompt、推理配置在不同 provider(OpenRouter / DeepInfra / Together)上不一样,直接影响接地性。做可靠流水线要按「具体的 provider 端点」跑基准,不能只看模型卡。</li>
+  </ul>
+  <div class="callout key">
+    <div class="c-head">🧭 Fable 5 改写了 Claude 的「诚实剧本」</div>
+    <p style="margin:6px 0 0">过去 Anthropic 旗舰走「中等准确 + 低幻觉」路线(Claude 4.1 Opus 甚至近零幻觉,靠大量拒答)。<strong>Fable 5 第一次把「准确」放在「谨慎拒答」之上</strong>:准确率 61%(超过 GPT-5.5 的 57%)登顶 AA-Omniscience(Index 40),但代价是幻觉率高于 Opus 4.8(35.9%)——AA 明确注明其高分「由领先的准确率、而非低幻觉驱动」。实践含义:<strong>Fable 5 是第一个「你应该去核对它输出」而不是「信任它校准」的 Claude 模型</strong>。无人值守、错了要赔钱的 Agent,Opus 4.8 反而更稳。</p>
+  </div>
+</section>
+
+<section id="s4" data-anim>
+  <h2><span class="no">04</span>怎么压低:按失败模式分层设防</h2>
+  <p class="lede">没有单一开关能关掉幻觉。生产里的做法是「按每种失败模式各设一道防线」,叠起来用。</p>
+  <div class="figure">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="幻觉分层防御流水线">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3fb9c4"/></marker></defs>
+      <g font-size="13" text-anchor="middle">
+        <rect x="270" y="20" width="220" height="44" rx="10" fill="#1c2830" stroke="#26343d"/>
+        <text x="380" y="47" fill="#9fb2bd">用户提问</text>
+        <path d="M380 64 L380 92" stroke="#3fb9c4" stroke-width="2" marker-end="url(#a2)"/>
+        <rect x="250" y="94" width="260" height="52" rx="10" fill="#16202700" stroke="#3fb9c4"/>
+        <text x="380" y="116" fill="#5fe3ef" font-weight="bold">① 检索接地(RAG)</text>
+        <text x="380" y="135" fill="#9fb2bd" font-size="11.5">先从可信语料查,再让模型答</text>
+        <path d="M380 146 L380 172" stroke="#3fb9c4" stroke-width="2" marker-end="url(#a2)"/>
+        <rect x="250" y="174" width="260" height="52" rx="10" fill="#16202700" stroke="#3fb9c4"/>
+        <text x="380" y="196" fill="#5fe3ef" font-weight="bold">② 生成时强制引用</text>
+        <text x="380" y="215" fill="#9fb2bd" font-size="11.5">要求逐句引用检索到的片段</text>
+        <path d="M380 226 L380 252" stroke="#3fb9c4" stroke-width="2" marker-end="url(#a2)"/>
+        <rect x="250" y="254" width="260" height="52" rx="10" fill="#16202700" stroke="#3fb9c4"/>
+        <text x="380" y="276" fill="#5fe3ef" font-weight="bold">③ groundedness 判官</text>
+        <text x="380" y="295" fill="#9fb2bd" font-size="11.5">第二个模型逐条核对是否有据</text>
+        <rect x="545" y="94" width="195" height="212" rx="10" fill="#131b20" stroke="#26343d"/>
+        <text x="642" y="120" fill="#e8b04b" font-weight="bold" font-size="13">贯穿全程</text>
+        <text x="642" y="148" fill="#9fb2bd" font-size="11.5">④ 评测门禁 CI</text>
+        <text x="642" y="168" fill="#6b8090" font-size="10.5">上线前用 eval 卡关</text>
+        <text x="642" y="196" fill="#9fb2bd" font-size="11.5">⑤ 线上实时监控</text>
+        <text x="642" y="216" fill="#6b8090" font-size="10.5">错误聚类、回流改进</text>
+        <text x="642" y="244" fill="#9fb2bd" font-size="11.5">⓪ 数据治理</text>
+        <text x="642" y="264" fill="#6b8090" font-size="10.5">最大杠杆:喂干净数据</text>
+        <text x="642" y="290" fill="#8fd14f" font-size="10.5">叠加后砍 71–89%</text>
+      </g>
+    </svg>
+    <div class="fig-cap">分层防御流水线。每一层针对一种失败模式,组合起来把大多数企业系统压到人类基线错误率以下。(整理自 futureagi、atlan、LayerLens 等 2026 实践文章)</div>
+  </div>
+  <h3>五道防线,逐一说</h3>
+  <div class="steps">
+    <div class="step"><span class="n">0</span><b>数据治理(最大杠杆)。</b>研究显示:同一个模型,在未治理数据上 52% 的回答含编造,在治理过的数据上几乎为零。结构化、清洗、分类过的 RAG 源,能让幻觉率比非结构化源低约 87%。先把数据弄干净,比换模型有用得多。</div>
+    <div class="step"><span class="n">1</span><b>RAG 接地(主力手段)。</b>任何「已知语料上的事实问题」都先检索、后生成。收紧的 RAG 流水线能把无依据断言砍掉一半——但前提是检索到的上下文本身准确、及时、分类清楚,否则「接地」到错的材料上反而更糟。</div>
+    <div class="step"><span class="n">2</span><b>生成时强制引用契约。</b>高风险场景要求模型「引用/照抄检索到的片段」,把「有没有出处」变成可检查的硬性输出格式。没出处的话不许说。</div>
+    <div class="step"><span class="n">3</span><b>groundedness / faithfulness 判官。</b>对 RAG 输出跑一个「忠实度判官」(通常是第二个模型),做 claim-level 的蕴含打分——逐条判断每个论断是否被检索材料支撑。</div>
+    <div class="step"><span class="n">4</span><b>评测门禁 + 线上监控。</b>上线前用 eval 卡 CI(不达标不给发);上线后对错误做聚类、回流成新的评测用例。把幻觉当成一个需要持续测量的指标,而不是一次性调好的参数。</div>
+  </div>
+  <div class="callout key">
+    <div class="c-head">🔑 效果量级</div>
+    <p style="margin:6px 0 0">system prompt + RAG 接地 + 实时监控三层叠加,相比无防护部署,幻觉率下降 <strong>71–89%</strong>;结构良好的 RAG 源相比非结构化源,幻觉再降约 <strong>87%</strong>。组合防御能让多数企业系统降到人类基线错误率以下。(来源:futureagi、多篇 2026 实践汇总)</p>
+  </div>
+</section>
+
+<section id="s5" data-anim>
+  <h2><span class="no">05</span>怎么按任务选模型</h2>
+  <p class="lede">把前面的尺子和防线,收敛成一张「该用谁」的判断表。</p>
+  <div class="tbl-scroll"><table>
+    <tr><th>你的任务</th><th>优先看的尺子</th><th>倾向选择</th></tr>
+    <tr><td>高保真总结 / 文档问答</td><td>Vectara HHEM(越低越好)</td><td>基础(非推理)模型;GPT-5.4 Mini 这类总结诚实度高的</td></tr>
+    <tr><td>开放知识问答</td><td>AA-Omniscience Index(越高越好)</td><td>校准好、敢说「不知道」的,如 Gemini 3.1 Pro、Opus 4.8</td></tr>
+    <tr><td>无人值守 Agent(错了要赔钱)</td><td>幻觉率(越低越好)</td><td>Opus 4.8 式「谨慎拒答」优于 Fable 5 式「高准确高幻觉」</td></tr>
+    <tr><td>复杂研究/分析(你会核对输出)</td><td>准确率 + 知识广度</td><td>Fable 5 知识最广,但务必自己 verify</td></tr>
+    <tr><td>数学 / 编码 / 逻辑</td><td>——(幻觉风险本就低)</td><td>放心开推理模式</td></tr>
+  </table></div>
+  <p class="dim">一句话总结这张表:<strong>按任务选模型,不按品牌选</strong>。同一个「最强模型」在总结上可能不如一个小模型可靠。</p>
+</section>
+
+<section id="s6" data-anim>
+  <h2><span class="no">06</span>常见坑</h2>
+  <ul>
+    <li class="dim"><strong>把「准确率高」当「幻觉低」。</strong>Fable 5 准确率第一,幻觉率却高于 Opus 4.8。两个指标要分开看。</li>
+    <li class="dim"><strong>只看一把尺子。</strong>只看 HHEM 会漏掉「知识盲区硬答」,只看 Omniscience 会漏掉「总结脱离原文」。高风险场景两个都要看。</li>
+    <li class="dim"><strong>对总结类任务开推理模式。</strong>2–3× 幻觉放大,得不偿失。</li>
+    <li class="dim"><strong>被小模型的低幻觉迷惑。</strong>GPT-5.4 Nano 3.1% 看着漂亮,但它几乎不会编码——低幻觉是能力有限的副产品。</li>
+    <li class="dim"><strong>忽略回答率。</strong>模型可以靠「多拒答」刷低 HHEM;看幻觉率必须同时确认 answer rate ≥95%。</li>
+    <li class="dim"><strong>只信模型卡、不测 provider 端点。</strong>同模型跨供应商幻觉能差 20%,可靠流水线要按实际端点基准。</li>
+  </ul>
+</section>
+
+<section id="s7" data-anim>
+  <h2><span class="no">07</span>学习资源清单</h2>
+  <ul>
+    <li><strong>AA-Omniscience 官方(基准、榜单、方法学)</strong>:<a href="https://artificialanalysis.ai/evaluations/omniscience">artificialanalysis.ai/evaluations/omniscience</a>;论文 <a href="https://arxiv.org/abs/2511.13029">arXiv:2511.13029</a></li>
+    <li><strong>Vectara HHEM 幻觉排行榜(GitHub)</strong>:github.com/vectara/hallucination-leaderboard</li>
+    <li><strong>2026 幻觉率综合排名(两把尺子对照 + 推理税数据)</strong>:<a href="https://codingfleet.com/blog/ai-model-hallucination-rates-2026/">codingfleet.com/blog/ai-model-hallucination-rates-2026</a></li>
+    <li><strong>生产环境降幻觉 7 策略</strong>:futureagi.com/blog(RAG 接地、不确定性估计、评测等)</li>
+    <li><strong>LLM 幻觉:成因与缓解</strong>:atlan.com/know/llm-hallucinations</li>
+    <li><strong>生产环境幻觉检测</strong>:layerlens.ai/blog/llm-hallucination-detection-in-production</li>
+  </ul>
+  <p class="dim">五维覆盖:「是什么/两种测法/为何反直觉/怎么缓解/怎么选」均有多来源支撑;相对薄弱的是<strong>各家最新模型的精确幻觉数值</strong>——2026 年 4 月后发布的多个模型(Opus 5、Grok 4.3、Qwen 3.7 Max 等)Vectara 尚未独立评测,文中数值以标注日期为准。</p>
+</section>
+
+<footer>
+  <p><strong>调研时间:2026-07-25</strong> · 本文所有关键数字均来自当日实际抓取的来源;榜单为时点快照,会随模型更新变动,请以官方最新榜单为准。</p>
+  <p style="margin-top:10px">来源清单:</p>
+  <ol>
+    <li>AA-Omniscience: Knowledge and Hallucination Benchmark(Artificial Analysis 官方 + 论文 arXiv:2511.13029)— https://artificialanalysis.ai/evaluations/omniscience</li>
+    <li>AI Model Hallucination Rates 2026(CodingFleet,2026-05-29,含 Fable 5/Opus 4.8 更新)— https://codingfleet.com/blog/ai-model-hallucination-rates-2026/</li>
+    <li>How to Reduce LLM Hallucinations in 2026(futureagi.com)— 分层防御与 7 策略</li>
+    <li>LLM Hallucinations: Why They Happen and How to Reduce Them(atlan.com)</li>
+    <li>LLM Hallucination Detection in Production(LayerLens)</li>
+    <li>Vectara HHEM Hallucination Leaderboard(GitHub,更新至 2026-05-11)</li>
+  </ol>
+</footer>
+
+</div>
+<script>
+(function(){
+  var bar=document.getElementById('progress');
+  function onScroll(){var h=document.documentElement;bar.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'}
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var toc=document.getElementById('toc'),btn=document.getElementById('tocBtn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open')});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A'&&window.innerWidth<1330)toc.classList.remove('open')});
+  var links=[].slice.call(toc.querySelectorAll('a')),secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))});
+  function spy(){var i=secs.length-1;while(i>0&&secs[i].getBoundingClientRect().top>140)i--;links.forEach(function(a,j){a.classList.toggle('on',j===i)})}
+  window.addEventListener('scroll',spy,{passive:true});spy();
+  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.08});document.querySelectorAll('[data-anim]').forEach(function(el){io.observe(el)})}else{document.querySelectorAll('[data-anim]').forEach(function(el){el.classList.add('in')})}
+})();
+</script>
+</body>
+</html>
