@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 评测与 Benchmark:如何科学判断一个 Agent 好不好</title>
+<style>
+  :root{
+    --bg:#f0f6ff; --hero:#0b3a82; --hero2:#12539e; --accent:#1f7aec;
+    --accent-soft:#e4f0ff; --ink:#16263d; --ink-soft:#42566f; --line:#d6e4f7;
+    --card:#ffffff; --warn:#fff6e6; --warn-line:#f2c66b; --key:#e9f7ee; --key-line:#8ed6a6;
+    --quote:#f3f0ff; --quote-line:#b9a9ee; --code:#0f2140;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.88;-webkit-font-smoothing:antialiased}
+  .progress{position:fixed;top:0;left:0;height:4px;width:0;background:linear-gradient(90deg,#1f7aec,#5aa8ff);z-index:999}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;gap:34px}
+  /* TOC */
+  .toc{position:sticky;top:26px;align-self:flex-start;width:236px;flex:0 0 236px;
+    max-height:calc(100vh - 52px);overflow:auto;padding:18px 16px;border-radius:16px;
+    background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid var(--line);
+    box-shadow:0 8px 26px rgba(20,60,120,.08);font-size:14px}
+  .toc h4{margin:0 0 10px;font-size:13px;letter-spacing:.06em;color:var(--ink-soft);text-transform:uppercase}
+  .toc a{display:block;padding:6px 10px;margin:2px 0;border-radius:8px;color:var(--ink-soft);text-decoration:none;transition:.2s}
+  .toc a:hover{background:var(--accent-soft);color:var(--hero)}
+  .toc a.active{background:var(--accent);color:#fff;font-weight:600}
+  .main{flex:1 1 auto;min-width:0;padding-bottom:80px}
+  /* hero */
+  .hero{background:linear-gradient(135deg,var(--hero),var(--hero2));color:#fff;border-radius:22px;
+    padding:44px 40px;margin:26px 0 30px;box-shadow:0 16px 40px rgba(11,58,130,.28)}
+  .hero .tag{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+    padding:4px 12px;border-radius:20px;font-size:13px;margin-bottom:14px}
+  .hero h1{margin:0 0 12px;font-size:30px;line-height:1.35}
+  .hero p{margin:0;color:#d5e5ff;font-size:16px}
+  h2{font-size:23px;margin:46px 0 14px;padding-left:14px;border-left:5px solid var(--accent);color:var(--hero)}
+  h3{font-size:19px;margin:28px 0 10px;color:var(--hero2)}
+  p{margin:12px 0}
+  section{scroll-margin-top:20px}
+  a.ref{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent)}
+  a.ref:hover{background:var(--accent-soft)}
+  .lead{font-size:18px;color:var(--ink-soft)}
+  /* cards */
+  .def{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0;box-shadow:0 4px 14px rgba(20,60,120,.05)}
+  .def .t{font-weight:700;color:var(--hero);margin-bottom:6px}
+  .callout{border-radius:12px;padding:14px 18px;margin:18px 0;border-left:5px solid}
+  .callout.key{background:var(--key);border-color:var(--key-line)}
+  .callout.warn{background:var(--warn);border-color:var(--warn-line)}
+  .callout.quote{background:var(--quote);border-color:var(--quote-line);font-style:italic}
+  .callout .lbl{font-weight:700;display:block;margin-bottom:4px}
+  .steps{counter-reset:s;margin:18px 0;padding:0;list-style:none}
+  .steps li{position:relative;padding:12px 16px 12px 52px;margin:10px 0;background:var(--card);
+    border:1px solid var(--line);border-radius:12px}
+  .steps li::before{counter-increment:s;content:counter(s);position:absolute;left:14px;top:12px;
+    width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;
+    display:flex;align-items:center;justify-content:center;font-size:14px}
+  table{width:100%;border-collapse:collapse;margin:18px 0;background:var(--card);border-radius:12px;overflow:hidden;font-size:15px}
+  th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--hero);color:#fff;font-weight:600}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#f7fbff}
+  .figure{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:24px 0;text-align:center;box-shadow:0 6px 18px rgba(20,60,120,.06)}
+  .figure svg{max-width:100%;height:auto}
+  .fig-cap{font-size:14px;color:var(--ink-soft);margin-top:12px}
+  code{background:#e8f0fb;padding:2px 6px;border-radius:5px;font-size:14px;color:#0b3a82;font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);color:#e6eefc;padding:16px 18px;border-radius:12px;overflow:auto;font-size:14px;line-height:1.6}
+  pre code{background:none;color:inherit;padding:0}
+  .glossary{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 20px;margin:18px 0}
+  .glossary dt{font-weight:700;color:var(--hero2);margin-top:12px}
+  .glossary dd{margin:4px 0 12px;color:var(--ink-soft)}
+  .stats{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0}
+  .stat{flex:1 1 150px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+  .stat .n{font-size:26px;font-weight:800;color:var(--accent)}
+  .stat .l{font-size:13px;color:var(--ink-soft);margin-top:4px}
+  .analogy{background:linear-gradient(135deg,#fef6ff,#f3f0ff);border:1px solid #e2d6f5;border-radius:14px;padding:16px 20px;margin:18px 0}
+  .analogy .t{font-weight:700;color:#7a4fca;margin-bottom:4px}
+  footer{margin-top:60px;padding:26px;background:var(--card);border:1px solid var(--line);border-radius:16px;font-size:14px;color:var(--ink-soft)}
+  footer h3{margin-top:0}
+  footer ol{padding-left:20px}
+  footer li{margin:6px 0;word-break:break-all}
+  .menu-btn{display:none}
+  @media(max-width:900px){
+    .toc{display:none}
+    .menu-btn{display:block;position:fixed;right:16px;bottom:16px;z-index:50;background:var(--accent);color:#fff;
+      border:none;width:52px;height:52px;border-radius:50%;font-size:22px;box-shadow:0 6px 18px rgba(31,122,236,.4)}
+    .toc.open{display:block;position:fixed;inset:0 0 0 auto;width:80%;max-width:300px;z-index:60;border-radius:0;max-height:100vh}
+    .wrap{padding:0 16px}
+    .hero{padding:30px 22px}
+    .hero h1{font-size:23px}
+    body{font-size:16px}
+    h2{font-size:20px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  [data-anim]{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+  [data-anim].show{opacity:1;transform:none}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="← 主页 ☰ 目录 0 · 30 秒速览 1 · 为什么评测这么难 2 · 到底在评什么 3 · 轨迹评估:核心思路 4 · 六个关键指标 5 · LLM-as-Judge 怎么用 6 · 主流 Benchmark 速查…">
+<meta property="og:title" content="AI Agent 评测与 Benchmark:如何科学判断一个 Agent 好不好">
+<meta property="og:description" content="← 主页 ☰ 目录 0 · 30 秒速览 1 · 为什么评测这么难 2 · 到底在评什么 3 · 轨迹评估:核心思路 4 · 六个关键指标 5 · LLM-as-Judge 怎么用 6 · 主流 Benchmark 速查…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-07-13-agent-evals-benchmarks.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-07-13-agent-evals-benchmarks.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "AI Agent 评测与 Benchmark:如何科学判断一个 Agent 好不好", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-07-13-agent-evals-benchmarks.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-13"}</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="progress" id="prog"></div>
+<button class="menu-btn" onclick="document.getElementById('toc').classList.toggle('open')">☰</button>
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <h4>目录</h4>
+    <a href="#intro">0 · 30 秒速览</a>
+    <a href="#why">1 · 为什么评测这么难</a>
+    <a href="#what">2 · 到底在评什么</a>
+    <a href="#trajectory">3 · 轨迹评估:核心思路</a>
+    <a href="#metrics">4 · 六个关键指标</a>
+    <a href="#judge">5 · LLM-as-Judge 怎么用</a>
+    <a href="#bench">6 · 主流 Benchmark 速查</a>
+    <a href="#tools">7 · 评测工具矩阵</a>
+    <a href="#pitfalls">8 · 常见坑</a>
+    <a href="#howto">9 · 落地七步法</a>
+    <a href="#resource">10 · 学习资源</a>
+  </nav>
+
+  <main class="main">
+    <div class="hero" data-anim>
+      <span class="tag">深度学习 · 2026-07-13</span>
+      <h1>AI Agent 评测与 Benchmark<br>如何科学判断一个 Agent 好不好</h1>
+      <p>从「只看答对没答对」到「评一整条行动轨迹」——2026 年 Agent 评测方法论正在快速定型。这份文档讲清:是什么、怎么评、用什么工具、有哪些坑。</p>
+    </div>
+
+    <section id="intro">
+      <h2>0 · 30 秒速览</h2>
+      <p class="lead">一句话:<strong>Agent 评测,是给一个「会自己调工具、分多步干活」的 AI 系统打分——难点在于它可能「答对了但路走歪了」,所以不能只看最终答案,要看它一步步是怎么做的。</strong></p>
+      <p>传统模型评测像判一道选择题:给个输入,看输出对不对。但 Agent 不是一次问答——它会读任务、调工具、看结果、再决定下一步,循环往复直到完成。这就带来一个新问题:一个 Agent 可能<em>最后蒙对了答案,中间却绕了十步、调错三次工具、烧了十倍的钱</em>。只盯着最终答案,你根本发现不了这些隐患,而它们上线后会变成延迟高、成本爆、偶发翻车。</p>
+      <div class="figure" data-anim>
+        <svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="传统评测只看输入输出,Agent 评测要看中间的整条轨迹">
+          <rect x="20" y="30" width="120" height="50" rx="10" fill="#e4f0ff" stroke="#1f7aec"/>
+          <text x="80" y="60" text-anchor="middle" font-size="14" fill="#0b3a82">用户任务</text>
+          <!-- traditional -->
+          <text x="80" y="105" text-anchor="middle" font-size="12" fill="#7a8aa0">① 传统模型评测</text>
+          <line x1="140" y1="55" x2="560" y2="55" stroke="#b9c8de" stroke-width="2" stroke-dasharray="6 5"/>
+          <rect x="560" y="30" width="140" height="50" rx="10" fill="#e9f7ee" stroke="#3aa564"/>
+          <text x="630" y="60" text-anchor="middle" font-size="14" fill="#1c6b3d">只看最终答案</text>
+          <!-- agent trajectory -->
+          <text x="80" y="150" text-anchor="middle" font-size="12" fill="#7a8aa0">② Agent 轨迹评测</text>
+          <g font-size="12" fill="#0b3a82">
+            <rect x="150" y="150" width="90" height="38" rx="8" fill="#fff" stroke="#1f7aec"/><text x="195" y="174" text-anchor="middle">规划</text>
+            <rect x="260" y="150" width="90" height="38" rx="8" fill="#fff" stroke="#1f7aec"/><text x="305" y="174" text-anchor="middle">调工具</text>
+            <rect x="370" y="150" width="90" height="38" rx="8" fill="#fff" stroke="#1f7aec"/><text x="415" y="174" text-anchor="middle">看结果</text>
+            <rect x="480" y="150" width="90" height="38" rx="8" fill="#fff" stroke="#1f7aec"/><text x="525" y="174" text-anchor="middle">再决策</text>
+          </g>
+          <path d="M240 169 h20 M350 169 h20 M460 169 h20" stroke="#1f7aec" stroke-width="2" marker-end="url(#a)"/>
+          <path d="M525 150 q40 -40 5 -70" fill="none" stroke="#9db4d4" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#a)"/>
+          <rect x="590" y="150" width="110" height="38" rx="8" fill="#e9f7ee" stroke="#3aa564"/><text x="645" y="174" text-anchor="middle" font-size="12" fill="#1c6b3d">最终答案</text>
+          <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#1f7aec"/></marker></defs>
+        </svg>
+        <div class="fig-cap">图:传统评测只关心「输入→最终输出」的两端;Agent 评测要把中间「规划→调工具→看结果→再决策」的整条轨迹也纳入打分。</div>
+      </div>
+      <div class="callout key"><span class="lbl">🔑 记住这一句</span>Agent 评测 = 结果对不对(任务完成度)+ 过程好不好(轨迹质量)。2026 年的共识是:两者都要评,且过程往往比你想的更重要。</div>
+    </section>
+
+    <section id="why">
+      <h2>1 · 为什么 Agent 评测这么难</h2>
+      <p>先说清楚痛点,你才知道后面那些方法是来解决什么的。评一个 Agent 难,主要难在三点:</p>
+      <div class="def"><div class="t">难点一:路径不唯一,答案也不唯一</div>同一个任务,Agent A 用 3 步搞定,Agent B 绕了 12 步也搞定。两者「答对了」,但工程价值天差地别。而且很多任务(写代码、回邮件)根本没有标准答案,没法用「等于参考答案」来判分。</div>
+      <div class="def"><div class="t">难点二:会「答对但做错」</div>Confident AI 等实践者反复强调:一个 Agent 可以<strong>把每个工具都调用成功,却依然没完成用户真正的任务</strong>;传统的精确匹配(exact-match)指标恰恰抓不到这类失败。</div>
+      <div class="def"><div class="t">难点三:非确定性 + 多步放大</div>大模型本身有随机性,Agent 又把它放进「多步循环」里——早期一个小的判断偏差,会在后面被层层放大。今天一条 arXiv 论文《When Agents Do Not Stop》(7 月 2 日)就专门研究了 Agent「停不下来、陷入无限循环」这类失败模式(<a class="ref" href="https://arxiv.org/abs/2607.01641v1" target="_blank">arXiv 2607.01641</a>)。</div>
+      <div class="analogy"><div class="t">🧭 打个比方</div>评一个只回答问题的模型,像给学生的<em>考卷</em>打分——看答案对不对就行。评一个 Agent,更像给一个<em>实习生的一天</em>打绩效:他最后是把活干完了,但你还得看他中间有没有反复返工、有没有乱调资源、有没有卡在某个环节出不来。只看结果,你会留下一个「效率极差但偶尔能成」的员工。</div>
+    </section>
+
+    <section id="what">
+      <h2>2 · 到底在评什么:结果 vs 过程</h2>
+      <p>把「评测对象」拆开,Agent 评测大致落在两个层面。理解这个二分,后面的指标和工具就都能对号入座。</p>
+      <table>
+        <tr><th>层面</th><th>评什么</th><th>怎么判</th><th>典型问题</th></tr>
+        <tr><td><strong>结果层</strong>(output)</td><td>最终有没有把用户的任务完成</td><td>能确定的用确定性检查(如代码能否通过测试);开放式的用 LLM-as-Judge</td><td>「答案对吗?任务达成了吗?」</td></tr>
+        <tr><td><strong>过程层</strong>(trajectory)</td><td>达成任务的这一整条路径:工具选择、参数、中间推理、重试、步数</td><td>轨迹匹配 + 逐 span 打分</td><td>「路走得对吗?高效吗?安全吗?」</td></tr>
+      </table>
+      <p>Confident AI 把过程层进一步展开成一串可评的能力点:<strong>工具调用(tool calling)、规划(planning)、推理(reasoning)、交接(handoffs)、步骤效率(step efficiency)、任务完成(task completion)</strong>(<a class="ref" href="https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide" target="_blank">来源</a>)。你不必每次全评,但心里要有这张清单,才知道自己漏了哪块。</p>
+    </section>
+
+    <section id="trajectory">
+      <h2>3 · 轨迹评估(Trajectory Eval):2026 年的核心思路</h2>
+      <p>「轨迹评估」是这两年 Agent 评测最重要的方法转向,值得单独讲透。</p>
+      <div class="def"><div class="t">什么是轨迹(trajectory)</div>Agent 完成一个任务时,一连串动作的完整记录:每一次模型调用、每一次工具调用、每次调用传了什么参数、返回了什么、中间做了什么推理、重试了几次。把这些按嵌套关系串起来,就是一棵「调用树(span tree)」。</div>
+      <p>轨迹评估,就是<strong>给这棵树打分,而不只是给树顶的最终答案打分</strong>。按 Arize/Confident 等实践的描述,它会:拿轨迹和一条参考轨迹做「轨迹匹配」;在每个 span 上单独评「这一步工具选对了吗、这一步忠实于任务吗」;并监控工具调用准确率、实际步数 vs 最少步数、是否出现循环、出错后能否恢复(<a class="ref" href="https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide" target="_blank">来源</a>)。</p>
+      <div class="figure" data-anim>
+        <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent 调用轨迹的 span 树,每个节点都可以单独评分">
+          <rect x="270" y="14" width="160" height="40" rx="9" fill="#0b3a82"/><text x="350" y="39" text-anchor="middle" font-size="14" fill="#fff">任务:修复这个 bug</text>
+          <line x1="350" y1="54" x2="160" y2="90" stroke="#9db4d4" stroke-width="2"/>
+          <line x1="350" y1="54" x2="350" y2="90" stroke="#9db4d4" stroke-width="2"/>
+          <line x1="350" y1="54" x2="540" y2="90" stroke="#9db4d4" stroke-width="2"/>
+          <g font-size="12">
+            <rect x="90" y="90" width="140" height="38" rx="8" fill="#e4f0ff" stroke="#1f7aec"/><text x="160" y="114" text-anchor="middle" fill="#0b3a82">① 规划步骤</text>
+            <rect x="280" y="90" width="140" height="38" rx="8" fill="#e4f0ff" stroke="#1f7aec"/><text x="350" y="114" text-anchor="middle" fill="#0b3a82">② 搜索代码库</text>
+            <rect x="470" y="90" width="140" height="38" rx="8" fill="#e4f0ff" stroke="#1f7aec"/><text x="540" y="114" text-anchor="middle" fill="#0b3a82">③ 编辑文件</text>
+          </g>
+          <line x1="350" y1="128" x2="350" y2="164" stroke="#9db4d4" stroke-width="2"/>
+          <line x1="540" y1="128" x2="540" y2="164" stroke="#9db4d4" stroke-width="2"/>
+          <g font-size="12">
+            <rect x="280" y="164" width="140" height="38" rx="8" fill="#fff7e6" stroke="#e0a83a"/><text x="350" y="188" text-anchor="middle" fill="#8a5a10">④ 读文件(重试×2)</text>
+            <rect x="470" y="164" width="140" height="38" rx="8" fill="#e9f7ee" stroke="#3aa564"/><text x="540" y="188" text-anchor="middle" fill="#1c6b3d">⑤ 跑测试 ✓</text>
+          </g>
+          <g font-size="11" fill="#b23">
+            <text x="350" y="228" text-anchor="middle">↑ span 级打分:这步为何重试?工具选对没?</text>
+          </g>
+        </svg>
+        <div class="fig-cap">图:一次「修 bug」任务的调用树。轨迹评估会对每个节点(span)单独打分——比如发现「读文件重试了 2 次」,顺着追问原因,而不是等测试通过就万事大吉。</div>
+      </div>
+      <div class="callout warn"><span class="lbl">⚠️ 硬前提</span>轨迹评估<strong>需要 trace 数据,而 trace 数据需要埋点(instrumentation)——这一步不是可选项</strong>(<a class="ref" href="https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide" target="_blank">来源</a>)。没做可观测性埋点,你连轨迹都拿不到,更谈不上评。所以「先接 OpenTelemetry / 追踪,再谈评测」是正确顺序。</div>
+    </section>
+
+    <section id="metrics">
+      <h2>4 · 六个关键指标,一次说清</h2>
+      <p>别被各家花名迷惑,Agent 评测反复出现的核心指标就这几个。每个都配一句大白话:</p>
+      <div class="glossary">
+        <dl>
+          <dt>任务完成度(Task Completion / Goal Accuracy)</dt>
+          <dd>用户交代的活,到底干成没有?这是最终的「及格线」指标。开放式任务通常靠 LLM-as-Judge 判。</dd>
+          <dt>工具调用准确率(Tool Call Accuracy)</dt>
+          <dd>该调的工具有没有调、参数对不对、没瞎调不该调的。这类是「确定性」的,能用规则精确判,不必动用大模型。</dd>
+          <dt>规划质量(Plan Quality)</dt>
+          <dd>Agent 一开始定的计划,是否完整、现实、高效。一个烂计划会在第一次调用工具之前就注定后面全盘皆输——所以值得单独评。</dd>
+          <dt>步骤效率(Step Efficiency)</dt>
+          <dd>实际用了多少步 vs 理论最少步数。步数越冗余,线上成本和延迟越高。</dd>
+          <dt>循环与恢复(Loops & Recovery)</dt>
+          <dd>有没有陷入原地打转;出错之后能不能自己纠回来。对应今天那篇「无限循环」论文的关注点。</dd>
+          <dt>忠实度 / 推理质量(Faithfulness)</dt>
+          <dd>每一步的推理是不是贴着任务和证据走,有没有「一本正经地跑偏」。</dd>
+        </dl>
+      </div>
+      <div class="callout key"><span class="lbl">🔑 选型口诀</span>能用规则确定判的(工具对不对、代码过没过测试),就别用大模型——又快又准。只有「依赖 Agent 实际输出、没有标准答案」的部分(回答质量、计划好坏),才交给 LLM-as-Judge(<a class="ref" href="https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide" target="_blank">来源</a>)。</div>
+    </section>
+
+    <section id="judge">
+      <h2>5 · LLM-as-Judge:用一个模型评另一个模型</h2>
+      <p>开放式任务没有标准答案,人工逐条评又太慢太贵,于是「让一个大模型当裁判(LLM-as-Judge)」成了主流做法。但它是把双刃剑,用不好比不评还危险。</p>
+      <h3>怎么用得更靠谱(2026 的经验)</h3>
+      <ul class="steps">
+        <li><strong>给明确的评分标准,而不是「你看着打分」。</strong>DeepEval 的实践指出:用 <code>0–5</code> 分制、且每一档都写清判据,人机一致性最高(Pearson 相关 0.89),明显好过 10 分制(<a class="ref" href="https://deepeval.com/blog/llm-as-a-judge" target="_blank">来源</a>)。</li>
+        <li><strong>一定要拿人类判断去校准裁判。</strong>最大的坑就是「从不验证裁判分是否和人一致」——你可能根本不知道你的裁判在给啰嗦的回答虚高分、给简洁但正确的回答扣分(<a class="ref" href="https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide" target="_blank">来源</a>)。</li>
+        <li><strong>分层用裁判。</strong>2026 的趋势是:用便宜的「蒸馏小裁判」在生产环境持续跑,只在需要深度核查时才动用更贵的「agent-as-judge」选择性复核(<a class="ref" href="https://medium.com/@vinayak.talikot/llm-as-judge-got-us-this-far-here-is-what-2026-adds-to-the-toolkit-6922e3b532b3" target="_blank">来源</a>)。</li>
+      </ul>
+      <div class="callout warn"><span class="lbl">⚠️ 已知偏见</span>LLM 裁判有系统性偏好:倾向给<strong>更长、更啰嗦</strong>的回答打高分。不校准就直接信裁判分,等于把这个偏见写进了你的评测标准。</div>
+    </section>
+
+    <section id="bench">
+      <h2>6 · 主流 Benchmark 速查表</h2>
+      <p>公开 Benchmark 用来横向比不同模型/Agent 的「大盘水平」,选型和跟进 SOTA 时看它。核心逻辑都一样:<em>给一个多步任务 + 一套工具,看 Agent 能不能真的把活干完</em>,而不只是答一道题(<a class="ref" href="https://benchmarkingagents.com/agent-benchmarks/" target="_blank">来源</a>)。</p>
+      <table>
+        <tr><th>Benchmark</th><th>评什么</th><th>怎么跑</th><th>适合的场景</th></tr>
+        <tr><td><strong>SWE-bench Verified</strong></td><td>真实 GitHub issue 的修复能力</td><td>把模型放进编码 harness,面对 500 个人工核验过的真实 issue,读仓库→改文件→跑测试→迭代到修好</td><td>工程 / 编码 Agent 的黄金标准</td></tr>
+        <tr><td><strong>tau-bench(τ-bench)</strong></td><td>工具型对话 + 策略合规</td><td>模拟零售、航空客服流程,带一个「用户模拟器」互动</td><td>面向客户、有合规/规章约束的企业 Agent</td></tr>
+        <tr><td><strong>WebArena</strong></td><td>网页操作能力</td><td>5 个沙箱网站、812 个任务,要点击/填表/搜索/跨页导航</td><td>浏览器 / RPA 类 Agent</td></tr>
+        <tr><td><strong>GAIA</strong></td><td>通用助理能力</td><td>需要工具、联网、多步推理的真实问题,「人易机难」</td><td>通用助理 / Deep Research 类</td></tr>
+      </table>
+      <p><strong>2026 选用建议</strong>:工程看 SWE-bench Verified,浏览器任务看 WebArena,助理类看 GAIA,工具对话看 tau-bench(<a class="ref" href="https://www.layer3labs.io/guides/ai-agent-benchmarks" target="_blank">来源</a>)。</p>
+      <h3>今日榜单快照(截至 7 月 11 日)</h3>
+      <div class="stats">
+        <div class="stat"><div class="n">95.5%</div><div class="l">Claude Mythos 5<br>SWE-bench Verified 第一</div></div>
+        <div class="stat"><div class="n">95%</div><div class="l">Claude Fable 5<br>紧随其后</div></div>
+        <div class="stat"><div class="n">88.6%</div><div class="l">Claude Opus 4.8</div></div>
+        <div class="stat"><div class="n">0.621</div><div class="l">Zhipu GLM-5.2<br>SWE-Bench Pro 最强开源</div></div>
+      </div>
+      <p class="fig-cap" style="text-align:left">数据来源:<a class="ref" href="https://benchlm.ai/benchmarks/sweVerified" target="_blank">BenchLM.ai SWE-bench Verified 榜</a>、<a class="ref" href="https://llm-stats.com/benchmarks/swe-bench-pro" target="_blank">SWE-Bench Pro 榜</a>。榜单更新快,以官网最新为准。</p>
+      <div class="callout warn"><span class="lbl">⚠️ 别只看公开榜单</span>公开 Benchmark 有「刷榜」和「数据污染」风险,而且未必贴合你的业务。学术界也在推 <strong>CUBE(统一 Agent 基准的标准,<a class="ref" href="https://arxiv.org/pdf/2603.15798" target="_blank">arXiv 2603.15798</a>)</strong>、<strong>UTBoost(针对 SWE-bench 测试用例不足做加强,<a class="ref" href="https://arxiv.org/pdf/2506.09289" target="_blank">arXiv 2506.09289</a>)</strong>来修补口径不一和评测不严的问题。真要上线,还得配一套贴合自己业务的私有评测集。</div>
+    </section>
+
+    <section id="tools">
+      <h2>7 · 评测工具矩阵:各挑各的活</h2>
+      <p>工程落地时,你需要一套工具把「埋点 → 收轨迹 → 打分 → 看板」串起来。2026 年常被点名的一批(<a class="ref" href="https://www.morphllm.com/ai-agent-evaluation-frameworks" target="_blank">来源</a>):</p>
+      <table>
+        <tr><th>工具</th><th>定位</th><th>特点</th></tr>
+        <tr><td><strong>DeepEval</strong></td><td>代码优先的 CI 评测</td><td>pytest 风格、50+ 内置指标,适合把评测塞进 CI 流水线</td></tr>
+        <tr><td><strong>Arize Phoenix</strong></td><td>可观测 + 评测</td><td>OpenTelemetry 原生、支持轨迹评测,可自托管</td></tr>
+        <tr><td><strong>LangSmith</strong></td><td>LangChain 原生轨迹评测</td><td>和 LangChain / LangGraph 生态无缝</td></tr>
+        <tr><td><strong>Braintrust</strong></td><td>评测优先的打分平台</td><td>以 eval 为核心的评分工作流</td></tr>
+        <tr><td><strong>OpenAI Evals</strong></td><td>离线批量评分</td><td>MIT 开源,做离线 grading</td></tr>
+        <tr><td><strong>RAGAS</strong></td><td>RAG 场景指标</td><td>专攻检索增强类的评测指标</td></tr>
+      </table>
+      <div class="callout key"><span class="lbl">🔑 2026 新范式</span>评测正从「上线前跑一次」变成「嵌进运行时的护栏」:便宜的蒸馏评测器在生产环境<strong>持续跑</strong>,多维指标取代单一准确率数字,可观测性成为地基,eval 直接内嵌进 Agent 运行时充当 guardrail(<a class="ref" href="https://www.morphllm.com/ai-agent-evaluation" target="_blank">来源</a>)。</div>
+    </section>
+
+    <section id="pitfalls">
+      <h2>8 · 常见坑(照着避)</h2>
+      <ul class="steps">
+        <li><strong>只看最终答案。</strong>输出对≠过程健康;输出层打分会把轨迹问题藏起来,规模化后变成成本和延迟的爆雷(<a class="ref" href="https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide" target="_blank">来源</a>)。</li>
+        <li><strong>不校准 LLM 裁判。</strong>从不拿人类判断验证裁判分,等于蒙着眼信一个有偏见的裁判。</li>
+        <li><strong>没埋点就想评轨迹。</strong>trace 是轨迹评估的前提,可观测性不是锦上添花,是地基。</li>
+        <li><strong>迷信公开榜单当唯一标准。</strong>有污染和刷榜风险,且不贴合你的业务;要配私有评测集。</li>
+        <li><strong>用单一数字概括一切。</strong>「准确率 87%」掩盖了它在工具调用、步骤效率、恢复能力上的差异——多维指标才有诊断价值。</li>
+      </ul>
+    </section>
+
+    <section id="howto">
+      <h2>9 · 落地七步法</h2>
+      <p>把上面的东西收成一个可执行顺序,给你自己搭一套 Agent 评测时照做:</p>
+      <ul class="steps">
+        <li><strong>先埋点。</strong>接 OpenTelemetry / 追踪,确保每次运行都能拿到完整轨迹(span 树)。</li>
+        <li><strong>定义任务完成度。</strong>先把「怎样算干成了」写成可判定的标准——能用规则就用规则。</li>
+        <li><strong>拆过程指标。</strong>从工具准确率、规划质量、步骤效率、循环/恢复里挑你最在意的 2–3 个。</li>
+        <li><strong>搭 LLM-as-Judge。</strong>给 0–5 分制 + 每档明确判据,只用在开放式、没标准答案的部分。</li>
+        <li><strong>用人类样本校准裁判。</strong>标一小批人工分,验证裁判与人的一致性,调 prompt 直到对齐。</li>
+        <li><strong>建私有评测集。</strong>从真实业务采一批代表性任务,别只靠公开 Benchmark。</li>
+        <li><strong>持续跑 + 当护栏。</strong>把便宜的评测器挂到生产环境持续监控,异常轨迹实时告警。</li>
+      </ul>
+    </section>
+
+    <section id="resource">
+      <h2>10 · 继续深入的资源</h2>
+      <div class="glossary">
+        <dl>
+          <dt>Confident AI:LLM Agent 评测完全指南</dt>
+          <dd>指标、轨迹评测、trace 前提讲得最系统。<a class="ref" href="https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide" target="_blank">链接</a></dd>
+          <dt>DeepEval:LLM-as-a-Judge 最佳实践(2026)</dt>
+          <dd>裁判分制、判据设计、人机一致性的实证。<a class="ref" href="https://deepeval.com/blog/llm-as-a-judge" target="_blank">链接</a></dd>
+          <dt>Benchmarking Agents:2026 Agent Benchmark 汇总</dt>
+          <dd>SWE-bench / WebArena / GAIA / tau-bench 等横评。<a class="ref" href="https://benchmarkingagents.com/agent-benchmarks/" target="_blank">链接</a></dd>
+          <dt>Morph LLM:Agent 评测框架 7 家对比</dt>
+          <dd>DeepEval / Phoenix / LangSmith / Braintrust 等工具选型。<a class="ref" href="https://www.morphllm.com/ai-agent-evaluation-frameworks" target="_blank">链接</a></dd>
+          <dt>Stanford CS329A《Self-Improving AI Agents》</dt>
+          <dd>课程含「构建稳健评测框架的挑战」专题。<a class="ref" href="https://cs329a.stanford.edu/" target="_blank">链接</a></dd>
+        </dl>
+      </div>
+    </section>
+
+    <footer>
+      <h3>关于这份文档</h3>
+      <p>调研时间:2026-07-13。本文围绕「AI Agent 评测与 Benchmark」做全网调研整理,覆盖是什么、怎么评、用什么工具、有哪些坑五个维度。快速迭代领域,榜单与工具版本请以各官方最新文档为准。区分:标「来源」处为可查证事实;方法论口诀为对多来源共识的归纳。</p>
+      <h3>来源清单</h3>
+      <ol>
+        <li>Confident AI — LLM Agent Evaluation Complete Guide:https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide</li>
+        <li>DeepEval — LLM-as-a-Judge in 2026:https://deepeval.com/blog/llm-as-a-judge</li>
+        <li>Morph LLM — AI Agent Evaluation / Frameworks 2026:https://www.morphllm.com/ai-agent-evaluation-frameworks · https://www.morphllm.com/ai-agent-evaluation</li>
+        <li>Benchmarking Agents — Agent Benchmarks 2026:https://benchmarkingagents.com/agent-benchmarks/</li>
+        <li>Layer3 Labs — AI Agent Benchmarks(SWE-bench/tau/WebArena):https://www.layer3labs.io/guides/ai-agent-benchmarks</li>
+        <li>BenchLM.ai — SWE-bench Verified Leaderboard(July 2026):https://benchlm.ai/benchmarks/sweVerified</li>
+        <li>llm-stats — SWE-Bench Pro Leaderboard:https://llm-stats.com/benchmarks/swe-bench-pro</li>
+        <li>arXiv 2607.01641 — When Agents Do Not Stop:https://arxiv.org/abs/2607.01641v1</li>
+        <li>arXiv 2603.15798 — CUBE: A Standard for Unifying Agent Benchmarks:https://arxiv.org/pdf/2603.15798</li>
+        <li>arXiv 2506.09289 — UTBoost:https://arxiv.org/pdf/2506.09289</li>
+        <li>Medium(V. Talikot)— LLM-as-Judge, what 2026 adds:https://medium.com/@vinayak.talikot/llm-as-judge-got-us-this-far-here-is-what-2026-adds-to-the-toolkit-6922e3b532b3</li>
+        <li>Stanford CS329A — Self-Improving AI Agents:https://cs329a.stanford.edu/</li>
+      </ol>
+    </footer>
+  </main>
+</div>
+<script>
+  // progress bar
+  var prog=document.getElementById('prog');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=(h>0?(window.scrollY/h*100):0)+'%';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  // reveal
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('show');io.unobserve(e.target);}})},{threshold:.12});
+  document.querySelectorAll('[data-anim]').forEach(function(el){io.observe(el);});
+  // toc active + close on click
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onSpy(){
+    var y=window.scrollY+120,idx=0;
+    secs.forEach(function(s,i){if(s&&s.offsetTop<=y)idx=i;});
+    links.forEach(function(a,i){a.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onSpy,{passive:true});onSpy();
+  document.querySelectorAll('.toc a').forEach(function(a){a.addEventListener('click',function(){document.getElementById('toc').classList.remove('open');});});
+</script>
+</body>
+</html>

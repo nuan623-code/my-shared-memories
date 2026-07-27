@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
 import { absUrl, SHARE_IMAGE } from "@/lib/site";
+import { ShareButton } from "@/components/ShareButton";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
@@ -15,6 +16,7 @@ import type { Resource } from "@/lib/resources";
 import { Comments } from "@/components/Comments";
 import { SelectionToolbar } from "@/components/SelectionToolbar";
 import { HighlightLayer } from "@/components/HighlightLayer";
+import { SuiReadPromo } from "@/components/SuiReadPromo";
 
 
 export const Route = createFileRoute("/articles/$slug")({
@@ -350,6 +352,7 @@ function ArticleDetailPage() {
             </span>
             <LikeButton resourceId={article.id} />
             <ReadingStatusButtons resourceId={article.id} showLabel />
+            <ShareButton title={article.title ?? "Mingyu's Library"} url={absUrl(`/articles/${article.slug}`)} />
           </div>
 
           <div className="flex items-center gap-3">
@@ -510,6 +513,15 @@ function ArticleDetailPage() {
               <div className="whitespace-pre-wrap">{article.content}</div>
             </div>
           )}
+
+          <SuiReadPromo
+            url={
+              article.url && !/^https?:\/\//i.test(article.url)
+                ? article.url
+                : undefined
+            }
+            title={article.title ?? undefined}
+          />
 
           {(adjacent.prev || adjacent.next) && (
             <nav className="mt-8 grid gap-3 sm:grid-cols-2">

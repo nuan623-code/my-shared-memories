@@ -89,6 +89,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Mingyu's Library — 个人资源库" },
       { name: "description", content: "Mingyu 的个人资源库：文章、视频、外链、文件与碎片笔记。" },
       { name: "author", content: "Mingyu Yang" },
+      // iOS Safari 原生 Smart App Banner:装了随读显示「打开」,没装引导 App Store
+      { name: "apple-itunes-app", content: "app-id=6788002593" },
       { property: "og:title", content: "Mingyu's Library" },
       { property: "og:description", content: "Mingyu 想分享的任何东西" },
       { property: "og:type", content: "website" },

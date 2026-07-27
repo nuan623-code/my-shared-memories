@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>长时程 Agent 的上下文退化(Context Rot)与自压缩(Self-Compaction)</title>
+<style>
+:root{
+  --bg:#faf6f0;          /* 暖纸色底 */
+  --panel:#ffffff;
+  --ink:#2b2521;
+  --ink-soft:#6b6157;
+  --rust:#b4552d;        /* 主色:铁锈铜——「退化与修复」 */
+  --rust-deep:#8c3d1d;
+  --teal:#1f6f6b;        /* 辅色:深青——「方法与秩序」 */
+  --teal-soft:#e2efee;
+  --amber:#e0a458;
+  --line:#e6ddd2;
+  --card:#fdfbf8;
+  --code-bg:#2e2823;
+  --code-ink:#f0e8dc;
+  --warn-bg:#fdf0e7;
+  --key-bg:#eaf3f2;
+  --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.85}
+#progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--rust),var(--amber));width:0;z-index:99}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px 80px}
+/* hero:浅底大字 + 衰变条 */
+.hero{padding:72px 0 40px;border-bottom:1px solid var(--line)}
+.hero .kicker{color:var(--teal);font-weight:700;letter-spacing:.18em;font-size:13px;text-transform:uppercase}
+.hero h1{font-size:clamp(26px,5vw,42px);line-height:1.35;margin:14px 0 18px;letter-spacing:.01em}
+.hero h1 em{font-style:normal;color:var(--rust)}
+.hero p.lead{color:var(--ink-soft);font-size:18px;max-width:640px}
+.decay-bar{margin-top:26px;height:14px;border-radius:7px;background:linear-gradient(90deg,#1f6f6b 0%,#7ba36a 30%,#e0a458 60%,#b4552d 85%,#8c3d1d 100%);position:relative}
+.decay-bar span{position:absolute;top:20px;font-size:12px;color:var(--ink-soft)}
+.meta-line{margin-top:34px;font-size:13px;color:var(--ink-soft)}
+/* TOC */
+#tocbtn{display:none;position:fixed;bottom:20px;right:20px;z-index:60;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(43,37,33,.15)}
+#toc{position:fixed;top:90px;left:calc(50% - 430px - 230px);width:200px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;font-size:13px;z-index:50;max-height:70vh;overflow-y:auto}
+#toc .toc-title{font-weight:700;color:var(--rust);margin-bottom:8px;font-size:12px;letter-spacing:.1em}
+#toc a{display:block;color:var(--ink-soft);text-decoration:none;padding:4px 8px;border-radius:6px;border-left:2px solid transparent}
+#toc a.on{color:var(--rust);border-left-color:var(--rust);background:rgba(180,85,45,.07);font-weight:600}
+@media(max-width:1360px){
+  #toc{display:none;position:fixed;top:auto;bottom:80px;right:20px;left:auto;width:230px;box-shadow:0 8px 30px rgba(43,37,33,.18)}
+  #toc.open{display:block}
+  #tocbtn{display:block}
+}
+/* sections */
+section{padding-top:56px}
+h2{font-size:24px;margin-bottom:18px;color:var(--ink);padding-bottom:10px;border-bottom:2px solid var(--line);position:relative}
+h2::after{content:"";position:absolute;left:0;bottom:-2px;width:64px;height:2px;background:var(--rust)}
+h3{font-size:19px;margin:26px 0 10px;color:var(--rust-deep)}
+p{margin:12px 0}
+strong{color:var(--rust-deep)}
+a{color:var(--teal)}
+ul,ol{margin:12px 0 12px 1.4em}
+li{margin:6px 0}
+/* components */
+.def{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:var(--radius);padding:18px 20px;margin:18px 0}
+.def .d-term{font-weight:700;color:var(--teal);font-size:16px}
+.def .d-plain{margin-top:6px}
+.def .d-formal{margin-top:8px;font-size:14px;color:var(--ink-soft)}
+.callout{border-radius:var(--radius);padding:16px 20px;margin:18px 0;border:1px solid var(--line)}
+.callout.key{background:var(--key-bg);border-left:4px solid var(--teal)}
+.callout.warn{background:var(--warn-bg);border-left:4px solid var(--rust)}
+.callout .c-title{font-weight:700;margin-bottom:6px}
+.analogy{background:#fdf6ec;border:1px dashed var(--amber);border-radius:var(--radius);padding:16px 20px;margin:18px 0}
+.analogy .a-title{font-weight:700;color:#a4741f;margin-bottom:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:center}
+.stat .num{font-size:26px;font-weight:800;color:var(--rust)}
+.stat .lbl{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5}
+.steps{counter-reset:step;margin:18px 0}
+.step{position:relative;padding:14px 16px 14px 56px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin:10px 0}
+.step::before{counter-increment:step;content:counter(step);position:absolute;left:14px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--teal);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.step .s-t{font-weight:700}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14.5px;background:var(--panel);border-radius:var(--radius);overflow:hidden}
+th{background:var(--teal);color:#fff;padding:10px 12px;text-align:left;font-weight:600}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.tbl-scroll{overflow-x:auto;margin:18px 0}
+.tbl-scroll table{margin:0;min-width:560px}
+pre{background:var(--code-bg);color:var(--code-ink);padding:18px;border-radius:var(--radius);overflow-x:auto;font-size:13.5px;line-height:1.7;margin:16px 0;font-family:"SF Mono",Menlo,Consolas,monospace}
+code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.9em;background:rgba(180,85,45,.09);color:var(--rust-deep);padding:1px 6px;border-radius:5px}
+pre code{background:none;color:inherit;padding:0}
+.figure{margin:26px 0;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.5px;color:var(--ink-soft);margin-top:10px;text-align:center}
+.src-tag{font-size:12.5px;color:var(--ink-soft)}
+.rephrase{margin:14px 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+.rephrase summary{padding:12px 16px;cursor:pointer;font-weight:600;color:var(--teal)}
+.rephrase .r-body{padding:0 16px 14px}
+footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink-soft)}
+footer ul{margin-left:1.2em}
+/* svg anim */
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .6s ease,transform .6s ease}
+.figure.inview [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.2s ease .2s}
+.figure.inview [data-draw]{stroke-dashoffset:0}
+@media(prefers-reduced-motion:reduce){.figure [data-anim],.figure [data-draw]{opacity:1;transform:none;stroke-dashoffset:0;transition:none}}
+@media(max-width:640px){body{font-size:16px}.hero{padding:52px 0 32px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="← 主页 ☰ 目 录 30 秒速览 背景:为什么是现在 Context Rot 是什么 退化的样子:放弃与心虚 缓解手段全景图 SelfCompact:自压缩 工程实践现状 用到自己的 Agent 上 常见坑与限制 学习…">
+<meta property="og:title" content="长时程 Agent 的上下文退化(Context Rot)与自压缩(Self-Compaction)">
+<meta property="og:description" content="← 主页 ☰ 目 录 30 秒速览 背景:为什么是现在 Context Rot 是什么 退化的样子:放弃与心虚 缓解手段全景图 SelfCompact:自压缩 工程实践现状 用到自己的 Agent 上 常见坑与限制 学习…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-07-22-context-rot-self-compaction.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-07-22-context-rot-self-compaction.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "长时程 Agent 的上下文退化(Context Rot)与自压缩(Self-Compaction)", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-07-22-context-rot-self-compaction.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-22"}</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="progress"></div>
+<button id="tocbtn" aria-label="目录">☰</button>
+<nav id="toc" aria-label="目录">
+  <div class="toc-title">目 录</div>
+  <a href="#s0">30 秒速览</a>
+  <a href="#s1">背景:为什么是现在</a>
+  <a href="#s2">Context Rot 是什么</a>
+  <a href="#s3">退化的样子:放弃与心虚</a>
+  <a href="#s4">缓解手段全景图</a>
+  <a href="#s5">SelfCompact:自压缩</a>
+  <a href="#s6">工程实践现状</a>
+  <a href="#s7">用到自己的 Agent 上</a>
+  <a href="#s8">常见坑与限制</a>
+  <a href="#s9">学习资源</a>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AI Daily · 深度学习文档 · 2026-07-22</div>
+  <h1>长时程 Agent 的<em>上下文退化</em>(Context Rot)与<em>自压缩</em>(Self-Compaction)</h1>
+  <p class="lead">任务越长,Agent 的上下文越臃肿,表现反而越差——这不是玄学,是已被系统测量的现象。本文讲清它为什么发生、长什么样、有哪几类解法,以及 2026 年 6 月两篇新论文给出的最新答案:让模型自己决定什么时候「清理大脑」。</p>
+  <div class="decay-bar" aria-hidden="true">
+    <span style="left:0">上下文:干净</span>
+    <span style="right:0">臃肿 → 退化</span>
+  </div>
+  <div class="meta-line">调研时间:2026-07-22 · 全部关键事实来自文末来源清单,论文数据以 arXiv 原文为准</div>
+</header>
+
+<section id="s0">
+  <h2>30 秒速览</h2>
+  <p>先给结论,细节后面慢慢讲:</p>
+  <ul>
+    <li><strong>现象</strong>:LLM 的表现随上下文变长而持续下降,远在触及上下文窗口上限之前就开始了。这叫 <strong>Context Rot(上下文退化)</strong>。Chroma 团队 2025 年测了 18 个前沿模型,无一幸免。</li>
+    <li><strong>新发现</strong>(上交/复旦 SII-GAIR,2026-06):在真实的长时程搜索任务里,退化的典型表现不是「答错」,而是模型<strong>直接放弃</strong>(「无法确定」)或<strong>心虚作答</strong>(明知没验证完就交卷)。而且瓶颈不是窗口大小,是模型在窗口内的行为。</li>
+    <li><strong>解法分三类</strong>:压缩(把历史改写成摘要)、裁剪(直接丢掉旧内容)、隔离(交给子 Agent,只回传结论)。SII-GAIR 系统评测七种方法后的结论:<strong>压缩 + 裁剪组合的性价比最高</strong>;子 Agent 隔离上限高但严重依赖模型能力。</li>
+    <li><strong>最新思路</strong>(JHU + Apple 的 SelfCompact,2026-06):固定阈值触发的压缩会在错误的时机「格式化」正在进行的推理。让<strong>模型自己按一份小评分规则(rubric)决定何时压缩</strong>,不用微调,数学任务最多 +18.1 分,搜索任务 +5~9 分,成本反而降 30–70%。</li>
+  </ul>
+  <div class="figure">
+    <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="长时程任务中上下文堆积导致性能退化的示意图">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6b6157"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="20" y="30" width="150" height="60" rx="10" fill="#e2efee" stroke="#1f6f6b"/>
+        <text x="95" y="55" text-anchor="middle" font-size="14" fill="#1f6f6b" font-weight="bold">长任务开始</text>
+        <text x="95" y="75" text-anchor="middle" font-size="12" fill="#6b6157">上下文干净</text>
+      </g>
+      <line x1="170" y1="60" x2="235" y2="60" stroke="#6b6157" stroke-width="1.5" marker-end="url(#ar)" data-draw fill="none"/>
+      <g data-anim style="transition-delay:.15s">
+        <rect x="240" y="20" width="180" height="80" rx="10" fill="#fdf6ec" stroke="#e0a458"/>
+        <text x="330" y="45" text-anchor="middle" font-size="14" fill="#a4741f" font-weight="bold">几十~上百轮之后</text>
+        <text x="330" y="66" text-anchor="middle" font-size="12" fill="#6b6157">废弃思路·过时搜索结果</text>
+        <text x="330" y="84" text-anchor="middle" font-size="12" fill="#6b6157">失败的尝试 全部堆着</text>
+      </g>
+      <line x1="420" y1="60" x2="485" y2="60" stroke="#6b6157" stroke-width="1.5" marker-end="url(#ar)" data-draw fill="none"/>
+      <g data-anim style="transition-delay:.3s">
+        <rect x="490" y="20" width="250" height="80" rx="10" fill="#fdf0e7" stroke="#b4552d"/>
+        <text x="615" y="45" text-anchor="middle" font-size="14" fill="#8c3d1d" font-weight="bold">Context Rot</text>
+        <text x="615" y="66" text-anchor="middle" font-size="12" fill="#6b6157">旧内容锚定后续生成</text>
+        <text x="615" y="84" text-anchor="middle" font-size="12" fill="#6b6157">放弃 / 心虚作答 / 答错</text>
+      </g>
+      <g data-anim style="transition-delay:.45s">
+        <rect x="240" y="150" width="280" height="70" rx="10" fill="#e2efee" stroke="#1f6f6b" stroke-dasharray="5 3"/>
+        <text x="380" y="178" text-anchor="middle" font-size="14" fill="#1f6f6b" font-weight="bold">上下文管理(本文主题)</text>
+        <text x="380" y="200" text-anchor="middle" font-size="12" fill="#6b6157">压缩 · 裁剪 · 隔离 · 自压缩</text>
+        <line x1="380" y1="150" x2="380" y2="110" stroke="#1f6f6b" stroke-width="1.5" marker-end="url(#ar)" fill="none"/>
+      </g>
+    </svg>
+    <div class="fig-cap">上下文退化的发生路径,以及上下文管理介入的位置(据 SII-GAIR 与 SelfCompact 论文归纳)</div>
+  </div>
+</section>
+
+<section id="s1">
+  <h2>背景:为什么这个问题「现在」变得要命</h2>
+  <p>两年前,一次模型调用几千个 token,上下文管理基本等于「别超窗口」。今天完全不同了——<strong>Agent 的任务时长在指数级拉长</strong>,单次任务的上下文规模已经不是「窗口够不够放」的问题,而是「放进去之后模型还清不清醒」的问题。SelfCompact 论文开篇给了几个当前的量级:</p>
+  <div class="stats">
+    <div class="stat"><div class="num">8M</div><div class="lbl">Qwen3-Coder-Next 在 SWE-rebench 上单题平均消耗 token 数</div></div>
+    <div class="stat"><div class="num">154 轮</div><div class="lbl">同一场景下单题平均交互轮数</div></div>
+    <div class="stat"><div class="num">96k</div><div class="lbl">Kimi-K2.5 单道竞赛数学题的思考 token 上限量级</div></div>
+    <div class="stat"><div class="num">数百次</div><div class="lbl">深度搜索 Agent 单个查询的工具调用次数(BrowseComp 类任务)</div></div>
+  </div>
+  <p class="src-tag">以上数字均引自 SelfCompact 论文(arXiv:2606.23525)第 2 节,原始出处为各模型技术报告。</p>
+  <p>与此同时,工程侧的所有新基建都在鼓励「跑得更久」:Claude Code 的后台 Agent 可以自主完成整个 PR,MCP 2026-07-28 新规范把「长时任务(Tasks)」转正为核心特性,云端 Agent 运行时让任务脱离本机长期运行。<strong>任务越长,上下文退化的代价越大</strong>——这就是这个 2023 年就有苗头的问题(「lost in the middle」)在 2026 年夏天被两篇论文同时正面攻坚的原因。</p>
+  <div class="analogy">
+    <div class="a-title">🗂️ 一个类比</div>
+    办公桌理论:项目刚开始时桌面干净,随手就能找到要用的文件。三周后,桌上堆满了废弃草稿、过期便签、走了弯路的计算纸。问题不是桌子不够大,而是<strong>每次找东西都会被旧纸误导</strong>——你甚至会顺着三天前已被否定的思路重新走一遍。「压缩」是把有效结论抄到一张新纸上然后清桌;「裁剪」是直接扔掉最旧的纸;「隔离」是让同事在他自己桌上算完、只递给你一行结果。
+  </div>
+</section>
+
+<section id="s2">
+  <h2>Context Rot 是什么:定义与机制</h2>
+  <div class="def">
+    <div class="d-term">Context Rot(上下文退化)</div>
+    <div class="d-plain">大白话:塞给模型的内容越多,它的表现越差——哪怕远没塞满窗口。而且不是到某个点突然崩,而是<strong>持续、渐进地变差</strong>。</div>
+    <div class="d-formal">正式表述:模型输出质量随输入上下文长度增加而出现的可测量退化。Chroma 2025 年的技术报告测试了 18 个主流模型(含 GPT-4.1、Claude 4、Gemini 2.5、Qwen3),全部随输入变长而性能下降;部分任务在远未到达标称窗口上限时,准确率就下跌 30–50%。</div>
+  </div>
+  <p>为什么会这样?综合 Chroma 报告与后续研究综述,主要有三个相互叠加的机制:</p>
+  <h3>机制一:两头清楚,中间模糊(Lost in the Middle)</h3>
+  <p>模型对上下文开头和结尾的内容注意力最好,中间部分最容易被忽略。这是 2023 年就被 Liu 等人量化过的经典现象,在部分测试中造成 30% 以上的准确率下降。对 Agent 来说尤其致命:长任务里<strong>最关键的中间结论恰恰位于「中间」</strong>。</p>
+  <h3>机制二:注意力被稀释</h3>
+  <p>Transformer 的注意力要在所有 token 两两之间分配。上下文从 1 万 token 涨到 10 万,需要处理的成对关系涨了 100 倍——每个真正重要的信号分到的「注意力预算」被大幅摊薄。</p>
+  <h3>机制三:干扰项主动误导(Distractor Interference)</h3>
+  <p>比「没注意到」更糟的是「注意到了错的」:语义上相似但实际无关的内容会主动把模型带偏。Agent 场景里这类干扰项特别多——被否定的旧假设、已过时的搜索结果、失败的代码尝试,都和当前任务「长得很像」。SelfCompact 论文把这点说得很直白:<strong>旧内容不是躺在那不动,它会「锚定」(anchor)后续所有生成</strong>——同一个模型,从干净上下文出发能解出的题,把它自己之前的错误推理喂回去反而解不出来。</p>
+  <div class="callout key">
+    <div class="c-title">🔑 关键认知</div>
+    Context Rot 不是「窗口不够大」的问题。SII-GAIR 论文在 20 万~25.6 万窗口的模型上实测:绝大多数任务在窗口内就能完成(No Answer 比例接近 0),但准确率仍随轨迹变长而大幅下滑。<strong>买更大的窗口治不了这个病</strong>——2M 窗口的模型同样退化,只是退化得更晚、成本更高。
+  </div>
+</section>
+
+<section id="s3">
+  <h2>退化的样子:不是答错,是「放弃」和「心虚」</h2>
+  <p>过去研究 Context Rot 多用「大海捞针」这类单轮长输入测试,和真实 Agent 场景(多轮、多来源、逐步累积)差别很大。上海交大/复旦 SII-GAIR 团队 2026 年 6 月底的论文《Diagnosing and Mitigating Context Rot in Long-horizon Search》第一次在<strong>真实长时程搜索任务</strong>上系统解剖了这件事。</p>
+  <h3>实验设置</h3>
+  <p>四个旗舰开源模型(GLM-4.7、GLM-5.0、Qwen3.5-397B-A17B、MiniMax-2.5,窗口 200K–256K),三个基准(BrowseComp、BrowseComp-Plus、xbench-DeepSearch),ReAct 框架,最多 100 轮交互,每组实验重复五次。他们给 Agent 的「终局状态」建了一个四分类:</p>
+  <div class="tbl-scroll"><table>
+    <tr><th>终局状态</th><th>定义</th><th>通俗说法</th></tr>
+    <tr><td><strong>Confident Answer</strong></td><td>给出明确答案,推理显示模型认为已满足全部条件</td><td>自信交卷(可能对可能错)</td></tr>
+    <tr><td><strong>Uncertain Answer</strong></td><td>给出明确答案,但推理里明说还有没验证完的点</td><td><strong>心虚交卷</strong></td></tr>
+    <tr><td><strong>Give Up</strong></td><td>声明无法解决,不给明确答案(「Unable to determine」)</td><td><strong>直接放弃</strong></td></tr>
+    <tr><td><strong>No Answer</strong></td><td>撞到窗口或轮数上限,没来得及作答</td><td>没答完</td></tr>
+  </table></div>
+  <h3>三个核心发现</h3>
+  <ol>
+    <li><strong>窗口大小不是瓶颈</strong>:BrowseComp 与 xbench-DeepSearch 上 No Answer 比例为 0——所有题都能在窗口内答完,但答得越来越差。约束在于模型在窗口内的表现,而非窗口本身。</li>
+    <li><strong>轨迹越长,「放弃」和「心虚作答」越多</strong>:早期错误以「自信答错」为主;随轨迹变长,Give Up 和 Uncertain Incorrect 迅速上升,成为后期主要错误类型。比如 GLM-4.7 在 BrowseComp 上有 38.6% 的题直接放弃。</li>
+    <li><strong>祸根是「内容」而非单纯的长度</strong>:剪枝实验(pruning)显示,退化不只取决于轨迹长度或轮数,还取决于累积上下文里装了什么;<strong>把累积上下文整个删掉,退化现象几乎完全消失</strong>——但代价是大量任务半途而废。这说明「删」是有效的,难的是删得恰到好处。</li>
+  </ol>
+  <div class="figure">
+    <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="随轨迹变长错误类型构成变化的示意图">
+      <g data-anim>
+        <line x1="70" y1="210" x2="710" y2="210" stroke="#6b6157" stroke-width="1.5"/>
+        <line x1="70" y1="210" x2="70" y2="30" stroke="#6b6157" stroke-width="1.5"/>
+        <text x="390" y="245" text-anchor="middle" font-size="13" fill="#6b6157">轨迹长度(累积 token)→</text>
+        <text x="40" y="120" text-anchor="middle" font-size="13" fill="#6b6157" transform="rotate(-90 40 120)">占比</text>
+      </g>
+      <path d="M80 60 C 250 80, 450 130, 700 185" fill="none" stroke="#1f6f6b" stroke-width="3" data-draw/>
+      <text x="150" y="52" font-size="13" fill="#1f6f6b" font-weight="bold" data-anim>正确率(下滑)</text>
+      <path d="M80 190 C 300 185, 500 120, 700 65" fill="none" stroke="#b4552d" stroke-width="3" data-draw/>
+      <text x="490" y="95" font-size="13" fill="#b4552d" font-weight="bold" data-anim>放弃 + 心虚作答(攀升)</text>
+      <path d="M80 160 C 300 150, 500 165, 700 175" fill="none" stroke="#e0a458" stroke-width="2.5" stroke-dasharray="6 4" data-draw/>
+      <text x="200" y="140" font-size="13" fill="#a4741f" data-anim>自信答错(早期为主,占比渐平)</text>
+    </svg>
+    <div class="fig-cap">定性示意:随轨迹变长,错误构成从「自信答错」转向「放弃/心虚作答」(据 SII-GAIR 论文 Figure 2 的趋势归纳,非原始数据复刻)</div>
+  </div>
+  <div class="rephrase"><details><summary>💬 换个说法:这个发现为什么重要?</summary><div class="r-body">它改变了「治什么病」的判断。如果退化表现是「答错」,你会去优化检索质量、提示词;但实际表现是「不敢答/不想答了」——模型被自己一大堆失败尝试的历史压垮,产生了类似「习得性无助」的行为。对症的药就变成:及时清掉那些失败记录,让模型别一直盯着自己的挫折史。</div></details></div>
+</section>
+
+<section id="s4">
+  <h2>缓解手段全景图:三类七种方法怎么选</h2>
+  <p>SII-GAIR 论文最有工程价值的部分,是把散落各处的上下文管理方法收进一个框架里,统一评测了<strong>性能、成本、对退化的抑制效果</strong>三个维度。三大类如下:</p>
+  <div class="figure">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="上下文管理三大类方法示意图">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6b6157"/></marker></defs>
+      <g data-anim>
+        <rect x="290" y="20" width="180" height="52" rx="10" fill="#2b2521"/>
+        <text x="380" y="52" text-anchor="middle" font-size="15" fill="#faf6f0" font-weight="bold">臃肿的上下文</text>
+      </g>
+      <line x1="330" y1="72" x2="150" y2="120" stroke="#6b6157" stroke-width="1.5" marker-end="url(#ar2)" data-draw fill="none"/>
+      <line x1="380" y1="72" x2="380" y2="120" stroke="#6b6157" stroke-width="1.5" marker-end="url(#ar2)" data-draw fill="none"/>
+      <line x1="430" y1="72" x2="610" y2="120" stroke="#6b6157" stroke-width="1.5" marker-end="url(#ar2)" data-draw fill="none"/>
+      <g data-anim style="transition-delay:.15s">
+        <rect x="30" y="125" width="230" height="150" rx="12" fill="#e2efee" stroke="#1f6f6b"/>
+        <text x="145" y="152" text-anchor="middle" font-size="15" fill="#1f6f6b" font-weight="bold">① 压缩 Compaction</text>
+        <text x="145" y="178" text-anchor="middle" font-size="12.5" fill="#2b2521">把历史改写成摘要</text>
+        <text x="145" y="200" text-anchor="middle" font-size="12" fill="#6b6157">模型自己写 / 辅助模型写</text>
+        <text x="145" y="228" text-anchor="middle" font-size="12" fill="#6b6157">保留信息多·有改写成本</text>
+        <text x="145" y="254" text-anchor="middle" font-size="12" fill="#8c3d1d">风险:摘要时机不对会丢关键事实</text>
+      </g>
+      <g data-anim style="transition-delay:.3s">
+        <rect x="265" y="125" width="230" height="150" rx="12" fill="#fdf6ec" stroke="#e0a458"/>
+        <text x="380" y="152" text-anchor="middle" font-size="15" fill="#a4741f" font-weight="bold">② 裁剪 Trimming</text>
+        <text x="380" y="178" text-anchor="middle" font-size="12.5" fill="#2b2521">直接丢 token,不改写</text>
+        <text x="380" y="200" text-anchor="middle" font-size="12" fill="#6b6157">丢旧工具返回 / 轻量模型去冗余</text>
+        <text x="380" y="228" text-anchor="middle" font-size="12" fill="#6b6157">几乎零成本·实现简单</text>
+        <text x="380" y="254" text-anchor="middle" font-size="12" fill="#8c3d1d">风险:丢掉的就真没了</text>
+      </g>
+      <g data-anim style="transition-delay:.45s">
+        <rect x="500" y="125" width="230" height="150" rx="12" fill="#fdf0e7" stroke="#b4552d"/>
+        <text x="615" y="152" text-anchor="middle" font-size="15" fill="#8c3d1d" font-weight="bold">③ 隔离 Isolation</text>
+        <text x="615" y="178" text-anchor="middle" font-size="12.5" fill="#2b2521">信息移到主窗口之外</text>
+        <text x="615" y="200" text-anchor="middle" font-size="12" fill="#6b6157">子Agent只回传结论 / 写文件系统</text>
+        <text x="615" y="228" text-anchor="middle" font-size="12" fill="#6b6157">主上下文最干净·上限最高</text>
+        <text x="615" y="254" text-anchor="middle" font-size="12" fill="#8c3d1d">风险:强依赖模型编排能力</text>
+      </g>
+    </svg>
+    <div class="fig-cap">上下文管理的三大类方法(据 SII-GAIR 论文 §2 Related Work 的分类整理)</div>
+  </div>
+  <h3>评测结论(可直接抄的选型指南)</h3>
+  <ul>
+    <li><strong>压缩 + 裁剪的组合,是成本与抑制退化之间的最优平衡</strong>——这是论文明确给出的推荐默认项。</li>
+    <li><strong>子 Agent 隔离严重依赖底座模型</strong>:配强模型时可以超过其他所有方法,配弱模型时反而拖后腿。别在小模型上迷信 multi-agent。</li>
+    <li><strong>提高触发频率能进一步抑制退化,但成本上升</strong>:压缩/裁剪这类被动方法,触发越勤效果越好、钱包越痛,需要按任务价值权衡。</li>
+    <li>论文还提出一个不改架构的补充手段:<strong>rot-aware 拒绝采样</strong>——采样多条轨迹后,过滤掉带明显退化特征(放弃/心虚)的那些再聚合,三种聚合方式下平均提升 2.6%–4.9%,且可与上下文管理叠加。</li>
+  </ul>
+</section>
+
+<section id="s5">
+  <h2>SelfCompact:让模型自己决定何时「清理大脑」</h2>
+  <p>上一节的方法有个共同盲区:<strong>触发时机全是「内容盲」的</strong>。现有系统要么等 token 逼近预算才被动压缩(Claude 的 auto-compact / 用户手动 <code>/compact</code>),要么每 k 轮/k token 固定周期压缩(Cursor 等),要么设个百分比阈值(如 MiniMax-M2.5 在「token 用量超过最大上下文 30%」时触发)。这些规则不知道模型此刻在干嘛——<strong>可能正好在推导到一半时把它的草稿纸抽走</strong>。</p>
+  <p>JHU 与 Apple 的《Self-Compacting Language Model Agents》(arXiv:2606.23525,2026-06-22)用一个数据点量化了这个伤害:固定间隔压缩下,压缩前后答案发生变化的案例中,<strong>40.4% 是「由对变错」</strong>(1009 次对→错 vs 1486 次错→对)。压缩总体有净收益,但四成的翻车率说明时机选择有巨大提升空间。</p>
+  <h3>机制:一个工具 + 一份评分规则</h3>
+  <p>SelfCompact 的设计极简,全程不需要微调、不需要外部裁判模型:</p>
+  <div class="steps">
+    <div class="step"><span class="s-t">压缩工具(compaction tool)</span><br>把「总结当前轨迹」做成一个模型可调用的内联工具。模型发出 <code>&lt;summarize&gt;</code>,脚手架就用<strong>同一个模型</strong>把已有轨迹压成摘要,然后从「原始问题 + 摘要」继续生成——相当于换了张干净草稿纸,有效结论都抄上去了。</div>
+    <div class="step"><span class="s-t">评分规则(rubric)</span><br>每隔 N 个 token(数学)或 N 次工具调用(搜索),脚手架追加一段简短的 rubric 提示,让模型对照轨迹给出二元判断:<code>COMPRESS</code> 或 <code>CONTINUE</code>。规则内容一句话概括:<strong>「一个子任务刚收尾、或轨迹正在收敛时→压;正在推导中途、或卡死时→不压」</strong>,且每个条件都要求从轨迹中引用原文作为证据。</div>
+    <div class="step"><span class="s-t">KV 缓存复用</span><br>rubric 探针和压缩指令都是「追加」而非「替换」消息,已有轨迹的 KV 缓存全程复用——判断几乎免费,压缩才是唯一真实开销。论文给出盈亏平衡点:<strong>轨迹长度/摘要长度 &gt; 10 倍时压缩就划算</strong>(搜索场景实测 20–80 倍)。</div>
+  </div>
+  <div class="callout key">
+    <div class="c-title">🔑 为什么两个组件缺一不可</div>
+    消融实验发现:只给工具不给 rubric,七个开源模型的表现参差不齐——有的乱压(在不该压的时候反射性调用),有的从来不压。<strong>模型天生不能可靠察觉自己的上下文正在腐坏</strong>(论文称之为 meta-cognitive gap,元认知缺口),但一段轻量的 rubric 就能补上这个缺口。这个结论很有启发性:「何时压缩」可以作为一种<strong>推理时由脚手架供给的元认知能力</strong>,不必训练进权重里。
+  </div>
+  <h3>效果数字</h3>
+  <div class="stats">
+    <div class="stat"><div class="num">+18.1</div><div class="lbl">竞赛数学最大提升(Qwen3.5-9B,HMMT Feb 26,对比不压缩基线)</div></div>
+    <div class="stat"><div class="num">11/12</div><div class="lbl">数学基准 12 个模型×任务组合中拿下最优的格数(同等 token 预算)</div></div>
+    <div class="stat"><div class="num">+5~9 分</div><div class="lbl">Agentic 搜索(BrowseComp 等)提升幅度</div></div>
+    <div class="stat"><div class="num">-30~70%</div><div class="lbl">搜索场景单题 token 成本相对不压缩基线的降幅</div></div>
+  </div>
+  <p>还有一个值得记住的分析:如果有一个「先知策略」(oracle),仅仅在当前答案已正确时跳过压缩、其余照旧,准确率能到 52.9%,比固定间隔再高 11.5 分——说明<strong>自适应压缩策略还有大量未兑现的上界</strong>,这个方向不会止步于 rubric。</p>
+  <div class="figure">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SelfCompact 的运行循环示意图">
+      <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1f6f6b"/></marker></defs>
+      <g data-anim>
+        <rect x="30" y="110" width="160" height="60" rx="10" fill="#e2efee" stroke="#1f6f6b"/>
+        <text x="110" y="136" text-anchor="middle" font-size="14" fill="#1f6f6b" font-weight="bold">正常生成</text>
+        <text x="110" y="156" text-anchor="middle" font-size="12" fill="#6b6157">推理 + 工具调用</text>
+      </g>
+      <line x1="190" y1="140" x2="265" y2="140" stroke="#1f6f6b" stroke-width="1.5" marker-end="url(#ar3)" data-draw fill="none"/>
+      <text x="228" y="128" text-anchor="middle" font-size="11.5" fill="#6b6157" data-anim>每 N 步</text>
+      <g data-anim style="transition-delay:.15s">
+        <rect x="270" y="100" width="200" height="80" rx="10" fill="#fdf6ec" stroke="#e0a458"/>
+        <text x="370" y="128" text-anchor="middle" font-size="14" fill="#a4741f" font-weight="bold">rubric 探针</text>
+        <text x="370" y="150" text-anchor="middle" font-size="12" fill="#6b6157">子任务收尾/收敛?→ 压</text>
+        <text x="370" y="168" text-anchor="middle" font-size="12" fill="#6b6157">推导中/卡死?→ 不压</text>
+      </g>
+      <line x1="470" y1="120" x2="560" y2="70" stroke="#1f6f6b" stroke-width="1.5" marker-end="url(#ar3)" data-draw fill="none"/>
+      <text x="520" y="80" font-size="12" fill="#8c3d1d" data-anim>COMPRESS</text>
+      <line x1="470" y1="160" x2="560" y2="215" stroke="#6b6157" stroke-width="1.5" marker-end="url(#ar3)" data-draw fill="none"/>
+      <text x="505" y="205" font-size="12" fill="#6b6157" data-anim>CONTINUE</text>
+      <g data-anim style="transition-delay:.3s">
+        <rect x="565" y="30" width="175" height="78" rx="10" fill="#fdf0e7" stroke="#b4552d"/>
+        <text x="652" y="56" text-anchor="middle" font-size="13.5" fill="#8c3d1d" font-weight="bold">压缩并硬重置</text>
+        <text x="652" y="76" text-anchor="middle" font-size="11.5" fill="#6b6157">轨迹 → 摘要</text>
+        <text x="652" y="94" text-anchor="middle" font-size="11.5" fill="#6b6157">从「问题+摘要」继续</text>
+      </g>
+      <g data-anim style="transition-delay:.45s">
+        <rect x="565" y="190" width="175" height="60" rx="10" fill="#f2ede6" stroke="#6b6157"/>
+        <text x="652" y="215" text-anchor="middle" font-size="13" fill="#2b2521">撤掉探针消息</text>
+        <text x="652" y="235" text-anchor="middle" font-size="11.5" fill="#6b6157">轨迹原样继续</text>
+      </g>
+      <path d="M652 108 C 652 150, 400 220, 195 165" fill="none" stroke="#b4552d" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar3)" data-draw/>
+      <path d="M565 220 C 380 260, 180 230, 110 175" fill="none" stroke="#6b6157" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar3)" data-draw/>
+    </svg>
+    <div class="fig-cap">SelfCompact 的「生成—探针—压缩/继续」循环(据论文 Algorithm 1 绘制)</div>
+  </div>
+  <div class="rephrase"><details><summary>💬 换个说法:和 Claude Code 的 /compact 有什么本质区别?</summary><div class="r-body">Claude Code 的 <code>/compact</code> 把「什么时候该压缩」这个判断交给了用户,auto-compact 则交给了 token 阈值;Cursor 等交给固定周期。SelfCompact 交还给<strong>模型本人</strong>——因为只有它「知道」自己此刻是刚验证完一个事实(可以安全存档),还是推导进行到一半(存档就等于毁尸灭迹)。rubric 的作用是把这种时机感从「模型时灵时不灵的直觉」变成「可核对的检查清单」。</div></details></div>
+</section>
+
+<section id="s6">
+  <h2>工程实践现状:各家都在怎么做</h2>
+  <p>把研究放回产品语境,可以看到一条清晰的演化线——触发机制越来越「懂内容」:</p>
+  <div class="tbl-scroll"><table>
+    <tr><th>系统/方案</th><th>触发机制</th><th>归类</th></tr>
+    <tr><td>Claude(Anthropic)</td><td>用户手动 <code>/compact</code>;接近窗口时 auto-compact;近期更新中,压缩过程还会继承会话的 extended thinking 配置</td><td>被动/阈值压缩</td></tr>
+    <tr><td>Cursor</td><td>固定 token 间隔触发压缩</td><td>周期压缩</td></tr>
+    <tr><td>MiniMax-M2.5</td><td>token 用量超过最大上下文 30% 时触发</td><td>阈值压缩</td></tr>
+    <tr><td>DeepSeek 等</td><td>直接丢弃旧的工具返回内容</td><td>裁剪</td></tr>
+    <tr><td>Claude 深度调研 / 各类 multi-agent 框架</td><td>子 Agent 承接子任务,只回传摘要结论;或把大块观察结果卸载到文件系统</td><td>隔离</td></tr>
+    <tr><td>Google ADK(2026-07 博文)</td><td>分层存储 + 编译视图(compiled views)+ 严格作用域:上下文按层级管理,按需编译进窗口</td><td>体系化隔离+压缩</td></tr>
+    <tr><td>SelfCompact(研究)</td><td>模型经 rubric 自判时机,自调用压缩工具</td><td><strong>自适应压缩</strong></td></tr>
+  </table></div>
+  <p class="src-tag">各家机制均引自对应论文/官方博客/文档,见文末来源清单;产品行为迭代快,以官方最新文档为准。</p>
+  <p>另一个值得注意的合流:MCP 2026-07-28 新规范把 <strong>Tasks(长时任务)</strong>转正——服务器可返回任务句柄、客户端轮询驱动。这意味着「跑几小时的 Agent」正在成为协议层的一等公民,上下文退化管理会从「高级技巧」变成「基础必修」。</p>
+</section>
+
+<section id="s7">
+  <h2>怎么用到自己的 Agent 上:实操建议</h2>
+  <p>综合两篇论文的结论,如果你在搭建长时程 Agent,可以按这个顺序落地:</p>
+  <div class="steps">
+    <div class="step"><span class="s-t">先测量,别猜</span><br>给你的 Agent 加终局状态打点:区分「自信答对/自信答错/心虚作答/放弃/没答完」。如果「放弃+心虚」随任务时长明显上升,你就有了 Context Rot 的确诊证据(SII-GAIR 的分类法可直接抄,其代码在 GitHub: GAIR-NLP/ContextRot)。</div>
+    <div class="step"><span class="s-t">默认组合:裁剪 + 压缩</span><br>先做便宜的:旧工具返回(尤其是大段网页/日志)在用过之后裁掉或截断;再叠加周期性压缩。这是评测中性价比最高的组合。</div>
+    <div class="step"><span class="s-t">把压缩时机从「阈值」升级为「rubric 自判」</span><br>参考 SelfCompact:暴露一个总结工具 + 每 N 步用一段 rubric 提示让模型自己判断 COMPRESS/CONTINUE(子任务收尾才压、推导中途不压、要求引用轨迹原文作证据)。不需要微调,任何支持工具调用的模型都能上。</div>
+    <div class="step"><span class="s-t">强模型才上子 Agent 隔离</span><br>如果底座模型较强,把搜索、浏览这类「上下文污染大户」交给子 Agent,只回传结论;弱模型则慎用,评测显示可能负收益。</div>
+    <div class="step"><span class="s-t">摘要要「保事实」,不要「保气氛」</span><br>固定间隔压缩四成翻车的教训:摘要必须显式保留已验证的事实、当前假设、下一步计划,而不是一段模糊的意图复述。在压缩提示里明确列出这三项。</div>
+    <div class="step"><span class="s-t">高价值任务再加一层拒绝采样</span><br>并行采样多条轨迹,丢弃出现「放弃/心虚」特征的,再做聚合——与上下文管理正交,可叠加。</div>
+  </div>
+</section>
+
+<section id="s8">
+  <h2>常见坑与限制</h2>
+  <div class="callout warn">
+    <div class="c-title">⚠️ 这些坑都有实验数据背书</div>
+    <ul>
+      <li><strong>「窗口更大就没事了」</strong>——错。退化在远未满窗时就发生,且是渐进的;大窗口只是把退化摊到更贵的账单上。</li>
+      <li><strong>压缩不是免费午餐</strong>:固定间隔压缩的答案变化中 40.4% 是负向的。压缩时机不对 = 主动删除模型正在用的工作记忆。</li>
+      <li><strong>「让模型自己决定就好」也不成立</strong>:没有 rubric 约束时,开源模型要么乱压要么不压——工具必须配规则。</li>
+      <li><strong>子 Agent 不是万能药</strong>:隔离效果强依赖底座能力,弱模型上可能不如简单裁剪。</li>
+      <li><strong>全清上下文最抑制退化,但会造成大量任务半途而废</strong>——「删多少」是精细活,不是越狠越好。</li>
+    </ul>
+  </div>
+  <p><strong>研究本身的限制</strong>(诚实说明):两篇论文的结论主要建立在<strong>开源模型</strong>上(闭源模型因加密推理轨迹无法做同类分析);SelfCompact 的 rubric 是任务定制的(数学与搜索用词不同),迁移到新任务需要自己写 rubric;两篇均为 2026 年 6 月的预印本,尚在评审中,数字有待同行复核。此外,「自压缩」在生产系统的大规模验证案例目前公开资料还很少。</p>
+</section>
+
+<section id="s9">
+  <h2>学习资源清单</h2>
+  <ul>
+    <li><strong>SelfCompact 论文</strong>(JHU + Apple,2026-06-22):Self-Compacting Language Model Agents — arxiv.org/abs/2606.23525</li>
+    <li><strong>SII-GAIR 论文</strong>(上交/复旦,2026-06-30):Diagnosing and Mitigating Context Rot in Long-horizon Search — arxiv.org/abs/2606.29718;代码 github.com/GAIR-NLP/ContextRot</li>
+    <li><strong>Chroma 技术报告</strong>(2025):Context Rot: How Increasing Input Tokens Impacts LLM Performance — trychroma.com/research/context-rot;复现工具包 github.com/chroma-core/context-rot</li>
+    <li><strong>Google Developers Blog</strong>(2026-07):Architecting efficient context-aware multi-agent framework for production — developers.googleblog.com</li>
+    <li><strong>Anthropic 文档</strong>:Claude Code 的 compact 机制与上下文管理 — code.claude.com/docs</li>
+    <li><strong>综述型解读</strong>:Morph《Context Rot: Why LLMs Degrade as Context Grows》— morphllm.com/context-rot;Understanding AI《Context rot: the emerging challenge》— understandingai.org</li>
+  </ul>
+</section>
+
+<footer>
+  <p><strong>调研时间:2026-07-22</strong> · 本文档由 AI Daily 定时任务生成。关键事实均来自当日实际检索并阅读的以下来源;论文均为预印本,结论以正式发表版本为准;各产品的压缩机制迭代较快,以官方最新文档为准。</p>
+  <ul>
+    <li>Self-Compacting Language Model Agents(arXiv:2606.23525)— https://arxiv.org/pdf/2606.23525(已读全文前 5 节)</li>
+    <li>Diagnosing and Mitigating Context Rot in Long-horizon Search(arXiv:2606.29718)— https://arxiv.org/pdf/2606.29718(已读全文前 4 节)</li>
+    <li>Context Rot(Chroma Research)— https://www.trychroma.com/research/context-rot</li>
+    <li>Context Rot: Why LLMs Degrade as Context Grows(Morph)— https://www.morphllm.com/context-rot</li>
+    <li>Context rot: the emerging challenge(Understanding AI)— https://www.understandingai.org/p/context-rot-the-emerging-challenge</li>
+    <li>Architecting efficient context-aware multi-agent framework(Google Developers Blog)— https://developers.googleblog.com/architecting-efficient-context-aware-multi-agent-framework-for-production/</li>
+    <li>Claude Code changelog — https://code.claude.com/docs/en/changelog</li>
+    <li>The 2026-07-28 MCP Specification Release Candidate — https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/</li>
+  </ul>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var prog=document.getElementById('progress');
+  function upd(){var h=document.documentElement;var max=h.scrollHeight-h.clientHeight;prog.style.width=(max>0?(h.scrollTop/max*100):0)+'%';}
+  addEventListener('scroll',upd,{passive:true});upd();
+
+  var toc=document.getElementById('toc'),btn=document.getElementById('tocbtn');
+  btn.addEventListener('click',function(){toc.classList.toggle('open');});
+  var links=toc.querySelectorAll('a');
+  links.forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open');});});
+  var secs=[].map.call(document.querySelectorAll('section[id]'),function(s){return s;});
+  function hl(){
+    var y=scrollY+120,cur=secs[0];
+    secs.forEach(function(s){if(s.offsetTop<=y)cur=s;});
+    links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+cur.id);});
+  }
+  addEventListener('scroll',hl,{passive:true});hl();
+
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('inview');io.unobserve(e.target);}});},{threshold:.25});
+    document.querySelectorAll('.figure').forEach(function(f){io.observe(f);});
+  }else{
+    document.querySelectorAll('.figure').forEach(function(f){f.classList.add('inview');});
+  }
+})();
+</script>
+</body>
+</html>

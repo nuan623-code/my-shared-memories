@@ -101,6 +101,7 @@ for (const s of SCAN) {
     if (o.skip) continue;
     const urlPath = "/" + (s.dir ? `${s.dir}/` : "") + name;
     const html = readFileSync(join(abs, name), "utf8");
+    if (html.includes("ms-redirect-stub")) continue; // 旧地址占位跳转页,不是文档
     const rawTitle = s.preferTitleTag
       ? pick(html, "title") || pick(html, "h1")
       : pick(html, "h1") || pick(html, "title");

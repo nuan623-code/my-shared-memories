@@ -1,4 +1,5 @@
-import { Github, Linkedin, Mail } from "lucide-react";
+import { Github, Linkedin, Mail, Smartphone } from "lucide-react";
+import { SUIREAD_APP_STORE_URL } from "@/components/SuiReadPromo";
 
 export function Footer() {
   return (
@@ -9,6 +10,15 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Mingyu Yang. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
+            <a
+              href={SUIREAD_APP_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="随读 SuiRead(App Store)"
+            >
+              <Smartphone className="h-4 w-4" /> 随读 App
+            </a>
             <a
               href="https://github.com"
               target="_blank"

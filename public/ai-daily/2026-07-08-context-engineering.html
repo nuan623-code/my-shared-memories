@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>上下文工程 Context Engineering — 深度学习文档</title>
+<style>
+  :root{
+    --bg:#f0f6ff; --ink:#14243b; --sub:#4a5d76; --line:#d6e3f5;
+    --brand:#1560d4; --brand-d:#0b2e6b; --accent:#2f80ff; --accent-soft:#e5efff;
+    --warn:#b4530a; --warn-bg:#fff4e6; --ok:#0d7a54; --ok-bg:#e5f7ef;
+    --card:#ffffff; --shadow:0 6px 24px rgba(20,60,120,.08);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.88;-webkit-font-smoothing:antialiased}
+  .progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--brand));z-index:999}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;gap:32px}
+  /* TOC */
+  .toc{position:sticky;top:24px;align-self:flex-start;width:236px;flex:0 0 236px;
+    background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid var(--line);
+    border-radius:16px;padding:18px 16px;max-height:calc(100vh - 48px);overflow:auto;box-shadow:var(--shadow);margin-top:24px}
+  .toc h4{margin:0 0 10px;font-size:13px;letter-spacing:.08em;color:var(--sub);text-transform:uppercase}
+  .toc a{display:block;color:var(--sub);text-decoration:none;font-size:14px;padding:5px 8px;border-radius:8px;line-height:1.5}
+  .toc a:hover{background:var(--accent-soft);color:var(--brand)}
+  .toc a.active{background:var(--accent-soft);color:var(--brand);font-weight:600}
+  .toc-toggle{display:none}
+  main{flex:1;min-width:0;padding-bottom:80px}
+  /* Hero */
+  .hero{background:linear-gradient(135deg,#0b2e6b,#1560d4 60%,#2f80ff);color:#fff;border-radius:22px;
+    padding:46px 40px;margin:24px 0 34px;box-shadow:var(--shadow)}
+  .hero .kick{font-size:13px;letter-spacing:.14em;text-transform:uppercase;opacity:.82}
+  .hero h1{margin:.32em 0 .28em;font-size:34px;line-height:1.3}
+  .hero p{margin:0;font-size:17px;opacity:.95;max-width:70ch}
+  .hero .meta{margin-top:18px;font-size:13px;opacity:.8}
+  section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:30px 34px;margin:22px 0;box-shadow:var(--shadow)}
+  h2{font-size:25px;margin:.1em 0 .7em;color:var(--brand-d);line-height:1.35}
+  h2 .num{display:inline-block;min-width:34px;height:34px;line-height:34px;text-align:center;
+    background:var(--accent-soft);color:var(--brand);border-radius:9px;font-size:16px;margin-right:10px;font-weight:700}
+  h3{font-size:19px;margin:1.3em 0 .5em;color:var(--brand-d)}
+  p{margin:.7em 0}
+  a{color:var(--brand)}
+  .lead{font-size:18px;color:var(--sub)}
+  strong{color:var(--brand-d)}
+  ul,ol{padding-left:1.3em}
+  li{margin:.32em 0}
+  code{background:#eef3fb;border:1px solid #dbe6f6;border-radius:6px;padding:1px 6px;font-size:.9em;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:#0b2e6b}
+  pre{background:#0d1f38;color:#e7f0ff;border-radius:12px;padding:16px 18px;overflow:auto;font-size:13.5px;line-height:1.7}
+  pre code{background:none;border:none;color:inherit;padding:0}
+  /* components */
+  .def{border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;padding:14px 18px;margin:16px 0}
+  .def b{color:var(--brand-d)}
+  .callout{border-radius:12px;padding:14px 18px;margin:16px 0;border:1px solid}
+  .callout.key{background:var(--accent-soft);border-color:#bcd6ff}
+  .callout.warn{background:var(--warn-bg);border-color:#f3d3a8}
+  .callout.warn b{color:var(--warn)}
+  .callout.quote{background:#f7faff;border-color:var(--line);font-style:italic;color:var(--sub)}
+  .analogy{background:#f2f0ff;border:1px solid #ddd8f7;border-radius:12px;padding:14px 18px;margin:16px 0}
+  .analogy b{color:#5b3fd0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card2{background:#f7faff;border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .card2 h4{margin:.1em 0 .4em;color:var(--brand);font-size:16px}
+  .card2 .tag{display:inline-block;font-size:12px;background:var(--brand);color:#fff;padding:2px 10px;border-radius:20px;margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:var(--accent-soft);color:var(--brand-d)}
+  tr:nth-child(even) td{background:#f7faff}
+  .figure{margin:22px 0;text-align:center}
+  .fig-cap{font-size:13px;color:var(--sub);margin-top:8px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+  .stat{background:linear-gradient(135deg,#f3f8ff,#e8f1ff);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+  .stat .n{font-size:26px;font-weight:800;color:var(--brand)}
+  .stat .l{font-size:13px;color:var(--sub);margin-top:4px}
+  details.rephrase{background:#f7faff;border:1px dashed #bcd6ff;border-radius:10px;padding:8px 14px;margin:12px 0}
+  details.rephrase summary{cursor:pointer;color:var(--brand);font-size:14px;font-weight:600}
+  .src-list{font-size:14px;color:var(--sub)}
+  .src-list li{margin:.42em 0;word-break:break-word}
+  footer{color:var(--sub);font-size:13px;text-align:center;padding:30px 0 10px}
+  @media(max-width:860px){
+    .wrap{display:block}
+    .toc{position:fixed;top:0;left:0;height:100vh;width:250px;border-radius:0;z-index:60;transform:translateX(-105%);transition:.3s;margin-top:0}
+    .toc.open{transform:none}
+    .toc-toggle{display:flex;position:fixed;top:14px;right:14px;z-index:70;width:44px;height:44px;
+      align-items:center;justify-content:center;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:20px;box-shadow:var(--shadow)}
+    .grid2,.grid4,.stats{grid-template-columns:1fr}
+    .hero{padding:34px 24px}.hero h1{font-size:27px}
+    section{padding:22px 20px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  [data-anim]{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}
+  [data-anim].in{opacity:1;transform:none}
+  [data-draw]{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.1s ease}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="← 主页 ☰ 目录 30 秒速览 1 · 为什么需要它 2 · 它到底是什么 3 · 上下文为何会崩:四种失败 4 · 四大策略:写/选/压/隔 5 · 怎么落地(附代码思路) 6 · 真实场景与案例 7 · 和 Pro…">
+<meta property="og:title" content="上下文工程 Context Engineering — 深度学习文档">
+<meta property="og:description" content="← 主页 ☰ 目录 30 秒速览 1 · 为什么需要它 2 · 它到底是什么 3 · 上下文为何会崩:四种失败 4 · 四大策略:写/选/压/隔 5 · 怎么落地(附代码思路) 6 · 真实场景与案例 7 · 和 Pro…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-07-08-context-engineering.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-07-08-context-engineering.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "上下文工程 Context Engineering — 深度学习文档", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-07-08-context-engineering.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-08"}</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="progress" id="prog"></div>
+<button class="toc-toggle" id="tocBtn" aria-label="目录">☰</button>
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <h4>目录</h4>
+    <a href="#s0">30 秒速览</a>
+    <a href="#s1">1 · 为什么需要它</a>
+    <a href="#s2">2 · 它到底是什么</a>
+    <a href="#s3">3 · 上下文为何会崩:四种失败</a>
+    <a href="#s4">4 · 四大策略:写/选/压/隔</a>
+    <a href="#s5">5 · 怎么落地(附代码思路)</a>
+    <a href="#s6">6 · 真实场景与案例</a>
+    <a href="#s7">7 · 和 Prompt / RAG 的关系</a>
+    <a href="#s8">8 · 常见坑与限制</a>
+    <a href="#s9">9 · 学习资源</a>
+    <a href="#s10">来源清单</a>
+  </nav>
+  <main>
+    <div class="hero" data-anim>
+      <div class="kick">AIDaily · 深度学习文档</div>
+      <h1>上下文工程 Context Engineering</h1>
+      <p>模型不是不够聪明,而是"喂给它的信息不对"。上下文工程,就是在 Agent 每一步都往上下文窗口里塞进"恰好正确"的信息的工程学科——这是 2026 年做 Agent 绕不开的第一门手艺。</p>
+      <div class="meta">调研时间:2026-07-08 · 面向"有技术常识、第一次系统了解本主题"的读者 · 关键事实均标注来源,以官方最新文档为准</div>
+    </div>
+
+    <!-- 0 -->
+    <section id="s0" data-anim>
+      <h2><span class="num">0</span>30 秒速览</h2>
+      <p class="lead">一句话:<strong>上下文工程 = 在 Agent 运行的每一步,决定"把哪些信息、以什么结构、在什么时候"放进模型的上下文窗口。</strong></p>
+      <p>大语言模型的上下文窗口,就像电脑的内存(RAM):容量有限,而且塞得越满、越乱,处理质量反而越差。Agent 要跑几十上百轮、不断吞入工具返回的结果,很容易把这块"内存"塞爆或塞脏。上下文工程就是那套"内存管理"手艺——把信息<b>写</b>出去存好、需要时<b>选</b>回来、太长了<b>压</b>缩、不相干的<b>隔</b>开。</p>
+
+      <div class="figure" data-anim>
+        <svg viewBox="0 0 720 220" width="100%" style="max-width:720px" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LLM 类比操作系统:CPU 与 RAM">
+          <rect x="20" y="40" width="200" height="140" rx="14" fill="#e5efff" stroke="#1560d4" stroke-width="2"/>
+          <text x="120" y="74" text-anchor="middle" font-size="15" fill="#0b2e6b" font-weight="700">LLM(像 CPU)</text>
+          <text x="120" y="104" text-anchor="middle" font-size="12" fill="#4a5d76">负责"思考/推理"</text>
+          <text x="120" y="126" text-anchor="middle" font-size="12" fill="#4a5d76">每一步做一次决策</text>
+          <text x="120" y="152" text-anchor="middle" font-size="12" fill="#4a5d76">但看不到窗口外的东西</text>
+
+          <path d="M232 110 L288 110" stroke="#2f80ff" stroke-width="2.5" fill="none" data-draw marker-end="url(#ar)"/>
+          <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f80ff"/></marker></defs>
+
+          <rect x="300" y="40" width="200" height="140" rx="14" fill="#fff" stroke="#2f80ff" stroke-width="2"/>
+          <text x="400" y="74" text-anchor="middle" font-size="15" fill="#0b2e6b" font-weight="700">上下文窗口(像 RAM)</text>
+          <text x="400" y="104" text-anchor="middle" font-size="12" fill="#4a5d76">模型的"工作记忆"</text>
+          <text x="400" y="126" text-anchor="middle" font-size="12" fill="#4a5d76">容量有限、放满会溢出</text>
+          <text x="400" y="152" text-anchor="middle" font-size="12" fill="#b4530a">塞太满/太乱→质量下降</text>
+
+          <path d="M512 110 L568 110" stroke="#2f80ff" stroke-width="2.5" fill="none" data-draw marker-end="url(#ar)"/>
+          <rect x="580" y="40" width="120" height="140" rx="14" fill="#e5f7ef" stroke="#0d7a54" stroke-width="2"/>
+          <text x="640" y="86" text-anchor="middle" font-size="14" fill="#0d7a54" font-weight="700">上下文工程</text>
+          <text x="640" y="110" text-anchor="middle" font-size="12" fill="#4a5d76">决定往 RAM</text>
+          <text x="640" y="130" text-anchor="middle" font-size="12" fill="#4a5d76">里放什么、</text>
+          <text x="640" y="150" text-anchor="middle" font-size="12" fill="#4a5d76">何时清理</text>
+        </svg>
+        <div class="fig-cap">类比:Karpathy 把 LLM 比作一种新操作系统,LLM 是 CPU、上下文窗口是 RAM,上下文工程就是那套"内存调度"。图源:概念改编自 LangChain《Context Engineering》</div>
+      </div>
+
+      <div class="callout key">
+        <b>本文你会拿到:</b> 为什么会出现这门学科 → 上下文崩坏的四种典型方式 → 应对它的四大策略(写 Write / 选 Select / 压 Compress / 隔 Isolate)→ 怎么在真实框架里落地 → 谁在用、踩过什么坑。
+      </div>
+    </section>
+
+    <!-- 1 -->
+    <section id="s1" data-anim>
+      <h2><span class="num">1</span>为什么需要它:痛点先行</h2>
+      <p>先设身处地想一个场景:你让一个 Agent 帮你做调研。它调用搜索工具、读网页、调数据库、再搜、再读……跑了几十轮。每一次工具返回的内容都会被<strong>追加</strong>进上下文里。跑到后面,上下文窗口里堆满了几十次工具调用的原始输出——又长又杂。</p>
+      <p>结果就出问题了。Drew Breunig 和 LangChain 团队总结了长上下文常见的三类恶果:<strong>要么直接超出上下文窗口塞不下;要么 token 暴涨、成本和延迟飙升;要么——最隐蔽的——模型性能反而下降</strong>,该记住的没记住,被无关内容带偏了。(来源:<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain</a>、<a href="https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html" target="_blank">dbreunig</a>)</p>
+
+      <div class="callout quote">
+        Cognition 团队直言:"上下文工程……实际上是构建 AI Agent 的工程师的第一号工作。"Anthropic 也说:"Agent 常常进行长达数百轮的对话,需要精心的上下文管理策略。"(来源:<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain 引述</a>)
+      </div>
+
+      <p>换句话说:当模型能力已经足够强,<strong>制约 Agent 表现的瓶颈,常常不在模型本身,而在"我们喂给它的上下文对不对"</strong>。这就是上下文工程作为一门独立学科出现的根本原因。</p>
+
+      <div class="stats" data-anim>
+        <div class="stat"><div class="n">~50K</div><div class="l">相关信息超过约 5 万 token 后,性能开始明显下降(即便窗口标称 1M+)</div></div>
+        <div class="stat"><div class="n">5×</div><div class="l">5 个子 Agent 各喂 100K token,成本是必要量的 5 倍;上下文路由可压到约 20K/Agent</div></div>
+        <div class="stat"><div class="n">100K</div><div class="l">Gemini 2.5 团队观察到:超过约 10 万 token 阈值后,模型"分心"效应显现</div></div>
+      </div>
+      <div class="fig-cap" style="text-align:left">数据来源:<a href="https://ivern.ai/blog/ai-agent-context-engineering-complete-guide-2026" target="_blank">ivern.ai 上下文工程指南(2026)</a>、<a href="https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html" target="_blank">dbreunig</a>。属工程经验/观测,非官方硬性阈值,具体随模型与任务变化。</div>
+    </section>
+
+    <!-- 2 -->
+    <section id="s2" data-anim>
+      <h2><span class="num">2</span>它到底是什么</h2>
+      <div class="def">
+        <b>定义(Karpathy 的说法):</b> 上下文工程是"往上下文窗口里,为下一步填入恰好正确的信息的那门精细的艺术与科学"。通俗讲——不是写一句好 prompt 就完事,而是<b>动态地、在 Agent 每一步</b>管理进出上下文窗口的所有信息。(来源:<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain 引述 Karpathy</a>)
+      </div>
+      <p>"上下文"不止是你写的那段提示词。LangChain 把它归纳为一把"伞",覆盖三类信息:</p>
+      <div class="grid2">
+        <div class="card2"><h4>① 指令类 Instructions</h4>提示词、记忆、few-shot 示例、工具说明——告诉模型"要做什么、怎么做"。</div>
+        <div class="card2"><h4>② 知识类 Knowledge</h4>事实、长期记忆、检索到的资料——模型完成任务需要的"背景知识"。</div>
+        <div class="card2"><h4>③ 工具反馈 Tools</h4>工具调用返回的结果(搜索结果、数据库记录、代码执行输出)——这是 Agent 场景里增长最快、最容易失控的部分。</div>
+        <div class="card2"><h4>关键区别</h4>Prompt 工程管的是"那一段静态提示词";上下文工程管的是"整个运行过程中,窗口里所有信息的动态调度"。范围大得多。</div>
+      </div>
+
+      <details class="rephrase"><summary>换个更严谨的说法</summary>
+      上下文工程是一套系统性方法,决定哪些信息进入 Agent 的上下文窗口、如何组织,以及何时被淘汰或刷新;目标是在最低 token 成本下,保证模型每一步都拿到"相关、充分、彼此不打架"的信息。有研究进一步提出五项质量标准:相关性、充分性、隔离性、经济性、可溯源性。(来源:<a href="https://arxiv.org/abs/2603.09619" target="_blank">arXiv 2603.09619</a>、<a href="https://ivern.ai/blog/ai-agent-context-engineering-complete-guide-2026" target="_blank">ivern.ai</a>)
+      </details>
+    </section>
+
+    <!-- 3 -->
+    <section id="s3" data-anim>
+      <h2><span class="num">3</span>上下文为何会崩:四种失败模式</h2>
+      <p>要理解四大策略在"治什么病",得先认识"病症"。Drew Breunig 总结了长上下文出问题的四种典型方式,已被 LangChain、Anthropic 等广泛引用。(来源:<a href="https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html" target="_blank">dbreunig</a>、<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain</a>)</p>
+
+      <div class="figure" data-anim>
+        <svg viewBox="0 0 720 260" width="100%" style="max-width:720px" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="上下文四种失败模式">
+          <g>
+            <rect x="20" y="20" width="330" height="105" rx="12" fill="#fff4e6" stroke="#b4530a" stroke-width="1.6"/>
+            <text x="36" y="48" font-size="15" font-weight="700" fill="#b4530a">① 中毒 Poisoning</text>
+            <text x="36" y="72" font-size="12.5" fill="#4a5d76">一个幻觉/错误进了上下文,之后被反复</text>
+            <text x="36" y="90" font-size="12.5" fill="#4a5d76">引用,Agent 追着一个不存在的目标跑</text>
+            <text x="36" y="112" font-size="11.5" fill="#8a6a3a">例:打宝可梦的 Agent 目标区被错误信息污染</text>
+          </g>
+          <g>
+            <rect x="370" y="20" width="330" height="105" rx="12" fill="#fff4e6" stroke="#b4530a" stroke-width="1.6"/>
+            <text x="386" y="48" font-size="15" font-weight="700" fill="#b4530a">② 分心 Distraction</text>
+            <text x="386" y="72" font-size="12.5" fill="#4a5d76">上下文长到模型过度盯着历史记录,</text>
+            <text x="386" y="90" font-size="12.5" fill="#4a5d76">反而忽略了它在训练中学到的能力</text>
+            <text x="386" y="112" font-size="11.5" fill="#8a6a3a">例:Gemini 2.5 团队观测到超 10 万 token 后出现</text>
+          </g>
+          <g>
+            <rect x="20" y="140" width="330" height="105" rx="12" fill="#fff4e6" stroke="#b4530a" stroke-width="1.6"/>
+            <text x="36" y="168" font-size="15" font-weight="700" fill="#b4530a">③ 混淆 Confusion</text>
+            <text x="36" y="192" font-size="12.5" fill="#4a5d76">上下文里塞了多余信息,模型把它</text>
+            <text x="36" y="210" font-size="12.5" fill="#4a5d76">也用上了,生成了低质量回答</text>
+            <text x="36" y="232" font-size="11.5" fill="#8a6a3a">例:工具太多、描述重叠,模型选错工具</text>
+          </g>
+          <g>
+            <rect x="370" y="140" width="330" height="105" rx="12" fill="#fff4e6" stroke="#b4530a" stroke-width="1.6"/>
+            <text x="386" y="168" font-size="15" font-weight="700" fill="#b4530a">④ 冲突 Clash</text>
+            <text x="386" y="192" font-size="12.5" fill="#4a5d76">上下文不同部分互相矛盾——尤其接入</text>
+            <text x="386" y="210" font-size="12.5" fill="#4a5d76">多个第三方工具时,说明彼此打架</text>
+            <text x="386" y="232" font-size="11.5" fill="#8a6a3a">例:多来源资料自相矛盾,模型无所适从</text>
+          </g>
+        </svg>
+        <div class="fig-cap">上下文的四种失败模式。图源:概念来自 Drew Breunig《How Long Contexts Fail》,经 LangChain 引用</div>
+      </div>
+
+      <div class="callout warn">
+        <b>关键直觉:</b> "上下文越多越好"是错的。窗口塞得越满,中毒、分心、混淆、冲突这四种毛病越容易发作。上下文工程的目标不是"填满",而是"填对"。
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section id="s4" data-anim>
+      <h2><span class="num">4</span>四大策略:写 / 选 / 压 / 隔</h2>
+      <p>LangChain 团队(Lance Martin)把业界常见做法归纳成四个桶——<strong>写(Write)、选(Select)、压(Compress)、隔(Isolate)</strong>。这套分类现在几乎是讨论上下文工程的通用语言。下面逐个用大白话讲透。(来源:<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain</a>、<a href="https://atlan.com/know/four-context-engineering-strategies/" target="_blank">Atlan</a>)</p>
+
+      <div class="figure" data-anim>
+        <svg viewBox="0 0 720 200" width="100%" style="max-width:720px" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="四大策略围绕上下文窗口">
+          <rect x="270" y="70" width="180" height="60" rx="12" fill="#e5efff" stroke="#1560d4" stroke-width="2"/>
+          <text x="360" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#0b2e6b">上下文窗口</text>
+          <text x="360" y="118" text-anchor="middle" font-size="11.5" fill="#4a5d76">模型的工作记忆</text>
+
+          <rect x="40" y="20" width="150" height="44" rx="10" fill="#e5f7ef" stroke="#0d7a54" stroke-width="1.6"/>
+          <text x="115" y="47" text-anchor="middle" font-size="13" font-weight="700" fill="#0d7a54">写 Write · 存出去</text>
+          <path d="M270 92 C220 70 200 60 192 48" stroke="#0d7a54" stroke-width="2" fill="none" data-draw marker-end="url(#g)"/>
+
+          <rect x="530" y="20" width="150" height="44" rx="10" fill="#e5efff" stroke="#1560d4" stroke-width="1.6"/>
+          <text x="605" y="47" text-anchor="middle" font-size="13" font-weight="700" fill="#1560d4">选 Select · 取回来</text>
+          <path d="M528 46 C520 60 500 72 450 92" stroke="#1560d4" stroke-width="2" fill="none" data-draw marker-end="url(#b2)"/>
+
+          <rect x="40" y="140" width="150" height="44" rx="10" fill="#fff4e6" stroke="#b4530a" stroke-width="1.6"/>
+          <text x="115" y="167" text-anchor="middle" font-size="13" font-weight="700" fill="#b4530a">压 Compress · 缩短</text>
+          <path d="M192 152 C210 140 235 128 270 112" stroke="#b4530a" stroke-width="2" fill="none" data-draw marker-end="url(#o)"/>
+
+          <rect x="530" y="140" width="150" height="44" rx="10" fill="#f2f0ff" stroke="#5b3fd0" stroke-width="1.6"/>
+          <text x="605" y="167" text-anchor="middle" font-size="13" font-weight="700" fill="#5b3fd0">隔 Isolate · 分开</text>
+          <path d="M450 112 C500 128 512 140 528 152" stroke="#5b3fd0" stroke-width="2" fill="none" data-draw marker-end="url(#p)"/>
+          <defs>
+            <marker id="g" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0d7a54"/></marker>
+            <marker id="b2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1560d4"/></marker>
+            <marker id="o" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#b4530a"/></marker>
+            <marker id="p" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5b3fd0"/></marker>
+          </defs>
+        </svg>
+        <div class="fig-cap">四大策略都围绕"上下文窗口"这块有限内存做文章。图源:概念改编自 LangChain《Context Engineering》</div>
+      </div>
+
+      <h3>① 写 Write — 把信息存到窗口外面</h3>
+      <p>"写"就是<strong>把有用的信息保存到上下文窗口之外</strong>,需要时再拿。就像人做复杂任务时会在草稿纸上记笔记。两种典型:</p>
+      <ul>
+        <li><strong>草稿本 Scratchpad(单次任务内):</strong> Agent 把中间信息写到一个文件或运行时状态对象里。Anthropic 的多 Agent 研究系统就是例子——主研究员一开始就把计划"写进 Memory",因为一旦上下文超过 20 万 token 会被截断,必须先把计划保住。(来源:<a href="https://www.anthropic.com/engineering/built-multi-agent-research-system" target="_blank">Anthropic</a>,经 LangChain 引用)</li>
+        <li><strong>长期记忆 Memory(跨多次会话):</strong> 像 ChatGPT、Cursor、Windsurf 都能自动生成跨会话的长期记忆。学术上,Reflexion 提出每轮后"反思"并复用自生成的记忆。</li>
+      </ul>
+
+      <h3>② 选 Select — 需要时把对的信息拉进来</h3>
+      <p>"选"就是<strong>在每一步,只把当下相关的信息拉进上下文窗口</strong>。存了不等于会用,关键是"选得准"。它作用在几类对象上:</p>
+      <ul>
+        <li><strong>记忆的选取:</strong> 挑相关的 few-shot 示例(情景记忆)、指令(程序性记忆)或事实(语义记忆)。很多代码 Agent 用固定文件常驻上下文,比如 Claude Code 的 <code>CLAUDE.md</code>、Cursor/Windsurf 的 rules 文件。</li>
+        <li><strong>工具的选取:</strong> 工具太多会让模型"挑花眼"(描述重叠导致选错)。对工具描述做 RAG、只拉最相关的几个工具,有论文显示能把工具选择准确率提升约 <strong>3 倍</strong>。</li>
+        <li><strong>知识的选取(RAG):</strong> 代码 Agent 是大规模 RAG 的最佳实战场——Windsurf 指出,代码库一大,单纯 embedding 检索就不可靠,得组合 grep/文件搜索、知识图谱检索,再加一步重排序(re-ranking)。</li>
+      </ul>
+      <div class="callout warn"><b>"选"也会翻车:</b> Simon Willison 举过例子——ChatGPT 从记忆里取出他的位置,意外注入到一张他要生成的图里,让人觉得"上下文窗口不再属于自己了"。选择过度或选错,一样有害。</div>
+
+      <h3>③ 压 Compress — 只留完成任务必需的 token</h3>
+      <p>"压"就是<strong>把上下文缩短,只保留任务真正需要的那部分 token</strong>。两种手法:</p>
+      <ul>
+        <li><strong>摘要 Summarization:</strong> 用 LLM 把长轨迹提炼成短摘要。用过 Claude Code 就见过——超过窗口 95% 时它会自动 "auto-compact",把整段交互历史压缩。也可在特定位置压,比如对 token 很重的搜索工具输出做后处理,或在"Agent 与 Agent 交接"时压缩以减少交接 token(Cognition 甚至专门微调了一个模型来做这步)。</li>
+        <li><strong>修剪 Trimming:</strong> 不用模型,直接按规则"剪枝"——比如删掉过老的消息。Drew Breunig 还提到 Provence,一个为问答训练的上下文剪枝器。</li>
+      </ul>
+
+      <h3>④ 隔 Isolate — 把不相干的上下文分开放</h3>
+      <p>"隔"就是<strong>把上下文拆开,不让互不相关的部分互相干扰</strong>。三种做法:</p>
+      <ul>
+        <li><strong>多 Agent:</strong> 最流行的隔离方式——把上下文拆给多个子 Agent,每个有自己的工具、指令和独立的上下文窗口,各管一块窄任务。</li>
+        <li><strong>用环境/沙箱隔离:</strong> HuggingFace 的 deep researcher 用 CodeAgent——模型输出的是代码,在沙箱里运行,只把需要的返回值传回给 LLM。特别适合把"token 很重的对象"(图片、音频)留在环境里,用变量引用,不塞进上下文。</li>
+        <li><strong>用状态对象隔离:</strong> 给 Agent 设计一个带 schema 的运行时 state,把工具结果写进某些字段,先不暴露给 LLM,等真正需要时再取。</li>
+      </ul>
+      <div class="callout key"><b>把四招串起来记:</b> 信息太多放不下 → 先<b>写</b>出去;这一步用得着 → <b>选</b>回来;还是太长 → <b>压</b>缩;彼此会打架 → <b>隔</b>开。绝大多数真实 Agent 是四招混用。</div>
+    </section>
+
+    <!-- 5 -->
+    <section id="s5" data-anim>
+      <h2><span class="num">5</span>怎么落地(以 LangGraph 为例)</h2>
+      <p>策略讲完,落到工程上怎么做?LangChain 把 LangGraph 设计成对这四招都友好。<strong>注意:下面是官方博客给出的落地思路,不是可直接复制运行的完整代码</strong>,具体 API 请以 <a href="https://docs.langchain.com/" target="_blank">LangGraph 最新文档</a> 为准(该框架迭代很快)。(来源:<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain</a>)</p>
+
+      <div class="callout key"><b>动手前的两块地基(官方强调):</b> ① 先能"看见数据"——追踪 Agent 每一步的 token 用量,才知道该在哪儿下功夫(可观测性);② 先有办法"验证"——上下文改动到底让 Agent 变好还是变差,要能评测。没有这两样,优化就是盲调。</div>
+
+      <table>
+        <tr><th>策略</th><th>LangGraph 里怎么对应</th></tr>
+        <tr><td><b>写 Write</b></td><td>短期记忆用 checkpointing 把 state 持久化(当"草稿本");长期记忆跨会话保存文件或记忆集合,LangMem 提供抽象。</td></tr>
+        <tr><td><b>选 Select</b></td><td>每个节点(node)里可读取 state,细粒度控制这一步给模型看什么;工具选择用 LangGraph Bigtool 对工具描述做语义搜索。</td></tr>
+        <tr><td><b>压 Compress</b></td><td>把消息列表作为 state,用内置工具定期摘要/修剪;或在特定节点、工具调用后加摘要逻辑。</td></tr>
+        <tr><td><b>隔 Isolate</b></td><td>用带 schema 的 state 字段隔离工具结果;支持接入 E2B / Pyodide 沙箱;内置 supervisor、swarm 等多 Agent 架构。</td></tr>
+      </table>
+
+      <p>一个"写→选"的最小心智模型,伪代码示意(思路来自官方描述,非官方原样代码):</p>
+<pre><code>// 一个 LangGraph 节点里的思路
+node("research", (state) =&gt; {
+  // 选:只取这一步需要的字段,而不是把整个 state 丢给模型
+  const ctx = pick(state, ["plan", "recent_findings"]);
+  const out = llm(ctx, tools);
+  // 写:把重要中间结果写回 state 的独立字段(隔离),不立刻塞进 messages
+  return { scratchpad: out.notes, messages: out.answer };
+});</code></pre>
+
+      <div class="analogy"><b>类比:</b> 把 Agent 想成一个在处理大案子的侦探。<b>写</b>=把线索钉在案情板上(不用全记脑子里);<b>选</b>=每次只取跟当前线索相关的几张卡片;<b>压</b>=把厚厚的卷宗浓缩成一页要点;<b>隔</b>=把不同案子分到不同房间,免得线索串味。</div>
+    </section>
+
+    <!-- 6 -->
+    <section id="s6" data-anim>
+      <h2><span class="num">6</span>真实场景与案例</h2>
+      <div class="grid2">
+        <div class="card2"><span class="tag">隔离 · 多Agent</span><h4>Anthropic 多 Agent 研究系统</h4>多个带独立上下文的子 Agent 并行探索不同子问题,在广度优先研究任务上比单个 Claude Opus 4 <strong>高出 90.2%</strong>。代价:token 用量最高约为普通对话的 <strong>15 倍</strong>,且需要精心的子任务规划与协调。(来源:<a href="https://www.anthropic.com/engineering/built-multi-agent-research-system" target="_blank">Anthropic</a>)</div>
+        <div class="card2"><span class="tag">压缩 · 摘要</span><h4>Claude Code 自动压缩</h4>交互超过上下文窗口 95% 时自动 "auto-compact",把完整的用户-Agent 交互轨迹做摘要,让长会话不至于爆窗口。(来源:<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain 引 Anthropic 文档</a>)</div>
+        <div class="card2"><span class="tag">写 · 长期记忆</span><h4>ChatGPT / Cursor / Windsurf</h4>都内置了跨会话自动生成长期记忆的机制,基于用户-Agent 交互沉淀"记住的东西"。代码 Agent 常用固定 rules 文件(如 Claude Code 的 <code>CLAUDE.md</code>)作为常驻程序性记忆。</div>
+        <div class="card2"><span class="tag">隔离 · 环境</span><h4>HuggingFace deep researcher</h4>用 CodeAgent + 沙箱:模型产出代码在沙箱执行,只把选定的返回值传回,把 token 很重的对象(图片/音频)留在环境里用变量引用。(来源:<a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain</a>)</div>
+      </div>
+      <p style="margin-top:16px">生产侧的落地样本也在增多:例如 Lyft 用 LangGraph + LangSmith 搭了自助式客服 AI Agent 平台(2026-05 案例),背后同样离不开对上下文与轨迹的追踪与评测。(来源:<a href="https://www.langchain.com/blog/lyft-built-a-self-serve-ai-agent-platform-for-customer-support-with-langgraph-and-langsmith" target="_blank">LangChain 案例</a>)</p>
+    </section>
+
+    <!-- 7 -->
+    <section id="s7" data-anim>
+      <h2><span class="num">7</span>和 Prompt 工程、RAG 的关系</h2>
+      <p>很多人会问:这跟提示词工程、跟 RAG 有啥不一样?一句话:<strong>上下文工程是更大的伞,Prompt 工程和 RAG 都是它的子集或组成部分。</strong></p>
+      <table>
+        <tr><th>维度</th><th>Prompt 工程</th><th>RAG(检索增强)</th><th>上下文工程</th></tr>
+        <tr><td>管什么</td><td>那一段静态提示词的措辞</td><td>从外部知识库检索相关资料塞进上下文</td><td>整个运行过程里,窗口内所有信息的动态调度</td></tr>
+        <tr><td>时机</td><td>主要在调用前设计</td><td>调用时检索</td><td>Agent 每一步都在做(写/选/压/隔)</td></tr>
+        <tr><td>关系</td><td>是上下文工程的一部分(指令类)</td><td>是"选 Select"策略里的一种(知识选取)</td><td>包含前两者,再加记忆、工具、压缩、隔离</td></tr>
+      </table>
+      <div class="callout quote">可以这样记:Prompt 工程解决"怎么把话说清楚",RAG 解决"怎么把对的知识找进来",而上下文工程解决"在 Agent 跑的每一步,整块工作记忆该长什么样"。(综合自 <a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">LangChain</a>、<a href="https://www.firecrawl.dev/blog/context-engineering" target="_blank">Firecrawl</a>,属社区共识性表述)</div>
+    </section>
+
+    <!-- 8 -->
+    <section id="s8" data-anim>
+      <h2><span class="num">8</span>常见坑与限制</h2>
+      <div class="callout warn"><b>① 多 Agent 不是银弹。</b> 社区(Cognition)明确提醒:多 Agent 不会自动带来更好结果,如果只是拿 Agent 数量去弥补基础没打好,反而会失败;隔离带来的 token 成本可高达单 Agent 的 15 倍。只有当子 Agent 是"有独立角色+独立工具/权限"或并行确实提升吞吐时,才值得拆。(来源:<a href="https://aiagentsdirectory.com/blog/2026-will-be-the-year-of-multi-agent-systems" target="_blank">行业观察</a>、<a href="https://www.anthropic.com/engineering/built-multi-agent-research-system" target="_blank">Anthropic</a>)</div>
+      <div class="callout warn"><b>② 摘要会丢关键信息。</b> 若某些具体事件或决策必须保留,粗暴摘要可能把它们抹掉;Cognition 为此专门微调了模型来做压缩,说明这步没那么轻松。</div>
+      <div class="callout warn"><b>③ "选"可能选错、越权。</b> 记忆检索出错会把不该出现的信息注入结果(Simon Willison 的位置泄漏案例),既是质量问题也是隐私/信任问题。</div>
+      <div class="callout warn"><b>④ 窗口大 ≠ 可以偷懒。</b> 就算模型标称 1M+ token,相关信息超过约 50K 后质量仍会掉;"分心/混淆"随长度上升而加剧。别指望靠大窗口省掉上下文工程。(来源:<a href="https://ivern.ai/blog/ai-agent-context-engineering-complete-guide-2026" target="_blank">ivern.ai</a>,属工程观测)</div>
+      <div class="callout warn"><b>⑤ 榜单/基准要当上界读。</b> 相关的评测研究(ABC 检查清单)提醒:公开测试集可能污染训练数据、抬高分数,最好用留出集或已验证的划分,把榜单数字当"上界"而非保证。(来源:<a href="https://arxiv.org/pdf/2507.02825" target="_blank">arXiv 2507.02825</a>)</div>
+    </section>
+
+    <!-- 9 -->
+    <section id="s9" data-anim>
+      <h2><span class="num">9</span>学习资源</h2>
+      <ul>
+        <li><b>LangChain《Context Engineering》(核心必读):</b> <a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank">langchain.com/blog/context-engineering-for-agents</a> — 四大策略 + LangGraph 落地,本文主干来源。</li>
+        <li><b>Drew Breunig《How Long Contexts Fail》/《How to Fix Your Context》:</b> <a href="https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html" target="_blank">失败四模式</a> / <a href="https://www.dbreunig.com/2025/06/26/how-to-fix-your-context.html" target="_blank">修复方法</a>。</li>
+        <li><b>Anthropic 多 Agent 研究系统工程博客:</b> <a href="https://www.anthropic.com/engineering/built-multi-agent-research-system" target="_blank">anthropic.com/engineering/built-multi-agent-research-system</a> — 写/隔离策略的一手案例。</li>
+        <li><b>Simon Willison《How to Fix Your Context》:</b> <a href="https://simonwillison.net/2025/Jun/29/how-to-fix-your-context/" target="_blank">simonwillison.net</a>。</li>
+        <li><b>综述/指南(社区):</b> <a href="https://ivern.ai/blog/ai-agent-context-engineering-complete-guide-2026" target="_blank">ivern.ai 2026 完整指南</a>、<a href="https://atlan.com/know/four-context-engineering-strategies/" target="_blank">Atlan 四策略</a>、<a href="https://www.firecrawl.dev/blog/context-engineering" target="_blank">Firecrawl:上下文工程 vs 提示词工程</a>。</li>
+        <li><b>学术:</b> <a href="https://arxiv.org/abs/2603.09619" target="_blank">Context Engineering: From Prompts to Corporate Multi-Agent Architecture</a>、<a href="https://arxiv.org/pdf/2507.02825" target="_blank">Establishing Best Practices for Building Rigorous Agentic Benchmarks</a>。</li>
+      </ul>
+    </section>
+
+    <!-- sources -->
+    <section id="s10" data-anim>
+      <h2>来源清单</h2>
+      <ol class="src-list">
+        <li>LangChain,《Context Engineering》(核心来源,已 fetch 全文),2025-07-02 发布 — https://www.langchain.com/blog/context-engineering-for-agents</li>
+        <li>Drew Breunig,《How Long Contexts Fail》,2025-06-22 — https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html</li>
+        <li>Drew Breunig,《How to Fix Your Context》,2025-06-26 — https://www.dbreunig.com/2025/06/26/how-to-fix-your-context.html</li>
+        <li>Anthropic Engineering,多 Agent 研究系统 — https://www.anthropic.com/engineering/built-multi-agent-research-system</li>
+        <li>Atlan,《Write, Select, Compress, Isolate》 — https://atlan.com/know/four-context-engineering-strategies/</li>
+        <li>ivern.ai,《AI Agent Context Engineering: Complete Guide (2026)》 — https://ivern.ai/blog/ai-agent-context-engineering-complete-guide-2026</li>
+        <li>arXiv 2603.09619,《Context Engineering: From Prompts to Corporate Multi-Agent Architecture》 — https://arxiv.org/abs/2603.09619</li>
+        <li>arXiv 2507.02825,《Establishing Best Practices for Building Rigorous Agentic Benchmarks》 — https://arxiv.org/pdf/2507.02825</li>
+        <li>Firecrawl,《Context Engineering vs Prompt Engineering》 — https://www.firecrawl.dev/blog/context-engineering</li>
+        <li>Simon Willison,《How to Fix Your Context》,2025-06-29 — https://simonwillison.net/2025/Jun/29/how-to-fix-your-context/</li>
+        <li>LangChain 案例,Lyft 自助客服 AI Agent 平台,2026-05 — https://www.langchain.com/blog/lyft-built-a-self-serve-ai-agent-platform-for-customer-support-with-langgraph-and-langsmith</li>
+      </ol>
+      <div class="callout quote" style="margin-top:14px">说明:本文核心框架(四大策略、四种失败模式、Anthropic/HuggingFace 案例)来自已 fetch 全文的 LangChain 官方博客及其引用的一手来源,可信度较高;部分量化阈值(50K/100K/5×/15×)为工程观测或社区指南数据,非官方硬性标准,随模型与任务变化,决策时请核对官方最新文档与自身评测。「怎么用」一节的 LangGraph API 迭代较快,以官方文档为准。</div>
+    </section>
+
+    <footer>
+      调研时间:2026-07-08 · 本文档由每日 AI 情报定时任务自动生成 · 内容基于公开网络来源,已尽力交叉验证并区分事实与观点 · 细节以各官方最新文档为准
+    </footer>
+  </main>
+</div>
+<script>
+  // progress bar
+  const prog=document.getElementById('prog');
+  const onScroll=()=>{const h=document.documentElement;const sc=h.scrollTop/(h.scrollHeight-h.clientHeight);prog.style.width=(sc*100)+'%';};
+  document.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  // toc toggle (mobile)
+  const toc=document.getElementById('toc'),btn=document.getElementById('tocBtn');
+  btn.addEventListener('click',()=>toc.classList.toggle('open'));
+  toc.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>toc.classList.remove('open')));
+  // scroll spy
+  const links=[...toc.querySelectorAll('a')];
+  const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+  const spy=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){const id='#'+e.target.id;links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')===id));}});},{rootMargin:'-45% 0px -50% 0px'});
+  secs.forEach(s=>s&&spy.observe(s));
+  // entrance anim
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');e.target.querySelectorAll('[data-draw]').forEach(p=>{p.style.strokeDasharray=p.getTotalLength();p.style.strokeDashoffset=p.getTotalLength();requestAnimationFrame(()=>{p.style.strokeDashoffset=0;});});io.unobserve(e.target);}});},{threshold:.12});
+  document.querySelectorAll('[data-anim]').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
