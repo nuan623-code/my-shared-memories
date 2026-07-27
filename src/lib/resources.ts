@@ -22,6 +22,10 @@ export interface Resource {
   published_at: string;
   created_at: string;
   updated_at: string;
+  /** 内容语言:zh | en(见 supabase/patches/2026-07-28-i18n-lang.sql) */
+  lang: string | null;
+  /** 同一内容的不同语言版本共享此 key,用于 hreflang 互指与语言切换;单语内容为 null */
+  i18n_key: string | null;
 }
 
 export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
@@ -107,4 +111,22 @@ export function noteGradient(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return NOTE_GRADIENTS[h % NOTE_GRADIENTS.length];
+}
+
+/** 查同一内容的其他语言版本(i18n_key 相同),用于 hreflang 互指与语言切换 */
+export async function fetchTranslations(
+  i18nKey: string | null,
+): Promise<Array<{ lang: string; slug: string; url: string | null }>> {
+  if (!i18nKey) return [];
+  const { data, error } = await supabase
+    .from("resources")
+    .select("lang, slug, url")
+    .eq("i18n_key", i18nKey)
+    .not("slug", "is", null);
+  if (error) return [];
+  return (data ?? []).map((r) => ({
+    lang: (r.lang as string) ?? "zh",
+    slug: r.slug as string,
+    url: (r.url as string) ?? null,
+  }));
 }

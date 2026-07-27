@@ -4,23 +4,21 @@ import { useMemo, useState } from "react";
 import { fetchNotePosts } from "@/lib/notes";
 import { NoteComposer } from "@/components/NoteComposer";
 import { NotePostCard } from "@/components/NotePostCard";
+import { i18nHead } from "@/lib/i18n/head";
 
-const notesQO = queryOptions({
+export const notesQO = queryOptions({
   queryKey: ["note-posts"],
   queryFn: () => fetchNotePosts(),
 });
 
 export const Route = createFileRoute("/notes")({
-  head: () => ({
-    meta: [
-      { title: "碎片广场 — Mingyu's Library" },
-      { name: "description", content: "公开的想法广场：任何人都可以发帖、评论、回复。" },
-      { property: "og:title", content: "碎片广场 — Mingyu's Library" },
-      { property: "og:description", content: "公开的想法广场：任何人都可以发帖、评论、回复。" },
-      { property: "og:url", content: "https://mingyuyang.com/notes" },
-    ],
-    links: [{ rel: "canonical", href: "https://mingyuyang.com/notes" }],
-  }),
+  head: () =>
+    i18nHead({
+      path: "/notes",
+      locale: "zh",
+      title: "碎片广场 — Mingyu's Library",
+      description: "公开的想法广场:任何人都可以发帖、评论、回复。",
+    }),
   loader: ({ context }) => context.queryClient.ensureQueryData(notesQO),
   component: NotesPage,
   errorComponent: ({ error }) => (
@@ -29,7 +27,7 @@ export const Route = createFileRoute("/notes")({
   notFoundComponent: () => <div className="p-8 text-center text-sm">未找到</div>,
 });
 
-function NotesPage() {
+export function NotesPage() {
   const { data: posts } = useSuspenseQuery(notesQO);
   const [activeTag, setActiveTag] = useState<string | null>(null);
 

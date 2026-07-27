@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Search as SearchIcon } from "lucide-react";
@@ -12,7 +12,7 @@ const schema = z.object({
   type: fallback(z.enum(["all", "article", "video", "link", "file", "note"]), "all").default("all"),
 });
 
-const qo = queryOptions({
+export const qo = queryOptions({
   queryKey: ["resources", "all-search"],
   queryFn: () => fetchResources({}),
 });
@@ -24,9 +24,11 @@ export const Route = createFileRoute("/search")({
   component: SearchPage,
 });
 
-function SearchPage() {
-  const params = Route.useSearch();
-  const navigate = Route.useNavigate();
+// 用 strict:false 的通用 hook 而非 Route.useSearch/useNavigate,
+// 这样 /en/search 能复用同一个组件(Route 是模块级常量,会绑死中文路由)。
+export function SearchPage() {
+  const params = useSearch({ strict: false }) as z.infer<typeof schema>;
+  const navigate = useNavigate();
   const { data: all } = useSuspenseQuery(qo);
   const [q, setQ] = useState(params.q);
 
@@ -42,7 +44,10 @@ function SearchPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate({ search: (p: z.input<typeof schema>) => ({ ...p, q }) });
+    // strict:false 的 navigate 推不出本页 search 形状,这里显式收窄
+    navigate({
+      search: ((p: z.input<typeof schema>) => ({ ...p, q })) as never,
+    });
   };
 
   return (

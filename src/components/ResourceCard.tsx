@@ -15,7 +15,9 @@ import {
   isNew,
   noteGradient,
 } from "@/lib/resources";
-import { getCategory } from "@/lib/data";
+import { getCategory, catLabel } from "@/lib/data";
+import { useLocale, useT } from "@/lib/i18n/use-t";
+import { localizedPath } from "@/lib/i18n";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
 import { useReadingMap } from "@/hooks/use-reading-status";
@@ -31,6 +33,12 @@ const TYPE_ICON = {
 export function ResourceCard({ resource: r }: { resource: Resource }) {
   const Icon = TYPE_ICON[r.type];
   const cat = getCategory(r.category);
+  const locale = useLocale();
+  const t = useT();
+  // 内容语言与界面语言不一致时给个明确标记(站内大多数长文是中文,
+  // 英文读者需要一眼看出哪些点进去是中文)
+  const contentLang = (r.lang ?? "zh") as "zh" | "en";
+  const showLangBadge = contentLang !== locale;
   // 登录用户的私有阅读状态(未登录时查询不启用,徽章不显示)
   const { data: readingMap } = useReadingMap();
   const reading = readingMap?.get(r.id) ?? null;
@@ -55,20 +63,25 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
     <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
       <span className="inline-flex items-center gap-1.5">
         <Icon className="h-3.5 w-3.5" />
-        {cat?.label ?? r.type}
+        {cat ? catLabel(cat, locale) : r.type}
+        {showLangBadge && (
+          <span className="rounded-full border border-border px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+            {contentLang === "zh" ? "中文" : "EN"}
+          </span>
+        )}
         {isNew(r.published_at) && (
           <span className="rounded-full bg-primary px-1.5 py-px text-[10px] font-semibold text-primary-foreground">
-            新
+            {t("home.badge.new")}
           </span>
         )}
         {reading === "to_read" && (
           <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
-            待读
+            {t("article.toRead")}
           </span>
         )}
         {reading === "read" && (
           <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-semibold text-muted-foreground">
-            已读
+            {t("article.read")}
           </span>
         )}
       </span>
@@ -226,7 +239,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
         {favOverlay}
         {r.slug ? (
           <Link
-            to="/resources/$slug"
+            to={localizedPath("/resources/$slug", locale)}
             params={{ slug: r.slug }}
             className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
           >
@@ -275,7 +288,7 @@ export function ResourceCard({ resource: r }: { resource: Resource }) {
       {favOverlay}
       {r.slug ? (
         <Link
-          to="/articles/$slug"
+          to={localizedPath("/articles/$slug", locale)}
           params={{ slug: r.slug }}
           className="group block rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-md"
         >

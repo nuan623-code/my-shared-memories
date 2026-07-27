@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { i18nHead } from "@/lib/i18n/head";
 import {
   Code2,
   Gamepad2,
@@ -11,16 +12,13 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "关于 — Mingyu Yang" },
-      { name: "description", content: "了解 Mingyu Yang 的背景、经验和兴趣方向。" },
-      { property: "og:title", content: "关于 — Mingyu Yang" },
-      { property: "og:description", content: "了解 Mingyu Yang 的背景与经验" },
-      { property: "og:url", content: "https://mingyuyang.com/about" },
-    ],
-    links: [{ rel: "canonical", href: "https://mingyuyang.com/about" }],
-  }),
+  head: () =>
+    i18nHead({
+      path: "/about",
+      locale: "zh",
+      title: "关于 — Mingyu Yang",
+      description: "了解 Mingyu Yang 的背景、经验和兴趣方向。",
+    }),
   component: AboutPage,
 });
 
@@ -52,7 +50,7 @@ const interests = [
   },
 ];
 
-function AboutPage() {
+export function AboutPage() {
   return (
     <div className="px-4 py-12">
       <div className="mx-auto max-w-3xl">

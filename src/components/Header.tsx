@@ -4,26 +4,42 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdminStatus } from "@/hooks/use-is-admin";
 import { NotificationBell } from "@/components/NotificationBell";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLocale, useT } from "@/lib/i18n/use-t";
 
 
-const navItems = [
-  { to: "/" as const, label: "首页" },
-  { to: "/resources" as const, label: "资源库" },
-  { to: "/notes" as const, label: "碎片" },
-  { to: "/about" as const, label: "关于" },
-];
+// 导航项按当前语言指向对应前缀,英文页里点导航不会掉回中文站
+const NAV = {
+  zh: [
+    { to: "/" as const, key: "nav.home" as const },
+    { to: "/resources" as const, key: "nav.resources" as const },
+    { to: "/notes" as const, key: "nav.notes" as const },
+    { to: "/about" as const, key: "nav.about" as const },
+  ],
+  en: [
+    { to: "/en" as const, key: "nav.home" as const },
+    { to: "/en/resources" as const, key: "nav.resources" as const },
+    { to: "/en/notes" as const, key: "nav.notes" as const },
+    { to: "/en/about" as const, key: "nav.about" as const },
+  ],
+};
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const { isAdmin } = useAdminStatus();
+  const locale = useLocale();
+  const t = useT();
+  const navItems = NAV[locale];
+  const home = locale === "en" ? ("/en" as const) : ("/" as const);
+  const search = locale === "en" ? ("/en/search" as const) : ("/search" as const);
 
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <Link to={home} className="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <Library className="h-5 w-5 text-primary" />
             <span className="font-display">Mingyu's Library</span>
           </Link>
@@ -37,7 +53,7 @@ export function Header() {
                 activeOptions={{ exact: item.to === "/" }}
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                {item.label}
+                {t(item.key)}
               </Link>
             ))}
           </nav>
@@ -45,12 +61,13 @@ export function Header() {
 
         <div className="flex items-center gap-1">
           <Link
-            to="/search"
+            to={search}
             className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="搜索"
+            aria-label={t("nav.search")}
           >
             <Search className="h-4 w-4" />
           </Link>
+          <LanguageSwitcher />
           <NotificationBell />
           {user ? (
 
@@ -60,14 +77,14 @@ export function Header() {
                   to="/admin"
                   className="hidden items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 md:inline-flex"
                 >
-                  <Plus className="h-3.5 w-3.5" /> 发布
+                  <Plus className="h-3.5 w-3.5" /> {t("nav.publish")}
                 </Link>
               )}
               <Link
                 to="/account"
                 className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="我的账号"
-                title="我的账号"
+                aria-label={t("nav.account")}
+                title={t("nav.account")}
               >
                 <UserIcon className="h-4 w-4" />
               </Link>
@@ -77,7 +94,7 @@ export function Header() {
               to="/auth"
               className="hidden items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-muted md:inline-flex"
             >
-              <UserIcon className="h-3.5 w-3.5" /> 登录
+              <UserIcon className="h-3.5 w-3.5" /> {t("nav.login")}
             </Link>
           )}
           <button
@@ -101,7 +118,7 @@ export function Header() {
                 activeProps={{ className: "text-primary font-medium" }}
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                {item.label}
+                {t(item.key)}
               </Link>
             ))}
             {user ? (

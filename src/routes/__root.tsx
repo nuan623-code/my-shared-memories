@@ -7,10 +7,12 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { type ReactNode, useEffect } from "react";
+import { localeFromPath, HTML_LANG } from "@/lib/i18n";
 
 import appCss from "../styles.css?url";
 import { Header } from "../components/Header";
@@ -127,8 +129,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // lang 必须 SSR 阶段就正确(爬虫据此判断页面语言)。
+  // 纯函数派生自 pathname,服务端与客户端结果一致,不会 hydration mismatch。
+  const locale = useRouterState({ select: (s) => localeFromPath(s.location.pathname) });
   return (
-    <html lang="zh-CN">
+    <html lang={HTML_LANG[locale]}>
       <head>
         <HeadContent />
       </head>

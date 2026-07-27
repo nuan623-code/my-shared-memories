@@ -7,7 +7,7 @@ import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { fetchResourceBySlug, fetchResources, formatDate } from "@/lib/resources";
+import { fetchResourceBySlug, fetchResources, fetchTranslations, formatDate } from "@/lib/resources";
 import { fetchAdjacentArticles, fetchRelatedArticles } from "@/lib/related";
 import { useAuth } from "@/hooks/use-auth";
 import { trackView } from "@/lib/views";
@@ -23,10 +23,13 @@ export const Route = createFileRoute("/articles/$slug")({
   loader: async ({ params }) => {
     const article = await fetchResourceBySlug(params.slug);
     if (!article) throw notFound();
-    return { article };
+    // 有译文版本时要在 head 里 hreflang 互指(中英 slug 可能不同,必须查出来)
+    const alts = await fetchTranslations(article.i18n_key);
+    return { article, alts };
   },
   head: ({ loaderData, params }) => {
     const a = loaderData?.article;
+    const alts = loaderData?.alts ?? [];
     const title = `${a?.title ?? "文章"} — Mingyu's Library`;
     const description = (a?.summary || a?.title || "Mingyu 的文章与笔记").slice(0, 200);
     // OG/canonical 必须绝对 URL;og:image 用静态 PNG(SVG 会被所有社交爬虫忽略)
@@ -59,10 +62,32 @@ export const Route = createFileRoute("/articles/$slug")({
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: ogImage },
       ],
-      links: [{ rel: "canonical", href: canonical }],
+      links: [
+        { rel: "canonical", href: canonical },
+        // 仅当该内容确有另一语言版本时输出 hreflang(单语页输出会被判为错误配置)
+        ...(alts.length > 1
+          ? [
+              ...alts.map((t) => ({
+                rel: "alternate",
+                hreflang: t.lang === "en" ? "en" : "zh-Hans",
+                href: absUrl(t.lang === "en" ? `/en/articles/${t.slug}` : `/articles/${t.slug}`),
+              })),
+              {
+                rel: "alternate",
+                hreflang: "x-default",
+                href: absUrl(
+                  `/articles/${alts.find((t) => t.lang !== "en")?.slug ?? params.slug}`,
+                ),
+              },
+            ]
+          : []),
+      ],
     };
   },
-  component: ArticleDetailPage,
+  component: function ArticleRoute() {
+    const { article } = Route.useLoaderData();
+    return <ArticleDetailPage article={article} />;
+  },
   errorComponent: ({ error }) => (
     <div className="p-8 text-center text-sm text-muted-foreground">{error.message}</div>
   ),
@@ -91,8 +116,9 @@ function cleanTocText(raw: string): string {
   return t;
 }
 
-function ArticleDetailPage() {
-  const { article } = Route.useLoaderData();
+// 组件接 props 而非 Route.useLoaderData(),这样 /en/articles/$slug 能复用同一个组件
+// (Route 是模块级常量,直接复用会读到中文路由的 loader)。
+export function ArticleDetailPage({ article }: { article: Resource }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const iframeRef = useRef<HTMLIFrameElement>(null);

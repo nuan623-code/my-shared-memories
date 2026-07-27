@@ -305,6 +305,8 @@ export type Database = {
       }
       resources: {
         Row: {
+          lang: string | null
+          i18n_key: string | null
           category: string | null
           content: string | null
           cover_url: string | null
@@ -328,6 +330,8 @@ export type Database = {
           url: string | null
         }
         Insert: {
+          lang?: string | null
+          i18n_key?: string | null
           category?: string | null
           content?: string | null
           cover_url?: string | null
@@ -351,6 +355,8 @@ export type Database = {
           url?: string | null
         }
         Update: {
+          lang?: string | null
+          i18n_key?: string | null
           category?: string | null
           content?: string | null
           cover_url?: string | null

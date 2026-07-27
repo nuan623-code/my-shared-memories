@@ -3,24 +3,23 @@ import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
-import { categories } from "@/lib/data";
+import { categories, catLabel } from "@/lib/data";
+import { useT, useLocale } from "@/lib/i18n/use-t";
+import { i18nHead } from "@/lib/i18n/head";
 
-const allResourcesQO = queryOptions({
+export const allResourcesQO = queryOptions({
   queryKey: ["resources", "all"],
   queryFn: () => fetchResources({}),
 });
 
 export const Route = createFileRoute("/resources")({
-  head: () => ({
-    meta: [
-      { title: "资源库 — Mingyu's Library" },
-      { name: "description", content: "浏览所有文章、视频、链接、文件与碎片笔记。" },
-      { property: "og:title", content: "资源库 — Mingyu's Library" },
-      { property: "og:description", content: "浏览所有内容资源" },
-      { property: "og:url", content: "https://mingyuyang.com/resources" },
-    ],
-    links: [{ rel: "canonical", href: "https://mingyuyang.com/resources" }],
-  }),
+  head: () =>
+    i18nHead({
+      path: "/resources",
+      locale: "zh",
+      title: "资源库 — Mingyu's Library",
+      description: "浏览所有文章、视频、链接、文件与碎片笔记,可按类型、分类与语言筛选。",
+    }),
   component: ResourcesPage,
   errorComponent: ({ error }) => (
     <div className="p-8 text-center text-sm text-muted-foreground">出错了：{error.message}</div>
@@ -65,7 +64,9 @@ function ResourcesPendingPage() {
   );
 }
 
-function ResourcesPage() {
+export function ResourcesPage() {
+  const t = useT();
+  const locale = useLocale();
   const { data: resources = [], isLoading, error, refetch } = useQuery(allResourcesQO);
   const [type, setType] = useState<ResourceType | "all">("all");
   const [cat, setCat] = useState<string>("all");
@@ -94,7 +95,7 @@ function ResourcesPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
-        <p className="mt-3 text-sm text-muted-foreground">资源加载失败，请稍后重试。</p>
+        <p className="mt-3 text-sm text-muted-foreground">{t("res.error")}</p>
         <button
           onClick={() => refetch()}
           className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
@@ -112,27 +113,27 @@ function ResourcesPage() {
         <div className="sticky top-24 space-y-6">
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              类型
+              {t("res.filter.type")}
             </h3>
             <div className="space-y-1">
-              {TYPES.map((t) => (
+              {TYPES.map((ty) => (
                 <button
-                  key={t}
-                  onClick={() => setType(t)}
+                  key={ty}
+                  onClick={() => setType(ty)}
                   className={`w-full rounded-md px-2.5 py-1.5 text-left text-sm transition ${
-                    type === t
+                    type === ty
                       ? "bg-primary/10 font-medium text-primary"
                       : "text-foreground/80 hover:bg-muted"
                   }`}
                 >
-                  {t === "all" ? "全部" : RESOURCE_TYPE_LABELS[t]}
+                  {ty === "all" ? t("res.filter.all") : RESOURCE_TYPE_LABELS[ty]}
                 </button>
               ))}
             </div>
           </div>
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              分类
+              {t("res.filter.category")}
             </h3>
             <div className="space-y-1">
               <button
@@ -143,7 +144,7 @@ function ResourcesPage() {
                     : "text-foreground/80 hover:bg-muted"
                 }`}
               >
-                全部分类
+                {t("res.filter.allCategories")}
               </button>
               {categories.map((c) => (
                 <button
@@ -159,7 +160,7 @@ function ResourcesPage() {
                     className="h-2 w-2 rounded-full"
                     style={{ backgroundColor: c.color }}
                   />
-                  {c.label}
+                  {catLabel(c, locale)}
                 </button>
               ))}
             </div>
@@ -167,7 +168,7 @@ function ResourcesPage() {
           {allTags.length > 0 && (
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                热门标签
+                {t("res.filter.tags")}
               </h3>
               <div className="flex flex-wrap gap-1.5">
                 {allTags.slice(0, 30).map(([t, n]) => (
@@ -194,7 +195,7 @@ function ResourcesPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             资源库
           </h1>
-          <span className="text-xs text-muted-foreground">{filtered.length} 项</span>
+          <span className="text-xs text-muted-foreground">{filtered.length} {t("res.count")}</span>
         </div>
         <ResourceMasonry resources={filtered} />
       </div>

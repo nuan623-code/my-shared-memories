@@ -18,12 +18,18 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EnIndexRouteImport } from './routes/en/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as ResourcesSlugRouteImport } from './routes/resources.$slug'
+import { Route as EnSearchRouteImport } from './routes/en/search'
+import { Route as EnResourcesRouteImport } from './routes/en/resources'
+import { Route as EnNotesRouteImport } from './routes/en/notes'
+import { Route as EnAboutRouteImport } from './routes/en/about'
 import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as EnArticlesSlugRouteImport } from './routes/en/articles.$slug'
 import { Route as ApiOgArticlesSlugRouteImport } from './routes/api.og.articles.$slug'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -70,6 +76,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnIndexRoute = EnIndexRouteImport.update({
+  id: '/en/',
+  path: '/en/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArticlesIndexRoute = ArticlesIndexRouteImport.update({
   id: '/articles/',
   path: '/articles/',
@@ -85,6 +96,26 @@ const ResourcesSlugRoute = ResourcesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ResourcesRoute,
 } as any)
+const EnSearchRoute = EnSearchRouteImport.update({
+  id: '/en/search',
+  path: '/en/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnResourcesRoute = EnResourcesRouteImport.update({
+  id: '/en/resources',
+  path: '/en/resources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnNotesRoute = EnNotesRouteImport.update({
+  id: '/en/notes',
+  path: '/en/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnAboutRoute = EnAboutRouteImport.update({
+  id: '/en/about',
+  path: '/en/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArticlesSlugRoute = ArticlesSlugRouteImport.update({
   id: '/articles/$slug',
   path: '/articles/$slug',
@@ -99,6 +130,11 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const EnArticlesSlugRoute = EnArticlesSlugRouteImport.update({
+  id: '/en/articles/$slug',
+  path: '/en/articles/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOgArticlesSlugRoute = ApiOgArticlesSlugRouteImport.update({
   id: '/api/og/articles/$slug',
@@ -118,9 +154,15 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
+  '/en/about': typeof EnAboutRoute
+  '/en/notes': typeof EnNotesRoute
+  '/en/resources': typeof EnResourcesRoute
+  '/en/search': typeof EnSearchRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
+  '/en/': typeof EnIndexRoute
+  '/en/articles/$slug': typeof EnArticlesSlugRoute
   '/api/og/articles/$slug': typeof ApiOgArticlesSlugRoute
 }
 export interface FileRoutesByTo {
@@ -135,9 +177,15 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
+  '/en/about': typeof EnAboutRoute
+  '/en/notes': typeof EnNotesRoute
+  '/en/resources': typeof EnResourcesRoute
+  '/en/search': typeof EnSearchRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles': typeof ArticlesIndexRoute
+  '/en': typeof EnIndexRoute
+  '/en/articles/$slug': typeof EnArticlesSlugRoute
   '/api/og/articles/$slug': typeof ApiOgArticlesSlugRoute
 }
 export interface FileRoutesById {
@@ -154,9 +202,15 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
+  '/en/about': typeof EnAboutRoute
+  '/en/notes': typeof EnNotesRoute
+  '/en/resources': typeof EnResourcesRoute
+  '/en/search': typeof EnSearchRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
+  '/en/': typeof EnIndexRoute
+  '/en/articles/$slug': typeof EnArticlesSlugRoute
   '/api/og/articles/$slug': typeof ApiOgArticlesSlugRoute
 }
 export interface FileRouteTypes {
@@ -173,9 +227,15 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/articles/$slug'
+    | '/en/about'
+    | '/en/notes'
+    | '/en/resources'
+    | '/en/search'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles/'
+    | '/en/'
+    | '/en/articles/$slug'
     | '/api/og/articles/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -190,9 +250,15 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/articles/$slug'
+    | '/en/about'
+    | '/en/notes'
+    | '/en/resources'
+    | '/en/search'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles'
+    | '/en'
+    | '/en/articles/$slug'
     | '/api/og/articles/$slug'
   id:
     | '__root__'
@@ -208,9 +274,15 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/articles/$slug'
+    | '/en/about'
+    | '/en/notes'
+    | '/en/resources'
+    | '/en/search'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles/'
+    | '/en/'
+    | '/en/articles/$slug'
     | '/api/og/articles/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -225,8 +297,14 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ArticlesSlugRoute: typeof ArticlesSlugRoute
+  EnAboutRoute: typeof EnAboutRoute
+  EnNotesRoute: typeof EnNotesRoute
+  EnResourcesRoute: typeof EnResourcesRoute
+  EnSearchRoute: typeof EnSearchRoute
   UUsernameRoute: typeof UUsernameRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
+  EnIndexRoute: typeof EnIndexRoute
+  EnArticlesSlugRoute: typeof EnArticlesSlugRoute
   ApiOgArticlesSlugRoute: typeof ApiOgArticlesSlugRoute
 }
 
@@ -295,6 +373,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/en/': {
+      id: '/en/'
+      path: '/en'
+      fullPath: '/en/'
+      preLoaderRoute: typeof EnIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/articles/': {
       id: '/articles/'
       path: '/articles'
@@ -316,6 +401,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResourcesSlugRouteImport
       parentRoute: typeof ResourcesRoute
     }
+    '/en/search': {
+      id: '/en/search'
+      path: '/en/search'
+      fullPath: '/en/search'
+      preLoaderRoute: typeof EnSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en/resources': {
+      id: '/en/resources'
+      path: '/en/resources'
+      fullPath: '/en/resources'
+      preLoaderRoute: typeof EnResourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en/notes': {
+      id: '/en/notes'
+      path: '/en/notes'
+      fullPath: '/en/notes'
+      preLoaderRoute: typeof EnNotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en/about': {
+      id: '/en/about'
+      path: '/en/about'
+      fullPath: '/en/about'
+      preLoaderRoute: typeof EnAboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/articles/$slug': {
       id: '/articles/$slug'
       path: '/articles/$slug'
@@ -336,6 +449,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account'
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/en/articles/$slug': {
+      id: '/en/articles/$slug'
+      path: '/en/articles/$slug'
+      fullPath: '/en/articles/$slug'
+      preLoaderRoute: typeof EnArticlesSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/og/articles/$slug': {
       id: '/api/og/articles/$slug'
@@ -383,8 +503,14 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ArticlesSlugRoute: ArticlesSlugRoute,
+  EnAboutRoute: EnAboutRoute,
+  EnNotesRoute: EnNotesRoute,
+  EnResourcesRoute: EnResourcesRoute,
+  EnSearchRoute: EnSearchRoute,
   UUsernameRoute: UUsernameRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
+  EnIndexRoute: EnIndexRoute,
+  EnArticlesSlugRoute: EnArticlesSlugRoute,
   ApiOgArticlesSlugRoute: ApiOgArticlesSlugRoute,
 }
 export const routeTree = rootRouteImport

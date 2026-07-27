@@ -13,17 +13,20 @@ import {
   Wrench,
 } from "lucide-react";
 import { fetchResources, isNew, type Resource } from "@/lib/resources";
-import { categories } from "@/lib/data";
+import { categories, catLabel } from "@/lib/data";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { SUIREAD_APP_STORE_URL } from "@/components/SuiReadPromo";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTopViewed } from "@/lib/views";
+import { useT, useLocale } from "@/lib/i18n/use-t";
+import { localizedPath } from "@/lib/i18n";
+import { i18nHead } from "@/lib/i18n/head";
 
 
 // 取全量:曾经的 limit:60 会按时间倒序截断,把最老的公众号文章从首页挤掉
 // (每日简报每天 +1,挤一篇老文)。Supabase 单请求上限 1000,足够用很久;
 // 接近时再做分页。
-const resourcesQO = queryOptions({
+export const resourcesQO = queryOptions({
   queryKey: ["resources", "home"],
   queryFn: () => fetchResources({}),
 });
@@ -34,8 +37,10 @@ const resourcesQO = queryOptions({
 // 其余站内工具不传这三项,表现与原来一致。
 const TOOLS: {
   title: string;
+  titleEn?: string;
   href: string;
   desc: string;
+  descEn?: string;
   tags: string[];
   icon?: string;
   cta?: string;
@@ -43,8 +48,10 @@ const TOOLS: {
 }[] = [
   {
     title: "随读 SuiRead(iOS App)",
+    titleEn: "SuiRead (iOS app)",
     href: SUIREAD_APP_STORE_URL,
     desc: "我做的 HTML 阅读器。把本站文章下载成 HTML 导入,就能离线阅读、高亮标注,进度自动记忆。",
+    descEn: "An HTML reader I built. Download any article here, import it, and read offline with highlights and saved progress.",
     tags: ["iOS", "阅读器", "App Store"],
     icon: "/suiread-icon.png",
     cta: "App Store",
@@ -52,40 +59,43 @@ const TOOLS: {
   },
   {
     title: "公众号 Markdown 排版",
+    titleEn: "WeChat Markdown formatter",
     href: "/projects/wechat-md/",
     desc: "把 Markdown 一键转成微信公众号可直接粘贴的排版样式，实时预览、多主题，写完即排。",
+    descEn: "Turn Markdown into paste-ready WeChat article styling — live preview, multiple themes.",
     tags: ["Markdown", "公众号", "排版"],
   },
   {
     title: "AI 每日简报",
+    titleEn: "AI daily briefing",
     href: "/ai-briefing/",
     desc: "每天的 AI 技术情报速览：官方发布、Agent 工程、学术与行业动态，列表即当日头条。",
+    descEn: "A daily scan of AI news: official releases, agent engineering, research and industry moves.",
     tags: ["AI", "情报", "每日更新"],
   },
   {
     title: "AI 深度学习",
+    titleEn: "AI deep dives",
     href: "/ai-daily/",
     desc: "每天自动精选一个 AI 主题生成深度学习文档，按日归档。由 Cowork 定时任务生成、本机自动部署。",
+    descEn: "One AI topic each day, written up as a deep-dive document and archived by date.",
     tags: ["AI", "深度学习", "自动化"],
   },
 ];
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Mingyu's Library — 个人资源库" },
-      { name: "description", content: "Mingyu 的个人资源库：文章、视频、外链、文件与碎片笔记。" },
-      { property: "og:title", content: "Mingyu's Library" },
-      { property: "og:description", content: "Mingyu 想分享的任何东西" },
-      { property: "og:url", content: "https://mingyuyang.com/" },
-    ],
-    links: [{ rel: "canonical", href: "https://mingyuyang.com/" }],
-  }),
+  head: () =>
+    i18nHead({
+      path: "/",
+      locale: "zh",
+      title: "Mingyu's Library — 个人资源库",
+      description: "Mingyu 的个人资源库:AI 工程深度文档、每日 AI 简报、出海增长笔记与碎片想法。",
+    }),
   loader: ({ context }) => context.queryClient.ensureQueryData(resourcesQO),
   component: HomePage,
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-2xl p-8 text-center text-sm text-muted-foreground">
-      加载资源失败：{error.message}
+      加载资源失败:{error.message}
     </div>
   ),
 });
@@ -96,7 +106,10 @@ function resourceHref(r: Resource): string {
   return "/resources";
 }
 
-function HomePage() {
+export function HomePage() {
+  const t = useT();
+  const locale = useLocale();
+  const lp = (path: string) => localizedPath(path, locale);
   const { data: resources } = useSuspenseQuery(resourcesQO);
   // 分类分区(按 lib/data 的 categories 顺序,空分类不显示)
   const catSections = useMemo(
@@ -120,8 +133,8 @@ function HomePage() {
   const lastUpdated = useMemo(() => {
     if (!resources.length) return null;
     const d = new Date(resources[0].published_at);
-    return d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
-  }, [resources]);
+    return d.toLocaleDateString(locale === "en" ? "en-US" : "zh-CN", { year: "numeric", month: "long", day: "numeric" });
+  }, [resources, locale]);
 
 
   return (
@@ -144,49 +157,48 @@ function HomePage() {
         <div className="relative mx-auto max-w-5xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
             <Library className="h-3.5 w-3.5 text-primary" />
-            Mingyu's Library — 个人资源库
+            {t("home.badge")}
             {lastUpdated && (
               <>
                 <span className="mx-1 h-3 w-px bg-border" />
                 <Clock className="h-3 w-3" />
-                <span>更新于 {lastUpdated}</span>
+                <span>{t("home.updatedOn", { d: lastUpdated })}</span>
               </>
             )}
           </div>
           <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-6xl">
-            我想记录、分享的
+            {t("home.hero.line1")}
             <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              任何东西
+              {t("home.hero.line2")}
             </span>
           </h1>
           <p className="mt-5 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            文章笔记、教学视频、好用的工具、值得保存的文件、突然冒出来的想法 ——
-            统一放在这里，随时翻阅。
+            {t("home.hero.desc")}
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link
-              to="/resources"
+              to={lp("/resources")}
               className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition hover:shadow-primary/40"
             >
               <Compass className="h-4 w-4" />
-              浏览全部资源
+              {t("home.cta.browse")}
             </Link>
             <Link
-              to="/search"
+              to={lp("/search")}
               className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur transition hover:border-primary/40"
             >
               <Sparkles className="h-4 w-4 text-primary" />
-              搜索一下
+              {t("home.cta.search")}
             </Link>
             <Link
-              to="/about"
+              to={lp("/about")}
               hash="contact"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur transition hover:border-primary/40"
             >
               <Mail className="h-4 w-4 text-primary" />
-              联系我
+              {t("home.cta.contact")}
             </Link>
           </div>
 
@@ -210,7 +222,7 @@ function HomePage() {
                     <div className="text-lg font-semibold leading-none text-foreground">
                       {c.items.length}
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{c.label}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{catLabel(c, locale)}</div>
                   </div>
                 </button>
               );
@@ -227,15 +239,15 @@ function HomePage() {
               <div>
                 <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
                   <Clock className="h-3.5 w-3.5" />
-                  按时间倒序 · 最新在前
+                  {t("home.recent.kicker")}
                 </div>
-                <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">最近更新</h2>
+                <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.recent.title")}</h2>
               </div>
               <Link
                 to="/resources"
                 className="hidden items-center gap-1 text-xs font-medium text-primary hover:underline sm:inline-flex"
               >
-                查看全部
+                {t("home.viewAll")}
                 <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
@@ -264,16 +276,16 @@ function HomePage() {
                               style={{ backgroundColor: cat.color }}
                             />
                           )}
-                          {cat?.label ?? "未分类"}
+                          {cat ? catLabel(cat, locale) : t("res.uncategorized")}
                         </span>
                         {isNew(r.published_at) && (
                           <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                            新
+                            {t("home.badge.new")}
                           </span>
                         )}
                       </div>
                       <h3 className="line-clamp-2 text-lg font-semibold text-foreground transition group-hover:text-primary">
-                        {r.title || "未命名资源"}
+                        {r.title || t("home.untitled")}
                       </h3>
                       {r.summary && (
                         <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
@@ -290,7 +302,7 @@ function HomePage() {
                         })}
                       </span>
                       <span className="inline-flex items-center gap-1 text-primary opacity-0 transition group-hover:opacity-100">
-                        阅读
+                        {t("home.read")}
                         <ArrowUpRight className="h-3 w-3" />
                       </span>
                     </div>
@@ -329,11 +341,11 @@ function HomePage() {
                         style={{ backgroundColor: cat?.color ?? "currentColor" }}
                       />
                       <span className="line-clamp-1 flex-1 text-sm text-foreground transition group-hover:text-primary">
-                        {r.title || "未命名资源"}
+                        {r.title || t("home.untitled")}
                       </span>
                       {isNew(r.published_at) && (
                         <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                          新
+                          {t("home.badge.new")}
                         </span>
                       )}
                     </span>
@@ -363,22 +375,22 @@ function HomePage() {
             <div className="mb-6">
               <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
                 <Wrench className="h-3.5 w-3.5" />
-                我自己做的小工具
+                {t("home.tools.kicker")}
               </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">工具</h2>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.tools.title")}</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {TOOLS.map((t) => (
+              {TOOLS.map((tool) => (
                 <a
-                  key={t.href}
-                  href={t.href}
+                  key={tool.href}
+                  href={tool.href}
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => {
-                    if (t.gaEvent) {
+                    if (tool.gaEvent) {
                       (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag?.(
                         "event",
-                        t.gaEvent,
+                        tool.gaEvent,
                       );
                     }
                   }}
@@ -386,9 +398,9 @@ function HomePage() {
                   <article className="group flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
                     <div>
                       <div className="mb-3 flex items-center justify-between">
-                        {t.icon ? (
+                        {tool.icon ? (
                           <img
-                            src={t.icon}
+                            src={tool.icon}
                             alt=""
                             className="h-9 w-9 rounded-xl border border-border/60"
                             loading="lazy"
@@ -399,18 +411,18 @@ function HomePage() {
                           </span>
                         )}
                         <span className="inline-flex items-center gap-1 text-xs text-primary opacity-0 transition group-hover:opacity-100">
-                          {t.cta ?? "打开"}
+                          {tool.cta ?? t("home.open")}
                           <ArrowUpRight className="h-3 w-3" />
                         </span>
                       </div>
                       <h3 className="text-base font-semibold text-foreground transition group-hover:text-primary">
-                        {t.title}
+                        {locale === "en" ? (tool.titleEn ?? tool.title) : tool.title}
                       </h3>
-                      <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{t.desc}</p>
+                      <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{locale === "en" ? (tool.descEn ?? tool.desc) : tool.desc}</p>
                     </div>
-                    {t.tags.length > 0 && (
+                    {tool.tags.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
-                        {t.tags.map((tag) => (
+                        {tool.tags.map((tag) => (
                           <span
                             key={tag}
                             className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
@@ -439,7 +451,7 @@ function HomePage() {
         // 不认识的 subcategory 归入「其他」,空组不显示
         const groups =
           s.id === "ai"
-            ? [...s.subcategories, { id: "__other", label: "其他" }]
+            ? [...s.subcategories, { id: "__other", label: t("home.other") }]
                 .map((sub) => ({
                   ...sub,
                   items: s.items.filter((r) =>
@@ -464,9 +476,9 @@ function HomePage() {
                   {s.description}
                 </div>
                 <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-                  {s.label}
+                  {catLabel(s, locale)}
                   <span className="ml-2 align-middle text-sm font-normal text-muted-foreground">
-                    {s.items.length} 篇
+                    {s.items.length} {t("home.count")}
                   </span>
                 </h2>
               </div>
@@ -474,7 +486,7 @@ function HomePage() {
                 to="/resources"
                 className="hidden items-center gap-1 text-xs font-medium text-primary hover:underline sm:inline-flex"
               >
-                进入完整资源库
+                {t("home.enterLibrary")}
                 <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
@@ -483,8 +495,8 @@ function HomePage() {
               {g.label && (
                 <div className="mb-4 mt-8 flex items-center gap-2 first:mt-0">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-                  <h3 className="text-lg font-semibold text-foreground">{g.label}</h3>
-                  <span className="text-xs text-muted-foreground">{g.items.length} 篇</span>
+                  <h3 className="text-lg font-semibold text-foreground">{catLabel(g, locale)}</h3>
+                  <span className="text-xs text-muted-foreground">{g.items.length} {t("home.count")}</span>
                   <span className="h-px flex-1 bg-border/60" />
                 </div>
               )}
@@ -504,17 +516,17 @@ function HomePage() {
                           })}
                           {isNew(r.published_at) && (
                             <span className="rounded-full bg-primary px-1.5 py-px text-[10px] font-semibold text-primary-foreground">
-                              新
+                              {t("home.badge.new")}
                             </span>
                           )}
                         </span>
                         <span className="inline-flex items-center gap-1 text-primary opacity-0 transition group-hover:opacity-100">
-                          阅读
+                          {t("home.read")}
                           <ArrowUpRight className="h-3 w-3" />
                         </span>
                       </div>
                       <h3 className="line-clamp-2 text-base font-semibold text-foreground transition group-hover:text-primary">
-                        {r.title || "未命名资源"}
+                        {r.title || t("home.untitled")}
                       </h3>
                       {r.summary && (
                         <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{r.summary}</p>
@@ -558,11 +570,11 @@ function HomePage() {
           <div className="mx-auto max-w-5xl text-center">
             <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
               <Tag className="h-3.5 w-3.5" />
-              主题地图
+              {t("home.topicMap")}
             </div>
-            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">按兴趣探索</h2>
+            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.explore.title")}</h2>
             <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-              从最常出现的话题切入，看看哪一条路适合你。
+              {t("home.explore.desc")}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               {topTags.map(([tag, n]) => {
@@ -596,10 +608,10 @@ function HomePage() {
           <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
             <div>
               <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-                继续翻翻看？
+                {t("home.more.title")}
               </h2>
               <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-                这里持续在更新。如果你想找某个具体话题，直接搜索；想随便逛逛，进入完整资源库。
+                {t("home.more.desc")}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -607,14 +619,14 @@ function HomePage() {
                 to="/resources"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition hover:shadow-primary/40"
               >
-                进入资源库
+                {t("home.more.toLibrary")}
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/about"
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition hover:border-primary/40"
               >
-                关于 Mingyu
+                {t("home.more.about")}
               </Link>
             </div>
           </div>
@@ -625,43 +637,44 @@ function HomePage() {
 }
 
 function TopViewedAndSubscribe({ allResources }: { allResources: Resource[] }) {
+  const t = useT();
   const { data: top = [] } = useQuery({
     queryKey: ["top-viewed", 30],
     queryFn: () => fetchTopViewed(30, 5),
     staleTime: 5 * 60_000,
   });
   const byId = new Map(allResources.map((r) => [r.id, r]));
-  const topItems = top.map((t) => ({ ...t, resource: byId.get(t.resource_id) })).filter((x) => x.resource);
+  const topItems = top.map((v) => ({ ...v, resource: byId.get(v.resource_id) })).filter((x) => x.resource);
 
   return (
     <section className="border-b border-border/50 px-4 py-12">
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> 热门
+            <Sparkles className="h-3.5 w-3.5" /> {t("home.hot.kicker")}
           </div>
-          <h2 className="mb-5 text-2xl font-semibold text-foreground sm:text-3xl">近 30 天阅读最多</h2>
+          <h2 className="mb-5 text-2xl font-semibold text-foreground sm:text-3xl">{t("home.hot.title")}</h2>
           {topItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">暂无阅读数据，快去看几篇文章吧。</p>
+            <p className="text-sm text-muted-foreground">{t("home.hot.empty")}</p>
           ) : (
             <ol className="space-y-2">
-              {topItems.map((t, i) => {
-                const r = t.resource!;
+              {topItems.map((tv, i) => {
+                const r = tv.resource!;
                 const href = resourceHref(r);
                 const isExternal = href.startsWith("http");
                 return (
-                  <li key={t.resource_id} className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-4 py-3 transition hover:border-primary/40 hover:bg-muted/30">
+                  <li key={tv.resource_id} className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-4 py-3 transition hover:border-primary/40 hover:bg-muted/30">
                     <span className="text-lg font-semibold text-primary/70 tabular-nums">{String(i + 1).padStart(2, "0")}</span>
                     {isExternal ? (
                       <a href={href} target="_blank" rel="noreferrer" className="line-clamp-1 flex-1 text-sm font-medium text-foreground hover:text-primary">
-                        {r.title || "未命名资源"}
+                        {r.title || t("home.untitled")}
                       </a>
                     ) : (
                       <Link to={href} className="line-clamp-1 flex-1 text-sm font-medium text-foreground hover:text-primary">
-                        {r.title || "未命名资源"}
+                        {r.title || t("home.untitled")}
                       </Link>
                     )}
-                    <span className="text-xs text-muted-foreground">{t.views} 次</span>
+                    <span className="text-xs text-muted-foreground">{tv.views} {t("home.hot.views")}</span>
                   </li>
                 );
 
@@ -671,10 +684,10 @@ function TopViewedAndSubscribe({ allResources }: { allResources: Resource[] }) {
         </div>
         <aside className="rounded-2xl border border-border bg-card p-6">
           <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
-            <Mail className="h-3.5 w-3.5" /> 订阅
+            <Mail className="h-3.5 w-3.5" /> {t("home.sub.kicker")}
           </div>
-          <h3 className="text-xl font-semibold text-foreground">每周更新邮件</h3>
-          <p className="mt-1 text-sm text-muted-foreground">留下邮箱，我会把新文章、视频和资源整理后发给你。</p>
+          <h3 className="text-xl font-semibold text-foreground">{t("home.sub.title")}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{t("home.sub.desc")}</p>
           <div className="mt-4">
             <SubscribeForm />
           </div>
