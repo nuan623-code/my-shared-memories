@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Apple, Check, Download, Highlighter, Loader2, MoonStar, WifiOff } from "lucide-react";
+import { Check, Download, Highlighter, Loader2, MoonStar, Smartphone, WifiOff } from "lucide-react";
 
 export const SUIREAD_APP_STORE_URL = "https://apps.apple.com/app/id6788002593";
 
@@ -54,7 +54,7 @@ export function SuiReadPromo({ url, title }: { url?: string; title?: string }) {
           <h3 className="text-base font-semibold text-foreground">
             在 iPhone / iPad 上,用随读继续读
           </h3>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
             随读(SuiRead)是我开发的 HTML 阅读器 App。把本站文章下载成 HTML
             导入随读,就能像读书一样离线阅读,进度自动记忆。
           </p>
@@ -77,7 +77,7 @@ export function SuiReadPromo({ url, title }: { url?: string; title?: string }) {
               onClick={() => track("suiread_promo_appstore_click")}
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
             >
-              <Apple className="h-4 w-4" /> App Store 下载
+              <Smartphone className="h-4 w-4" /> App Store 下载
             </a>
             {url && (
               <button
