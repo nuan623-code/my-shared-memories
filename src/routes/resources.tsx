@@ -13,6 +13,9 @@ export const allResourcesQO = queryOptions({
 });
 
 export const Route = createFileRoute("/resources")({
+  // SSR 预取:没有 loader 时列表在客户端才渲染,服务端 HTML 正文只有一百多字符,
+  // 而 AI 爬虫与部分搜索爬虫不执行 JS —— 等于整个列表对它们不可见。
+  loader: ({ context }) => context.queryClient.ensureQueryData(allResourcesQO),
   head: () =>
     i18nHead({
       path: "/resources",

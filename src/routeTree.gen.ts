@@ -14,6 +14,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -55,6 +56,11 @@ const ResourcesRoute = ResourcesRouteImport.update({
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -146,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/llms.txt'
     | '/notes'
     | '/resources'
     | '/robots.txt'
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/llms.txt'
     | '/notes'
     | '/resources'
     | '/robots.txt'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/auth'
+    | '/llms.txt'
     | '/notes'
     | '/resources'
     | '/robots.txt'
@@ -291,6 +303,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   NotesRoute: typeof NotesRoute
   ResourcesRoute: typeof ResourcesRouteWithChildren
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -497,6 +517,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   NotesRoute: NotesRoute,
   ResourcesRoute: ResourcesRouteWithChildren,
   RobotsDottxtRoute: RobotsDottxtRoute,

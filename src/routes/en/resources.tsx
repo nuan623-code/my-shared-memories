@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ResourcesPage } from "../resources";
+import { ResourcesPage, allResourcesQO } from "../resources";
 import { i18nHead } from "@/lib/i18n/head";
 
 export const Route = createFileRoute("/en/resources")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(allResourcesQO),
   head: () =>
     i18nHead({
       path: "/resources",

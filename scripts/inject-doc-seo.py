@@ -12,8 +12,11 @@
 #     这张 1024×1024 的图同时满足尺寸要求;纯 CSS/SVG 页面否则无图可抓)
 import html
 import json
+import os
 import re
+import subprocess
 import sys
+from datetime import datetime, timezone
 
 SITE = "https://mingyuyang.com"
 GA_ID = "G-3GRX3Y2VQJ"
@@ -45,6 +48,28 @@ def text_excerpt(s: str, limit: int = 110) -> str:
     return (t[:limit] + "…") if len(t) > limit else t
 
 
+def git_dates(path: str):
+    """(首次提交, 最后提交) ISO 日期。未入库的新文件回落到文件 mtime。
+    AI 搜索与 Google 都用 datePublished/dateModified 判断内容新鲜度,不能缺。"""
+
+    def run(args):
+        try:
+            out = subprocess.run(
+                ["git", "log", *args, "--format=%aI", "--", path],
+                capture_output=True, text=True, timeout=10,
+            ).stdout.strip().split("\n")
+            return [x for x in out if x]
+        except Exception:
+            return []
+
+    created = run(["--diff-filter=A"])
+    modified = run(["-1"])
+    if created and modified:
+        return created[-1][:10], modified[0][:10]
+    mt = datetime.fromtimestamp(os.path.getmtime(path), tz=timezone.utc).date().isoformat()
+    return mt, mt
+
+
 def main() -> None:
     path, urlpath = sys.argv[1], sys.argv[2]
     ogtype = "website" if "--type" in sys.argv and "website" in sys.argv else "article"
@@ -70,8 +95,10 @@ def main() -> None:
             "author": {"@type": "Person", "name": "Mingyu Yang", "url": SITE},
             "publisher": {"@type": "Person", "name": "Mingyu Yang"},
         }
-        if day:
-            ld["datePublished"] = day.group(1)
+        created, modified = git_dates(path)
+        # 文件名里的日期最权威(每日栏目),否则用 git 首次提交日
+        ld["datePublished"] = day.group(1) if day else created
+        ld["dateModified"] = modified
         e = html.escape
         parts = ["\n<!-- ms-seo -->"]
         if not md:

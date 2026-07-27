@@ -16,9 +16,16 @@ export const Route = createFileRoute("/en/articles/$slug")({
     const title = `${a?.title ?? "Article"} — Mingyu's Library`;
     const description = (a?.summary || a?.title || "Notes and articles by Mingyu").slice(0, 200);
     const url = absUrl(`/en/articles/${params.slug}`);
-    // 站内静态 HTML 文档以直链为规范地址(正文在 iframe 里,爬虫按直链索引全文)
+    // 关键:这篇内容本身是不是英文?
+    // 中文文章的 /en/ 版本只是「英文外壳 + 中文正文」,与中文版几乎重复,
+    // 所以 canonical 指回中文版——用户仍可在英文界面浏览,但搜索引擎只索引一份。
+    const isEnglishContent = (a?.lang ?? "zh") === "en";
     const canonical =
-      a?.url && a.url.startsWith("/") && a.url.endsWith(".html") ? absUrl(a.url) : url;
+      a?.url && a.url.startsWith("/") && a.url.endsWith(".html")
+        ? absUrl(a.url)
+        : isEnglishContent
+          ? url
+          : absUrl(`/articles/${params.slug}`);
     return {
       meta: [
         { title },
