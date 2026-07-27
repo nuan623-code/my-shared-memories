@@ -43,8 +43,9 @@
 | 文件 | 我做的事 |
 |---|---|
 | `src/routes/auth.tsx` | Google 登录用原生 `supabase.auth.signInWithOAuth`(不是 `lovable.auth`) |
-| `src/routes/__root.tsx` | 去掉 `reportLovableError`,meta 改本站;2026-07-10 接入 GA4(衡量 ID `G-3GRX3Y2VQJ`):head 注入 gtag.js(`send_page_view:false`),RootComponent 首屏发一次 page_view 并订阅 router `onResolved`(pathChanged 时)补发 SPA 页面浏览 |
-| `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动;段落批注层 enabled 恢复为 annotationsOn;2026-07-06 顶栏「约 X 分钟」旁显示「收录于/更新于」日期(≥sm 显示,同日只显示收录);2026-07-06 外壳目录统一格式:`cleanTocText` 去 emoji + 剥离各文档自带编号(01/①/一、/SECTION/Part),h2 由外壳按序补 01 02 编号,清洗后为空的标题不进目录;目录手风琴化:h2 常驻、h3 只在当前活跃章节下展开(无 h2 的文档全量显示);iframe 隐藏清单加 `.toc-btn`(新批次文档的 ☰ 按钮)。合并冲突时保留本端 |
+| `src/routes/__root.tsx` | 去掉 `reportLovableError`,meta 改本站;2026-07-10 接入 GA4(衡量 ID `G-3GRX3Y2VQJ`):head 注入 gtag.js(`send_page_view:false`),RootComponent 首屏发一次 page_view 并订阅 router `onResolved`(pathChanged 时)补发 SPA 页面浏览;2026-07-27 加 `apple-itunes-app` meta(app-id 6788002593)= 随读 App 的 iOS Safari Smart App Banner |
+| `src/routes/articles.$slug.tsx` | 文章 iframe **高度自适应内容**(整页滚动,不再是固定小窗口);进度条改由外层页面滚动驱动;段落批注层 enabled 恢复为 annotationsOn;2026-07-06 顶栏「约 X 分钟」旁显示「收录于/更新于」日期(≥sm 显示,同日只显示收录);2026-07-06 外壳目录统一格式:`cleanTocText` 去 emoji + 剥离各文档自带编号(01/①/一、/SECTION/Part),h2 由外壳按序补 01 02 编号,清洗后为空的标题不进目录;目录手风琴化:h2 常驻、h3 只在当前活跃章节下展开(无 h2 的文档全量显示);iframe 隐藏清单加 `.toc-btn`(新批次文档的 ☰ 按钮);2026-07-27 正文末尾(上下篇导航之前)插 `SuiReadPromo` 推广卡。合并冲突时保留本端 |
+| `src/components/SuiReadPromo.tsx` + `public/suiread-icon.png` + `src/components/Footer.tsx` | 2026-07-27 新增「随读 SuiRead」App 推广(App Store id `6788002593`,源码在 `~/Documents/suiread-kickoff`):推广卡放文章页末尾,含 App Store 按钮 + 「下载本文 HTML」直达按钮(仅站内本地 HTML 传 url,外链文章只显示 App Store 按钮),两个按钮各发一条 GA4 事件 `suiread_promo_appstore_click` / `suiread_promo_download_html`;`SUIREAD_APP_STORE_URL` 由本组件导出,Footer 的「随读 App」链接复用它。图标由 app 的 `icon-1024.png` 用 sips 缩到 256px |
 | `src/components/ParagraphCommentLayer.tsx` | 修复批注标记定位(原先全挤右上角):标记坐标加 iframe.offsetTop、跳过 0 高度元素、ResizeObserver 盯正文任何布局变化重扫(替代一次性延时)。合并冲突时保留本端 |
 | `src/routes/robots[.]txt.tsx` | sitemap 指向 `mingyuyang.com`(原指向 lovable.app) |
 | `src/routes/about.tsx` | 2026-07-13 应用户要求删去职位头衔(姓名下方一处 + 简介句中一处) |
