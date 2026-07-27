@@ -68,6 +68,7 @@
 | `.env`(不入 git)/ `.gitignore` / `.env.example` | 用用户自己的 Supabase key |
 | `supabase/schema.sql`、`publish.sh`、`AGENTS.md` | bootstrap / 部署脚本 / 本文件 |
 | `scripts/sync-static-resources.mjs` + `scripts/resources.manifest.json` | 把 `public/` 静态 HTML 自动同步进 `resources` 表(见下) |
+| `src/lib/site.ts` + `scripts/inject-doc-seo.py` + `public/_redirects` + `src/components/ShareButton.tsx` + `public/share-card.png` + `src/routes/sitemap[.]xml.tsx` | 2026-07-27 全站 SEO/分享大修:①各路由 og:url/canonical 绝对化(OG 不认相对路径),og:image 统一静态 `share-card.png`(1024²,社交爬虫不认 SVG,原 /api/og SVG 路由弃用为 og:image 但保留);②`inject-doc-seo.py` 给 public/ 静态文档幂等注入 description/OG/canonical/JSON-LD/GA/带 16px 站标图的主页按钮(站标图=微信聊天卡片的「页面首图」),存量 94 文件已注入,管线每天对新页自动跑;③**深度文档 URL 名字化** `<日期>-<英文slug>.html`:22 篇已迁,旧地址=`_redirects` 301(Workers 静态资产原生支持,已实测)+ 占位页兜底(含 `ms-redirect-stub` 标记,sync 见标记即跳过),resources 行 slug/url 已同步迁移,未来天数由部署脚本 ASCII+拼音自动生成 slug;④sitemap 输出规范地址(站内静态文档=直链+lastmod)+ 两归档页;⑤文章页顶栏「分享」按钮(系统分享面板/复制链接)。文章页 canonical 规则:资源 url 为站内 .html 时以直链为规范地址 |
 
 ## 日常:拉 Lovable 更新并上线
 ```bash
