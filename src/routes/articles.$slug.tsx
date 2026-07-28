@@ -131,7 +131,9 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
   const [tocOpen, setTocOpen] = useState<boolean>(true);
   const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({ prev: null, next: null });
   const [related, setRelated] = useState<Resource[]>([]);
-  const mins = readingMinutes(article.content || article.summary || article.title || "");
+  // 静态文档的正文在 iframe 里、库里 content 为空,先按摘要估,iframe 载入后用真实正文重算
+  const [docMins, setDocMins] = useState<number | null>(null);
+  const mins = docMins ?? readingMinutes(article.content || article.summary || article.title || "");
   useEffect(() => {
     const stored = window.localStorage.getItem("annotationsOn");
     if (stored !== null) setAnnotationsOn(stored !== "0");
@@ -184,6 +186,9 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
         const win = iframe.contentWindow;
         if (!doc || !win) return;
 
+        const bodyText = doc.body?.innerText ?? "";
+        if (bodyText.length > 200) setDocMins(readingMinutes(bodyText));
+
         // 目录归站点外壳管:隐藏文章 HTML 自带的悬浮目录/进度条/切换按钮,
         // 避免它们在自适应高度 iframe 里因 position:fixed 失去参照而出框、和外壳目录重复。
         // 同时注入媒体溢出兜底:存量文章的宽 SVG/表格/代码块在窄屏会把正文顶出横向滚动。
@@ -191,7 +196,12 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
           const style = doc.createElement("style");
           style.id = "__host-hide-chrome";
           style.textContent = [
-            ".side-toc,.toc-toggle,.toc-btn,.top-progress{display:none!important}",
+            // .doc-chrome 是通用出口:新文档只要给自带的进度条/目录/主题切换加这个 class,
+            // 嵌入站内时就会让位给外壳的同类组件(独立打开该 HTML 时仍然可用)。
+            ".side-toc,.toc-toggle,.toc-btn,.top-progress,.doc-chrome{display:none!important}",
+            // 侧栏被隐藏后,两列栅格的第一列仍占位,正文会被挤进那一列(实测 216px)。
+            // 凡是直接包含被隐藏侧栏的栅格容器,嵌入时一律退回单列。
+            "*:has(> .doc-chrome),*:has(> .side-toc){display:block!important}",
             // 老文章给自带悬浮目录预留的 margin-left(calc/262px/300px/330px 等),
             // 目录被隐藏后会变成纯留白把正文挤窄——嵌入时统一居中。
             // 大屏时文章内列统一放宽:多数老文档自限 1050px 以内,在 1600px 外壳里显小。

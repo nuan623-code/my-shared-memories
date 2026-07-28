@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>多 Session vs 多 Agent —— 一次带实测的编排调研</title>
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface2:#f4f2ee; --border:#e4e0d9;
+  --text:#191b1a; --muted:#6a6f6c; --accent:#0d7a6f; --accent-soft:#0d7a6f18;
+  --warn:#c2410c; --warn-soft:#c2410c14; --ok:#15803d; --ok-soft:#15803d14;
+  --grid:#00000008;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+html[data-theme="dark"]{
+  --bg:#0e1013; --surface:#161a1e; --surface2:#1c2126; --border:#272d33;
+  --text:#e6e9ea; --muted:#8d969e; --accent:#2dd4bf; --accent-soft:#2dd4bf1a;
+  --warn:#fb923c; --warn-soft:#fb923c1a; --ok:#4ade80; --ok-soft:#4ade8016;
+  --grid:#ffffff07;
+}
+@media (prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+    --bg:#0e1013; --surface:#161a1e; --surface2:#1c2126; --border:#272d33;
+    --text:#e6e9ea; --muted:#8d969e; --accent:#2dd4bf; --accent-soft:#2dd4bf1a;
+    --warn:#fb923c; --warn-soft:#fb923c1a; --ok:#4ade80; --ok-soft:#4ade8016;
+    --grid:#ffffff07;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+  font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+#bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0;z-index:60;transition:width .1s}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:216px minmax(0,1fr);gap:44px}
+nav{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:26px 0 40px;font-size:13.5px}
+nav .nt{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin:0 0 12px}
+nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 11px;border-left:2px solid var(--border);line-height:1.45}
+nav a:hover{color:var(--text);border-left-color:var(--accent)}
+nav a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav a.sub{padding-left:22px;font-size:12.5px}
+main{padding:0 0 120px;min-width:0}
+header.hero{padding:74px 0 40px;border-bottom:1px solid var(--border);margin-bottom:44px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.16;margin:0 0 20px;letter-spacing:-.02em;font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:64ch;margin:0 0 30px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:14px 15px}
+.stat b{display:block;font-family:var(--mono);font-size:21px;color:var(--accent);letter-spacing:-.02em}
+.stat span{font-size:11.5px;color:var(--muted)}
+h2{font-size:27px;margin:66px 0 6px;letter-spacing:-.015em;scroll-margin-top:20px;font-weight:700}
+h2 .num{font-family:var(--mono);font-size:12px;color:var(--accent);display:block;letter-spacing:.14em;margin-bottom:7px;font-weight:400}
+h3{font-size:19px;margin:38px 0 12px;scroll-margin-top:20px;font-weight:650}
+h4{font-size:15.5px;margin:26px 0 8px;color:var(--text);font-weight:650}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px;padding-left:22px}
+li{margin:6px 0}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.875em;background:var(--surface2);padding:1.5px 5px;border-radius:4px;border:1px solid var(--border)}
+strong{font-weight:650}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:22px 0}
+.card.acc{border-left:3px solid var(--accent);background:var(--accent-soft)}
+.card.warn{border-left:3px solid var(--warn);background:var(--warn-soft)}
+.card.ok{border-left:3px solid var(--ok);background:var(--ok-soft)}
+.card .ct{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.card p:last-child,.card ul:last-child,.card ol:last-child{margin-bottom:0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px;display:block;overflow-x:auto}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap;background:var(--surface2)}
+tbody tr:hover{background:var(--surface2)}
+td.n{font-family:var(--mono);white-space:nowrap}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:20px;border:1px solid currentColor;line-height:1.5;white-space:nowrap}
+.tag.pass{color:var(--ok)} .tag.fail{color:var(--warn)} .tag.meas{color:var(--accent)}
+figure{margin:26px 0}
+figure svg{width:100%;height:auto;display:block;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:9px;text-align:center}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+.shot{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)}
+.shot img{width:100%;display:block}
+.shot .cap{padding:9px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+.shot .cap b{color:var(--text);display:block;font-size:12.5px}
+.chk{list-style:none;padding:0}
+.chk li{position:relative;padding-left:27px;margin:9px 0}
+.chk li::before{content:"";position:absolute;left:0;top:.52em;width:13px;height:13px;border:1.5px solid var(--accent);border-radius:3.5px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.65;margin:16px 0}
+.tt{position:fixed;right:18px;bottom:18px;z-index:60;display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:3px;box-shadow:0 3px 14px #0000001f}
+.tt button{background:none;border:0;color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:20px;cursor:pointer}
+.tt button.on{background:var(--accent);color:var(--bg)}
+.src{font-size:13.5px}
+.src li{margin:7px 0;color:var(--muted)}
+hr{border:0;border-top:1px solid var(--border);margin:40px 0}
+@media(max-width:900px){
+  .wrap{grid-template-columns:1fr;gap:0}
+  nav{position:static;max-height:none;border-bottom:1px solid var(--border);margin-bottom:18px;padding-bottom:18px}
+  nav a{display:inline-block;border-left:0;border-bottom:2px solid var(--border);margin-right:10px;padding:3px 0}
+  nav a.sub{display:none}
+  header.hero{padding-top:34px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="跟随系统 浅色 深色 目录 先看结论 1 · 机制：其实有四种 2 · 探针实测：隔离边界 3 · 三臂对照实验 量化结果 为什么会这样 4 · 七条结论 5 · 决策 SOP 决策树 开工前 checklist 6 ·…">
+<meta property="og:title" content="多 Session vs 多 Agent —— 一次带实测的编排调研">
+<meta property="og:description" content="跟随系统 浅色 深色 目录 先看结论 1 · 机制：其实有四种 2 · 探针实测：隔离边界 3 · 三臂对照实验 量化结果 为什么会这样 4 · 七条结论 5 · 决策 SOP 决策树 开工前 checklist 6 ·…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-notes/multi-session-vs-multi-agent.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-notes/multi-session-vs-multi-agent.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "多 Session vs 多 Agent —— 一次带实测的编排调研", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-notes/multi-session-vs-multi-agent.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-28", "dateModified": "2026-07-28"}</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar" class="doc-chrome"></div>
+<div class="tt doc-chrome">
+  <button data-t="auto" class="on">跟随系统</button>
+  <button data-t="light">浅色</button>
+  <button data-t="dark">深色</button>
+</div>
+
+<div class="wrap">
+<nav class="doc-chrome">
+  <p class="nt">目录</p>
+  <a href="#tldr">先看结论</a>
+  <a href="#mech">1 · 机制：其实有四种</a>
+  <a href="#probe">2 · 探针实测：隔离边界</a>
+  <a href="#exp">3 · 三臂对照实验</a>
+  <a href="#exp-data" class="sub">量化结果</a>
+  <a href="#exp-why" class="sub">为什么会这样</a>
+  <a href="#findings">4 · 七条结论</a>
+  <a href="#sop">5 · 决策 SOP</a>
+  <a href="#sop-tree" class="sub">决策树</a>
+  <a href="#sop-check" class="sub">开工前 checklist</a>
+  <a href="#ios">6 · iOS / SpriteKit 专章</a>
+  <a href="#limits">7 · 本次没验证的</a>
+  <a href="#src">来源</a>
+</nav>
+
+<main>
+<header class="hero">
+  <p class="kicker">带实测的编排调研 · 2026-07-27</p>
+  <h1>多 Session 还是多 Agent？<br>我跑了 27 个 agent 来回答这个问题</h1>
+  <p class="lede">
+    这不是一篇对比综述。我在真实环境里跑了两组实验：6 个探针测出 subagent 的隔离边界到底在哪，
+    13 个 agent 用三种编排方式各造了一遍同一个游戏，然后用无头浏览器逐个验证能不能跑。
+    结论和直觉不太一样——决定成败的既不是 session 也不是 agent。
+  </p>
+  <div class="stats">
+    <div class="stat"><b>27</b><span>实际跑掉的 agent</span></div>
+    <div class="stat"><b>1.18M</b><span>subagent tokens</span></div>
+    <div class="stat"><b>3</b><span>对照臂 / 同一份 spec</span></div>
+    <div class="stat"><b>2/5</b><span>无契约并行的白屏率</span></div>
+    <div class="stat"><b>2</b><span>实测真实并发上限</span></div>
+  </div>
+</header>
+
+<section id="tldr">
+<h2><span class="num">TL;DR</span>先看结论</h2>
+
+<div class="card acc">
+  <p class="ct">一句话</p>
+  <p><strong>多 agent 解决的是「一次任务内部的宽度」，多 session 解决的是「跨时间的长度 + 人的并行 + 上下文总量」——它们是两个正交的轴，不是替代关系。</strong>
+  而真正决定并行开发成败的，是<strong>有没有一份人人遵守的接口契约</strong>，不是你用了哪种编排。</p>
+</div>
+
+<ol>
+  <li><strong>并行本身不产生质量，契约才产生质量。</strong> 同样是 5 个 agent 并行写 5 个模块：有契约的那组 6 个文件零接口错误、一次组装成功；没契约的那组 5 套组装方案里 <span class="tag fail">2 个直接白屏</span>，报的是模块加载期的 <code>SyntaxError</code>，不是能慢慢调的运行时 bug。</li>
+  <li><strong>没有契约时，agent 会把大量算力花在「猜队友接口」上。</strong> 无契约组里最慢的那个 agent 跑了 <strong>831 秒、10.4 万 token</strong>——它自己造了一套假队友模块和 18 条断言来验证自己的猜测。同组最快的只用了 169 秒。</li>
+  <li><strong>命名分歧不是均匀分布的，它集中在语义最复杂的那个接口上。</strong> 5 个互不通信的开发者，具名 import 的命中率高达 <strong>24/26（92%）</strong>——但唯独 physics 的核心步进函数，三个人给了三个名字（<code>stepPlayer</code> / <code>updatePhysics</code> / <code>stepPhysics</code>），而它恰恰是全场最关键的调用。</li>
+  <li><strong>subagent 拿不到你的对话历史、用户记忆和偏好设置。</strong> 实测确认：它只拿到系统提示、任务消息、CLAUDE.md、git status、环境信息和工具/skill 清单。你以为它「知道」的背景，它全不知道。</li>
+  <li><strong>subagent 无法向你提问。</strong> 实测它的工具清单里没有 <code>AskUserQuestion</code>，没有 <code>SendUserMessage</code>。它能单向推文件和通知给你，但不能问一句「这个手感对吗」然后等你回答。对游戏开发这是硬伤。</li>
+  <li><strong>worktree 隔离不消除冲突，只是把冲突延后。</strong> 两个 worktree 各自干干净净地改了同一行，运行期零干扰——合并那一刻立刻 <code>CONFLICT (content)</code>。</li>
+  <li><strong>「并行」的收益受宿主并发度硬约束。</strong> 这个云沙箱只有 2 核，实测 8 个「并行」agent 是 <strong>2 个一批、跑了 4 批</strong>。写 workflow 时以为的扇出，在这里是排队。</li>
+</ol>
+</section>
+
+<section id="mech">
+<h2><span class="num">Part 1</span>机制：其实有四种，不是两种</h2>
+
+<p>「多 session vs 多 agent」这个问法本身把选项压扁了。翻官方文档会发现现在是四种并行方式，它们在<strong>谁协调、worker 之间能不能说话、文件怎么隔离</strong>这三个维度上各不相同。</p>
+
+<figure>
+<svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="四种编排方式的结构对比">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="currentColor"/></marker>
+    <style>
+      .box{fill:var(--surface2);stroke:var(--border);stroke-width:1.2}
+      .lead{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.4}
+      .t{font-family:var(--sans);font-size:11px;fill:var(--text)}
+      .tm{font-family:var(--mono);font-size:9.5px;fill:var(--muted)}
+      .ttl{font-family:var(--mono);font-size:11px;fill:var(--accent);letter-spacing:.08em}
+      .ln{stroke:var(--muted);stroke-width:1.2;fill:none;color:var(--muted)}
+      .ln2{stroke:var(--accent);stroke-width:1.4;fill:none;color:var(--accent)}
+      .dash{stroke-dasharray:3 3}
+      .sep{stroke:var(--border);stroke-width:1}
+    </style>
+  </defs>
+  <line class="sep" x1="245" y1="18" x2="245" y2="282"/>
+  <line class="sep" x1="490" y1="18" x2="490" y2="282"/>
+  <line class="sep" x1="735" y1="18" x2="735" y2="282"/>
+
+  <!-- 1 subagents -->
+  <text class="ttl" x="20" y="34">SUBAGENTS</text>
+  <text class="tm" x="20" y="50">单 session 内扇出</text>
+  <circle cx="40" cy="82" r="9" class="lead"/><text class="t" x="56" y="86">你</text>
+  <line class="ln" x1="40" y1="91" x2="40" y2="112" marker-end="url(#ar)"/>
+  <rect class="lead" x="16" y="116" width="94" height="26" rx="5"/><text class="t" x="30" y="133">主 session</text>
+  <line class="ln2" x1="45" y1="142" x2="45" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="63" y1="142" x2="105" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="80" y1="142" x2="165" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="18" y="176" width="54" height="22" rx="4"/><text class="tm" x="30" y="191">sub 1</text>
+  <rect class="box" x="80" y="176" width="54" height="22" rx="4"/><text class="tm" x="92" y="191">sub 2</text>
+  <rect class="box" x="142" y="176" width="54" height="22" rx="4"/><text class="tm" x="154" y="191">sub 3</text>
+  <path class="ln dash" d="M45,198 L45,214 L110,214" marker-end="url(#ar)"/>
+  <text class="tm" x="18" y="238">↑ 只回传结论，互不通信</text>
+  <rect class="box" x="16" y="248" width="184" height="24" rx="4"/><text class="tm" x="30" y="264">共享同一份文件系统</text>
+
+  <!-- 2 agent teams -->
+  <text class="ttl" x="266" y="34">AGENT TEAMS</text>
+  <text class="tm" x="266" y="50">多 session + 互相通信（实验特性）</text>
+  <circle cx="286" cy="82" r="9" class="lead"/><text class="t" x="302" y="86">你</text>
+  <line class="ln" x1="286" y1="91" x2="286" y2="112" marker-end="url(#ar)"/>
+  <rect class="lead" x="262" y="116" width="70" height="26" rx="5"/><text class="t" x="276" y="133">lead</text>
+  <line class="ln2" x1="290" y1="142" x2="290" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="310" y1="142" x2="350" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="326" y1="142" x2="410" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="264" y="176" width="54" height="22" rx="4"/><text class="tm" x="274" y="191">mate 1</text>
+  <rect class="box" x="326" y="176" width="54" height="22" rx="4"/><text class="tm" x="336" y="191">mate 2</text>
+  <rect class="box" x="388" y="176" width="54" height="22" rx="4"/><text class="tm" x="398" y="191">mate 3</text>
+  <path class="ln2" d="M318,187 L326,187" marker-end="url(#ar)"/>
+  <path class="ln2" d="M380,187 L388,187" marker-end="url(#ar)"/>
+  <path class="ln2" d="M291,198 q60,22 120,-11" marker-end="url(#ar)"/>
+  <text class="tm" x="264" y="238">↑ 互发消息 + 共享 task list</text>
+  <rect class="box" x="262" y="248" width="184" height="24" rx="4"/><text class="tm" x="272" y="264">不自动隔离，需人工分文件</text>
+
+  <!-- 3 background -->
+  <text class="ttl" x="512" y="34">BACKGROUND / AGENT VIEW</text>
+  <text class="tm" x="512" y="50">后台独立 session</text>
+  <circle cx="532" cy="82" r="9" class="lead"/><text class="t" x="548" y="86">你</text>
+  <line class="ln" x1="532" y1="91" x2="532" y2="112" marker-end="url(#ar)"/>
+  <rect class="lead" x="508" y="116" width="106" height="26" rx="5"/><text class="t" x="518" y="133">agent view 面板</text>
+  <line class="ln2" x1="530" y1="142" x2="530" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="560" y1="142" x2="592" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="586" y1="142" x2="654" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="504" y="176" width="56" height="22" rx="4"/><text class="tm" x="512" y="191">session</text>
+  <rect class="box" x="566" y="176" width="56" height="22" rx="4"/><text class="tm" x="574" y="191">session</text>
+  <rect class="box" x="628" y="176" width="56" height="22" rx="4"/><text class="tm" x="636" y="191">session</text>
+  <text class="tm" x="506" y="238">↑ 只向你汇报，彼此不通信</text>
+  <rect class="box" x="504" y="248" width="184" height="24" rx="4" style="stroke:var(--accent)"/><text class="tm" x="514" y="264">每个自动分配独立 worktree</text>
+
+  <!-- 4 manual -->
+  <text class="ttl" x="756" y="34">手动多 SESSION</text>
+  <text class="tm" x="756" y="50">你自己开几个窗口</text>
+  <circle cx="776" cy="82" r="9" class="lead"/><text class="t" x="792" y="86">你（唯一的连线）</text>
+  <line class="ln2" x1="772" y1="91" x2="752" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="778" y1="91" x2="814" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="784" y1="91" x2="876" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="726" y="176" width="56" height="22" rx="4"/><text class="tm" x="734" y="191">session</text>
+  <rect class="box" x="788" y="176" width="56" height="22" rx="4"/><text class="tm" x="796" y="191">session</text>
+  <rect class="box" x="850" y="176" width="56" height="22" rx="4"/><text class="tm" x="858" y="191">session</text>
+  <text class="tm" x="728" y="238">↑ 完全互不知情</text>
+  <rect class="box" x="726" y="248" width="184" height="24" rx="4"/><text class="tm" x="736" y="264">要么共享磁盘，要么自建 worktree</text>
+</svg>
+<figcaption>四种并行方式的结构差异。真正的分野在最后一行：文件怎么隔离。</figcaption>
+</figure>
+
+<table>
+<thead><tr><th>维度</th><th>Subagents</th><th>Agent teams</th><th>Background / agent view</th><th>手动多 session</th></tr></thead>
+<tbody>
+<tr><td>谁协调</td><td>主 agent</td><td>lead agent</td><td>你（面板里看状态）</td><td>你（全人工）</td></tr>
+<tr><td>worker 之间能否通信</td><td>不能，只回传结论</td><td>能，直接互发消息</td><td>不能</td><td>不能</td></tr>
+<tr><td>能否被你直接对话</td><td>不能（只能通过主 agent）</td><td>能，可点进任一 teammate</td><td>能，可 attach</td><td>能</td></tr>
+<tr><td>上下文</td><td>独立，结论汇总回主会话</td><td>独立，完全不继承 lead 历史</td><td>完全独立</td><td>完全独立</td></tr>
+<tr><td>文件隔离</td><td>可选 worktree</td><td><strong>不自动隔离</strong>，须人工分文件</td><td>自动分配 worktree</td><td>要么共享磁盘，要么自建</td></tr>
+<tr><td>token 成本</td><td>较低（只回摘要）</td><td>高（每人一个完整实例）</td><td>高（各自独立算配额）</td><td>最高（背景要重复灌）</td></tr>
+<tr><td>生命周期</td><td>任务内，可 resume</td><td>随 lead session</td><td>可持久，闲置 1h 停进程</td><td>可跨天，可 <code>--resume</code></td></tr>
+</tbody>
+</table>
+
+<div class="card">
+<p class="ct">对 Cowork 用户的现实说明</p>
+<p>上面四种里，<strong>agent teams 和 background agents 是 Claude Code CLI 的能力</strong>（前者还是默认关闭的实验特性，要设 <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code>）。
+在桌面 app 的 Cowork 里，你手上实际有的是：<strong>subagent 扇出</strong>、<strong>dynamic workflow</strong>（脚本化的大规模 subagent 编排），以及<strong>多开 Cowork 任务</strong>——这就是本文说的「多 session」。
+另外一条官方事实值得记住：<em>桌面 app 里每个新 session 会自动分到自己的 worktree</em>，所以桌面多 session 并不像终端里那样天然共享磁盘。</p>
+</div>
+</section>
+
+<section id="probe">
+<h2><span class="num">Part 2</span>探针实测：隔离边界到底在哪</h2>
+
+<p>网上关于 subagent「有独立 context」的说法很多，但「独立」到什么程度没人说清。我起了 6 组探针 agent 直接去问、去做，结果如下。<span class="tag meas">标记为实测的都是这次跑出来的</span></p>
+
+<h3>探针 1 · 并行 subagent 共享文件系统，且实时可见 <span class="tag meas">实测</span></h3>
+<p>两个 agent 同时启动，各写一个文件，各 sleep 30 秒后列目录。两边都看到了对方的文件，时间窗口确认重叠（A: 1785147960382→1785148004867，B: 1785147960821→1785148006985）。</p>
+<div class="card warn">
+<p class="ct">这意味着</p>
+<p>同一个 session 里并行的 subagent <strong>没有任何文件级隔离</strong>。两个 agent 同时写同一个文件就是互相覆盖。要隔离必须显式开 worktree。</p>
+</div>
+
+<h3>探针 2 · subagent 继承了什么，没继承什么 <span class="tag meas">实测</span></h3>
+<p>我让一个 agent 在不使用任何工具的前提下，如实报告它启动时收到的全部上下文。</p>
+
+<figure>
+<svg viewBox="0 0 900 322" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="subagent 的上下文继承边界">
+  <defs><style>
+    .h{font-family:var(--mono);font-size:11px;letter-spacing:.09em}
+    .i{font-family:var(--sans);font-size:12px;fill:var(--text)}
+    .x{font-family:var(--sans);font-size:12px;fill:var(--muted)}
+    .pane{fill:var(--surface2);stroke:var(--border);stroke-width:1.2}
+    .wall{stroke:var(--warn);stroke-width:2.5;stroke-dasharray:7 5}
+  </style></defs>
+  <rect class="pane" x="16" y="44" width="352" height="258" rx="10"/>
+  <text class="h" x="30" y="30" fill="var(--muted)">主会话里有的</text>
+  <text class="x" x="34" y="74">对话历史（全部往返）</text>
+  <text class="x" x="34" y="100">用户记忆 / memory 文件内容</text>
+  <text class="x" x="34" y="126">用户偏好 preferences</text>
+  <text class="x" x="34" y="152">已经读过的文件内容</text>
+  <text class="x" x="34" y="178">已经调用过的 skill 状态</text>
+  <text class="x" x="34" y="204">output style / 输出风格</text>
+  <text class="x" x="34" y="230">之前所有工具调用的结果</text>
+  <text class="x" x="34" y="256">你上传的附件</text>
+  <text class="x" x="34" y="282">auto memory</text>
+
+  <line class="wall" x1="446" y1="30" x2="446" y2="310"/>
+  <text class="h" x="404" y="20" fill="var(--warn)">一堵墙</text>
+  <text class="h" x="386" y="322" fill="var(--warn)">全部不过去</text>
+
+  <rect class="pane" x="524" y="44" width="360" height="258" rx="10" style="stroke:var(--accent)"/>
+  <text class="h" x="538" y="30" fill="var(--accent)">subagent 实际拿到的</text>
+  <text class="i" x="542" y="74">它自己的系统提示（不是主会话的）</text>
+  <text class="i" x="542" y="100">主 agent 手写的那条任务消息</text>
+  <text class="i" x="542" y="126">CLAUDE.md 层级（全部层级）</text>
+  <text class="i" x="542" y="152">git status 快照</text>
+  <text class="i" x="542" y="178">环境信息：cwd / 平台 / 模型</text>
+  <text class="i" x="542" y="204">工具清单（只有名字，没有内容）</text>
+  <text class="i" x="542" y="230">已安装 skill 的名称与描述</text>
+  <text class="i" x="542" y="256">预载 skill 的正文（如指定）</text>
+  <text class="i" x="542" y="282">同伴名册（若开了 SendMessage）</text>
+</svg>
+<figcaption>实测的上下文继承边界。左边那一整列，subagent 一个字都看不到。</figcaption>
+</figure>
+
+<p>探针 agent 的原话很值得抄下来：</p>
+<div class="card">
+<p>「我完全看不到主会话的任何对话历史——没有一条主会话的用户消息、没有助手回复、没有摘要、没有『前情提要』。我收到的唯一一条任务消息就是你现在问的这 4 个问题本身。」</p>
+<p>「记忆工具存在 ≠ 我看得到记忆。」</p>
+</div>
+<p>它唯一能做的是从<strong>环境反推</strong>：看到工作目录叫 <code>probe-repo</code>、看到已装的 skill 偏向 iOS 游戏开发和中文 HTML 文档，于是猜「这个账号平时关心这些方向」。这是猜，不是知道。</p>
+
+<div class="card warn">
+<p class="ct">直接后果</p>
+<p>你在主会话里说过的每一句关键约束——「这个项目用 SpriteKit 不用 Unity」「颜色要跟上次那版一致」「别动那个文件」——<strong>都必须由主 agent 手动复述进 subagent 的 prompt</strong>。漏了就是重做。这是所有 fan-out 编排里最常见的返工来源。</p>
+<p>可以固化的部分写进 <code>CLAUDE.md</code>：这是唯一会自动进到每个 subagent 上下文里的东西。</p>
+</div>
+
+<h3>探针 3 · subagent 无法向你提问 <span class="tag meas">实测</span></h3>
+<p>我让一个 agent 逐条核对自己的工具清单：</p>
+<table>
+<thead><tr><th>能力</th><th>结果</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td><code>AskUserQuestion</code></td><td><span class="tag fail">没有</span></td><td>不能提出选择题并等你回答</td></tr>
+<tr><td><code>SendUserMessage</code></td><td><span class="tag fail">没有</span></td><td>不能直接发文字给你</td></tr>
+<tr><td><code>SendUserFile</code> / <code>PushNotification</code></td><td><span class="tag pass">有</span></td><td>能单向推文件和通知</td></tr>
+<tr><td><code>SendMessage</code>（给别的 agent）</td><td><span class="tag pass">有</span></td><td>能给同伴 agent 发消息</td></tr>
+<tr><td>再起 subagent</td><td><span class="tag fail">workflow 内没有</span></td><td>官方默认允许嵌套 3 层，但 workflow 派生的 agent 拿不到 <code>Agent</code> 工具</td></tr>
+</tbody>
+</table>
+<div class="card warn">
+<p class="ct">对游戏开发的特殊杀伤力</p>
+<p>subagent 与你之间是<strong>单向可达、双向不可达</strong>。它能把成品推给你看，但不能在半路问「这个跳跃手感偏重还是偏轻？」然后等你拍板。
+游戏里大量决策——手感、色调、难度曲线——恰恰只有你能判断。这类决策必须留在 session 层，不能扔进 subagent。</p>
+</div>
+
+<h3>探针 4 · worktree 隔离：运行期完美，合并期爆炸 <span class="tag meas">实测</span></h3>
+<p>两个 agent 各建一个 worktree，各自把 <code>config.js</code> 里同一行的 <code>SPEED = 100</code> 改成不同的值并提交，中间 sleep 20 秒制造重叠。</p>
+<p>运行期表现完美：主仓库工作区始终干净（<code>SPEED</code> 仍是 100），两条分支从同一 base 各自前进，<strong>没有任何 <code>index.lock</code> 争用或 git 报错</strong>。A 甚至在自己 sleep 期间观察到 B 的 worktree 凭空出现，但毫无影响。</p>
+<p>然后我把两条分支合并：</p>
+<pre>$ git merge feat-a
+Fast-forward
+
+$ git merge feat-b
+Auto-merging config.js
+CONFLICT (content): Merge conflict in config.js
+Automatic merge failed; fix conflicts and then commit the result.</pre>
+
+<figure>
+<svg viewBox="0 0 860 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="worktree 把冲突从运行期推迟到合并期">
+  <defs><style>
+    .lb{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+    .lt{font-family:var(--sans);font-size:12px;fill:var(--text)}
+    .node{fill:var(--surface2);stroke:var(--border);stroke-width:1.4}
+    .ok{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.4}
+    .bad{fill:var(--warn-soft);stroke:var(--warn);stroke-width:2}
+    .e{stroke:var(--muted);stroke-width:1.6;fill:none}
+    .ea{stroke:var(--accent);stroke-width:1.6;fill:none}
+  </style></defs>
+  <text class="lb" x="24" y="24">运行期：零干扰</text>
+  <text class="lb" x="600" y="24" fill="var(--warn)">合并期：正面冲突</text>
+  <circle class="node" cx="70" cy="105" r="20"/><text class="lb" x="52" y="109">base</text>
+  <path class="ea" d="M90,98 Q170,60 250,58"/>
+  <path class="ea" d="M90,112 Q170,150 250,152"/>
+  <rect class="ok" x="250" y="40" width="200" height="36" rx="7"/><text class="lt" x="264" y="63">worktree A → SPEED = 250</text>
+  <rect class="ok" x="250" y="134" width="200" height="36" rx="7"/><text class="lt" x="264" y="157">worktree B → SPEED = 700</text>
+  <path class="e" d="M450,58 Q540,64 596,96"/>
+  <path class="e" d="M450,152 Q540,146 596,114"/>
+  <rect class="bad" x="600" y="80" width="232" height="50" rx="8"/>
+  <text class="lt" x="616" y="102" style="fill:var(--warn)">CONFLICT (content)</text>
+  <text class="lb" x="616" y="120">同一行两个值，git 不敢替你选</text>
+  <text class="lb" x="252" y="98">互不可见 · 无 index.lock 争用 · 主仓库干净</text>
+</svg>
+<figcaption>worktree 解决的是「同时写」，不是「写了不一样的东西」。后者只能靠契约或人工裁决。</figcaption>
+</figure>
+
+<h3>探针 5 · 真实并发度：说好的并行，其实在排队 <span class="tag meas">实测</span></h3>
+<p>我起了 8 个 agent，每个只做一件事：打时间戳、sleep 15 秒、再打时间戳。结果时间戳呈现清晰的<strong>四批两两配对</strong>：</p>
+<table>
+<thead><tr><th>批次</th><th>agent</th><th>起止（相对秒）</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td class="n">#0, #1</td><td class="n">0.0 → 19.8</td></tr>
+<tr><td class="n">2</td><td class="n">#2, #3</td><td class="n">29.4 → 50.6</td></tr>
+<tr><td class="n">3</td><td class="n">#4, #5</td><td class="n">58.6 → 79.6</td></tr>
+<tr><td class="n">4</td><td class="n">#6, #7</td><td class="n">88.2 → 109.1</td></tr>
+</tbody>
+</table>
+<p>宿主 <code>nproc = 2</code>，实测最大并发就是 2。8 个 agent 跑完花了 109 秒，真并行的话应该是约 20 秒。另外每个 agent 在 15 秒的 sleep 之外还有约 5 秒的启动与模型开销。</p>
+<div class="card warn">
+<p class="ct">别把这条当成通用结论</p>
+<p>这是<strong>这台机器</strong>的数字。官方文档里 subagent 的默认并发上限是 20（<code>CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS</code>），单 session 累计上限 200，嵌套深度默认 3 层。
+但 workflow 脚本另有自己的上限，而且实际能同时跑几个，最终取决于跑在什么机器上。<strong>你写 <code>parallel([...16 个])</code> 不等于真有 16 个在跑。</strong></p>
+</div>
+</section>
+
+<section id="exp">
+<h2><span class="num">Part 3</span>三臂对照实验</h2>
+
+<p>探针回答了「机制是什么」，这一节回答「效果差多少」。</p>
+
+<h3>设计</h3>
+<p>同一份 <code>SPEC.md</code>（一个 640×360 的 canvas 平台跳跃小游戏，硬性拆成 <code>physics / input / level / render / hud / main / index.html</code> 七个文件），三种编排各做一遍：</p>
+
+<table>
+<thead><tr><th></th><th>Arm A</th><th>Arm B</th><th>Arm C</th></tr></thead>
+<tbody>
+<tr><td>模拟的是</td><td>单 agent 从头写到尾</td><td>单 session 多 agent</td><td>多 session 各自开工</td></tr>
+<tr><td>编排</td><td>1 个 agent 写全部 7 个文件</td><td>1 个 agent 先写接口契约 → 5 个 agent 并行各写一个模块 → 1 个 agent 读契约组装 main</td><td>5 个 agent 各在独立目录，<strong>只有 spec，没有契约</strong>，各写自己的模块 + 自己那版 main.js</td></tr>
+<tr><td>能看到队友代码吗</td><td>不适用</td><td>不能，只能靠契约对齐</td><td>不能，且明确禁止跨目录读</td></tr>
+<tr><td>集成方式</td><td>自带</td><td>专职集成 agent</td><td>人工合并：5 个模块 + 「第一个 PR 赢」的那版 main.js</td></tr>
+</tbody>
+</table>
+
+<div class="card">
+<p class="ct">变量说明（重要）</p>
+<p>严格讲，B 和 C 之间被隔离的变量<strong>不是「session vs agent」，而是「有没有共享契约」</strong>。这是故意的：因为一个配了契约的多 session 工作流，行为上就等价于 Arm B。<br>
+换句话说，这个实验测的是<strong>并行开发真正的失败根因</strong>，而不是产品形态的差别。这也正是最有用的结论。</p>
+</div>
+
+<h3 id="exp-data">量化结果</h3>
+
+<table>
+<thead><tr><th>指标</th><th>Arm A 串行</th><th>Arm B 契约并行</th><th>Arm C 无契约并行</th></tr></thead>
+<tbody>
+<tr><td>总 agent 工作时长</td><td class="n">885.6 s</td><td class="n">849.5 s</td><td class="n"><strong>1721.7 s</strong>（2.0×）</td></tr>
+<tr><td>理想关键路径<br><span style="color:var(--muted);font-size:12px">（假设真并行）</span></td><td class="n">885.6 s</td><td class="n"><strong>512.5 s</strong>（0.58×）</td><td class="n">831.4 s</td></tr>
+<tr><td>本机实测墙钟<br><span style="color:var(--muted);font-size:12px">（并发上限=2）</span></td><td class="n">885.6 s</td><td class="n">1012.7 s</td><td class="n">1174.0 s</td></tr>
+<tr><td>subagent tokens</td><td class="n">109,822</td><td class="n">350,465（3.2×）</td><td class="n">295,101（2.7×）</td></tr>
+<tr><td>产物代码行数</td><td class="n">1,057</td><td class="n"><strong>657</strong></td><td class="n">1,628</td></tr>
+<tr><td>跨模块接口错误</td><td class="n">0</td><td class="n">0</td><td class="n">见下</td></tr>
+<tr><td>重复实现的函数</td><td class="n">0</td><td class="n">0</td><td class="n"><code>drawGameOver</code>、<code>isOnGround</code> 各被两个模块重写</td></tr>
+<tr><td>无头浏览器验证</td><td><span class="tag pass">PASS</span></td><td><span class="tag pass">PASS</span></td><td><span class="tag fail">5 个组装方案里 2 个 FAIL</span></td></tr>
+<tr><td>没人写的文件</td><td class="n">无</td><td class="n">无</td><td class="n"><code>index.html</code> 五个人都没写</td></tr>
+</tbody>
+</table>
+
+<figure>
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三臂的 agent 时间分布">
+  <defs><style>
+    .ax{stroke:var(--border);stroke-width:1}
+    .lab{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+    .nm{font-family:var(--sans);font-size:12px;fill:var(--text)}
+    .h2s{font-family:var(--mono);font-size:11px;fill:var(--accent);letter-spacing:.09em}
+    .bA{fill:var(--muted);opacity:.55}
+    .bB{fill:var(--accent);opacity:.8}
+    .bC{fill:var(--warn);opacity:.8}
+    .bK{fill:var(--accent);opacity:.35}
+    .cp{stroke:var(--accent);stroke-width:1.6;stroke-dasharray:4 3;fill:none}
+  </style></defs>
+  <!-- scale: 900s -> 640px, x0=170 -->
+  <line class="ax" x1="170" y1="272" x2="850" y2="272"/>
+  <text class="lab" x="170" y="288">0s</text>
+  <text class="lab" x="382" y="288">300s</text>
+  <text class="lab" x="595" y="288">600s</text>
+  <text class="lab" x="808" y="288">900s</text>
+
+  <text class="h2s" x="16" y="34">ARM A · 串行</text>
+  <text class="nm" x="16" y="56">单 agent</text>
+  <rect class="bA" x="170" y="44" width="628" height="16" rx="3"/>
+  <text class="lab" x="806" y="57">885.6s</text>
+
+  <text class="h2s" x="16" y="92">ARM B · 契约并行</text>
+  <text class="nm" x="16" y="112">契约</text>
+  <rect class="bK" x="170" y="100" width="182" height="14" rx="3"/><text class="lab" x="358" y="112">256.6s</text>
+  <text class="nm" x="16" y="130">5 模块（并行）</text>
+  <rect class="bB" x="352" y="118" width="67" height="6" rx="2"/>
+  <rect class="bB" x="352" y="127" width="101" height="6" rx="2"/>
+  <rect class="bB" x="352" y="136" width="61" height="6" rx="2"/>
+  <rect class="bB" x="352" y="145" width="54" height="6" rx="2"/>
+  <rect class="bB" x="352" y="154" width="57" height="6" rx="2"/>
+  <text class="lab" x="460" y="140">最慢 143.0s</text>
+  <text class="nm" x="16" y="176">集成</text>
+  <rect class="bK" x="453" y="166" width="80" height="14" rx="3"/><text class="lab" x="539" y="178">112.9s</text>
+  <path class="cp" d="M170,188 L533,188"/>
+  <text class="lab" x="170" y="202" fill="var(--accent)">关键路径 512.5s —— 比串行快 42%</text>
+
+  <text class="h2s" x="16" y="228">ARM C · 无契约并行</text>
+  <text class="nm" x="16" y="246">5 个独立开发者</text>
+  <text class="lab" x="16" y="262">全部并行，无契约</text>
+  <rect class="bC" x="170" y="222" width="148" height="6" rx="2"/><text class="lab" x="324" y="228">207s</text>
+  <rect class="bC" x="170" y="231" width="219" height="6" rx="2"/><text class="lab" x="395" y="237">308s</text>
+  <rect class="bC" x="170" y="240" width="146" height="6" rx="2"/><text class="lab" x="322" y="246">205s</text>
+  <rect class="bC" x="170" y="249" width="591" height="6" rx="2"/><text class="lab" x="767" y="255" fill="var(--warn)">831s ⚑</text>
+  <rect class="bC" x="170" y="258" width="120" height="6" rx="2"/><text class="lab" x="296" y="264">169s</text>
+</svg>
+<figcaption>Arm C 里那根 831 秒的长条是全场最贵的一次，它做的事情全是「猜队友接口 + 验证猜测」。</figcaption>
+</figure>
+
+<h3>Arm C 到底怎么崩的</h3>
+<p>5 个开发者各写了一版 <code>main.js</code>，我把 5 个模块凑齐后，逐个用它们组装并放进无头 Chromium：</p>
+
+<table>
+<thead><tr><th>用谁的 main.js</th><th>import 写法</th><th>结果</th><th>失败原因</th></tr></thead>
+<tbody>
+<tr><td class="n">dev0（physics 作者）</td><td>具名 import ×9</td><td><span class="tag pass">PASS</span></td><td>他自己就是 physics 作者，天然不会猜错</td></tr>
+<tr><td class="n">dev1（input 作者）</td><td>命名空间 ×4 + 具名 ×2</td><td><span class="tag pass">PASS</span></td><td>靠候选名解析兜住了</td></tr>
+<tr><td class="n">dev2（level 作者）</td><td>具名 import ×10</td><td><span class="tag fail">FAIL</span></td><td><code>does not provide an export named 'updatePhysics'</code></td></tr>
+<tr><td class="n">dev3（render 作者）</td><td>命名空间 ×5</td><td><span class="tag pass">PASS</span></td><td>写了参数顺序嗅探 + 属性别名，代价 831s</td></tr>
+<tr><td class="n">dev4（hud 作者）</td><td>具名 import ×5</td><td><span class="tag fail">FAIL</span></td><td><code>does not provide an export named 'stepPhysics'</code></td></tr>
+</tbody>
+</table>
+
+<div class="card warn">
+<p class="ct">失败的性质很关键</p>
+<p>这两次失败不是「跑起来有 bug」，是 <strong>ES module 链接期的 <code>SyntaxError</code>——整个模块图加载失败，画面全黑，一行代码都没执行</strong>。
+在真实项目里这对应的就是：几个 session 分头做完，合到一起，编译不过。而且它<strong>不会在任何一个 session 内部暴露</strong>，因为每个 session 里自己那部分都是好的。</p>
+</div>
+
+<h3>命名收敛度：比想象中高，但错在了最要命的地方</h3>
+<p>把 5 个人的具名 import 和真实作者的导出做交叉比对：</p>
+<pre>具名 import 命中率：24 / 26 = 92%
+
+命中的（大家不约而同）：
+  input.js  : createInput      ✓ 三个人都猜对
+  level.js  : getPlatforms     ✓
+  render.js : render           ✓
+  hud.js    : drawHUD          ✓
+
+没命中的（全部集中在同一个接口）：
+  physics.js 实际导出 : stepPlayer / stepBody
+  dev2 猜的           : updatePhysics   ✗
+  dev4 猜的           : stepPhysics     ✗</pre>
+
+<div class="card acc">
+<p class="ct">这条我事先没预料到</p>
+<p>同一个模型、同一份 spec，命名收敛度高达 92%——<strong>Claude 们的命名品味出奇一致</strong>。
+但分歧不是随机撒在各处的，它<strong>精确地集中在语义最复杂、命名自由度最大的那个接口上</strong>：物理步进函数。
+而这恰恰是全场最核心的调用。<br><br>
+推论：靠「大家都是同一个模型，应该能对上」来省掉契约，是把项目押在了最不该押的地方。收敛度越高越危险，因为它会让你误以为不需要契约。</p>
+</div>
+
+<h3>三个产物长什么样</h3>
+<p>三个 PASS 的版本我都截了图（无头 Chromium，跑 2.5 秒后按住右键 + 空格）：</p>
+
+<div class="shots">
+  <div class="shot"><img alt="Arm A 截图" src="data:image/webp;base64,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">
+    <div class="cap"><b>Arm A · 1,057 行</b>星空、远山、圆角平台、带眼睛的角色、生命格子、操作提示</div></div>
+  <div class="shot"><img alt="Arm B 截图" src="data:image/webp;base64,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">
+    <div class="cap"><b>Arm B · 657 行</b>严格按契约，一个像素的自由发挥都没有</div></div>
+  <div class="shot"><img alt="Arm C 截图" src="data:image/webp;base64,UklGRgwMAABXRUJQVlA4IAAMAAAwYgCdASoIAiUBPpVIoE0lo6MooNIpMRASiWlLUXRLmwM9by37Va9P4T5qaD9+ZW4cYDb88/XpktPP9efWzMN2nX2Vfb5GeKV9K4kvrBz7d8l9b8vvoDZ/3qj/we4V+svWh9GYLjs7wYP6sl9ROWghaHly7pcH9CSZAxMsXjtTmY8EhGLEy7UnA6TNGuqvht0hVd40AFqrYYTuJGQBPtYR0PeNhW0L5Tll2wiJjhj3YCz0b81Z60IW8Ll6CKTPr3wfBZmnQ0ekDg/fVx5s222A5lPeUF+U8gwbNp6jz4VU3Js/Hw+Rhmy1cqoLnMKE8zj/5oEBy5U/0p/jJgGwZYcRzKS9GH8qwdMvqRYicD4n1W8sCldbXN7RH0ckZC/PKFlslZ4xiz78QnIePURrVB//Memr6pxZNFVg6HVIlv4jrny7jV6zKQ3GMvrJJ2klZJMvrjdUAEzzH+oR+ekDV0f4Y6hlSKL/VTreGgJUdIoBztoXr3Pt+xKfcHPO1AhmOMsbT6KxrTMIf1TbFIk4+vvX1sSPyHTXEkKgPDhNlN94oJUV8002R0nA5Tu89cv819Q+6q34ndi0xjBSCBTgZHjHNEL3WZAW7JK29cOg8nSYfl8ZVrOQDo1PODemccFNi9ojOzC3Q8HEbgjcWC+lJVVDog8V2+UcFh9MOC82Wg87XZ7Vny1vMcLywTe16XjyqLcDqrc1EpUrf28fupUU1s51wkCtFUm7vgleEpquZkL9MPhsBAcitBUKjVimN8fm/vrrOR7oyFsM/Yvz6Cta8USsRhn4w6u8xU4aLrWa2GBW5keAWp61DW+PweDjZebA0prWhp1UbyD7AFa/6t2eRa2zRYAEhOJcQm1gPWDpjJQ0e5G6jE52wYpRzWpoG2bVYiZCs2ghNZ0SyVNWiqTeFl5xzcym8NfzGgPLAflb0jOKhiw1/OZlKXJguZx1/OZYwO/Aw7kFhor9U6j48wtQUqvGesn3OH5Xsw9W1LmMLLfWY84k7lh8/fE+P5koIwsEYWdsIWxhlcePScOz4EfGGfjDQVBn4nJ8/swNAAD+9tkzJzxP/9j+uFrS5sP/Kc54Dh2Glx+E7JxGb6YX+iS0bltusjbmMpFvqkyZfLtWbXI41LHpJy86h8tx23+kfZ8+GTytxnbfM/kqEZEf+ybxqbP+CQWR9G/TwA1Fj/SJMuBOc3zav5TKj82Guf2wQBTBwIOLRO3J8rLutYBQgbH0lKWfRyXp/zdifzeMqQLpAv3FnCzozhN97uYbyVhc98K4zbxvKkBkN2zNNX49y9tKUD1OOxNkknyCKWKmY2J1ksYDTvbrO4y6KpdwLTVfVedqTOMEn5/1t4NdNSJ3Uo/bSsDCjiUzxdhVPY/029SgrjQtIzzwMTVR5uUMxfI4s6UT2YdQkv0TJJR1g3h3ovwoRRQ7pUlpK3RHRR1AKrneiuDQ/BpKRmkWcuQoF240cBvhnMQZmKCMyl0UMMgUv6liKEyzsvx+bIrGUqpHAeJGC/a94mU2NV25LbOr4tEtIJBLKVdARCPxxslOO4JZeFTUh51H4mjuN5k/CxlwpMsHeflF9f+++BCY+kjrlkyWUI+iT3vDwFjBy3wyN8qWdSo/h611opE8qv5q0Jkbkp4jVqU12iIni4uRjgTQ4EwMNAoJTj/Ip1Su3lqkZSc/mMGTt7L0DVWZsDxe/eBokyn+3/lg3Z3xovPDcFVFTa/jwewoaJ2AGuUk89n5ES1Bv1GEsb3UaXu0PO3xLOvL8nUEjIA3wvMSaY6eWDKbmduD2rhjyfSfi9FlYxD0bEYuX6s6/QLmXWU0PCohZGqKRBksNfLr0qyFmOAhSdhiT70sIfMO9WDNOvulZWVEe1g7dmQwnzEHsOU69LHK8lN68O4it6Z65MPlg8OOFsX7/Trr56EAAC+P6HFvK70frhSR2OZCFXKoaS+IZltbpsjplRpX6Rtqvd5gMtJjkPN+M694PPH0mKiqdGWHgD3qkG24VNITFKabfdCnoWfRLCfy5JCzNlZGv9L0NIRmKlILWd6fkfyQBELnFxpU4TT5uQMl9oLvlDoicLgwhwhW0hB1DuEkNYU9IsOyfGS+ZmvGL2w7RUWdqWMzXqKfpwFzHicbitay36Vn9XuWWbubfsHNCwCcJi20vZtZkPEAetOWGNgmDAitn2nt9SM8JDHo3L0+2/NFHF3GicUDYEp7KDylxC17XjAbtJ12PlL4SHwxIBJGZAJGIL/YAamZuCt2EwCAlRVNmO6TDoIE3tqDl/35mOdexwQbm16KHCWLkuaSZ7rx1EFFvLdo0bpJS/goMV5gr6oUwqZvy7dK92AtYNvzfB/e0hgevKZlPVComtaNvDk7vxVTXcfP4Vg9RG11DZd1lXYxqajxIx7QJa3RsCFVDwg84wALj/3DRgFvsgxGiqpgEoOn/eBrZ/1VO0h0soIyds7kEFB5BBguijWyC66FJNXdrIeClaQaNy/LeOdafG7vFr3/neXTeQVGlWK9KDui5T6vtUpT5ZMRFNFJq6QI58IZN+qIjHusyBRx38qA8x3P5tZVm9bG8vvKaHUZdHx/RKodkj1/QECppzw3ZyW5EGMXREtV/fX1X5sYVR4/tFyxuTOMcoPhUalHLvK/ZAaoEGilQZdb2ktrl1AZPJHaXC3JjyVJmCKQBKtfF29pNwJ2aIxnJBIez7qOPfgd1a6R9A4dzysJWN9nzWYRCVx9sZF5z5UpzXzBr0XOBHrhsPm66+w/YhpCVJBU9JTRIAgYbK1dPn4JzdfwzDev/g6WP3Rx/kzgGZwAGVb4JgAK7zV1ajwhJG35+AVYcGpmeL1OeuboUntvY27lhakEDRyYQhKs93bH8ocDowd/5ifLoZCMNXips6dvCeiBEwi+rjm6WxVZSFolzImbIzOLo8D98DA+SD2IcO6rkpoeMOTwE5SPIOBeJW8Zx+lDHnrZW036/1DIu+wCM3zTtP0pWkvXZeewHj7b+ld9dZAU9Svi2sm88W2+kyN4bu0bTBb4XxMRHhQuW3Twuokll0ObeHFAevCgbB0gZSS4A79jG4dHJSVm/dvc2l2O8eMDCbg+nVXIuQ6GX1KUz2GCItpuKWhFPjqvDDSUlhjoMu81zig096RRDc8PloDh4YJSs3hWaEhBv2x+R+hp/ifxJQQ6+80lDbjkzohjHbeJYUMLjiSFgbnoNxiAnAWaqBv5Vv23L0czXr8aWaBNxdaN5PmdU8woavHk0/+4hauWzbuyGO93AEdVGQnfwf45U+w1le30D6P8gpbYC2Eo9AYOFp5xgrXZxMnMjhQhBlNvs/GkPDIJ+mBEYExnlr26VA8i0p/mLRPohIIfqf6Kt2OJNUtFKmAADz10uTrb98l+lQdMs/Ndt0WcKdBmgkrdzugD1Ob0ROJFkENI0hKeMod7UgMCIEjm6nIVRAKuxxtY1m/lYrZYErfIzUiAF43K4iX+BFPQjv4gzWL5tvPv3olmsY6LN18VO5awaS+G7uNZ0QBoMeBv9akx10EwiRYKwBqdtIURJ98dydhXCXeREOYH279zAMJ3vgK5xM8faTOUsgLetLP/Ar31hfAl9/ID+2WEsVsux0z3WiEqQ7ZpLwCHSTTTs3drQCBB/0Vt0voj94fFabiY7mSDR8W3W4gdpvK37fQTHARfOHS0JK8ClZfCNEMfdRzFY6jnloq6tJkHoFsNKZ7SRgwQOTGWjRjjcQJvf4NRwA9b3I4ua4UdXsUg2fN1iwdHX9EF68b0JNED61ggCAhjhzQVvRqdk9T9Yk9KCxGDMqzEBx7wcWru7JQWTB12VwxwQK3xGgqrzmyRwGd1gLrGHUKgfW0QBsiR+H4o67FXi55mVPxsucNuiD66GgECPNqKlejJWYNfehnfl0Ixnzi9dar/b8uDhcPYqtNTOevEM4AMoitkJXuxWufWtQpw68YAhcmjAlA5q6/NrKNBOEp8qpDhB1XTBk0/2LMDirLzfpMSL0oE2LkJjzyOZ6V8jHKKolcGaZR94m+Wt+fhaaGbWowPMyC4saJnzewqNh8lyPo8AdKbhUFE/y71Wf/2TdroIXUTQCugADpy2LZ5bl0Z9p3m9D1NAAA=">
+    <div class="cap"><b>Arm C · 1,628 行</b>视觉最丰富，也最臃肿，5 个组装方案里 2 个白屏</div></div>
+</div>
+
+<div class="card">
+<p class="ct">一个没想到的代价</p>
+<p>Arm B 的产物<strong>只有 657 行，比串行的 A 少了 38%</strong>，画面也最朴素。原因是契约把每个人的边界钉死了，谁也不会顺手加个星空。<br>
+<strong>契约买来一致性，卖掉的是发挥空间。</strong>做工具型模块这是优点，做「手感」和「美术」这可能是缺点——这也解释了为什么创意密集的部分不该丢进无脑并行。</p>
+</div>
+
+<h3 id="exp-why">为什么会这样</h3>
+<p>把 Arm C 那 5 个 agent 的自述读一遍，机制就很清楚了。没有契约时，一个理性的开发者会做三件事，每一件都在烧钱：</p>
+<ol>
+<li><strong>放弃具名 import，改用命名空间 + 候选名表。</strong> dev3 的原话：「用命名导入的话，队友只要名字差一个字母，浏览器就是链接期 SyntaxError 直接白屏。」于是它给每个符号准备了一串候选名，逐个尝试。</li>
+<li><strong>给共享状态做属性别名对冲。</strong> 好几个 agent 用 <code>Object.defineProperty</code> 把 <code>state.vy</code> 和 <code>state.player.vy</code> 指向同一份存储，还顺手加了 <code>w↔width</code>、<code>onGround↔grounded</code>——纯粹因为不知道队友会用哪个名字。</li>
+<li><strong>自己造一套假队友来验证猜测。</strong> dev3 在自己目录里建了个 <code>.selftest</code>，写了三套完全不同风格的假模块（一套故意跟自己的猜测对着干），跑了 18 条断言。这一步就是它比同组慢 4 倍的原因。</li>
+</ol>
+<p>它甚至在报告里留了这么一句，很能说明问题：</p>
+<div class="card warn">
+<p>「只兜『名字不一样』，兜不了『参数顺序不一样』（比如 <code>step(state, platforms, dt)</code>），那种只能靠沟通。」</p>
+</div>
+<p>——防御性编程能挡住命名分歧，挡不住语义分歧。而<strong>一份 250 秒就能写出来的契约，把这三件事全省了</strong>。</p>
+</section>
+
+<section id="findings">
+<h2><span class="num">Part 4</span>七条结论</h2>
+
+<h4>1 · 契约是并行的前置条件，不是可选项</h4>
+<p>Arm B 用 256.6 秒写契约，换来的是零接口错误、一次组装成功、代码量最小。Arm C 省掉了这 256.6 秒，代价是总工作时长翻倍、40% 的组装方案白屏、以及两个模块重复实现同一个函数。<strong>契约不是开销，是杠杆。</strong></p>
+
+<h4>2 · 并行不省总工作量，只压缩关键路径</h4>
+<p>A 串行 885.6s，B 契约并行总工作量 849.5s——几乎相等。并行没有让活变少，它只是把 512.5 秒的关键路径压出来了（比串行快 42%）。所以：<strong>如果你不在乎墙钟时间，并行没有任何好处，还多烧 3 倍 token。</strong></p>
+
+<h4>3 · 并行的收益上限由你的机器决定，不由你的脚本决定</h4>
+<p>本机 2 核，实测并发上限就是 2。Arm B 的理想关键路径是 512.5s，实测墙钟 1012.7s——<strong>并行度打了对折还多</strong>。写 workflow 前先看 <code>nproc</code>。</p>
+
+<h4>4 · subagent 是「哑的」：不知道背景，不能提问</h4>
+<p>它拿不到对话历史、记忆、偏好；它不能问你问题。这两条合起来意味着：<strong>凡是需要「你说了算」的决策，都不能下放给 subagent</strong>。它只适合做那种「目标明确、判据客观、做完给结论」的活。</p>
+
+<h4>5 · worktree 管的是「同时写」，不管「写得不一样」</h4>
+<p>两个 worktree 并发写零冲突，合并立刻 CONFLICT。<strong>隔离手段解决的是物理冲突，语义冲突只能靠契约或人工裁决。</strong></p>
+
+<h4>6 · 「同一个模型应该能对上」是危险的直觉</h4>
+<p>92% 的命名收敛度会让人产生这个错觉。但剩下 8% 精确落在最核心的接口上，而且失败方式是硬失败（白屏），不是软退化。</p>
+
+<h4>7 · 契约压制发挥，别拿它去管创意</h4>
+<p>Arm B 的产物最规整也最朴素。做基础设施这是好事；做「手感」「关卡节奏」「美术风格」这类需要发挥的部分，不该用同一套并行流水线去压。</p>
+
+<div class="card acc">
+<p class="ct">回到最初的问题</p>
+<p><strong>多 session 和多 agent 不是二选一，它们解决不同的问题。</strong></p>
+<ul>
+<li><strong>多 agent</strong>：压缩<em>一次任务</em>的关键路径。前提是这次任务能被切成互不依赖的块，并且你能先写出契约。</li>
+<li><strong>多 session</strong>：突破<em>上下文总量</em>、跨越<em>时间</em>、并行<em>你自己的等待</em>、隔离<em>失败</em>、清空<em>成见</em>。这些都是 subagent 结构上做不到的。</li>
+</ul>
+<p>所以成熟的做法是两个都用：session 按「产出物 + 时间节奏」切开，每个 session 内部再用多 agent 扇出。</p>
+</div>
+</section>
+
+<section id="sop">
+<h2><span class="num">Part 5</span>决策 SOP</h2>
+
+<h3 id="sop-tree">决策树</h3>
+<figure>
+<svg viewBox="0 0 920 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="编排方式决策树">
+  <defs>
+    <marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="var(--muted)"/></marker>
+    <style>
+      .q{fill:var(--surface2);stroke:var(--border);stroke-width:1.3}
+      .r{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+      .w{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.5}
+      .qt{font-family:var(--sans);font-size:12.5px;fill:var(--text)}
+      .rt{font-family:var(--sans);font-size:12.5px;fill:var(--text);font-weight:600}
+      .et{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+      .ed{stroke:var(--muted);stroke-width:1.3;fill:none}
+    </style>
+  </defs>
+  <rect class="q" x="330" y="14" width="260" height="34" rx="8"/><text class="qt" x="348" y="36">这次要做的事，能切成互不依赖的块吗？</text>
+  <path class="ed" d="M400,48 L300,84" marker-end="url(#a2)"/><text class="et" x="316" y="70">不能</text>
+  <path class="ed" d="M520,48 L620,84" marker-end="url(#a2)"/><text class="et" x="574" y="70">能</text>
+
+  <rect class="r" x="120" y="86" width="230" height="42" rx="8"/>
+  <text class="rt" x="138" y="104">留在主会话串行做</text><text class="et" x="138" y="120">并行只会多烧 3 倍 token</text>
+
+  <rect class="q" x="560" y="86" width="330" height="34" rx="8"/><text class="qt" x="578" y="108">需要你中途做主观判断吗（手感/审美/取舍）？</text>
+  <path class="ed" d="M640,120 L520,158" marker-end="url(#a2)"/><text class="et" x="540" y="142">需要</text>
+  <path class="ed" d="M800,120 L820,158" marker-end="url(#a2)"/><text class="et" x="812" y="142">不需要</text>
+
+  <rect class="w" x="330" y="160" width="290" height="46" rx="8"/>
+  <text class="rt" x="348" y="180">拆成多个 session，别下放给 subagent</text>
+  <text class="et" x="348" y="197">subagent 无法向你提问，只能单向汇报</text>
+
+  <rect class="q" x="640" y="160" width="266" height="34" rx="8"/><text class="qt" x="658" y="182">这些块会改到同一批文件吗？</text>
+  <path class="ed" d="M700,194 L620,232" marker-end="url(#a2)"/><text class="et" x="636" y="216">会</text>
+  <path class="ed" d="M840,194 L850,232" marker-end="url(#a2)"/><text class="et" x="844" y="216">不会</text>
+
+  <rect class="w" x="400" y="234" width="250" height="60" rx="8"/>
+  <text class="rt" x="418" y="254">先划文件所有权，一文件一主人</text>
+  <text class="et" x="418" y="271">划不清就串行；或每个 agent 一个 worktree</text>
+  <text class="et" x="418" y="286">记住：worktree 只推迟冲突，不消除</text>
+
+  <rect class="q" x="660" y="234" width="248" height="34" rx="8"/><text class="qt" x="678" y="256">跨天吗 / 需要长期存在吗？</text>
+  <path class="ed" d="M720,268 L640,308" marker-end="url(#a2)"/><text class="et" x="652" y="292">是</text>
+  <path class="ed" d="M860,268 L870,308" marker-end="url(#a2)"/><text class="et" x="864" y="292">否</text>
+
+  <rect class="r" x="420" y="310" width="250" height="60" rx="8"/>
+  <text class="rt" x="438" y="330">多 session</text>
+  <text class="et" x="438" y="347">按「产出物 + 时间节奏」切，不按模块切</text>
+  <text class="et" x="438" y="362">每个 session 一个 CLAUDE.md 承载共识</text>
+
+  <rect class="r" x="686" y="310" width="222" height="60" rx="8"/>
+  <text class="rt" x="704" y="330">单 session 多 agent</text>
+  <text class="et" x="704" y="347">3–5 个是甜点区</text>
+  <text class="et" x="704" y="362">超过 8 个协调开销吃掉收益</text>
+
+  <rect class="w" x="200" y="400" width="520" height="52" rx="8"/>
+  <text class="rt" x="222" y="422">⚑ 无论走到哪个叶子：并行开工前，先写契约</text>
+  <text class="et" x="222" y="440">实测：250 秒的契约，换掉 40% 的白屏率和一倍的总工作量</text>
+</svg>
+<figcaption>四个问题就能定下编排方式。最后那条横杠是无条件的。</figcaption>
+</figure>
+
+<h3 id="sop-check">并行开工前 checklist</h3>
+<p>下面这份直接照着走。前四条是硬门槛，缺一条就不要开并行。</p>
+
+<h4>硬门槛</h4>
+<ul class="chk">
+<li><strong>契约已写好并落盘。</strong> 精确到：共享状态的<em>每一个字段名 + 类型 + 默认值 + 谁有权写</em>；每个模块的<em>导出函数名 + 参数顺序 + 参数类型 + 返回值</em>；调用顺序。含糊的契约等于没契约。</li>
+<li><strong>文件所有权已划清。</strong> 一个文件只有一个主人。划不清的那部分，留在串行里做。</li>
+<li><strong>「没人认领的活」已经点名。</strong> Arm C 里 <code>index.html</code> 五个人都没写——不在任何人职责里的东西，就是没人做。清单化，指派到人。</li>
+<li><strong>验证方式已经能自动跑。</strong> 并行的产物必须有一个客观判据（能编译 / 测试通过 / 能启动无报错）。没有自动判据，你会淹死在人工 review 里。</li>
+</ul>
+
+<h4>写 prompt 时</h4>
+<ul class="chk">
+<li>把主会话里说过的关键约束<strong>手动复述进每个 agent 的 prompt</strong>——它们看不到你们的对话。</li>
+<li>能固化的规则写进 <code>CLAUDE.md</code>：这是唯一自动进到每个 subagent 上下文的东西。</li>
+<li>明确写「你不负责什么」，不只写「你负责什么」。<code>drawGameOver</code> 被两个模块各写一遍，就是因为没人被告知这不归自己。</li>
+<li>禁止 agent 越界读别人的目录——否则你测的不是并行，是伪装成并行的串行。</li>
+</ul>
+
+<h4>规模与成本</h4>
+<ul class="chk">
+<li>先看 <code>nproc</code>。并发上限约等于机器能给的核数，不是你脚本里写的数字。</li>
+<li>3–5 个 worker 是甜点区（官方建议与本次观察一致）；超过 8 个，协调开销开始吃掉并行收益。</li>
+<li>预算：并行大约 <strong>3 倍 token</strong>（本次 A→B 是 3.2×）。官方公开数据是多 agent 相对聊天约 15×、单 agent 约 4×。</li>
+<li>如果只是想省自己的时间而不是墙钟，别并行。</li>
+</ul>
+
+<h4>合并时</h4>
+<ul class="chk">
+<li>worktree 分支合并前，<strong>先跑一次自动验证</strong>，别等冲突解完才发现接口对不上。</li>
+<li>接口不一致时，<strong>改调用方还是改被调方，按契约裁决</strong>，不要「谁先合谁赢」。</li>
+<li>合并后重跑一次全量验证——两个模块单独都对，合起来不一定对。</li>
+</ul>
+
+<h3>session 该怎么切</h3>
+<div class="card acc">
+<p class="ct">切分原则：按「产出物 + 时间节奏」切，不按「代码模块」切</p>
+<p>代码模块之间有接口依赖，切开就要付契约税；产出物之间没有。</p>
+<table style="margin:14px 0 0">
+<thead><tr><th>session</th><th>产出物</th><th>节奏</th><th>会不会撞代码</th></tr></thead>
+<tbody>
+<tr><td>开发主线</td><td>代码</td><td>每天</td><td><strong>唯一有写码权的</strong></td></tr>
+<tr><td>素材线</td><td>图片 / 音效</td><td>批量、间歇</td><td>不碰代码</td></tr>
+<tr><td>调研线</td><td>文档 / 竞品 / ASO</td><td>周期性</td><td>不碰代码</td></tr>
+<tr><td>监控线</td><td>报表 / 告警</td><td>定时任务</td><td>只读</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="ios">
+<h2><span class="num">Part 6</span>iOS / SpriteKit 专章</h2>
+
+<p>前面的通用结论在 Xcode 项目上有一个额外的放大器：<code>project.pbxproj</code>。</p>
+
+<h3>为什么 iOS 项目对并行格外不友好</h3>
+<p><code>.pbxproj</code> 是一个单体 plist，<strong>每次增删或移动文件，文件引用和组引用都会更新</strong>。两个 session 各加一个 Swift 文件，就是同一个文件的相邻区域各写一遍——git 的自动合并在这种结构上表现很差。而这正是并行开发最常发生的操作。</p>
+
+<div class="card warn">
+<p class="ct">再叠加两条 iOS 特有的串行瓶颈</p>
+<ul>
+<li><strong>真机 / 模拟器验证不能并行。</strong> 手感、动画流畅度、触控响应，只能一次跑一个、你自己看。这是硬串行段。</li>
+<li><strong>构建是全局的。</strong> 多个 session 同时 <code>xcodebuild</code> 同一个工程会抢 DerivedData。</li>
+</ul>
+</div>
+
+<h3>三档缓解方案，按投入排序</h3>
+
+<h4>档位 1 · 不改工程结构（今天就能做）</h4>
+<ul class="chk">
+<li><strong>写码 session 保持唯一。</strong> 这是成本最低、收益最高的一条。其它 session 只做不碰 <code>.pbxproj</code> 的事：素材、调研、文案、数值表。</li>
+<li>如果一定要并行写码，<strong>约定「本轮谁都不新增文件」</strong>——只改已有文件的内容。改内容不动 <code>.pbxproj</code>，冲突风险掉一个数量级。</li>
+<li>新增文件集中在一个人手上，批量加完再分发。</li>
+</ul>
+
+<h4>档位 2 · 用 Xcode 16+ 的文件系统同步组</h4>
+<ul class="chk">
+<li>右键 group → <strong>Convert to Folder</strong>，把手工维护的 group 换成跟文件系统同步的文件夹。此后新增文件不再写 <code>.pbxproj</code>。</li>
+<li>转换前先让本地目录结构和 Xcode group 结构对齐，否则会一次性产生巨大 diff。</li>
+</ul>
+
+<h4>档位 3 · 工程文件生成化 / 模块化</h4>
+<ul class="chk">
+<li><strong>XcodeGen 或 Tuist</strong>：用 YAML/Swift DSL 描述工程，源文件用 <code>Sources/**/*.swift</code> 通配符匹配，<code>.pbxproj</code> 变成生成物、不进版本库，冲突从根上消失。</li>
+<li><strong>按域拆成本地 Swift Package</strong>：Gameplay / Rendering / Audio / UI 各一个包，每个包一个主人。代价是编译和索引变慢。</li>
+</ul>
+
+<h3>SpriteKit 游戏的 session 排布建议</h3>
+<table>
+<thead><tr><th>session</th><th>干什么</th><th>为什么单独开</th><th>内部要不要多 agent</th></tr></thead>
+<tbody>
+<tr><td><strong>开发主线</strong></td><td>唯一写 Xcode 工程的 session</td><td>避免 <code>.pbxproj</code> 冲突；真机验证要你在场</td><td>要——但只用于<em>只读扇出</em>：并行通读代码定位问题、多维度 review。写码保持串行。</td></tr>
+<tr><td><strong>素材线</strong></td><td>AI 生图、图集切分、音效</td><td>产出是文件不是代码；节奏是批量的</td><td>要——素材之间天然无依赖，最适合无脑并行</td></tr>
+<tr><td><strong>调研线</strong></td><td>竞品拆解、玩法调研、ASO 文案</td><td>上下文完全不同，混进开发 session 会污染思路</td><td>要——多角度并行搜集，最后综合</td></tr>
+<tr><td><strong>手感专线</strong></td><td>动画/缓动/衔接的诊断与调优</td><td>需要你反复看真机、反复拍板，是最典型的「必须留在 session 层」的活</td><td>诊断阶段可以并行通读；调参必须串行 + 你在回路里</td></tr>
+</tbody>
+</table>
+
+<div class="card acc">
+<p class="ct">与你现有工作流的接口</p>
+<p>如果你已经在用 <code>ios-app-blueprint</code> → <code>game-dev-kickoff</code> 这条链：<strong>把接口契约做成 kickoff 产出物的一部分</strong>。
+本次实验里那份 256 秒写出来的契约（共享状态字段表 + 各模块导出签名 + 调用顺序），在 iOS 项目里的等价物就是：
+<em>共享 GameState 的字段归属表</em> + <em>各 SKNode 子系统的公开 API 签名</em> + <em>每帧 update 的调用顺序</em>。
+把它写进 <code>CLAUDE.md</code>，它就会自动进到每一个 subagent 的上下文里——这是唯一不用手动复述的传递通道。</p>
+</div>
+</section>
+
+<section id="limits">
+<h2><span class="num">Part 7</span>本次没验证的</h2>
+
+<p>把话说全，下面这些是这次<strong>没测到</strong>或<strong>测得不干净</strong>的，结论不要外推：</p>
+
+<ul>
+<li><strong>真正的多 session 没有被直接测量。</strong> 我在这个环境里开不了第二个 Cowork session。Arm C 是用「独立目录 + 禁止跨读 + 无共享契约」模拟的，它复现了多 session 的<em>信息隔离</em>，但没复现<em>跨天、人在回路、上下文重新灌注</em>这几维。</li>
+<li><strong>Arm C 的隔离是自报的。</strong> 5 个 agent 都声称没读别人目录，我没有逐条核对 transcript 去证伪。</li>
+<li><strong>墙钟数据被并发上限污染。</strong> 本机 2 核，三臂之间还互相抢占。表里的「理想关键路径」是按各 agent 实测时长重算的模型值，不是实测墙钟。</li>
+<li><strong>n = 1。</strong> 每臂只跑了一次，没有重复实验，没有方差估计。831 秒那个离群值可能不可复现。</li>
+<li><strong>任务规模偏小。</strong> 一个 600–1600 行的小游戏，跟一个真实的 iOS 游戏项目差着量级。契约的价值大概率随项目规模上升，但这次没测。</li>
+<li><strong>没测长会话的上下文衰减。</strong> 多 session 最重要的收益之一——突破上下文总量——本次完全没有直接测量，只能引用外部研究（见来源）。</li>
+<li><strong>Agent teams / background agents 只读了文档，没实跑。</strong> 它们是 Claude Code CLI 的能力，不在本次环境里。</li>
+</ul>
+
+<div class="card">
+<p class="ct">如果要把这份调研做实，下一步该测什么</p>
+<ol>
+<li>把同一实验在多核机器上重跑 3 次，拿到方差，并让并发不再是瓶颈。</li>
+<li>加一个 <strong>Arm D：无契约但允许 agent 之间互相通信</strong>（agent teams 模式），看「能沟通」能不能替代「有契约」。这是本次最想知道但没条件测的对照。</li>
+<li>把任务规模放大到 5000+ 行，看契约的收益是线性还是超线性。</li>
+<li>在真 Xcode 工程上重复 Arm B/C，量化 <code>.pbxproj</code> 的冲突率。</li>
+</ol>
+</div>
+</section>
+
+<section id="src">
+<h2><span class="num">附录</span>来源</h2>
+<h4>实验产物（本次生成）</h4>
+<ul class="src">
+<li>探针 workflow：14 个 agent，419,907 tokens，369.7 秒</li>
+<li>三臂 workflow：13 个 agent，755,388 tokens，2266.2 秒</li>
+<li>验证工具：Playwright + Chromium 无头运行 7 次；ES module 导入导出静态交叉分析</li>
+</ul>
+<h4>官方文档</h4>
+<ul class="src">
+<li><a href="https://code.claude.com/docs/en/sub-agents">Create custom subagents</a> —— 上下文继承清单、并发/总量/嵌套三个限制、fork 机制、resume 机制</li>
+<li><a href="https://code.claude.com/docs/en/agents">Run agents in parallel</a> —— 四种并行方式的官方对比表</li>
+<li><a href="https://code.claude.com/docs/en/agent-teams">Orchestrate agent teams</a> —— teammate 互相通信、共享 task list、不自动隔离文件、3–5 人建议</li>
+<li><a href="https://code.claude.com/docs/en/agent-view">Manage agents with agent view</a> —— 后台独立 session、自动 worktree 隔离、配额线性消耗</li>
+<li><a href="https://code.claude.com/docs/en/worktrees">Run parallel sessions with worktrees</a> —— <code>--worktree</code>、<code>.worktreeinclude</code>、桌面 app 每个 session 自动分配 worktree</li>
+<li><a href="https://www.anthropic.com/engineering/multi-agent-research-system">How we built our multi-agent research system</a> —— 多 agent 相对单 agent +90.2%；token 约 15× / 4×；token 用量解释 80% 性能方差；<strong>并明确指出大多数编码任务的可并行性低于研究任务</strong></li>
+</ul>
+<h4>实践与研究</h4>
+<ul class="src">
+<li><a href="https://addyosmani.com/blog/code-agent-orchestra/">The Code Agent Orchestra</a> —— 3–5 人甜点区、一文件一主人、「瓶颈已从生成变成验证」</li>
+<li><a href="https://htdocs.dev/posts/from-conductor-to-orchestrator-a-practical-guide-to-multi-agent-coding-in-2026/">From Conductor to Orchestrator</a> —— Ralph loop、计划先审批、每 3–4 个 builder 配 1 个 reviewer</li>
+<li><a href="https://www.morphllm.com/context-rot">Context Rot</a> —— 18 个模型全部随长度退化；中段信息准确率掉 30%+；agent 超过 35 分钟后开始退化，时长翻倍失败率翻四倍</li>
+<li><a href="https://tuist.dev/blog/2025/03/21/git-conflicts">Strategies to avoid merge conflicts in Xcode Projects</a> —— 同步组、XcodeGen/Tuist、按模块拆包</li>
+<li><a href="https://www.mindstudio.ai/blog/claude-code-git-worktree-parallel-branches">Run Multiple Claude Code Sessions in Parallel With Git Worktrees</a> —— 社区 worktree 并行实践</li>
+</ul>
+</section>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var html=document.documentElement, KEY='orch-theme';
+  var saved=localStorage.getItem(KEY)||'auto';
+  html.setAttribute('data-theme',saved);
+  document.querySelectorAll('.tt button').forEach(function(b){
+    if(b.dataset.t===saved) b.classList.add('on'); else b.classList.remove('on');
+    b.addEventListener('click',function(){
+      html.setAttribute('data-theme',b.dataset.t);
+      localStorage.setItem(KEY,b.dataset.t);
+      document.querySelectorAll('.tt button').forEach(function(x){x.classList.toggle('on',x===b)});
+    });
+  });
+  var bar=document.getElementById('bar');
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))}).filter(Boolean);
+  function onScroll(){
+    var h=document.documentElement;
+    bar.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+    var cur=null;
+    secs.forEach(function(s){ if(s.getBoundingClientRect().top<160) cur=s; });
+    links.forEach(function(a){ a.classList.toggle('on', cur && a.getAttribute('href')==='#'+cur.id); });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>
