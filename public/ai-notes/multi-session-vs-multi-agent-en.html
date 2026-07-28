@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multiple Sessions vs Multi-Agent — an orchestration study with real experiments</title>
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface2:#f4f2ee; --border:#e4e0d9;
+  --text:#191b1a; --muted:#6a6f6c; --accent:#0d7a6f; --accent-soft:#0d7a6f18;
+  --warn:#c2410c; --warn-soft:#c2410c14; --ok:#15803d; --ok-soft:#15803d14;
+  --grid:#00000008;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+html[data-theme="dark"]{
+  --bg:#0e1013; --surface:#161a1e; --surface2:#1c2126; --border:#272d33;
+  --text:#e6e9ea; --muted:#8d969e; --accent:#2dd4bf; --accent-soft:#2dd4bf1a;
+  --warn:#fb923c; --warn-soft:#fb923c1a; --ok:#4ade80; --ok-soft:#4ade8016;
+  --grid:#ffffff07;
+}
+@media (prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+    --bg:#0e1013; --surface:#161a1e; --surface2:#1c2126; --border:#272d33;
+    --text:#e6e9ea; --muted:#8d969e; --accent:#2dd4bf; --accent-soft:#2dd4bf1a;
+    --warn:#fb923c; --warn-soft:#fb923c1a; --ok:#4ade80; --ok-soft:#4ade8016;
+    --grid:#ffffff07;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+  font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+#bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0;z-index:60;transition:width .1s}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:216px minmax(0,1fr);gap:44px}
+nav{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:26px 0 40px;font-size:13.5px}
+nav .nt{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin:0 0 12px}
+nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 11px;border-left:2px solid var(--border);line-height:1.45}
+nav a:hover{color:var(--text);border-left-color:var(--accent)}
+nav a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav a.sub{padding-left:22px;font-size:12.5px}
+main{padding:0 0 120px;min-width:0}
+header.hero{padding:74px 0 40px;border-bottom:1px solid var(--border);margin-bottom:44px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.16;margin:0 0 20px;letter-spacing:-.02em;font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:64ch;margin:0 0 30px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:14px 15px}
+.stat b{display:block;font-family:var(--mono);font-size:21px;color:var(--accent);letter-spacing:-.02em}
+.stat span{font-size:11.5px;color:var(--muted)}
+h2{font-size:27px;margin:66px 0 6px;letter-spacing:-.015em;scroll-margin-top:20px;font-weight:700}
+h2 .num{font-family:var(--mono);font-size:12px;color:var(--accent);display:block;letter-spacing:.14em;margin-bottom:7px;font-weight:400}
+h3{font-size:19px;margin:38px 0 12px;scroll-margin-top:20px;font-weight:650}
+h4{font-size:15.5px;margin:26px 0 8px;color:var(--text);font-weight:650}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px;padding-left:22px}
+li{margin:6px 0}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.875em;background:var(--surface2);padding:1.5px 5px;border-radius:4px;border:1px solid var(--border)}
+strong{font-weight:650}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:22px 0}
+.card.acc{border-left:3px solid var(--accent);background:var(--accent-soft)}
+.card.warn{border-left:3px solid var(--warn);background:var(--warn-soft)}
+.card.ok{border-left:3px solid var(--ok);background:var(--ok-soft)}
+.card .ct{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.card p:last-child,.card ul:last-child,.card ol:last-child{margin-bottom:0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px;display:block;overflow-x:auto}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap;background:var(--surface2)}
+tbody tr:hover{background:var(--surface2)}
+td.n{font-family:var(--mono);white-space:nowrap}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:20px;border:1px solid currentColor;line-height:1.5;white-space:nowrap}
+.tag.pass{color:var(--ok)} .tag.fail{color:var(--warn)} .tag.meas{color:var(--accent)}
+figure{margin:26px 0}
+figure svg{width:100%;height:auto;display:block;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:9px;text-align:center}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+.shot{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)}
+.shot img{width:100%;display:block}
+.shot .cap{padding:9px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+.shot .cap b{color:var(--text);display:block;font-size:12.5px}
+.chk{list-style:none;padding:0}
+.chk li{position:relative;padding-left:27px;margin:9px 0}
+.chk li::before{content:"";position:absolute;left:0;top:.52em;width:13px;height:13px;border:1.5px solid var(--accent);border-radius:3.5px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.65;margin:16px 0}
+.tt{position:fixed;right:18px;bottom:18px;z-index:60;display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:3px;box-shadow:0 3px 14px #0000001f}
+.tt button{background:none;border:0;color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:20px;cursor:pointer}
+.tt button.on{background:var(--accent);color:var(--bg)}
+.src{font-size:13.5px}
+.src li{margin:7px 0;color:var(--muted)}
+hr{border:0;border-top:1px solid var(--border);margin:40px 0}
+@media(max-width:900px){
+  .wrap{grid-template-columns:1fr;gap:0}
+  nav{position:static;max-height:none;border-bottom:1px solid var(--border);margin-bottom:18px;padding-bottom:18px}
+  nav a{display:inline-block;border-left:0;border-bottom:2px solid var(--border);margin-right:10px;padding:3px 0}
+  nav a.sub{display:none}
+  header.hero{padding-top:34px}
+}
+</style>
+
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+
+
+<!-- ms-seo -->
+<meta name="description" content="This isn&#x27;t a comparison survey. I ran two sets of experiments in a real environment: 6 probes to pin down exac…">
+<meta property="og:title" content="Multiple Sessions vs Multi-Agent — an orchestration study with real experiments">
+<meta property="og:description" content="This isn&#x27;t a comparison survey. I ran two sets of experiments in a real environment: 6 probes to pin down exac…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-notes/multi-session-vs-multi-agent-en.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-notes/multi-session-vs-multi-agent-en.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Multiple Sessions vs Multi-Agent — an orchestration study with real experiments", "inLanguage": "en", "mainEntityOfPage": "https://mingyuyang.com/ai-notes/multi-session-vs-multi-agent-en.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-28", "dateModified": "2026-07-28"}</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">Home</a>
+<div id="bar" class="doc-chrome"></div>
+<div class="tt doc-chrome">
+  <button data-t="auto" class="on">Auto</button>
+  <button data-t="light">Light</button>
+  <button data-t="dark">Dark</button>
+</div>
+
+<div class="wrap">
+<nav class="doc-chrome">
+  <p class="nt">Contents</p>
+  <a href="#tldr">Conclusions first</a>
+  <a href="#mech">1 · The mechanics: there are actually four</a>
+  <a href="#probe">2 · Probe tests: the isolation boundary</a>
+  <a href="#exp">3 · A three-arm controlled experiment</a>
+  <a href="#exp-data" class="sub">The numbers</a>
+  <a href="#exp-why" class="sub">Why it turned out this way</a>
+  <a href="#findings">4 · Seven findings</a>
+  <a href="#sop">5 · A decision SOP</a>
+  <a href="#sop-tree" class="sub">Decision tree</a>
+  <a href="#sop-check" class="sub">Pre-flight checklist</a>
+  <a href="#ios">6 · iOS / SpriteKit chapter</a>
+  <a href="#limits">7 · What I didn't verify</a>
+  <a href="#src">Sources</a>
+</nav>
+
+<main>
+<header class="hero">
+  <p class="kicker">Orchestration research, with real measurements · 2026-07-27</p>
+  <h1>Multiple Sessions or Multi-Agent?<br>I ran 27 agents to answer that</h1>
+  <p class="lede">
+    This isn't a comparison survey. I ran two sets of experiments in a real environment: 6 probes to pin down exactly where a subagent's isolation boundary sits,
+    and 13 agents that each built the same game using three different orchestration modes, after which I checked every build in a headless browser to see whether it actually ran.
+    The result doesn't match intuition — what decides success or failure is neither the session nor the agent.
+  </p>
+  <div class="stats">
+    <div class="stat"><b>27</b><span>agents actually burned</span></div>
+    <div class="stat"><b>1.18M</b><span>subagent tokens</span></div>
+    <div class="stat"><b>3</b><span>arms / one and the same spec</span></div>
+    <div class="stat"><b>2/5</b><span>blank-screen rate, parallel with no contract</span></div>
+    <div class="stat"><b>2</b><span>real concurrency ceiling, measured</span></div>
+  </div>
+</header>
+<section id="tldr">
+<h2><span class="num">TL;DR</span>The conclusions, up front</h2>
+
+<div class="card acc">
+  <p class="ct">In one sentence</p>
+  <p><strong>Multi-agent solves for "width inside a single task"; multiple sessions solve for "length across time + human parallelism + total context" — they're two orthogonal axes, not substitutes for each other.</strong>
+  And what actually decides whether parallel development succeeds is <strong>whether there's an interface contract everyone follows</strong>, not which orchestration mode you picked.</p>
+</div>
+
+<ol>
+  <li><strong>Parallelism doesn't produce quality; contracts do.</strong> Same setup, 5 agents writing 5 modules in parallel: the group with a contract produced 6 files with zero interface errors and assembled on the first try; in the group without one, <span class="tag fail">2 of the 5 assembly attempts went straight to a blank screen</span>, throwing a module-load-time <code>SyntaxError</code> — not the kind of runtime bug you can debug your way out of.</li>
+  <li><strong>Without a contract, agents burn enormous compute guessing at their teammates' interfaces.</strong> The slowest agent in the no-contract group ran for <strong>831 seconds and 104K tokens</strong> — it built itself a set of fake teammate modules and 18 assertions just to verify its own guesses. The fastest agent in the same group took only 169 seconds.</li>
+  <li><strong>Naming disagreements aren't evenly distributed; they cluster on the one interface with the most complex semantics.</strong> Across 5 developers who never talked to each other, named imports hit <strong>24/26 (92%)</strong> — but the core physics stepping function alone got three different names from three people (<code>stepPlayer</code> / <code>updatePhysics</code> / <code>stepPhysics</code>), and that happens to be the single most critical call in the whole thing.</li>
+  <li><strong>A subagent doesn't get your conversation history, user memory, or preference settings.</strong> Confirmed by probe: all it gets is the system prompt, the task message, CLAUDE.md, git status, environment info, and the tool/skill list. All that background you assume it "knows" — it doesn't.</li>
+  <li><strong>A subagent can't ask you a question.</strong> The probe showed no <code>AskUserQuestion</code> and no <code>SendUserMessage</code> in its tool list. It can push files and notifications to you one-way, but it can't ask "does this feel right?" and wait for your answer. For game development that's a dealbreaker.</li>
+  <li><strong>worktree isolation doesn't eliminate conflicts, it just defers them.</strong> Two worktrees each cleanly edited the same line with zero interference at runtime — and the instant you merge, <code>CONFLICT (content)</code>.</li>
+  <li><strong>The payoff from "parallelism" is hard-capped by the host's concurrency.</strong> This cloud sandbox has only 2 cores, and 8 "parallel" agents actually ran as <strong>batches of 2, four batches deep</strong>. The fan-out you pictured when writing the workflow is a queue here.</li>
+</ol>
+</section>
+<section id="mech">
+<h2><span class="num">Part 1</span>The mechanics: there are four, not two</h2>
+
+<p>Framing it as "multiple sessions vs multi-agent" flattens the options. Dig through the official docs and you'll find four ways to run things in parallel today, and they differ along three dimensions: <strong>who coordinates, whether the workers can talk to each other, and how files are isolated</strong>.</p>
+
+<figure>
+<svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Structural comparison of the four orchestration modes">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="currentColor"/></marker>
+    <style>
+      .box{fill:var(--surface2);stroke:var(--border);stroke-width:1.2}
+      .lead{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.4}
+      .t{font-family:var(--sans);font-size:11px;fill:var(--text)}
+      .tm{font-family:var(--mono);font-size:9.5px;fill:var(--muted)}
+      .ttl{font-family:var(--mono);font-size:11px;fill:var(--accent);letter-spacing:.08em}
+      .ln{stroke:var(--muted);stroke-width:1.2;fill:none;color:var(--muted)}
+      .ln2{stroke:var(--accent);stroke-width:1.4;fill:none;color:var(--accent)}
+      .dash{stroke-dasharray:3 3}
+      .sep{stroke:var(--border);stroke-width:1}
+    </style>
+  </defs>
+  <line class="sep" x1="245" y1="18" x2="245" y2="282"/>
+  <line class="sep" x1="490" y1="18" x2="490" y2="282"/>
+  <line class="sep" x1="735" y1="18" x2="735" y2="282"/>
+
+  <!-- 1 subagents -->
+  <text class="ttl" x="20" y="34">SUBAGENTS</text>
+  <text class="tm" x="20" y="50">fan-out inside one session</text>
+  <circle cx="40" cy="82" r="9" class="lead"/><text class="t" x="56" y="86">you</text>
+  <line class="ln" x1="40" y1="91" x2="40" y2="112" marker-end="url(#ar)"/>
+  <rect class="lead" x="16" y="116" width="94" height="26" rx="5"/><text class="t" x="30" y="133">main session</text>
+  <line class="ln2" x1="45" y1="142" x2="45" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="63" y1="142" x2="105" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="80" y1="142" x2="165" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="18" y="176" width="54" height="22" rx="4"/><text class="tm" x="30" y="191">sub 1</text>
+  <rect class="box" x="80" y="176" width="54" height="22" rx="4"/><text class="tm" x="92" y="191">sub 2</text>
+  <rect class="box" x="142" y="176" width="54" height="22" rx="4"/><text class="tm" x="154" y="191">sub 3</text>
+  <path class="ln dash" d="M45,198 L45,214 L110,214" marker-end="url(#ar)"/>
+  <text class="tm" x="18" y="238">↑ results only, no peer talk</text>
+  <rect class="box" x="16" y="248" width="184" height="24" rx="4"/><text class="tm" x="30" y="264">one shared filesystem</text>
+
+  <!-- 2 agent teams -->
+  <text class="ttl" x="266" y="34">AGENT TEAMS</text>
+  <text class="tm" x="266" y="50">many sessions + peer messaging (experimental)</text>
+  <circle cx="286" cy="82" r="9" class="lead"/><text class="t" x="302" y="86">you</text>
+  <line class="ln" x1="286" y1="91" x2="286" y2="112" marker-end="url(#ar)"/>
+  <rect class="lead" x="262" y="116" width="70" height="26" rx="5"/><text class="t" x="276" y="133">lead</text>
+  <line class="ln2" x1="290" y1="142" x2="290" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="310" y1="142" x2="350" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="326" y1="142" x2="410" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="264" y="176" width="54" height="22" rx="4"/><text class="tm" x="274" y="191">mate 1</text>
+  <rect class="box" x="326" y="176" width="54" height="22" rx="4"/><text class="tm" x="336" y="191">mate 2</text>
+  <rect class="box" x="388" y="176" width="54" height="22" rx="4"/><text class="tm" x="398" y="191">mate 3</text>
+  <path class="ln2" d="M318,187 L326,187" marker-end="url(#ar)"/>
+  <path class="ln2" d="M380,187 L388,187" marker-end="url(#ar)"/>
+  <path class="ln2" d="M291,198 q60,22 120,-11" marker-end="url(#ar)"/>
+  <text class="tm" x="264" y="238">↑ peer messages + shared task list</text>
+  <rect class="box" x="262" y="248" width="184" height="24" rx="4"/><text class="tm" x="272" y="264">no auto isolation, split files by hand</text>
+
+  <!-- 3 background -->
+  <text class="ttl" x="512" y="34">BACKGROUND / AGENT VIEW</text>
+  <text class="tm" x="512" y="50">independent background sessions</text>
+  <circle cx="532" cy="82" r="9" class="lead"/><text class="t" x="548" y="86">you</text>
+  <line class="ln" x1="532" y1="91" x2="532" y2="112" marker-end="url(#ar)"/>
+  <rect class="lead" x="508" y="116" width="106" height="26" rx="5"/><text class="t" x="518" y="133">agent view panel</text>
+  <line class="ln2" x1="530" y1="142" x2="530" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="560" y1="142" x2="592" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="586" y1="142" x2="654" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="504" y="176" width="56" height="22" rx="4"/><text class="tm" x="512" y="191">session</text>
+  <rect class="box" x="566" y="176" width="56" height="22" rx="4"/><text class="tm" x="574" y="191">session</text>
+  <rect class="box" x="628" y="176" width="56" height="22" rx="4"/><text class="tm" x="636" y="191">session</text>
+  <text class="tm" x="506" y="238">↑ reports to you only, no peer talk</text>
+  <rect class="box" x="504" y="248" width="184" height="24" rx="4" style="stroke:var(--accent)"/><text class="tm" x="514" y="264">each gets its own worktree</text>
+
+  <!-- 4 manual -->
+  <text class="ttl" x="756" y="34">MANUAL MULTI-SESSION</text>
+  <text class="tm" x="756" y="50">you open a few windows yourself</text>
+  <circle cx="776" cy="82" r="9" class="lead"/><text class="t" x="792" y="86">you (the only link)</text>
+  <line class="ln2" x1="772" y1="91" x2="752" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="778" y1="91" x2="814" y2="172" marker-end="url(#ar)"/>
+  <line class="ln2" x1="784" y1="91" x2="876" y2="172" marker-end="url(#ar)"/>
+  <rect class="box" x="726" y="176" width="56" height="22" rx="4"/><text class="tm" x="734" y="191">session</text>
+  <rect class="box" x="788" y="176" width="56" height="22" rx="4"/><text class="tm" x="796" y="191">session</text>
+  <rect class="box" x="850" y="176" width="56" height="22" rx="4"/><text class="tm" x="858" y="191">session</text>
+  <text class="tm" x="728" y="238">↑ completely unaware of each other</text>
+  <rect class="box" x="726" y="248" width="184" height="24" rx="4"/><text class="tm" x="736" y="264">share the disk, or roll your own worktree</text>
+</svg>
+<figcaption>How the four parallel modes differ structurally. The real dividing line is the last row: how files are isolated.</figcaption>
+</figure>
+
+<table>
+<thead><tr><th>Dimension</th><th>Subagents</th><th>Agent teams</th><th>Background / agent view</th><th>Manual multi-session</th></tr></thead>
+<tbody>
+<tr><td>Who coordinates</td><td>the main agent</td><td>the lead agent</td><td>you (status in a panel)</td><td>you (fully manual)</td></tr>
+<tr><td>Can workers talk to each other</td><td>No — results only</td><td>Yes, direct peer messages</td><td>No</td><td>No</td></tr>
+<tr><td>Can you talk to them directly</td><td>No (only via the main agent)</td><td>Yes, you can open any teammate</td><td>Yes, you can attach</td><td>Yes</td></tr>
+<tr><td>Context</td><td>Separate; results summarized back to the main session</td><td>Separate; inherits none of the lead's history</td><td>Fully separate</td><td>Fully separate</td></tr>
+<tr><td>File isolation</td><td>worktree, optional</td><td><strong>None by default</strong> — you must split files by hand</td><td>worktree assigned automatically</td><td>Share the disk, or roll your own</td></tr>
+<tr><td>Token cost</td><td>Lower (only summaries come back)</td><td>High (a full instance each)</td><td>High (each bills its own quota)</td><td>Highest (you re-feed the background every time)</td></tr>
+<tr><td>Lifetime</td><td>Within the task, resumable</td><td>Tied to the lead session</td><td>Persistent; process stops after 1h idle</td><td>Spans days, <code>--resume</code> works</td></tr>
+</tbody>
+</table>
+
+<div class="card">
+<p class="ct">What this actually means if you're on Cowork</p>
+<p>Of the four above, <strong>agent teams and background agents are Claude Code CLI features</strong> (the former is an experimental one, off by default — you need <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code>).
+Inside Cowork in the desktop app, what you actually have is: <strong>subagent fan-out</strong>, <strong>dynamic workflows</strong> (scripted, large-scale subagent orchestration), and <strong>opening multiple Cowork tasks</strong> — that last one is what I mean by "multiple sessions" in this piece.
+One more official detail worth remembering: <em>in the desktop app, every new session is automatically given its own worktree</em>, so multiple desktop sessions don't share a disk the way terminal sessions naturally do.</p>
+</div>
+</section>
+<section id="probe">
+<h2><span class="num">Part 2</span>Probing it for real: where exactly is the isolation boundary</h2>
+
+<p>Plenty has been written about subagents having "their own context," but nobody spells out how independent "independent" really is. I spun up 6 sets of probe agents to just ask and just try. Here's what came back. <span class="tag meas">Everything tagged as measured came out of this run</span></p>
+
+<h3>Probe 1 · Parallel subagents share the filesystem, and see each other live <span class="tag meas">measured</span></h3>
+<p>Two agents started at the same time, each wrote a file, each slept 30 seconds and then listed the directory. Both saw the other's file, and the time windows confirm the overlap (A: 1785147960382→1785148004867, B: 1785147960821→1785148006985).</p>
+<div class="card warn">
+<p class="ct">What this means</p>
+<p>Subagents running in parallel inside the same session have <strong>no file-level isolation at all</strong>. Two agents writing the same file at the same time simply clobber each other. If you want isolation, you have to explicitly open a worktree.</p>
+</div>
+
+<h3>Probe 2 · What a subagent inherits, and what it doesn't <span class="tag meas">measured</span></h3>
+<p>I asked an agent to report, without using a single tool, exactly what context it received at startup.</p>
+
+<figure>
+<svg viewBox="0 0 900 322" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The subagent's context inheritance boundary">
+  <defs><style>
+    .h{font-family:var(--mono);font-size:11px;letter-spacing:.09em}
+    .i{font-family:var(--sans);font-size:12px;fill:var(--text)}
+    .x{font-family:var(--sans);font-size:12px;fill:var(--muted)}
+    .pane{fill:var(--surface2);stroke:var(--border);stroke-width:1.2}
+    .wall{stroke:var(--warn);stroke-width:2.5;stroke-dasharray:7 5}
+  </style></defs>
+  <rect class="pane" x="16" y="44" width="352" height="258" rx="10"/>
+  <text class="h" x="30" y="30" fill="var(--muted)">In the main session</text>
+  <text class="x" x="34" y="74">Conversation history (every turn)</text>
+  <text class="x" x="34" y="100">User memory / memory file contents</text>
+  <text class="x" x="34" y="126">User preferences</text>
+  <text class="x" x="34" y="152">Contents of files already read</text>
+  <text class="x" x="34" y="178">State of skills already invoked</text>
+  <text class="x" x="34" y="204">output style</text>
+  <text class="x" x="34" y="230">Results of every earlier tool call</text>
+  <text class="x" x="34" y="256">Attachments you uploaded</text>
+  <text class="x" x="34" y="282">auto memory</text>
+
+  <line class="wall" x1="446" y1="30" x2="446" y2="310"/>
+  <text class="h" x="404" y="20" fill="var(--warn)">a wall</text>
+  <text class="h" x="386" y="322" fill="var(--warn)">none of it crosses</text>
+
+  <rect class="pane" x="524" y="44" width="360" height="258" rx="10" style="stroke:var(--accent)"/>
+  <text class="h" x="538" y="30" fill="var(--accent)">what the subagent actually gets</text>
+  <text class="i" x="542" y="74">Its own system prompt (not the main session's)</text>
+  <text class="i" x="542" y="100">The one task message the main agent wrote</text>
+  <text class="i" x="542" y="126">CLAUDE.md hierarchy (all levels)</text>
+  <text class="i" x="542" y="152">git status snapshot</text>
+  <text class="i" x="542" y="178">Environment: cwd / platform / model</text>
+  <text class="i" x="542" y="204">Tool list (names only, no contents)</text>
+  <text class="i" x="542" y="230">Names and descriptions of installed skills</text>
+  <text class="i" x="542" y="256">Body text of preloaded skills (if specified)</text>
+  <text class="i" x="542" y="282">Peer roster (if SendMessage is on)</text>
+</svg>
+<figcaption>The measured context inheritance boundary. That entire left column — the subagent sees not one word of it.</figcaption>
+</figure>
+
+<p>The probe agent's own words are worth copying down:</p>
+<div class="card">
+<p>"I can see absolutely none of the main session's conversation history — not one user message from it, no assistant replies, no summary, no 'previously on.' The only task message I received is these 4 questions you're asking me right now."</p>
+<p>"The memory tool existing ≠ me being able to see the memory."</p>
+</div>
+<p>The only thing it can do is <strong>reason backwards from the environment</strong>: it saw the working directory was called <code>probe-repo</code>, saw the installed skills leaned toward iOS game development and Chinese HTML documents, and guessed "this account usually cares about those areas." That's a guess, not knowledge.</p>
+
+<div class="card warn">
+<p class="ct">The direct consequence</p>
+<p>Every critical constraint you stated in the main session — "this project uses SpriteKit, not Unity," "keep the colors consistent with last time," "don't touch that file" — <strong>has to be manually restated by the main agent inside the subagent's prompt</strong>. Miss one and you're redoing the work. This is the most common source of rework in any fan-out orchestration.</p>
+<p>Whatever can be made permanent belongs in <code>CLAUDE.md</code>: it's the only thing that automatically lands in every subagent's context.</p>
+</div>
+
+<h3>Probe 3 · A subagent cannot ask you anything <span class="tag meas">measured</span></h3>
+<p>I had an agent go through its own tool list line by line:</p>
+<table>
+<thead><tr><th>Capability</th><th>Result</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td><code>AskUserQuestion</code></td><td><span class="tag fail">no</span></td><td>Can't pose a multiple-choice question and wait for your answer</td></tr>
+<tr><td><code>SendUserMessage</code></td><td><span class="tag fail">no</span></td><td>Can't send text straight to you</td></tr>
+<tr><td><code>SendUserFile</code> / <code>PushNotification</code></td><td><span class="tag pass">yes</span></td><td>Can push files and notifications one-way</td></tr>
+<tr><td><code>SendMessage</code> (to another agent)</td><td><span class="tag pass">yes</span></td><td>Can message peer agents</td></tr>
+<tr><td>Spawning another subagent</td><td><span class="tag fail">not inside a workflow</span></td><td>The docs allow 3 levels of nesting by default, but agents spawned from a workflow never get the <code>Agent</code> tool</td></tr>
+</tbody>
+</table>
+<div class="card warn">
+<p class="ct">Why this is especially lethal for game development</p>
+<p>Between a subagent and you, the link is <strong>one-way reachable, never two-way</strong>. It can push a finished result for you to look at, but it can't stop halfway and ask "does this jump feel too heavy or too light?" and then wait for your call.
+A huge share of decisions in a game — feel, palette, difficulty curve — are precisely the ones only you can judge. Decisions like that have to stay at the session layer; they can't be thrown into a subagent.</p>
+</div>
+
+<h3>Probe 4 · worktree isolation: flawless at runtime, explosive at merge time <span class="tag meas">measured</span></h3>
+<p>Two agents each created a worktree, each changed the same line of <code>config.js</code> — <code>SPEED = 100</code> — to a different value and committed, with a 20-second sleep in between to force overlap.</p>
+<p>Runtime behavior was flawless: the main repo's working tree stayed clean throughout (<code>SPEED</code> still 100), the two branches advanced independently from the same base, and there was <strong>no <code>index.lock</code> contention and no git error at all</strong>. A even watched B's worktree appear out of nowhere during its own sleep, with zero effect.</p>
+<p>Then I merged the two branches:</p>
+<pre>$ git merge feat-a
+Fast-forward
+
+$ git merge feat-b
+Auto-merging config.js
+CONFLICT (content): Merge conflict in config.js
+Automatic merge failed; fix conflicts and then commit the result.</pre>
+
+<figure>
+<svg viewBox="0 0 860 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="worktree defers the conflict from runtime to merge time">
+  <defs><style>
+    .lb{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+    .lt{font-family:var(--sans);font-size:12px;fill:var(--text)}
+    .node{fill:var(--surface2);stroke:var(--border);stroke-width:1.4}
+    .ok{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.4}
+    .bad{fill:var(--warn-soft);stroke:var(--warn);stroke-width:2}
+    .e{stroke:var(--muted);stroke-width:1.6;fill:none}
+    .ea{stroke:var(--accent);stroke-width:1.6;fill:none}
+  </style></defs>
+  <text class="lb" x="24" y="24">runtime: zero interference</text>
+  <text class="lb" x="600" y="24" fill="var(--warn)">merge time: head-on collision</text>
+  <circle class="node" cx="70" cy="105" r="20"/><text class="lb" x="52" y="109">base</text>
+  <path class="ea" d="M90,98 Q170,60 250,58"/>
+  <path class="ea" d="M90,112 Q170,150 250,152"/>
+  <rect class="ok" x="250" y="40" width="200" height="36" rx="7"/><text class="lt" x="264" y="63">worktree A → SPEED = 250</text>
+  <rect class="ok" x="250" y="134" width="200" height="36" rx="7"/><text class="lt" x="264" y="157">worktree B → SPEED = 700</text>
+  <path class="e" d="M450,58 Q540,64 596,96"/>
+  <path class="e" d="M450,152 Q540,146 596,114"/>
+  <rect class="bad" x="600" y="80" width="232" height="50" rx="8"/>
+  <text class="lt" x="616" y="102" style="fill:var(--warn)">CONFLICT (content)</text>
+  <text class="lb" x="616" y="120">two values on one line, git won't pick</text>
+  <text class="lb" x="252" y="98">mutually invisible · no index.lock contention · main repo clean</text>
+</svg>
+<figcaption>What a worktree solves is "writing at the same time," not "writing different things." The latter can only be settled by a contract or by human judgment.</figcaption>
+</figure>
+
+<h3>Probe 5 · Real concurrency: the parallelism you were promised is actually a queue <span class="tag meas">measured</span></h3>
+<p>I launched 8 agents, each doing exactly one thing: stamp the time, sleep 15 seconds, stamp the time again. The timestamps came back in a clean pattern of <strong>four batches, two at a time</strong>:</p>
+<table>
+<thead><tr><th>Batch</th><th>agents</th><th>start → end (relative seconds)</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td class="n">#0, #1</td><td class="n">0.0 → 19.8</td></tr>
+<tr><td class="n">2</td><td class="n">#2, #3</td><td class="n">29.4 → 50.6</td></tr>
+<tr><td class="n">3</td><td class="n">#4, #5</td><td class="n">58.6 → 79.6</td></tr>
+<tr><td class="n">4</td><td class="n">#6, #7</td><td class="n">88.2 → 109.1</td></tr>
+</tbody>
+</table>
+<p>The host has <code>nproc = 2</code>, and the measured maximum concurrency is exactly 2. The 8 agents took 109 seconds to finish; with real parallelism it should have been about 20 seconds. On top of the 15-second sleep, each agent also carries roughly 5 seconds of startup and model overhead.</p>
+<div class="card warn">
+<p class="ct">Don't treat this as a general conclusion</p>
+<p>These are <strong>this machine's</strong> numbers. The official docs put the default subagent concurrency ceiling at 20 (<code>CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS</code>), a cumulative cap of 200 per session, and a default nesting depth of 3.
+But workflow scripts have ceilings of their own, and how many actually run at once ultimately depends on what machine you're running on. <strong>Writing <code>parallel([...16 of them])</code> does not mean 16 are really running.</strong></p>
+</div>
+</section>
+<section id="exp">
+<h2><span class="num">Part 3</span>Three-Arm Controlled Experiment</h2>
+
+<p>The probes answered "what the mechanism is." This section answers "how much difference it makes."</p>
+
+<h3>The design</h3>
+<p>One <code>SPEC.md</code> (a 640×360 canvas platformer, hard-split into seven files: <code>physics / input / level / render / hud / main / index.html</code>), built once under each of three orchestration modes:</p>
+
+<table>
+<thead><tr><th></th><th>Arm A</th><th>Arm B</th><th>Arm C</th></tr></thead>
+<tbody>
+<tr><td>What it simulates</td><td>One agent writing everything end to end</td><td>Multi-agent inside a single session</td><td>Multiple sessions each working on their own</td></tr>
+<tr><td>Orchestration</td><td>1 agent writes all 7 files</td><td>1 agent writes the interface contract first → 5 agents each write one module in parallel → 1 agent reads the contract and assembles main</td><td>5 agents in separate directories, <strong>spec only, no contract</strong>, each writing its own module plus its own version of main.js</td></tr>
+<tr><td>Can it see teammates' code?</td><td>N/A</td><td>No — alignment comes only from the contract</td><td>No, and cross-directory reads are explicitly forbidden</td></tr>
+<tr><td>Integration</td><td>Built in</td><td>A dedicated integration agent</td><td>Manual merge: the 5 modules + whichever main.js wins under "first PR wins"</td></tr>
+</tbody>
+</table>
+
+<div class="card">
+<p class="ct">A note on the variable (important)</p>
+<p>Strictly speaking, the variable isolated between B and C <strong>is not "session vs agent" — it is "shared contract or not"</strong>. That is deliberate: a multiple-sessions workflow that does have a contract behaves exactly like Arm B.<br>
+In other words, this experiment measures <strong>the real root cause of failure in parallel development</strong>, not a difference in product form. Which is also the more useful conclusion.</p>
+</div>
+
+<h3 id="exp-data">The numbers</h3>
+
+<table>
+<thead><tr><th>Metric</th><th>Arm A serial</th><th>Arm B contract-first parallel</th><th>Arm C no-contract parallel</th></tr></thead>
+<tbody>
+<tr><td>Total agent working time</td><td class="n">885.6 s</td><td class="n">849.5 s</td><td class="n"><strong>1721.7 s</strong> (2.0×)</td></tr>
+<tr><td>Ideal critical path<br><span style="color:var(--muted);font-size:12px">(assuming true parallelism)</span></td><td class="n">885.6 s</td><td class="n"><strong>512.5 s</strong> (0.58×)</td><td class="n">831.4 s</td></tr>
+<tr><td>Measured wall clock on my machine<br><span style="color:var(--muted);font-size:12px">(concurrency cap = 2)</span></td><td class="n">885.6 s</td><td class="n">1012.7 s</td><td class="n">1174.0 s</td></tr>
+<tr><td>subagent tokens</td><td class="n">109,822</td><td class="n">350,465 (3.2×)</td><td class="n">295,101 (2.7×)</td></tr>
+<tr><td>Lines of code produced</td><td class="n">1,057</td><td class="n"><strong>657</strong></td><td class="n">1,628</td></tr>
+<tr><td>Cross-module interface errors</td><td class="n">0</td><td class="n">0</td><td class="n">see below</td></tr>
+<tr><td>Duplicated function implementations</td><td class="n">0</td><td class="n">0</td><td class="n"><code>drawGameOver</code> and <code>isOnGround</code> each rewritten by two modules</td></tr>
+<tr><td>Headless browser verification</td><td><span class="tag pass">PASS</span></td><td><span class="tag pass">PASS</span></td><td><span class="tag fail">2 of 5 assemblies FAIL</span></td></tr>
+<tr><td>Files nobody wrote</td><td class="n">none</td><td class="n">none</td><td class="n"><code>index.html</code> — not one of the five wrote it</td></tr>
+</tbody>
+</table>
+
+<figure>
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent time distribution across the three arms">
+  <defs><style>
+    .ax{stroke:var(--border);stroke-width:1}
+    .lab{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+    .nm{font-family:var(--sans);font-size:12px;fill:var(--text)}
+    .h2s{font-family:var(--mono);font-size:11px;fill:var(--accent);letter-spacing:.09em}
+    .bA{fill:var(--muted);opacity:.55}
+    .bB{fill:var(--accent);opacity:.8}
+    .bC{fill:var(--warn);opacity:.8}
+    .bK{fill:var(--accent);opacity:.35}
+    .cp{stroke:var(--accent);stroke-width:1.6;stroke-dasharray:4 3;fill:none}
+  </style></defs>
+  <!-- scale: 900s -> 640px, x0=170 -->
+  <line class="ax" x1="170" y1="272" x2="850" y2="272"/>
+  <text class="lab" x="170" y="288">0s</text>
+  <text class="lab" x="382" y="288">300s</text>
+  <text class="lab" x="595" y="288">600s</text>
+  <text class="lab" x="808" y="288">900s</text>
+
+  <text class="h2s" x="16" y="34">ARM A · SERIAL</text>
+  <text class="nm" x="16" y="56">single agent</text>
+  <rect class="bA" x="170" y="44" width="628" height="16" rx="3"/>
+  <text class="lab" x="806" y="57">885.6s</text>
+
+  <text class="h2s" x="16" y="92">ARM B · CONTRACT</text>
+  <text class="nm" x="16" y="112">contract</text>
+  <rect class="bK" x="170" y="100" width="182" height="14" rx="3"/><text class="lab" x="358" y="112">256.6s</text>
+  <text class="nm" x="16" y="130">5 modules (parallel)</text>
+  <rect class="bB" x="352" y="118" width="67" height="6" rx="2"/>
+  <rect class="bB" x="352" y="127" width="101" height="6" rx="2"/>
+  <rect class="bB" x="352" y="136" width="61" height="6" rx="2"/>
+  <rect class="bB" x="352" y="145" width="54" height="6" rx="2"/>
+  <rect class="bB" x="352" y="154" width="57" height="6" rx="2"/>
+  <text class="lab" x="460" y="140">slowest 143.0s</text>
+  <text class="nm" x="16" y="176">integration</text>
+  <rect class="bK" x="453" y="166" width="80" height="14" rx="3"/><text class="lab" x="539" y="178">112.9s</text>
+  <path class="cp" d="M170,188 L533,188"/>
+  <text class="lab" x="170" y="202" fill="var(--accent)">critical path 512.5s — 42% faster than serial</text>
+
+  <text class="h2s" x="16" y="228">ARM C · NO CONTRACT</text>
+  <text class="nm" x="16" y="246">5 independent devs</text>
+  <text class="lab" x="16" y="262">parallel, no contract</text>
+  <rect class="bC" x="170" y="222" width="148" height="6" rx="2"/><text class="lab" x="324" y="228">207s</text>
+  <rect class="bC" x="170" y="231" width="219" height="6" rx="2"/><text class="lab" x="395" y="237">308s</text>
+  <rect class="bC" x="170" y="240" width="146" height="6" rx="2"/><text class="lab" x="322" y="246">205s</text>
+  <rect class="bC" x="170" y="249" width="591" height="6" rx="2"/><text class="lab" x="767" y="255" fill="var(--warn)">831s ⚑</text>
+  <rect class="bC" x="170" y="258" width="120" height="6" rx="2"/><text class="lab" x="296" y="264">169s</text>
+</svg>
+<figcaption>That 831-second bar in Arm C is the most expensive run of the whole experiment, and everything it did was guessing teammates' interfaces and then verifying the guesses.</figcaption>
+</figure>
+
+<h3>How Arm C actually broke</h3>
+<p>The 5 developers each wrote their own <code>main.js</code>. Once I had all 5 modules, I assembled the project once with each of them and ran it in headless Chromium:</p>
+
+<table>
+<thead><tr><th>Whose main.js</th><th>Import style</th><th>Result</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td class="n">dev0 (author of physics)</td><td>9 named imports</td><td><span class="tag pass">PASS</span></td><td>It wrote physics itself, so there was nothing to guess wrong</td></tr>
+<tr><td class="n">dev1 (author of input)</td><td>4 namespace + 2 named</td><td><span class="tag pass">PASS</span></td><td>Saved by candidate-name resolution</td></tr>
+<tr><td class="n">dev2 (author of level)</td><td>10 named imports</td><td><span class="tag fail">FAIL</span></td><td><code>does not provide an export named 'updatePhysics'</code></td></tr>
+<tr><td class="n">dev3 (author of render)</td><td>5 namespace imports</td><td><span class="tag pass">PASS</span></td><td>Wrote argument-order sniffing plus property aliases, at a cost of 831s</td></tr>
+<tr><td class="n">dev4 (author of hud)</td><td>5 named imports</td><td><span class="tag fail">FAIL</span></td><td><code>does not provide an export named 'stepPhysics'</code></td></tr>
+</tbody>
+</table>
+
+<div class="card warn">
+<p class="ct">The nature of the failure is the point</p>
+<p>Neither failure is "it runs but has a bug." Both are a <strong><code>SyntaxError</code> at ES module link time — the whole module graph fails to load, the screen goes black, not a single line of code executes</strong>.
+In a real project this is exactly the case where a few sessions each finish their part, you merge them, and it won't compile. And it <strong>never surfaces inside any one session</strong>, because within each session its own part is perfectly fine.</p>
+</div>
+
+<h3>Naming convergence: higher than I expected, but wrong in exactly the worst place</h3>
+<p>Cross-checking the five developers' named imports against what the real authors exported:</p>
+<pre>Named import hit rate: 24 / 26 = 92%
+
+Hits (everyone converged on their own):
+  input.js  : createInput      ✓ all three guessed right
+  level.js  : getPlatforms     ✓
+  render.js : render           ✓
+  hud.js    : drawHUD          ✓
+
+Misses (all on one and the same interface):
+  physics.js actually exports : stepPlayer / stepBody
+  dev2 guessed                : updatePhysics   ✗
+  dev4 guessed                : stepPhysics     ✗</pre>
+
+<div class="card acc">
+<p class="ct">This one I did not see coming</p>
+<p>Same model, same spec, and naming convergence hits 92% — <strong>Claudes have remarkably consistent taste in names</strong>.
+But the disagreement is not scattered at random. It lands <strong>precisely on the interface with the most complex semantics and the most naming freedom</strong>: the physics step function.
+Which happens to be the single most central call in the whole thing.<br><br>
+The implication: skipping the contract because "we're all the same model, we should line up" bets the project on exactly the wrong thing. The higher the convergence, the more dangerous it is, because it convinces you that you don't need a contract.</p>
+</div>
+
+<h3>What the three builds look like</h3>
+<p>I screenshotted all three PASS builds (headless Chromium, 2.5 seconds in, holding Right + Space):</p>
+
+<div class="shots">
+  <div class="shot"><img alt="Arm A screenshot" src="data:image/webp;base64,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">
+    <div class="cap"><b>Arm A · 1,057 lines</b>starfield, distant hills, rounded platforms, a character with eyes, life pips, control hints</div></div>
+  <div class="shot"><img alt="Arm B screenshot" src="data:image/webp;base64,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">
+    <div class="cap"><b>Arm B · 657 lines</b>strictly to the contract, not one pixel of improvisation</div></div>
+  <div class="shot"><img alt="Arm C screenshot" src="data:image/webp;base64,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">
+    <div class="cap"><b>Arm C · 1,628 lines</b>the richest visuals and the most bloated; 2 of the 5 assemblies give a blank screen</div></div>
+</div>
+
+<div class="card">
+<p class="ct">A cost I didn't expect</p>
+<p>Arm B's output is <strong>only 657 lines, 38% fewer than serial A</strong>, and it's also the plainest looking. The reason is that the contract nails everyone's boundary down, so nobody throws in a starfield on the side.<br>
+<strong>A contract buys consistency and sells off room to improvise.</strong> For utility modules that's a feature; for "game feel" and art it may be a bug — which also explains why the creative-heavy parts shouldn't be dumped into brainless parallelism.</p>
+</div>
+
+<h3 id="exp-why">Why this happens</h3>
+<p>Read through what the 5 agents in Arm C say about their own work and the mechanism gets very clear. With no contract, a rational developer does three things, every one of which burns money:</p>
+<ol>
+<li><strong>Abandon named imports for namespace imports plus a candidate-name table.</strong> dev3's own words: "With named imports, if a teammate's name is off by a single letter, the browser gives you a link-time SyntaxError and a blank screen." So it prepared a list of candidate names for every symbol and tried them one by one.</li>
+<li><strong>Hedge shared state with property aliases.</strong> Several agents used <code>Object.defineProperty</code> to point <code>state.vy</code> and <code>state.player.vy</code> at the same storage, and threw in <code>w↔width</code> and <code>onGround↔grounded</code> while they were at it — purely because they had no idea which name a teammate would use.</li>
+<li><strong>Build a set of fake teammates to verify the guesses.</strong> dev3 created a <code>.selftest</code> inside its own directory, wrote three sets of fake modules in completely different styles (one deliberately contradicting its own guesses), and ran 18 assertions. That step alone is why it was 4× slower than the rest of its arm.</li>
+</ol>
+<p>It even left this line in its report, which says it all:</p>
+<div class="card warn">
+<p>"Hedging covers 'different name.' It can't cover 'different argument order' (say, <code>step(state, platforms, dt)</code>) — that one only gets solved by talking to each other."</p>
+</div>
+<p>— Defensive programming can block naming divergence; it can't block semantic divergence. And <strong>a contract that takes 250 seconds to write makes all three of these unnecessary</strong>.</p>
+</section>
+<section id="findings">
+<h2><span class="num">Part 4</span>Seven Conclusions</h2>
+
+<h4>1 · A contract is a precondition for parallelism, not an optional extra</h4>
+<p>Arm B spent 256.6 seconds writing the contract and got back zero interface errors, an assembly that worked on the first try, and the smallest codebase. Arm C skipped those 256.6 seconds and paid for it with double the total work time, 40% of its assembly attempts ending in a blank screen, and two modules implementing the same function twice. <strong>A contract isn't overhead, it's leverage.</strong></p>
+
+<h4>2 · Parallelism doesn't reduce total work, it only compresses the critical path</h4>
+<p>Arm A serial: 885.6s. Arm B contract-first parallel: 849.5s of total work — almost identical. Parallelism didn't make the work smaller, it just squeezed out a 512.5-second critical path (42% faster than serial). So: <strong>if you don't care about wall-clock time, parallelism buys you nothing and burns 3x the tokens.</strong></p>
+
+<h4>3 · The ceiling on parallel gains is set by your machine, not by your script</h4>
+<p>This machine has 2 cores, and the measured concurrency ceiling was exactly 2. Arm B's ideal critical path was 512.5s, but the measured wall clock was 1012.7s — <strong>the effective parallelism was cut by more than half</strong>. Check <code>nproc</code> before you write the workflow.</p>
+
+<h4>4 · subagents are "dumb": no background, and they can't ask</h4>
+<p>They don't get the conversation history, the memory, or your preferences, and they can't ask you a question. Put those two together and it means: <strong>any decision that comes down to "you decide" cannot be handed off to a subagent</strong>. They're only good for work with a clear goal, objective criteria, and a conclusion at the end.</p>
+
+<h4>5 · worktrees govern "writing at the same time", not "writing different things"</h4>
+<p>Two worktrees wrote concurrently with zero conflicts, and the merge CONFLICTed immediately. <strong>An isolation boundary solves physical conflicts; semantic conflicts can only be settled by a contract or by a human.</strong></p>
+
+<h4>6 · "It's the same model, it should line up" is a dangerous intuition</h4>
+<p>A 92% naming convergence rate is exactly what creates that illusion. But the remaining 8% lands precisely on the most critical interfaces, and the failure mode is a hard failure (blank screen), not a soft degradation.</p>
+
+<h4>7 · Contracts suppress flair — don't use them to manage creative work</h4>
+<p>Arm B's output was the most orderly and also the plainest. For infrastructure that's a good thing; for the parts that need flair — game feel, level pacing, art style — you shouldn't force them through the same parallel pipeline.</p>
+
+<div class="card acc">
+<p class="ct">Back to the original question</p>
+<p><strong>Multiple sessions and multi-agent aren't an either/or — they solve different problems.</strong></p>
+<ul>
+<li><strong>Multi-agent</strong>: compresses the critical path of <em>a single task</em>. That only works if the task can be cut into mutually independent chunks and you can write the contract up front.</li>
+<li><strong>Multiple sessions</strong>: break past <em>total context</em>, span <em>time</em>, parallelize <em>your own waiting</em>, isolate <em>failure</em>, and clear out <em>preconceptions</em>. None of these is something a subagent can structurally do.</li>
+</ul>
+<p>So the mature approach is to use both: cut sessions along "deliverable + time rhythm", then fan out with multi-agent inside each session.</p>
+</div>
+</section>
+<section id="sop">
+<h2><span class="num">Part 5</span>The decision SOP</h2>
+
+<h3 id="sop-tree">Decision tree</h3>
+<figure>
+<svg viewBox="0 0 920 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="编排方式决策树">
+  <defs>
+    <marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="var(--muted)"/></marker>
+    <style>
+      .q{fill:var(--surface2);stroke:var(--border);stroke-width:1.3}
+      .r{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+      .w{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.5}
+      .qt{font-family:var(--sans);font-size:12.5px;fill:var(--text)}
+      .rt{font-family:var(--sans);font-size:12.5px;fill:var(--text);font-weight:600}
+      .et{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+      .ed{stroke:var(--muted);stroke-width:1.3;fill:none}
+    </style>
+  </defs>
+  <rect class="q" x="330" y="14" width="260" height="34" rx="8"/><text class="qt" x="348" y="36">Can this be split into independent chunks?</text>
+  <path class="ed" d="M400,48 L300,84" marker-end="url(#a2)"/><text class="et" x="316" y="70">No</text>
+  <path class="ed" d="M520,48 L620,84" marker-end="url(#a2)"/><text class="et" x="574" y="70">Yes</text>
+
+  <rect class="r" x="120" y="86" width="230" height="42" rx="8"/>
+  <text class="rt" x="138" y="104">Keep it serial in the main session</text><text class="et" x="138" y="120">Parallel just burns 3× the tokens</text>
+
+  <rect class="q" x="560" y="86" width="330" height="34" rx="8"/><text class="qt" x="578" y="108">Need your judgment midway (feel / taste / trade-offs)?</text>
+  <path class="ed" d="M640,120 L520,158" marker-end="url(#a2)"/><text class="et" x="540" y="142">Yes</text>
+  <path class="ed" d="M800,120 L820,158" marker-end="url(#a2)"/><text class="et" x="812" y="142">No</text>
+
+  <rect class="w" x="330" y="160" width="290" height="46" rx="8"/>
+  <text class="rt" x="348" y="180">Split into multiple sessions, not subagents</text>
+  <text class="et" x="348" y="197">subagents can't ask questions, only report back</text>
+
+  <rect class="q" x="640" y="160" width="266" height="34" rx="8"/><text class="qt" x="658" y="182">Will these chunks touch the same files?</text>
+  <path class="ed" d="M700,194 L620,232" marker-end="url(#a2)"/><text class="et" x="636" y="216">Yes</text>
+  <path class="ed" d="M840,194 L850,232" marker-end="url(#a2)"/><text class="et" x="844" y="216">No</text>
+
+  <rect class="w" x="400" y="234" width="250" height="60" rx="8"/>
+  <text class="rt" x="418" y="254">Set file ownership: one owner per file</text>
+  <text class="et" x="418" y="271">Unclear? Go serial, or a worktree per agent</text>
+  <text class="et" x="418" y="286">Worktrees only defer conflicts, never erase</text>
+
+  <rect class="q" x="660" y="234" width="248" height="34" rx="8"/><text class="qt" x="678" y="256">Spans days / needs to persist?</text>
+  <path class="ed" d="M720,268 L640,308" marker-end="url(#a2)"/><text class="et" x="652" y="292">Yes</text>
+  <path class="ed" d="M860,268 L870,308" marker-end="url(#a2)"/><text class="et" x="864" y="292">No</text>
+
+  <rect class="r" x="420" y="310" width="250" height="60" rx="8"/>
+  <text class="rt" x="438" y="330">Multiple sessions</text>
+  <text class="et" x="438" y="347">Split by deliverable + cadence, not module</text>
+  <text class="et" x="438" y="362">One CLAUDE.md per session for shared context</text>
+
+  <rect class="r" x="686" y="310" width="222" height="60" rx="8"/>
+  <text class="rt" x="704" y="330">Multi-agent, one session</text>
+  <text class="et" x="704" y="347">3–5 is the sweet spot</text>
+  <text class="et" x="704" y="362">Past 8, coordination eats the gains</text>
+
+  <rect class="w" x="200" y="400" width="520" height="52" rx="8"/>
+  <text class="rt" x="222" y="422">⚑ Whichever leaf you land on: write the contract before going parallel</text>
+  <text class="et" x="222" y="440">Measured: 250s of contract killed a 40% blank-screen rate and 2× the work</text>
+</svg>
+<figcaption>Four questions settle the orchestration mode. That last bar is unconditional.</figcaption>
+</figure>
+
+<h3 id="sop-check">Pre-parallel checklist</h3>
+<p>Follow this one as written. The first four are hard gates — miss any one of them and don't go parallel.</p>
+
+<h4>Hard gates</h4>
+<ul class="chk">
+<li><strong>The contract is written and on disk.</strong> Precise down to: <em>every field name + type + default value + who is allowed to write it</em> for shared state; <em>every module's exported function names + parameter order + parameter types + return values</em>; and call order. A vague contract is no contract.</li>
+<li><strong>File ownership is settled.</strong> One file, one owner. Whatever you can't divide cleanly stays in the serial path.</li>
+<li><strong>The unclaimed work has been named.</strong> In Arm C, none of the five wrote <code>index.html</code> — anything that sits in nobody's remit is something nobody does. List it out and assign it to a person.</li>
+<li><strong>Verification already runs automatically.</strong> Parallel output has to have an objective test (compiles / tests pass / starts with no errors). Without an automatic check you will drown in manual review.</li>
+</ul>
+
+<h4>When writing prompts</h4>
+<ul class="chk">
+<li><strong>Manually restate the key constraints from the main session into every agent's prompt</strong> — they can't see your conversation.</li>
+<li>Any rule you can pin down goes into <code>CLAUDE.md</code>: it's the only thing that reaches every subagent's context automatically.</li>
+<li>Spell out what an agent is <em>not</em> responsible for, not just what it is. <code>drawGameOver</code> got written twice, once in each module, precisely because nobody was told it wasn't theirs.</li>
+<li>Forbid agents from reading into anyone else's directory — otherwise what you're measuring isn't parallelism, it's serial work in a parallel costume.</li>
+</ul>
+
+<h4>Scale and cost</h4>
+<ul class="chk">
+<li>Check <code>nproc</code> first. Your concurrency ceiling is roughly the cores the machine can give you, not the number written in your script.</li>
+<li>3–5 workers is the sweet spot (the official recommendation matches what I saw here); past 8, coordination overhead starts eating the gains from parallelism.</li>
+<li>Budget: parallel costs about <strong>3× the tokens</strong> (A→B was 3.2× here). The published official numbers are ~15× for multi-agent versus chat, ~4× for a single agent.</li>
+<li>If what you're trying to save is your own time rather than wall-clock time, don't go parallel.</li>
+</ul>
+
+<h4>When merging</h4>
+<ul class="chk">
+<li>Before merging a worktree branch, <strong>run the automated verification once</strong>; don't wait until the conflicts are resolved to discover the interfaces don't line up.</li>
+<li>When interfaces disagree, <strong>let the contract decide whether the caller or the callee changes</strong> — not "whoever merges first wins".</li>
+<li>Re-run the full verification after merging — two modules that are each correct on their own aren't necessarily correct together.</li>
+</ul>
+
+<h3>How to split sessions</h3>
+<div class="card acc">
+<p class="ct">Splitting principle: split by deliverable + cadence, not by code module</p>
+<p>Code modules have interface dependencies between them, so splitting them means paying the contract tax. Deliverables don't.</p>
+<table style="margin:14px 0 0">
+<thead><tr><th>session</th><th>Deliverable</th><th>Cadence</th><th>Code collisions?</th></tr></thead>
+<tbody>
+<tr><td>Main dev line</td><td>Code</td><td>Daily</td><td><strong>The only one allowed to write code</strong></td></tr>
+<tr><td>Asset line</td><td>Images / audio</td><td>Batched, intermittent</td><td>Doesn't touch code</td></tr>
+<tr><td>Research line</td><td>Docs / competitors / ASO</td><td>Periodic</td><td>Doesn't touch code</td></tr>
+<tr><td>Monitoring line</td><td>Reports / alerts</td><td>Scheduled jobs</td><td>Read-only</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="ios">
+<h2><span class="num">Part 6</span>iOS / SpriteKit deep dive</h2>
+
+<p>On Xcode projects, everything above gets one extra amplifier: <code>project.pbxproj</code>.</p>
+
+<h3>Why iOS projects are especially hostile to parallelism</h3>
+<p><code>.pbxproj</code> is a single monolithic plist, and <strong>every time you add, remove, or move a file, both the file references and the group references get updated</strong>. Two sessions each adding one Swift file means two writes to adjacent regions of the same file — git's auto-merge does a poor job on this kind of structure. And that is exactly the operation parallel development performs most often.</p>
+
+<div class="card warn">
+<p class="ct">Add two more iOS-specific serial bottlenecks on top</p>
+<ul>
+<li><strong>Device / simulator verification can't be parallelized.</strong> Feel, animation smoothness, touch response — you can only run one at a time, and only you can judge it. This is a hard serial segment.</li>
+<li><strong>The build is global.</strong> Multiple sessions running <code>xcodebuild</code> on the same project fight over DerivedData.</li>
+</ul>
+</div>
+
+<h3>Three tiers of mitigation, ordered by effort</h3>
+
+<h4>Tier 1 · Don't touch the project structure (doable today)</h4>
+<ul class="chk">
+<li><strong>Keep exactly one coding session.</strong> Lowest cost, highest payoff of anything here. Every other session only does work that never touches <code>.pbxproj</code>: assets, research, copy, balance tables.</li>
+<li>If you really must write code in parallel, <strong>agree that nobody adds a new file this round</strong> — only edit the contents of existing files. Editing contents doesn't touch <code>.pbxproj</code>, and conflict risk drops by an order of magnitude.</li>
+<li>Funnel new files through one person, add them in a batch, then hand them out.</li>
+</ul>
+
+<h4>Tier 2 · Use Xcode 16+ filesystem-synchronized groups</h4>
+<ul class="chk">
+<li>Right-click a group → <strong>Convert to Folder</strong>, swapping hand-maintained groups for folders that stay in sync with the filesystem. From then on, adding a file no longer writes to <code>.pbxproj</code>.</li>
+<li>Align your local directory structure with your Xcode group structure before converting, or you'll get one enormous diff in a single shot.</li>
+</ul>
+
+<h4>Tier 3 · Generate the project file / modularize</h4>
+<ul class="chk">
+<li><strong>XcodeGen or Tuist</strong>: describe the project in a YAML/Swift DSL, match source files with a <code>Sources/**/*.swift</code> glob, and <code>.pbxproj</code> becomes a build artifact that never enters version control — the conflicts disappear at the root.</li>
+<li><strong>Split by domain into local Swift Packages</strong>: Gameplay / Rendering / Audio / UI, one package each, one owner each. The cost is slower compilation and indexing.</li>
+</ul>
+
+<h3>Suggested session layout for a SpriteKit game</h3>
+<table>
+<thead><tr><th>session</th><th>what it does</th><th>why it's separate</th><th>multi-agent inside?</th></tr></thead>
+<tbody>
+<tr><td><strong>Main development line</strong></td><td>the only session that writes to the Xcode project</td><td>avoids <code>.pbxproj</code> conflicts; device verification needs you present</td><td>Yes — but only for <em>read-only fan-out</em>: reading through the code in parallel to locate a problem, reviewing from multiple angles. Writing code stays serial.</td></tr>
+<tr><td><strong>Asset line</strong></td><td>AI image generation, atlas slicing, sound effects</td><td>the output is files, not code; the rhythm is batch-oriented</td><td>Yes — assets have no natural dependencies on each other, the ideal case for brainless parallelism</td></tr>
+<tr><td><strong>Research line</strong></td><td>competitor teardowns, mechanic research, ASO copy</td><td>completely different context; mixing it into the dev session pollutes your thinking</td><td>Yes — gather from multiple angles in parallel, then synthesize</td></tr>
+<tr><td><strong>Game-feel line</strong></td><td>diagnosing and tuning animation, easing, transitions</td><td>needs you watching the device over and over and making the call over and over — the textbook case of work that <em>has</em> to stay at the session layer</td><td>Diagnosis can read in parallel; tuning values must be serial with you in the loop</td></tr>
+</tbody>
+</table>
+
+<div class="card acc">
+<p class="ct">How this plugs into your existing workflow</p>
+<p>If you're already running the <code>ios-app-blueprint</code> → <code>game-dev-kickoff</code> chain: <strong>make the interface contract part of what kickoff produces</strong>.
+The contract written in 256 seconds in this experiment (shared state field table + each module's export signatures + call order) has a direct iOS equivalent:
+<em>an ownership table for the fields of the shared GameState</em> + <em>the public API signatures of each SKNode subsystem</em> + <em>the call order of the per-frame update</em>.
+Write it into <code>CLAUDE.md</code> and it lands automatically in every subagent's context — the only channel that doesn't require you to restate it by hand.</p>
+</div>
+</section>
+<section id="limits">
+<h2><span class="num">Part 7</span>What I Didn't Verify</h2>
+
+<p>To give you the full picture, here's what this round <strong>didn't test</strong> or <strong>didn't test cleanly</strong>. Don't extrapolate these conclusions:</p>
+
+<ul>
+<li><strong>Real multiple sessions were never measured directly.</strong> I couldn't open a second Cowork session in this environment. Arm C simulated it with "separate directories + no cross-reading + no shared contract," which reproduces the <em>information isolation</em> of multiple sessions but not the <em>across-days, human-in-the-loop, context-repriming</em> dimensions.</li>
+<li><strong>Arm C's isolation is self-reported.</strong> All 5 agents claimed they didn't read each other's directories, and I didn't go through the transcripts line by line to falsify that.</li>
+<li><strong>The wall-clock numbers are polluted by the concurrency cap.</strong> This machine has 2 cores, and the three arms were also competing with each other. The "ideal critical path" in the table is a modeled value recomputed from each agent's measured duration, not measured wall clock.</li>
+<li><strong>n = 1.</strong> Each arm ran once. No repeats, no variance estimate. That 831-second outlier may not be reproducible.</li>
+<li><strong>The task was on the small side.</strong> A 600–1600 line mini-game is an order of magnitude away from a real iOS game project. The value of a contract probably rises with project size, but I didn't test that here.</li>
+<li><strong>Context decay over long sessions went untested.</strong> One of the biggest payoffs of multiple sessions — breaking past the total context ceiling — got no direct measurement at all this round; I can only cite outside research (see sources).</li>
+<li><strong>Agent teams / background agents: docs only, no actual runs.</strong> They're Claude Code CLI capabilities and weren't available in this environment.</li>
+</ul>
+
+<div class="card">
+<p class="ct">What to test next to make this research solid</p>
+<ol>
+<li>Rerun the same experiment 3 times on a multi-core machine to get variance, and take concurrency out of the bottleneck.</li>
+<li>Add an <strong>Arm D: no contract, but agents can talk to each other</strong> (agent teams mode), to see whether "can communicate" substitutes for "has a contract." This is the comparison I most wanted and had no way to run.</li>
+<li>Scale the task up to 5000+ lines and see whether the contract's payoff is linear or superlinear.</li>
+<li>Repeat Arms B/C on a real Xcode project and quantify the <code>.pbxproj</code> conflict rate.</li>
+</ol>
+</div>
+</section>
+<section id="src">
+<h2><span class="num">Appendix</span>Sources</h2>
+<h4>Experiment artifacts (generated in this run)</h4>
+<ul class="src">
+<li>Probe workflow: 14 agents, 419,907 tokens, 369.7s</li>
+<li>Three-arm workflow: 13 agents, 755,388 tokens, 2266.2s</li>
+<li>Verification tooling: Playwright + Chromium headless, 7 runs; static cross-analysis of ES module imports and exports</li>
+</ul>
+<h4>Official documentation</h4>
+<ul class="src">
+<li><a href="https://code.claude.com/docs/en/sub-agents">Create custom subagents</a> — the context inheritance checklist, the three limits on concurrency / total count / nesting, the fork mechanism, the resume mechanism</li>
+<li><a href="https://code.claude.com/docs/en/agents">Run agents in parallel</a> — the official comparison table of the four parallelization modes</li>
+<li><a href="https://code.claude.com/docs/en/agent-teams">Orchestrate agent teams</a> — teammates talk to each other, a shared task list, no automatic file isolation, the 3–5 recommendation</li>
+<li><a href="https://code.claude.com/docs/en/agent-view">Manage agents with agent view</a> — independent background sessions, automatic worktree isolation, linear quota consumption</li>
+<li><a href="https://code.claude.com/docs/en/worktrees">Run parallel sessions with worktrees</a> — <code>--worktree</code>, <code>.worktreeinclude</code>, the desktop app assigning every session its own worktree automatically</li>
+<li><a href="https://www.anthropic.com/engineering/multi-agent-research-system">How we built our multi-agent research system</a> — multi-agent beats single agent by +90.2%; roughly 15× / 4× the tokens; token usage explains 80% of the performance variance; <strong>and it explicitly notes that most coding tasks are less parallelizable than research tasks</strong></li>
+</ul>
+<h4>Practice and research</h4>
+<ul class="src">
+<li><a href="https://addyosmani.com/blog/code-agent-orchestra/">The Code Agent Orchestra</a> — the 3–5 sweet spot, one owner per file, "the bottleneck has shifted from generation to verification"</li>
+<li><a href="https://htdocs.dev/posts/from-conductor-to-orchestrator-a-practical-guide-to-multi-agent-coding-in-2026/">From Conductor to Orchestrator</a> — the Ralph loop, approve the plan first, one reviewer for every 3–4 builders</li>
+<li><a href="https://www.morphllm.com/context-rot">Context Rot</a> — all 18 models degrade as length grows; accuracy on mid-context information drops 30%+; agents start degrading past 35 minutes, and doubling the duration quadruples the failure rate</li>
+<li><a href="https://tuist.dev/blog/2025/03/21/git-conflicts">Strategies to avoid merge conflicts in Xcode Projects</a> — synchronized groups, XcodeGen/Tuist, splitting the project into per-module packages</li>
+<li><a href="https://www.mindstudio.ai/blog/claude-code-git-worktree-parallel-branches">Run Multiple Claude Code Sessions in Parallel With Git Worktrees</a> — community practice for parallel worktrees</li>
+</ul>
+</section>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var html=document.documentElement, KEY='orch-theme';
+  var saved=localStorage.getItem(KEY)||'auto';
+  html.setAttribute('data-theme',saved);
+  document.querySelectorAll('.tt button').forEach(function(b){
+    if(b.dataset.t===saved) b.classList.add('on'); else b.classList.remove('on');
+    b.addEventListener('click',function(){
+      html.setAttribute('data-theme',b.dataset.t);
+      localStorage.setItem(KEY,b.dataset.t);
+      document.querySelectorAll('.tt button').forEach(function(x){x.classList.toggle('on',x===b)});
+    });
+  });
+  var bar=document.getElementById('bar');
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))}).filter(Boolean);
+  function onScroll(){
+    var h=document.documentElement;
+    bar.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+    var cur=null;
+    secs.forEach(function(s){ if(s.getBoundingClientRect().top<160) cur=s; });
+    links.forEach(function(a){ a.classList.toggle('on', cur && a.getAttribute('href')==='#'+cur.id); });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>
+</html>

@@ -40,9 +40,19 @@ GA = (
 
 
 def text_excerpt(s: str, limit: int = 110) -> str:
+    """取正文摘要。必须先剔除导航/目录/主题切换这类 chrome——否则抓到的是
+    「Home Auto Light Dark Contents…」这种按钮文字,对搜索结果毫无意义。"""
     body = re.search(r"<body[\s\S]*", s) or re.search(r"[\s\S]*", s)
     t = body.group(0)
     t = re.sub(r"<(script|style)[\s\S]*?</\1>", " ", t, flags=re.I)
+    # 带 doc-chrome / side-toc 标记的块,以及 nav / svg,都不是正文
+    t = re.sub(r'<(\w+)[^>]*class="[^"]*(?:doc-chrome|side-toc|toc-)[^"]*"[\s\S]*?</\1>', " ", t, flags=re.I)
+    t = re.sub(r"<nav[\s\S]*?</nav>", " ", t, flags=re.I)
+    t = re.sub(r"<svg[\s\S]*?</svg>", " ", t, flags=re.I)
+    # 优先用作者写的导语
+    lede = re.search(r'<p class="(?:lede|lead|sub|desc)"[^>]*>([\s\S]*?)</p>', t, re.I)
+    if lede:
+        t = lede.group(1)
     t = re.sub(r"<[^>]+>", " ", t)
     t = re.sub(r"\s+", " ", html.unescape(t)).strip()
     return (t[:limit] + "…") if len(t) > limit else t
@@ -76,6 +86,9 @@ def main() -> None:
     s = open(path, encoding="utf-8").read()
     orig = s
 
+    lm = re.search(r'<html[^>]*\blang="([^"]+)"', s, re.I)
+    doc_lang = lm.group(1) if lm else "zh-CN"
+
     m = re.search(r"<title>([\s\S]*?)</title>", s, re.I)
     title = re.sub(r"\s+", " ", m.group(1)).strip() if m else "Mingyu's Library"
 
@@ -89,7 +102,7 @@ def main() -> None:
             "@context": "https://schema.org",
             "@type": "Article",
             "headline": title,
-            "inLanguage": "zh-CN",
+            "inLanguage": doc_lang,
             "mainEntityOfPage": absu,
             "image": IMG,
             "author": {"@type": "Person", "name": "Mingyu Yang", "url": SITE},

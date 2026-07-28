@@ -117,11 +117,11 @@ for (const s of SCAN) {
       subcategory: o.subcategory ?? s.subcategory,
       tags: o.tags || s.tags,
       url: urlPath,
-      lang: s.lang ?? "zh",
+      lang: o.lang ?? s.lang ?? "zh",
       // 同一天的中英版本共享 key(= 栏目+日期),前端据此做 hreflang 与语言切换
-      i18n_key: s.keyPrefix && /(\d{4}-\d{2}-\d{2})/.test(base)
+      i18n_key: o.i18n_key ?? (s.keyPrefix && /(\d{4}-\d{2}-\d{2})/.test(base)
         ? `${s.keyPrefix}-${base.match(/(\d{4}-\d{2}-\d{2})/)[1]}`
-        : null,
+        : null),
     });
   }
 }
