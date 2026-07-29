@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A2A 智能体互操作协议 · Agent 与 Agent 之间怎么说话 | A2A: The Agent Interoperability Protocol</title>
+<style>
+:root{
+  --bg:#f7f6fb;--bg-2:#eeecf8;--surface:#ffffff;--ink:#1a1930;--ink-2:#3c3a5e;--muted:#6e6b90;--line:#dedbee;
+  --accent:#5548c9;--accent-soft:#eceafc;--accent-deep:#332a8c;--accent-line:#c3bcee;
+  --coral:#cd5245;--coral-soft:#fbeae8;--amber:#a5730f;--amber-soft:#fbf1da;
+  --green:#2c7a5b;--green-soft:#e4f3ec;
+  --radius:14px;--radius-sm:9px;
+  --shadow:0 1px 2px rgba(26,25,48,.05), 0 8px 26px rgba(26,25,48,.07);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px;line-height:1.82;-webkit-font-smoothing:antialiased;}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{line-height:1.75}
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent),var(--coral));z-index:99;transition:width .1s linear}
+
+/* language switch */
+.lang-switch{position:fixed;right:18px;top:16px;z-index:80;display:flex;background:rgba(255,255,255,.86);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:99px;
+  padding:3px;box-shadow:var(--shadow)}
+.lang-switch button{border:none;background:none;cursor:pointer;font:inherit;font-size:13px;font-weight:700;
+  padding:5px 14px;border-radius:99px;color:var(--muted);transition:.16s;line-height:1.5}
+.lang-switch button.on{background:var(--accent);color:#fff}
+.lang-switch button:hover:not(.on){color:var(--accent-deep)}
+
+/* side toc */
+.side-toc{position:fixed;left:22px;top:50%;transform:translateY(-50%);width:246px;z-index:60;
+  background:rgba(255,255,255,.76);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);
+  max-height:84vh;overflow-y:auto;}
+.st-brand{font-weight:800;font-size:14.5px;letter-spacing:.02em;color:var(--accent-deep)}
+.st-sub{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5}
+.st-progress{margin:12px 0 10px}
+.st-pct{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:4px}
+.st-bar{height:4px;background:var(--bg-2);border-radius:3px;overflow:hidden}
+.st-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--coral));border-radius:3px;transition:width .12s linear}
+.side-toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.side-toc li{counter-increment:toc;margin:1px 0}
+.side-toc a{display:flex;gap:8px;align-items:baseline;text-decoration:none;color:var(--ink-2);
+  font-size:12.8px;line-height:1.45;padding:5px 7px;border-radius:7px;transition:background .15s,color .15s;}
+.side-toc a::before{content:counter(toc,decimal-leading-zero);font-family:var(--mono);font-size:10px;color:var(--muted);flex:none}
+.side-toc a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.side-toc a.active{background:var(--accent);color:#fff;font-weight:600}
+.side-toc a.active::before{color:rgba(255,255,255,.72)}
+.toc-toggle{display:none;position:fixed;left:14px;top:14px;z-index:70;width:42px;height:42px;border-radius:11px;
+  border:1px solid var(--line);background:rgba(255,255,255,.9);backdrop-filter:blur(10px);font-size:18px;cursor:pointer;color:var(--ink)}
+
+.wrap{max-width:864px;margin:0 auto;padding:0 22px 90px}
+
+/* hero — node/link motif */
+.hero{position:relative;overflow:hidden;background:linear-gradient(168deg,#ffffff 0%,#f3f1fd 58%,#efedfa 100%);
+  border-bottom:1px solid var(--line);margin-bottom:44px}
+.hero::before{content:"";position:absolute;inset:0;
+  background-image:
+    radial-gradient(circle at 12px 12px, var(--accent-line) 1.7px, transparent 1.9px),
+    linear-gradient(115deg, transparent 49.6%, var(--accent-line) 49.6%, var(--accent-line) 50%, transparent 50%),
+    linear-gradient(65deg, transparent 49.7%, var(--accent-line) 49.7%, var(--accent-line) 50%, transparent 50%);
+  background-size:48px 48px, 96px 96px, 132px 132px;opacity:.55;
+  -webkit-mask-image:radial-gradient(ellipse 82% 92% at 78% 14%,#000 8%,transparent 70%);
+  mask-image:radial-gradient(ellipse 82% 92% at 78% 14%,#000 8%,transparent 70%);}
+.hero-in{position:relative;max-width:864px;margin:0 auto;padding:62px 22px 52px}
+.kicker{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--accent-deep);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:99px}
+.hero h1{font-size:clamp(29px,5.2vw,46px);line-height:1.2;margin:18px 0 12px;letter-spacing:-.022em;font-weight:820}
+.hero h1 em{font-style:normal;color:var(--accent);position:relative}
+.hero h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.3em;background:var(--coral);opacity:.2;border-radius:2px}
+.hero p{font-size:17.5px;color:var(--ink-2);margin:0;max-width:44em}
+.hero-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.chip{font-size:12.5px;color:var(--ink-2);background:rgba(255,255,255,.72);border:1px solid var(--line);padding:5px 11px;border-radius:99px}
+
+section{margin:0 0 54px;scroll-margin-top:24px}
+h2{font-size:clamp(20px,3.2vw,26px);line-height:1.35;margin:0 0 16px;letter-spacing:-.01em;font-weight:800;
+   padding-bottom:11px;border-bottom:2px solid var(--line);position:relative}
+h2::after{content:"";position:absolute;left:0;bottom:-2px;width:64px;height:2px;background:var(--accent)}
+h3{font-size:18.5px;margin:30px 0 10px;font-weight:750;letter-spacing:-.005em}
+h4{font-size:16px;margin:20px 0 8px;font-weight:700;color:var(--ink-2)}
+p{margin:0 0 15px}
+a{color:var(--accent-deep);text-decoration:underline;text-decoration-color:#b5adea;text-underline-offset:3px}
+a:hover{text-decoration-color:var(--accent)}
+strong{font-weight:750;color:var(--ink)}
+.term{background:linear-gradient(transparent 62%,var(--accent-soft) 62%);padding:0 2px;font-weight:650}
+ul,ol{margin:0 0 16px;padding-left:1.35em}
+li{margin:6px 0}
+code{font-family:var(--mono);font-size:.87em;background:var(--bg-2);border:1px solid var(--line);
+  padding:1px 5px;border-radius:5px;color:var(--accent-deep);word-break:break-word}
+pre{background:#191833;color:#e2e0f2;border-radius:var(--radius);padding:16px 18px;overflow-x:auto;
+  font-family:var(--mono);font-size:13.2px;line-height:1.68;margin:0 0 16px;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+pre .c{color:#8a86b8}
+pre .k{color:#a8a0f5}
+pre .s{color:#e8b79c}
+.src-note{font-size:12.5px;color:var(--muted);margin:-8px 0 18px}
+
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:var(--radius);padding:18px 20px;margin:0 0 18px;box-shadow:var(--shadow)}
+.def h4{margin:0 0 12px;font-size:17px;color:var(--ink)}
+.def .row{display:flex;gap:11px;margin:0 0 11px;align-items:flex-start}
+.def .row:last-child{margin-bottom:0}
+.tag{flex:none;font-size:11.5px;font-weight:750;padding:2px 9px;border-radius:99px;margin-top:4px;letter-spacing:.02em;white-space:nowrap}
+.tag-what{background:var(--accent-soft);color:var(--accent-deep)}
+.tag-why{background:var(--amber-soft);color:var(--amber)}
+.tag-eg{background:#edecf3;color:var(--ink-2)}
+.def .row p{margin:0}
+
+.callout{border-radius:var(--radius);padding:15px 18px;margin:0 0 18px;border:1px solid var(--line);background:var(--surface)}
+.callout.key{border-left:4px solid var(--accent);background:var(--accent-soft);border-color:var(--accent-line)}
+.callout.warn{border-left:4px solid var(--amber);background:var(--amber-soft);border-color:#eddfbd}
+.callout.risk{border-left:4px solid var(--coral);background:var(--coral-soft);border-color:#f2d2ce}
+.callout.ok{border-left:4px solid var(--green);background:var(--green-soft);border-color:#c9e5d8}
+.callout b{display:block;margin-bottom:5px;font-size:14.5px}
+.callout p:last-child{margin-bottom:0}
+
+.analogy{background:var(--surface);border:1px dashed var(--accent-line);border-radius:var(--radius);padding:20px 18px 16px;margin:14px 0 18px;position:relative}
+.analogy::before{content:"🔗";position:absolute;top:-12px;left:16px;background:var(--accent);color:#fff;
+  font-size:11.5px;font-weight:700;padding:2px 10px;border-radius:99px}
+.analogy p:last-child{margin-bottom:0}
+
+.steps{list-style:none;padding:0;margin:0 0 20px;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:0 0 18px 42px;border-left:2px solid var(--line);margin:0 0 0 13px}
+.steps li:last-child{border-left-color:transparent;padding-bottom:0}
+.steps li::before{content:counter(s);position:absolute;left:-14px;top:-2px;width:27px;height:27px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:13px;font-weight:750;display:flex;align-items:center;justify-content:center}
+.steps b{display:block;font-size:16px;margin-bottom:5px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;box-shadow:var(--shadow)}
+.card h5{margin:0 0 7px;font-size:15px;font-weight:750}
+.card p{margin:0;font-size:14.8px;color:var(--ink-2)}
+.card .lab{font-size:11.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
+.card.good{border-top:3px solid var(--green)}
+.card.bad{border-top:3px solid var(--coral)}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;text-align:center;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:25px;font-weight:820;color:var(--accent);line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.8px;color:var(--muted);display:block;margin-top:5px;line-height:1.5}
+
+.tbl-wrap{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:14.6px;min-width:520px}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--bg-2);font-weight:750;font-size:13.5px;letter-spacing:.01em;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td code{font-size:12.6px}
+.yes{color:var(--green);font-weight:750}
+.part{color:var(--amber);font-weight:750}
+.no{color:var(--coral);font-weight:750}
+
+details.rephrase{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 15px;margin:0 0 18px}
+details.rephrase summary{cursor:pointer;font-weight:700;font-size:14.6px;color:var(--accent-deep);list-style:none}
+details.rephrase summary::-webkit-details-marker{display:none}
+details.rephrase summary::before{content:"▸ ";color:var(--accent)}
+details.rephrase[open] summary::before{content:"▾ "}
+details.rephrase .body{margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);font-size:15.5px;color:var(--ink-2)}
+details.rephrase .body p:last-child{margin-bottom:0}
+
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:0 0 18px;box-shadow:var(--shadow)}
+.glossary .g{display:flex;gap:14px;padding:11px 16px;border-bottom:1px solid var(--line);font-size:14.8px}
+.glossary .g:last-child{border-bottom:none}
+.glossary .g b{flex:none;width:168px;font-family:var(--mono);font-size:13px;color:var(--accent-deep);word-break:break-all}
+.glossary .g span{color:var(--ink-2)}
+
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px 12px;
+  margin:0 0 20px;box-shadow:var(--shadow);opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--muted);text-align:center;margin-top:11px;line-height:1.6}
+[data-anim]{opacity:0}
+.figure.in [data-anim]{animation:pop .5s ease forwards}
+@keyframes pop{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+.final{background:var(--accent-deep);color:#e9e6fa;border-radius:var(--radius);padding:26px 26px 22px;margin:36px 0 0}
+.final h3{color:#fff;margin:0 0 14px;font-size:19px}
+.final ol{margin:0;padding-left:1.25em}
+.final li{margin:9px 0;font-size:16px}
+.final strong{color:#fff}
+
+footer{margin-top:46px;padding-top:22px;border-top:1px solid var(--line);font-size:13.6px;color:var(--muted)}
+footer h4{color:var(--ink-2);margin:20px 0 8px;font-size:14.5px}
+footer ol{padding-left:1.3em}
+footer li{margin:5px 0;line-height:1.6}
+footer a{color:var(--ink-2);word-break:break-all}
+
+@media(max-width:1180px){
+  .side-toc{left:-330px;transition:left .28s ease;top:0;transform:none;height:100vh;max-height:none;border-radius:0;width:272px;padding-top:64px}
+  .side-toc.open{left:0}
+  .toc-toggle{display:block}
+  .hero-in{padding-top:78px}
+}
+@media(max-width:640px){
+  body{font-size:16px;line-height:1.78}
+  .wrap{padding:0 16px 70px}
+  .hero-in{padding-left:16px;padding-right:16px;padding-bottom:38px}
+  .grid2,.stats{grid-template-columns:1fr}
+  .glossary .g{flex-direction:column;gap:3px}
+  .glossary .g b{width:auto}
+  pre{font-size:12.2px;padding:13px 14px}
+  .final{padding:20px 18px}
+  .lang-switch button{padding:4px 11px;font-size:12.5px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .figure{opacity:1;transform:none}
+  [data-anim]{opacity:1}
+  html{scroll-behavior:auto}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中文 EN 🔌 Agent 工程 · 互操作协议 Agent Engineering · Interop Protocol 当 Agent 需要跟 另一个 Agent 说话 When One Agent Needs to…">
+<meta property="og:title" content="A2A 智能体互操作协议 · Agent 与 Agent 之间怎么说话 | A2A: The Agent Interoperability Protocol">
+<meta property="og:description" content="中文 EN 🔌 Agent 工程 · 互操作协议 Agent Engineering · Interop Protocol 当 Agent 需要跟 另一个 Agent 说话 When One Agent Needs to…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-07-29-a2a-zhi-neng-ti-hu-cao-zuo-xie-yi.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-07-29-a2a-zhi-neng-ti-hu-cao-zuo-xie-yi.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "A2A 智能体互操作协议 · Agent 与 Agent 之间怎么说话 | A2A: The Agent Interoperability Protocol", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-07-29-a2a-zhi-neng-ti-hu-cao-zuo-xie-yi.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-29", "dateModified": "2026-07-29"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="top-progress" id="topbar"></div>
+
+<div class="lang-switch">
+  <button id="btnZh" class="on">中文</button>
+  <button id="btnEn">EN</button>
+</div>
+
+<button class="toc-toggle" id="tocBtn" aria-label="目录 / Contents">☰</button>
+
+<nav class="side-toc" id="toc">
+  <div class="st-brand">A2A Protocol</div>
+  <div class="st-sub"><span class="zh">深度学习文档 · 2026-07-29</span><span class="en">Deep-dive · 2026-07-29</span></div>
+  <div class="st-progress">
+    <div class="st-pct" id="pct">0%</div>
+    <div class="st-bar"><i id="bar"></i></div>
+  </div>
+  <ol>
+    <li><a href="#overview"><span class="zh">30 秒速览</span><span class="en">30-Second Overview</span></a></li>
+    <li><a href="#why"><span class="zh">为什么需要它</span><span class="en">Why It Exists</span></a></li>
+    <li><a href="#concepts"><span class="zh">四个核心概念</span><span class="en">Four Core Concepts</span></a></li>
+    <li><a href="#lifecycle"><span class="zh">一个任务的一生</span><span class="en">Life of a Task</span></a></li>
+    <li><a href="#v1"><span class="zh">v1.0 改了什么</span><span class="en">What v1.0 Changed</span></a></li>
+    <li><a href="#vs"><span class="zh">A2A vs MCP</span><span class="en">A2A vs MCP</span></a></li>
+    <li><a href="#when"><span class="zh">什么时候该用</span><span class="en">When to Use It</span></a></li>
+    <li><a href="#pitfalls"><span class="zh">坑与未解问题</span><span class="en">Pitfalls &amp; Open Problems</span></a></li>
+    <li><a href="#governance"><span class="zh">治理缺口</span><span class="en">The Governance Gap</span></a></li>
+    <li><a href="#resources"><span class="zh">学习资源与来源</span><span class="en">Resources &amp; Sources</span></a></li>
+  </ol>
+</nav>
+
+<header class="hero">
+  <div class="hero-in">
+    <span class="kicker">🔌 <span class="zh">Agent 工程 · 互操作协议</span><span class="en">Agent Engineering · Interop Protocol</span></span>
+    <h1 class="zh">当 Agent 需要跟<em>另一个 Agent</em> 说话</h1>
+    <h1 class="en">When One Agent Needs to Talk to <em>Another Agent</em></h1>
+    <p class="zh">MCP 解决的是「Agent 怎么用工具」。但当你的系统里出现了第二个、第三个由别的团队、别的框架、别的公司维护的 Agent 时，它们之间该怎么互相发现、委派任务、回传结果？这就是 A2A（Agent2Agent）协议要回答的问题。今天 MCP 2026-07-28 新规范正式落地，正好把这两条协议线放在一起看清楚。</p>
+    <p class="en">MCP answers "how does an agent use a tool." But once your system has a second and third agent — owned by other teams, built on other frameworks, run by other companies — how do they discover each other, delegate work, and return results? That is the question the A2A (Agent2Agent) protocol exists to answer. With the MCP 2026-07-28 spec shipping today, it is a good moment to see both protocol tracks side by side.</p>
+    <div class="hero-meta">
+      <span class="chip zh">📅 调研时间 2026-07-29</span><span class="chip en">📅 Researched 2026-07-29</span>
+      <span class="chip zh">📌 当前版本 v1.0 / v1.0.1</span><span class="chip en">📌 Current: v1.0 / v1.0.1</span>
+      <span class="chip zh">🏛 Linux Foundation 托管</span><span class="chip en">🏛 Hosted by the Linux Foundation</span>
+      <span class="chip zh">⏱ 约 25 分钟</span><span class="chip en">⏱ ~25 min read</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="overview">
+  <h2 class="zh">01 · 30 秒速览</h2>
+  <h2 class="en">01 · The 30-Second Overview</h2>
+
+  <p class="zh">A2A 是一个<strong>开放标准</strong>，让不同厂商、不同框架、不同团队做的 AI Agent 能够互相<strong>发现能力、委派任务、交换消息、回传产物</strong>。它由 Google 在 2025 年 4 月发布，后来捐给 Linux Foundation 托管，2026 年发布了第一个稳定版 v1.0。</p>
+  <p class="en">A2A is an <strong>open standard</strong> that lets AI agents built by different vendors, frameworks, and teams <strong>discover each other's capabilities, delegate tasks, exchange messages, and return artifacts</strong>. Google announced it in April 2025, later contributed it to the Linux Foundation, and the first stable version, v1.0, shipped in 2026.</p>
+
+  <div class="callout key zh">
+    <b>一句话记住它</b>
+    <p>MCP 管「Agent 往下连工具」，A2A 管「Agent 往旁边连另一个 Agent」。官方原话是：<em>MCP inside agents, A2A between agents</em>——两者互补，不是二选一。</p>
+  </div>
+  <div class="callout key en">
+    <b>The one-line version</b>
+    <p>MCP wires an agent <em>down</em> to its tools; A2A wires an agent <em>sideways</em> to a peer agent. The official phrasing: <em>"MCP inside agents, A2A between agents."</em> They are complementary, not competing.</p>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 340" role="img" aria-label="A2A 与 MCP 的分层关系图">
+      <defs>
+        <marker id="arrA" markerWidth="9" markerHeight="9" refX="7.5" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#5548c9"/>
+        </marker>
+        <marker id="arrB" markerWidth="9" markerHeight="9" refX="7.5" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#a5730f"/>
+        </marker>
+      </defs>
+      <rect x="16" y="14" width="688" height="86" rx="12" fill="#f7f6fb" stroke="#dedbee"/>
+      <text x="30" y="36" font-size="11.5" fill="#6e6b90" font-weight="700">用户 / 应用层</text>
+      <rect x="270" y="46" width="180" height="40" rx="9" fill="#ffffff" stroke="#dedbee" data-anim/>
+      <text x="360" y="71" font-size="14" fill="#1a1930" text-anchor="middle" font-weight="700" data-anim>用户或上游应用</text>
+
+      <rect x="16" y="112" width="688" height="104" rx="12" fill="#eceafc" stroke="#c3bcee"/>
+      <text x="30" y="134" font-size="11.5" fill="#332a8c" font-weight="700">A2A 层：Agent ↔ Agent（跨团队、跨厂商）</text>
+      <rect x="60" y="146" width="150" height="52" rx="9" fill="#5548c9" data-anim/>
+      <text x="135" y="169" font-size="13.5" fill="#fff" text-anchor="middle" font-weight="700" data-anim>编排 Agent</text>
+      <text x="135" y="187" font-size="11" fill="#d5d0f7" text-anchor="middle" data-anim>orchestrator</text>
+      <rect x="290" y="146" width="150" height="52" rx="9" fill="#ffffff" stroke="#5548c9" stroke-width="1.6" data-anim/>
+      <text x="365" y="169" font-size="13.5" fill="#332a8c" text-anchor="middle" font-weight="700" data-anim>法务审查 Agent</text>
+      <text x="365" y="187" font-size="11" fill="#6e6b90" text-anchor="middle" data-anim>别的团队维护</text>
+      <rect x="510" y="146" width="150" height="52" rx="9" fill="#ffffff" stroke="#5548c9" stroke-width="1.6" data-anim/>
+      <text x="585" y="169" font-size="13.5" fill="#332a8c" text-anchor="middle" font-weight="700" data-anim>采购 Agent</text>
+      <text x="585" y="187" font-size="11" fill="#6e6b90" text-anchor="middle" data-anim>供应商提供</text>
+      <line x1="210" y1="172" x2="284" y2="172" stroke="#5548c9" stroke-width="2" marker-end="url(#arrA)"/>
+      <line x1="440" y1="172" x2="504" y2="172" stroke="#5548c9" stroke-width="2" marker-end="url(#arrA)" stroke-dasharray="5 4"/>
+      <line x1="360" y1="86" x2="360" y2="140" stroke="#5548c9" stroke-width="2" marker-end="url(#arrA)"/>
+
+      <rect x="16" y="228" width="688" height="98" rx="12" fill="#fbf1da" stroke="#eddfbd"/>
+      <text x="30" y="250" font-size="11.5" fill="#a5730f" font-weight="700">MCP 层：Agent ↔ 工具 / 数据（各 Agent 自己内部）</text>
+      <rect x="60" y="262" width="150" height="46" rx="9" fill="#ffffff" stroke="#eddfbd" data-anim/>
+      <text x="135" y="290" font-size="12.5" fill="#3c3a5e" text-anchor="middle" data-anim>日历 · 邮件 · 文件</text>
+      <rect x="290" y="262" width="150" height="46" rx="9" fill="#ffffff" stroke="#eddfbd" data-anim/>
+      <text x="365" y="290" font-size="12.5" fill="#3c3a5e" text-anchor="middle" data-anim>合同库 · 政策库</text>
+      <rect x="510" y="262" width="150" height="46" rx="9" fill="#ffffff" stroke="#eddfbd" data-anim/>
+      <text x="585" y="290" font-size="12.5" fill="#3c3a5e" text-anchor="middle" data-anim>ERP · 供应商数据</text>
+      <line x1="135" y1="200" x2="135" y2="256" stroke="#a5730f" stroke-width="2" marker-end="url(#arrB)"/>
+      <line x1="365" y1="200" x2="365" y2="256" stroke="#a5730f" stroke-width="2" marker-end="url(#arrB)"/>
+      <line x1="585" y1="200" x2="585" y2="256" stroke="#a5730f" stroke-width="2" marker-end="url(#arrB)"/>
+    </svg>
+    <div class="fig-cap">横向的紫色连线是 A2A（Agent 之间），纵向的琥珀色连线是 MCP（Agent 到自己的工具）。每个专家 Agent 的工具对外是不可见的——这正是「委派」而不是「共享数据库」的价值。</div>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 340" role="img" aria-label="Layered relationship between A2A and MCP">
+      <defs>
+        <marker id="arrA-e" markerWidth="9" markerHeight="9" refX="7.5" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#5548c9"/>
+        </marker>
+        <marker id="arrB-e" markerWidth="9" markerHeight="9" refX="7.5" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#a5730f"/>
+        </marker>
+      </defs>
+      <rect x="16" y="14" width="688" height="86" rx="12" fill="#f7f6fb" stroke="#dedbee"/>
+      <text x="30" y="36" font-size="11.5" fill="#6e6b90" font-weight="700">User / application layer</text>
+      <rect x="270" y="46" width="180" height="40" rx="9" fill="#ffffff" stroke="#dedbee" data-anim/>
+      <text x="360" y="71" font-size="14" fill="#1a1930" text-anchor="middle" font-weight="700" data-anim>User or upstream app</text>
+
+      <rect x="16" y="112" width="688" height="104" rx="12" fill="#eceafc" stroke="#c3bcee"/>
+      <text x="30" y="134" font-size="11.5" fill="#332a8c" font-weight="700">A2A layer: agent ↔ agent (across teams and vendors)</text>
+      <rect x="60" y="146" width="150" height="52" rx="9" fill="#5548c9" data-anim/>
+      <text x="135" y="169" font-size="13.5" fill="#fff" text-anchor="middle" font-weight="700" data-anim>Orchestrator</text>
+      <text x="135" y="187" font-size="11" fill="#d5d0f7" text-anchor="middle" data-anim>primary assistant</text>
+      <rect x="290" y="146" width="150" height="52" rx="9" fill="#ffffff" stroke="#5548c9" stroke-width="1.6" data-anim/>
+      <text x="365" y="169" font-size="13.5" fill="#332a8c" text-anchor="middle" font-weight="700" data-anim>Legal review agent</text>
+      <text x="365" y="187" font-size="11" fill="#6e6b90" text-anchor="middle" data-anim>another team owns it</text>
+      <rect x="510" y="146" width="150" height="52" rx="9" fill="#ffffff" stroke="#5548c9" stroke-width="1.6" data-anim/>
+      <text x="585" y="169" font-size="13.5" fill="#332a8c" text-anchor="middle" font-weight="700" data-anim>Procurement agent</text>
+      <text x="585" y="187" font-size="11" fill="#6e6b90" text-anchor="middle" data-anim>vendor-supplied</text>
+      <line x1="210" y1="172" x2="284" y2="172" stroke="#5548c9" stroke-width="2" marker-end="url(#arrA-e)"/>
+      <line x1="440" y1="172" x2="504" y2="172" stroke="#5548c9" stroke-width="2" marker-end="url(#arrA-e)" stroke-dasharray="5 4"/>
+      <line x1="360" y1="86" x2="360" y2="140" stroke="#5548c9" stroke-width="2" marker-end="url(#arrA-e)"/>
+
+      <rect x="16" y="228" width="688" height="98" rx="12" fill="#fbf1da" stroke="#eddfbd"/>
+      <text x="30" y="250" font-size="11.5" fill="#a5730f" font-weight="700">MCP layer: agent ↔ tools and data (private to each agent)</text>
+      <rect x="60" y="262" width="150" height="46" rx="9" fill="#ffffff" stroke="#eddfbd" data-anim/>
+      <text x="135" y="290" font-size="12.5" fill="#3c3a5e" text-anchor="middle" data-anim>Calendar · mail · files</text>
+      <rect x="290" y="262" width="150" height="46" rx="9" fill="#ffffff" stroke="#eddfbd" data-anim/>
+      <text x="365" y="290" font-size="12.5" fill="#3c3a5e" text-anchor="middle" data-anim>Contracts · policies</text>
+      <rect x="510" y="262" width="150" height="46" rx="9" fill="#ffffff" stroke="#eddfbd" data-anim/>
+      <text x="585" y="290" font-size="12.5" fill="#3c3a5e" text-anchor="middle" data-anim>ERP · supplier data</text>
+      <line x1="135" y1="200" x2="135" y2="256" stroke="#a5730f" stroke-width="2" marker-end="url(#arrB-e)"/>
+      <line x1="365" y1="200" x2="365" y2="256" stroke="#a5730f" stroke-width="2" marker-end="url(#arrB-e)"/>
+      <line x1="585" y1="200" x2="585" y2="256" stroke="#a5730f" stroke-width="2" marker-end="url(#arrB-e)"/>
+    </svg>
+    <div class="fig-cap">Purple horizontal links are A2A (agent to agent); amber vertical links are MCP (agent to its own tools). Each specialist's tools stay invisible to its peers — that opacity is exactly what makes delegation different from sharing a database.</div>
+  </div>
+
+  <h3 class="zh">当前状态（截至 2026-07-29）</h3>
+  <h3 class="en">Where things stand (as of 2026-07-29)</h3>
+
+  <div class="stats zh">
+    <div class="stat"><b>150+</b><span>支持组织，一年内从 50+ 增长而来</span></div>
+    <div class="stat"><b>22,000+</b><span>核心仓库 GitHub star</span></div>
+    <div class="stat"><b>5 种</b><span>生产级语言 SDK（Python / JS / Java / Go / .NET）</span></div>
+  </div>
+  <div class="stats en">
+    <div class="stat"><b>150+</b><span>supporting organizations, up from 50+ a year earlier</span></div>
+    <div class="stat"><b>22,000+</b><span>GitHub stars on the core repository</span></div>
+    <div class="stat"><b>5</b><span>production-ready SDK languages (Python / JS / Java / Go / .NET)</span></div>
+  </div>
+
+  <p class="zh">这些数字来自 Linux Foundation 2026 年 4 月 9 日的一周年新闻稿。技术指导委员会由 AWS、Cisco、Google、IBM Research、Microsoft、Salesforce、SAP、ServiceNow 八家公司的代表组成；微软已把 A2A 集成进 Azure AI Foundry 和 Copilot Studio，AWS 通过 Bedrock AgentCore Runtime 支持。</p>
+  <p class="en">These figures come from the Linux Foundation's one-year press release dated 9 April 2026. The Technical Steering Committee draws representatives from eight companies — AWS, Cisco, Google, IBM Research, Microsoft, Salesforce, SAP, and ServiceNow. Microsoft has integrated A2A into Azure AI Foundry and Copilot Studio; AWS supports it through Bedrock AgentCore Runtime.</p>
+
+  <div class="callout warn zh">
+    <b>先给一句冷静话</b>
+    <p>「支持」是一个光谱，不是一个开关。有开发者指出，press release 里的「150+ 组织支持」可能包含从「只是发了个声明」到「真在生产环境跑」的各种程度，真正有意义的指标是<strong>生产留存</strong>——出过一次真实运维事故之后，团队还愿不愿意继续用。这一点目前公开数据无法回答。（来源：技术博客观点，非官方数据）</p>
+  </div>
+  <div class="callout warn en">
+    <b>A note of caution up front</b>
+    <p>"Supported by" is a spectrum, not a switch. Practitioners have pointed out that a "150+ organizations" figure can span everything from a press statement to a real production deployment. The metric that actually matters is <strong>production retention</strong> — whether teams keep the protocol after their first real operational incident. Public data cannot answer that yet. (Source: a technical blog's assessment, not official data.)</p>
+  </div>
+</section>
+
+<section id="why">
+  <h2 class="zh">02 · 为什么需要它：MCP 之外缺的那一半</h2>
+  <h2 class="en">02 · Why It Exists: The Half MCP Doesn't Cover</h2>
+
+  <p class="zh">要理解 A2A，得先承认一个 2025 年的普遍反应：<strong>「我们已经有 MCP 了，为什么还要 A2A？」</strong> 这个质疑在当时很合理，今天依然值得认真回答——不回答清楚，你就会把 A2A 用错地方。</p>
+  <p class="en">To understand A2A you first have to take seriously the reaction it got in 2025: <strong>"We already have MCP — why do we need A2A?"</strong> That was a fair question then and it deserves a real answer now. Skip it and you will end up using A2A in the wrong places.</p>
+
+  <h3 class="zh">MCP 能包住的，和包不住的</h3>
+  <h3 class="en">What MCP can wrap, and what it can't</h3>
+
+  <p class="zh">MCP 的模型是「工具」：服务端暴露 Tools、Resources、Prompts，客户端（也就是 Agent）去调用。问题在于，一个 MCP 工具内部可以藏得很深。比如一个叫 <code>research_company</code> 的工具，内部可能跑了搜索、检索、摘要、排序、写报告一整套流程——从 MCP 客户端看它是个函数，从架构上看它藏了一个 Agent。</p>
+  <p class="en">MCP's model is the tool: a server exposes Tools, Resources, and Prompts, and a client — the agent — calls them. The catch is that an MCP tool can hide a lot inside. A tool named <code>research_company</code> might internally run search, retrieval, summarization, ranking, and report writing. To the MCP client it is a function call; architecturally it is an agent wearing a function's clothes.</p>
+
+  <p class="zh">这就是很多人认为 A2A 多余的理由：既然 Agent 可以被包成 MCP 工具，为什么还要单独一个协议？答案是——<strong>包得住不等于包得对</strong>。当一个系统积累了足够多自己的状态、策略、生命周期和决策权时，把它建模成「一个函数」会让架构变模糊而不是变简单。</p>
+  <p class="en">That is precisely why some engineers argued A2A was unnecessary: if an agent can be exposed as an MCP tool, why add a protocol? The answer is that <strong>being able to wrap something is not the same as wrapping it well</strong>. Once a system accumulates enough of its own state, policy, lifecycle, and decision-making authority, modelling it as "a function" obscures the architecture rather than simplifying it.</p>
+
+  <div class="analogy zh">
+    <p><strong>类比：外包给供应商 vs 使用一台机器。</strong>你在公司里用打印机，是「调用工具」——你按下打印，它照做，没有自己的意见和进度。但你把法务审查外包给一家律所，是「委派任务」——对方有自己的流程、自己的资料库、自己的排期，可能中途回来问你要一份补充材料，最后交给你一份报告而不是一个返回值。MCP 是前者，A2A 是后者。</p>
+  </div>
+  <div class="analogy en">
+    <p><strong>Analogy: hiring a firm vs. operating a machine.</strong> Using the office printer is a tool call — you press print, it complies, it has no opinions and no schedule of its own. Outsourcing a legal review to a law firm is a delegation — they have their own process, their own archives, their own queue, they may come back mid-way asking for one more document, and they hand you a report rather than a return value. MCP is the printer. A2A is the law firm.</p>
+  </div>
+
+  <h3 class="zh">A2A 给出「一等公民」待遇的那些东西</h3>
+  <h3 class="en">What A2A promotes to first-class citizens</h3>
+
+  <p class="zh">相比把一切都塞进工具调用，A2A 把下面这些东西显式建模成协议的一部分（以下条目综合自官方文档与社区技术评论）：</p>
+  <p class="en">Instead of squeezing everything into a tool call, A2A models the following explicitly as part of the protocol (this list combines official documentation with community technical commentary):</p>
+
+  <div class="grid2 zh">
+    <div class="card"><span class="lab">发现</span><h5>对方是谁、会什么</h5><p>通过 Agent Card 公布能力与技能清单，不需要事先硬编码接口。</p></div>
+    <div class="card"><span class="lab">生命周期</span><h5>任务有状态，不是一次调用</h5><p>submitted → working → 可能需要补充输入 → 完成 / 失败 / 取消。</p></div>
+    <div class="card"><span class="lab">长任务</span><h5>跑几分钟甚至几小时</h5><p>轮询、流式、webhook 三种消费方式，不必卡在一个同步请求上。</p></div>
+    <div class="card"><span class="lab">产物</span><h5>返回的是 artifact，不是标量</h5><p>报告、文件、结构化结果，可以分片增量返回。</p></div>
+    <div class="card"><span class="lab">不透明边界</span><h5>不需要共享内部记忆</h5><p>协作方各自保留自己的工具、策略与上下文。</p></div>
+    <div class="card"><span class="lab">跨组织</span><h5>跨越信任边界的委派</h5><p>签名 Agent Card 提供加密身份验证。</p></div>
+  </div>
+  <div class="grid2 en">
+    <div class="card"><span class="lab">Discovery</span><h5>Who is this peer, and what can it do?</h5><p>Capabilities and skills are published in an Agent Card — no hard-coded interface required in advance.</p></div>
+    <div class="card"><span class="lab">Lifecycle</span><h5>A task has states; it is not one call</h5><p>submitted → working → possibly input-required → completed / failed / canceled.</p></div>
+    <div class="card"><span class="lab">Long-running work</span><h5>Minutes or hours, not milliseconds</h5><p>Clients can consume results by polling, streaming, or webhooks instead of blocking one synchronous request.</p></div>
+    <div class="card"><span class="lab">Artifacts</span><h5>The result is an artifact, not a scalar</h5><p>Reports, files, structured outputs — returnable incrementally.</p></div>
+    <div class="card"><span class="lab">Opaque boundaries</span><h5>No shared internal memory needed</h5><p>Each collaborator keeps its own tools, policies, and context private.</p></div>
+    <div class="card"><span class="lab">Cross-organization</span><h5>Delegation across trust boundaries</h5><p>Signed Agent Cards provide cryptographic identity verification.</p></div>
+  </div>
+
+  <div class="callout key zh">
+    <b>判断的分界线</b>
+    <p>一个东西该建模成<strong>工具</strong>还是<strong>Agent</strong>？看它有没有自己的<strong>任务生命周期、记忆、策略、产物和转委派行为</strong>。计算器、天气 API、一条数据库查询——都是工具，硬包成 Agent 只是加开销。反过来，一个有自己排期、自己权限、自己审计要求的系统，硬塞进一个函数调用背后，也是错的。</p>
+  </div>
+  <div class="callout key en">
+    <b>The dividing line</b>
+    <p>Should a thing be modelled as a <strong>tool</strong> or an <strong>agent</strong>? Ask whether it has its own <strong>task lifecycle, memory, policies, artifacts, and delegation behaviour</strong>. A calculator, a weather API, a database query — those are tools, and forcing the agent abstraction on them only adds overhead. Conversely, squeezing a system that has its own queue, permissions, and audit requirements behind a single function call is equally wrong.</p>
+  </div>
+
+  <h3 class="zh">一个具体场景</h3>
+  <h3 class="en">A concrete scenario</h3>
+
+  <p class="zh">设想一个企业助手要出一份「供应商风险报告」。它可能需要把工作分给：采购 Agent、法务审查 Agent、财务 Agent、合规 Agent、市场调研 Agent、报告撰写 Agent。每个都有自己的领域、工具、规则、权限和审计要求。</p>
+  <p class="en">Picture an enterprise assistant asked to produce a supplier risk report. It may need to delegate to a procurement agent, a legal review agent, a finance agent, a compliance agent, a market research agent, and a report-writing agent — each with its own domain, tools, rules, permissions, and audit requirements.</p>
+
+  <p class="zh">关键点在于：<strong>主助手不应该直接拿到所有采购数据库、法务政策库、财务表格和合规流程的访问权。</strong>它应该去问负责的那个 Agent。这既是安全考虑，也是运维考虑——每个专家 Agent 可以被独立拥有、运维、审计和加固，出问题时也更容易定位。</p>
+  <p class="en">The key point: <strong>the primary assistant should not hold direct access to every procurement database, legal policy store, finance spreadsheet, and compliance workflow.</strong> It should ask the responsible agent. That is both a security argument and an operational one — each specialist can be owned, operated, audited, and hardened independently, and the whole system is easier to reason about when something breaks.</p>
+</section>
+
+<section id="concepts">
+  <h2 class="zh">03 · 四个核心概念</h2>
+  <h2 class="en">03 · Four Core Concepts</h2>
+
+  <p class="zh">A2A 的概念不多，但每个都要先讲清楚才能往下读。</p>
+  <p class="en">A2A has few concepts, but each needs to land before the rest makes sense.</p>
+
+  <div class="def zh">
+    <h4>① Agent Card（智能体名片）</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>一份公开的元数据文档，描述这个 Agent 是谁、能做什么（capabilities / skills）、接口在哪、需要什么凭证。技术上是 JSON-LD 格式。</p></div>
+    <div class="row"><span class="tag tag-why">解决什么</span><p>没有它，你只能靠人工文档和硬编码去对接每个 Agent。有了它，一个 Agent 可以在运行时读懂另一个 Agent 的能力。</p></div>
+    <div class="row"><span class="tag tag-eg">要点</span><p>安全要求写在 Agent Card 里，所以调用方在发起任务之前就知道该带什么凭证。v1.0 新增<strong>签名 Agent Card</strong>：给名片加密码学签名，接收方可以验证这张名片确实由该域名的所有者签发。</p></div>
+  </div>
+  <div class="def en">
+    <h4>① The Agent Card</h4>
+    <div class="row"><span class="tag tag-what">What it is</span><p>A public metadata document describing who an agent is, what it can do (capabilities and skills), where its endpoint lives, and what credentials it expects. Technically a JSON-LD document.</p></div>
+    <div class="row"><span class="tag tag-why">Problem it solves</span><p>Without it, integrating each agent means human-read docs and hard-coded glue. With it, one agent can read another agent's capabilities at runtime.</p></div>
+    <div class="row"><span class="tag tag-eg">Key detail</span><p>Security requirements are declared in the card itself, so a client knows which credentials to present before it attempts a task. v1.0 adds <strong>Signed Agent Cards</strong>: a cryptographic signature lets the receiver verify the card really was issued by the domain owner.</p></div>
+  </div>
+
+  <div class="def zh">
+    <h4>② Task（任务）</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>A2A 的基本工作单元。每个 Task 有唯一 ID，并按显式的状态机推进。</p></div>
+    <div class="row"><span class="tag tag-why">解决什么</span><p>把「一次远程调用」升级成「一件有进度、可查询、可取消的工作」。这是 A2A 与「换个包装的函数调用」的本质区别。</p></div>
+    <div class="row"><span class="tag tag-eg">状态</span><p>据 A2A 规范与社区技术资料，状态包括 <code>submitted</code>、<code>working</code>、<code>input-required</code>、<code>completed</code>、<code>failed</code>、<code>canceled</code>。其中 <code>input-required</code> 是最有意思的一个——它把「做到一半发现缺信息」变成了协议的一部分，而不是一次失败。</p></div>
+  </div>
+  <div class="def en">
+    <h4>② The Task</h4>
+    <div class="row"><span class="tag tag-what">What it is</span><p>A2A's fundamental unit of work. Each task carries a unique ID and moves through an explicit state machine.</p></div>
+    <div class="row"><span class="tag tag-why">Problem it solves</span><p>It upgrades "a remote call" into "a piece of work with progress, queryable state, and a cancel path." This is what separates A2A from a function call in new packaging.</p></div>
+    <div class="row"><span class="tag tag-eg">States</span><p>Per the A2A specification and community technical write-ups, states include <code>submitted</code>, <code>working</code>, <code>input-required</code>, <code>completed</code>, <code>failed</code>, and <code>canceled</code>. <code>input-required</code> is the most interesting one — it makes "halfway through and I need more information" a protocol state rather than a failure.</p></div>
+  </div>
+
+  <div class="def zh">
+    <h4>③ Message &amp; Part（消息与消息片段）</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>Task 执行过程中两个 Agent 来回交换的内容单元。一条 Message 可以由多个 Part 组成（文本、结构化数据、文件等）。</p></div>
+    <div class="row"><span class="tag tag-why">解决什么</span><p>支持多轮交互：不是「发一个请求收一个响应」，而是可以在任务进行中持续沟通。</p></div>
+  </div>
+  <div class="def en">
+    <h4>③ Messages &amp; Parts</h4>
+    <div class="row"><span class="tag tag-what">What it is</span><p>The units of content two agents exchange while a task runs. A message can contain multiple parts — text, structured data, files.</p></div>
+    <div class="row"><span class="tag tag-why">Problem it solves</span><p>It enables multi-turn interaction: not "one request, one response," but ongoing communication while the work is in flight.</p></div>
+  </div>
+
+  <div class="def zh">
+    <h4>④ Artifact（产物）</h4>
+    <div class="row"><span class="tag tag-what">是什么</span><p>任务产出的结果对象——一份报告、一个文件、一组结构化数据。</p></div>
+    <div class="row"><span class="tag tag-why">解决什么</span><p>Agent 之间交付的往往不是一个字符串返回值，而是一件成品。Artifact 让「交付物」成为协议里的显式概念，并且可以在任务进行中增量推送。</p></div>
+  </div>
+  <div class="def en">
+    <h4>④ Artifacts</h4>
+    <div class="row"><span class="tag tag-what">What it is</span><p>The result object a task produces — a report, a file, a structured dataset.</p></div>
+    <div class="row"><span class="tag tag-why">Problem it solves</span><p>What agents hand each other is usually a finished deliverable, not a string return value. Artifacts make the deliverable an explicit protocol concept, and they can be streamed incrementally while the task runs.</p></div>
+  </div>
+
+  <div class="glossary zh">
+    <div class="g"><b>Agent Card</b><span>公开的能力名片（JSON-LD），发现与信任的起点</span></div>
+    <div class="g"><b>Task</b><span>有唯一 ID、有状态机的工作单元</span></div>
+    <div class="g"><b>Message / Part</b><span>任务过程中的双向沟通内容</span></div>
+    <div class="g"><b>Artifact</b><span>任务产出的交付物</span></div>
+    <div class="g"><b>Extension</b><span>v1.0.1 引入的扩展机制，可加新数据、新 RPC 方法、新状态机</span></div>
+    <div class="g"><b>AP2</b><span>Agent Payments Protocol，A2A 之上的支付/经济协调扩展</span></div>
+  </div>
+  <div class="glossary en">
+    <div class="g"><b>Agent Card</b><span>Public capability card (JSON-LD); the starting point for discovery and trust</span></div>
+    <div class="g"><b>Task</b><span>A unit of work with a unique ID and an explicit state machine</span></div>
+    <div class="g"><b>Message / Part</b><span>Two-way content exchanged while the task runs</span></div>
+    <div class="g"><b>Artifact</b><span>The deliverable a task produces</span></div>
+    <div class="g"><b>Extension</b><span>Mechanism added in v1.0.1 for new data, requirements, RPC methods, and state machines</span></div>
+    <div class="g"><b>AP2</b><span>Agent Payments Protocol — an economic-coordination layer built above A2A</span></div>
+  </div>
+</section>
+
+<section id="lifecycle">
+  <h2 class="zh">04 · 一个任务的一生</h2>
+  <h2 class="en">04 · The Life of a Task</h2>
+
+  <p class="zh">把上面四个概念串起来，一次典型的 A2A 协作长这样：</p>
+  <p class="en">Chaining those four concepts together, a typical A2A collaboration looks like this:</p>
+
+  <ol class="steps zh">
+    <li><b>发现</b>调用方读取目标 Agent 的 Agent Card，看它的技能清单、接口地址和认证要求。</li>
+    <li><b>提交任务</b>按 Agent Card 声明的方式带上凭证，提交一个 Task，拿到任务 ID。</li>
+    <li><b>订阅进度</b>选择消费方式：轮询查状态、订阅流式更新，或注册 webhook 等对方回调。</li>
+    <li><b>中途交互</b>如果对方进入 <code>input-required</code>，补充信息后任务继续，而不是重头再来。</li>
+    <li><b>取回产物</b>任务到达终态后取回 artifact；失败或取消也是明确的终态，不是超时后的沉默。</li>
+  </ol>
+  <ol class="steps en">
+    <li><b>Discover</b> The client fetches the target agent's Agent Card and reads its skills, endpoint, and authentication requirements.</li>
+    <li><b>Submit the task</b> Present the credentials the card declared, submit a task, and receive a task ID.</li>
+    <li><b>Subscribe to progress</b> Choose how to consume updates: poll for state, subscribe to a stream, or register a webhook for callbacks.</li>
+    <li><b>Interact mid-flight</b> If the peer enters <code>input-required</code>, supply what is missing and the task continues rather than restarting.</li>
+    <li><b>Collect the artifact</b> Retrieve the artifact once the task reaches a terminal state. Failure and cancellation are explicit terminal states too — not silence after a timeout.</li>
+  </ol>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 300" role="img" aria-label="A2A 任务状态机">
+      <defs>
+        <marker id="mSt" markerWidth="9" markerHeight="9" refX="7.6" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#5548c9"/>
+        </marker>
+        <marker id="mStW" markerWidth="9" markerHeight="9" refX="7.6" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#a5730f"/>
+        </marker>
+      </defs>
+      <rect x="24" y="112" width="132" height="52" rx="10" fill="#ffffff" stroke="#5548c9" stroke-width="1.6" data-anim/>
+      <text x="90" y="137" font-size="13.5" fill="#332a8c" text-anchor="middle" font-weight="750" data-anim>submitted</text>
+      <text x="90" y="154" font-size="10.5" fill="#6e6b90" text-anchor="middle" data-anim>已提交</text>
+
+      <rect x="216" y="112" width="132" height="52" rx="10" fill="#5548c9" data-anim/>
+      <text x="282" y="137" font-size="13.5" fill="#ffffff" text-anchor="middle" font-weight="750" data-anim>working</text>
+      <text x="282" y="154" font-size="10.5" fill="#d5d0f7" text-anchor="middle" data-anim>执行中</text>
+
+      <rect x="196" y="18" width="172" height="50" rx="10" fill="#fbf1da" stroke="#a5730f" stroke-width="1.4" data-anim/>
+      <text x="282" y="41" font-size="13" fill="#a5730f" text-anchor="middle" font-weight="750" data-anim>input-required</text>
+      <text x="282" y="58" font-size="10.5" fill="#8a6c22" text-anchor="middle" data-anim>缺信息，等补充</text>
+
+      <rect x="424" y="34" width="150" height="48" rx="10" fill="#e4f3ec" stroke="#2c7a5b" stroke-width="1.4" data-anim/>
+      <text x="499" y="57" font-size="13" fill="#1f5c44" text-anchor="middle" font-weight="750" data-anim>completed</text>
+      <text x="499" y="73" font-size="10.5" fill="#3d7f65" text-anchor="middle" data-anim>返回 artifact</text>
+
+      <rect x="424" y="112" width="150" height="48" rx="10" fill="#fbeae8" stroke="#cd5245" stroke-width="1.4" data-anim/>
+      <text x="499" y="135" font-size="13" fill="#a03a2f" text-anchor="middle" font-weight="750" data-anim>failed</text>
+      <text x="499" y="151" font-size="10.5" fill="#b2564a" text-anchor="middle" data-anim>明确失败</text>
+
+      <rect x="424" y="190" width="150" height="48" rx="10" fill="#f0eff7" stroke="#6e6b90" stroke-width="1.4" data-anim/>
+      <text x="499" y="213" font-size="13" fill="#3c3a5e" text-anchor="middle" font-weight="750" data-anim>canceled</text>
+      <text x="499" y="229" font-size="10.5" fill="#6e6b90" text-anchor="middle" data-anim>调用方取消</text>
+
+      <line x1="156" y1="138" x2="210" y2="138" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt)"/>
+      <path d="M262,112 L262,74" fill="none" stroke="#a5730f" stroke-width="2" marker-end="url(#mStW)"/>
+      <path d="M302,74 L302,112" fill="none" stroke="#a5730f" stroke-width="2" marker-end="url(#mStW)"/>
+      <line x1="348" y1="128" x2="418" y2="70" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt)"/>
+      <line x1="348" y1="138" x2="418" y2="138" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt)"/>
+      <line x1="348" y1="150" x2="418" y2="208" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt)"/>
+
+      <text x="24" y="262" font-size="11.5" fill="#6e6b90">终态（completed / failed / canceled）之后任务不再变化；</text>
+      <text x="24" y="280" font-size="11.5" fill="#6e6b90">流式更新会带 final:true 标记，告诉调用方「到头了」。</text>
+    </svg>
+    <div class="fig-cap">任务状态机。琥珀色的 <code>input-required</code> 双向箭头是这套设计的精髓：中途缺信息不是失败，而是一个可以回来的状态。</div>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 300" role="img" aria-label="A2A task state machine">
+      <defs>
+        <marker id="mSt-e" markerWidth="9" markerHeight="9" refX="7.6" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#5548c9"/>
+        </marker>
+        <marker id="mStW-e" markerWidth="9" markerHeight="9" refX="7.6" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#a5730f"/>
+        </marker>
+      </defs>
+      <rect x="24" y="112" width="132" height="52" rx="10" fill="#ffffff" stroke="#5548c9" stroke-width="1.6" data-anim/>
+      <text x="90" y="137" font-size="13.5" fill="#332a8c" text-anchor="middle" font-weight="750" data-anim>submitted</text>
+      <text x="90" y="154" font-size="10.5" fill="#6e6b90" text-anchor="middle" data-anim>accepted</text>
+
+      <rect x="216" y="112" width="132" height="52" rx="10" fill="#5548c9" data-anim/>
+      <text x="282" y="137" font-size="13.5" fill="#ffffff" text-anchor="middle" font-weight="750" data-anim>working</text>
+      <text x="282" y="154" font-size="10.5" fill="#d5d0f7" text-anchor="middle" data-anim>in progress</text>
+
+      <rect x="196" y="18" width="172" height="50" rx="10" fill="#fbf1da" stroke="#a5730f" stroke-width="1.4" data-anim/>
+      <text x="282" y="41" font-size="13" fill="#a5730f" text-anchor="middle" font-weight="750" data-anim>input-required</text>
+      <text x="282" y="58" font-size="10.5" fill="#8a6c22" text-anchor="middle" data-anim>waiting on the caller</text>
+
+      <rect x="424" y="34" width="150" height="48" rx="10" fill="#e4f3ec" stroke="#2c7a5b" stroke-width="1.4" data-anim/>
+      <text x="499" y="57" font-size="13" fill="#1f5c44" text-anchor="middle" font-weight="750" data-anim>completed</text>
+      <text x="499" y="73" font-size="10.5" fill="#3d7f65" text-anchor="middle" data-anim>artifact returned</text>
+
+      <rect x="424" y="112" width="150" height="48" rx="10" fill="#fbeae8" stroke="#cd5245" stroke-width="1.4" data-anim/>
+      <text x="499" y="135" font-size="13" fill="#a03a2f" text-anchor="middle" font-weight="750" data-anim>failed</text>
+      <text x="499" y="151" font-size="10.5" fill="#b2564a" text-anchor="middle" data-anim>explicit failure</text>
+
+      <rect x="424" y="190" width="150" height="48" rx="10" fill="#f0eff7" stroke="#6e6b90" stroke-width="1.4" data-anim/>
+      <text x="499" y="213" font-size="13" fill="#3c3a5e" text-anchor="middle" font-weight="750" data-anim>canceled</text>
+      <text x="499" y="229" font-size="10.5" fill="#6e6b90" text-anchor="middle" data-anim>caller cancelled</text>
+
+      <line x1="156" y1="138" x2="210" y2="138" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt-e)"/>
+      <path d="M262,112 L262,74" fill="none" stroke="#a5730f" stroke-width="2" marker-end="url(#mStW-e)"/>
+      <path d="M302,74 L302,112" fill="none" stroke="#a5730f" stroke-width="2" marker-end="url(#mStW-e)"/>
+      <line x1="348" y1="128" x2="418" y2="70" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt-e)"/>
+      <line x1="348" y1="138" x2="418" y2="138" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt-e)"/>
+      <line x1="348" y1="150" x2="418" y2="208" stroke="#5548c9" stroke-width="2" marker-end="url(#mSt-e)"/>
+
+      <text x="24" y="262" font-size="11.5" fill="#6e6b90">Terminal states (completed / failed / canceled) are final;</text>
+      <text x="24" y="280" font-size="11.5" fill="#6e6b90">streamed updates carry a final:true flag so the caller knows it is over.</text>
+    </svg>
+    <div class="fig-cap">The task state machine. The amber two-way <code>input-required</code> arrow is the heart of the design: missing information mid-task is a state you can return from, not a failure.</div>
+  </div>
+
+  <h3 class="zh">传输层长什么样</h3>
+  <h3 class="en">What the wire looks like</h3>
+
+  <p class="zh">官方 v1.0 公告说明，A2A 建立在业界成熟协议之上：<strong>JSON+HTTP、gRPC 和 JSON-RPC</strong>；最简单的一次 A2A 交互可以就是一个 HTTP 请求。结果消费方式有三种：轮询（polling）、流式（streaming）、webhook。</p>
+  <p class="en">The official v1.0 announcement states that A2A builds on industry-proven protocols — <strong>JSON+HTTP, gRPC, and JSON-RPC</strong> — and that in its simplest form an A2A interaction can begin with a single HTTP request. Clients can consume results by polling, streaming, or webhooks.</p>
+
+  <div class="callout warn zh">
+    <b>⚠️ 关于具体方法名的一个重要提醒</b>
+    <p>网上大量教程里出现的 <code>tasks/send</code>、<code>tasks/sendSubscribe</code>、<code>tasks/get</code>、<code>tasks/cancel</code> 这组 JSON-RPC 方法名，以及 SSE 流里的 <code>TaskStatusUpdateEvent</code> / <code>TaskArtifactUpdateEvent</code>，来自 <strong>v0.x 时期的规范与教程</strong>。官方 v1.0 公告明确写着：「v1.0 收紧了规范行为，<strong>其中包括交互协议层面的破坏性变更</strong>」。所以这些方法名请当作「理解模型」而不是「照抄的 API」——真正写代码前务必以 <a href="https://a2a-protocol.org/latest/specification/" target="_blank" rel="noopener">a2a-protocol.org 当前规范</a>为准。</p>
+  </div>
+  <div class="callout warn en">
+    <b>⚠️ An important caveat about method names</b>
+    <p>The JSON-RPC method names that circulate widely in tutorials — <code>tasks/send</code>, <code>tasks/sendSubscribe</code>, <code>tasks/get</code>, <code>tasks/cancel</code> — along with the SSE event types <code>TaskStatusUpdateEvent</code> and <code>TaskArtifactUpdateEvent</code>, come from <strong>v0.x-era specs and tutorials</strong>. The official v1.0 announcement states plainly that "the v1.0 release tightens specification behavior, <strong>which includes breaking changes in the interaction protocol</strong>." Treat those names as a mental model, not as an API to copy. Before writing code, check the <a href="https://a2a-protocol.org/latest/specification/" target="_blank" rel="noopener">current specification at a2a-protocol.org</a>.</p>
+  </div>
+
+  <details class="rephrase zh">
+    <summary>换个说法：为什么「有状态的任务」这么重要</summary>
+    <div class="body"><p>普通 HTTP API 的心智模型是「问一句，答一句」。但 Agent 干的活经常要几分钟到几小时，中间还可能需要回头问你一句。如果只有请求-响应，你就只能靠超时、重试和自己在应用层维护一张任务表来凑合。A2A 把这张任务表标准化了——任务 ID、状态、进度事件、终态标记都由协议定义，这样不同厂商的 Agent 才可能真的互相接得上。</p></div>
+  </details>
+  <details class="rephrase en">
+    <summary>Put another way: why stateful tasks matter</summary>
+    <div class="body"><p>An ordinary HTTP API has a "ask once, answer once" mental model. But agent work often takes minutes to hours and may need to come back with a question mid-way. With only request/response, you are left improvising with timeouts, retries, and a hand-rolled task table in your application. A2A standardizes that table — task IDs, states, progress events, terminal markers are all defined by the protocol, which is what makes agents from different vendors actually connectable.</p></div>
+  </details>
+</section>
+
+<section id="v1">
+  <h2 class="zh">05 · v1.0 改了什么（以及为什么方向和 MCP 一样）</h2>
+  <h2 class="en">05 · What v1.0 Changed (and Why It Points the Same Way as MCP)</h2>
+
+  <p class="zh">官方给 v1.0 的定调是「<strong>成熟而非重造</strong>」：核心想法不变，把粗糙的地方磨平、把含糊的地方讲清、把企业部署要求正面回应掉。具体有四块：</p>
+  <p class="en">The official framing for v1.0 is "<strong>maturity rather than reinvention</strong>": the core ideas stay, rough edges get removed, ambiguous areas get clarified, and enterprise deployment requirements get addressed directly. Four things concretely:</p>
+
+  <div class="grid2 zh">
+    <div class="card"><span class="lab">异构环境</span><h5>多协议绑定 + 版本协商</h5><p>让不同技术栈之间可互操作，企业不被绑死在单一厂商或平台上。</p></div>
+    <div class="card"><span class="lab">多租户</span><h5>一个端点承载多个 Agent</h5><p>单一 endpoint 安全地托管多个 Agent，运维成本大幅下降。</p></div>
+    <div class="card"><span class="lab">签名名片</span><h5>Signed Agent Cards</h5><p>加密验证 Agent 身份与元数据，跨组织边界交互之前先建立信任。</p></div>
+    <div class="card"><span class="lab">安全姿态</span><h5>清理不合时宜的旧模式</h5><p>现代化安全流程，移除已不符合当前最佳实践的遗留做法。</p></div>
+  </div>
+  <div class="grid2 en">
+    <div class="card"><span class="lab">Heterogeneity</span><h5>Multi-protocol bindings + version negotiation</h5><p>Interoperability across diverse stacks, so enterprises are not tied to a single vendor or platform.</p></div>
+    <div class="card"><span class="lab">Multi-tenancy</span><h5>One endpoint, many agents</h5><p>A single endpoint can securely host many agents, cutting operational overhead sharply.</p></div>
+    <div class="card"><span class="lab">Signed cards</span><h5>Signed Agent Cards</h5><p>Cryptographic verification of agent identity and metadata, establishing trust before interaction across organizational boundaries.</p></div>
+    <div class="card"><span class="lab">Security posture</span><h5>Legacy patterns removed</h5><p>Modernized security flows, dropping patterns no longer aligned with current best practice.</p></div>
+  </div>
+
+  <h3 class="zh">「Web 对齐」是今天最值得注意的一句</h3>
+  <h3 class="en">"Web-aligned" is the phrase worth noticing today</h3>
+
+  <p class="zh">官方公告用了一个词：<strong>web-aligned architecture</strong>——无状态、分层架构、标准协议绑定、对基础设施友好的通信模式。理由很实在：这样组织就能用他们已经在用的那套<strong>负载均衡、网关、安全和可观测性</strong>手段来扩展 Agent 交互，不用为 Agent 单造一套。</p>
+  <p class="en">The official announcement uses the phrase <strong>web-aligned architecture</strong> — stateless, layered, standard protocol bindings, infrastructure-friendly communication patterns. The rationale is concrete: organizations can then scale agent interactions using the same proven <strong>load balancing, gateway, security, and observability</strong> patterns they already run for web systems, instead of inventing a parallel stack for agents.</p>
+
+  <div class="callout key zh">
+    <b>今日联动：两条协议线在收敛</b>
+    <p>就在今天（2026-07-28 规范、2026-07-29 生效讨论正热），MCP 发布了上线以来最大的一次变更——把协议从「双向有状态」改成<strong>请求/响应无状态</strong>，让 MCP server 能部署到 serverless 和边缘，并加入基于 header 的路由、可缓存的 list 结果。这与 A2A v1.0 在 4 月就完成的「Web 对齐、无状态分层」是<strong>同一个工程直觉</strong>：<em>让 Agent 基础设施长得像普通 Web 基础设施，这样二十年的运维经验才能复用</em>。</p>
+  </div>
+  <div class="callout key en">
+    <b>Today's connection: the two protocol tracks are converging</b>
+    <p>This week MCP shipped its largest change since launch — moving from a bidirectional stateful protocol to a <strong>stateless request/response model</strong>, so MCP servers can deploy on serverless and edge infrastructure, with header-based routing and cacheable list results added. That is the <strong>same engineering instinct</strong> A2A acted on back in April with its "web-aligned, stateless, layered" v1.0: <em>make agent infrastructure look like ordinary web infrastructure, so twenty years of operational know-how transfers.</em></p>
+  </div>
+
+  <h3 class="zh">迁移：破坏性变更，但留了缓冲</h3>
+  <h3 class="en">Migration: breaking, but cushioned</h3>
+
+  <p class="zh">v1.0 在交互协议层面有破坏性变更，但 <strong>AgentCard 是向后兼容演进的</strong>——一个 Agent 可以同时声明支持 v0.3 行为和 v1.0 行为，这样客户端可以<strong>渐进迁移</strong>，不必一次性切换。官方说这是为了「保护现有投入的同时交付一个更干净、更持久的标准」。</p>
+  <p class="en">v1.0 introduces breaking changes at the interaction-protocol level, but <strong>the AgentCard evolved in a backward-compatible way</strong> — an agent can advertise support for both v0.3 behaviour and v1.0 simultaneously, so clients can <strong>migrate progressively</strong> rather than through a single cutover. The stated intent is to "protect current investments while still delivering the benefits of a cleaner, more durable standard."</p>
+
+  <h3 class="zh">v1.0.1 的扩展机制</h3>
+  <h3 class="en">The extension mechanism in v1.0.1</h3>
+
+  <p class="zh">2026 年 5 月的 v1.0.1 引入了扩展机制，支持添加「新数据、新要求、新 RPC 方法和新状态机」。截至该论文调研时，官方示例扩展有四个：<code>Secure Passport</code>、<code>Timestamp</code>、<code>Traceability</code>、<code>Agent Gateway Protocol</code>。</p>
+  <p class="en">v1.0.1, released in May 2026, introduced an extension mechanism supporting "new data, requirements, RPC methods, and state machines." As of the survey paper's research window, four official example extensions existed: <code>Secure Passport</code>, <code>Timestamp</code>, <code>Traceability</code>, and <code>Agent Gateway Protocol</code>.</p>
+  <p class="src-note zh">来源：arXiv 2606.31498 对 A2A v1.0.1 规范的分析（2026-06-30）。</p>
+  <p class="src-note en">Source: the analysis of the A2A v1.0.1 specification in arXiv 2606.31498 (30 June 2026).</p>
+
+  <h3 class="zh">生态：不只是协议文本</h3>
+  <h3 class="en">The ecosystem: more than a spec document</h3>
+
+  <ul class="zh">
+    <li><strong>云平台</strong>：微软把 A2A 集成进 Azure AI Foundry 与 Copilot Studio；AWS 通过 Amazon Bedrock AgentCore Runtime 支持。</li>
+    <li><strong>框架</strong>：LangGraph、CrewAI 等不同平台上的 Agent 可以互相委派子任务、协调复杂工作流，<strong>而不需要共享内部记忆</strong>——这句是官方新闻稿的原话，也正是 A2A 价值的精确表述。</li>
+    <li><strong>行业落地</strong>：官方称已在供应链、金融服务、保险、IT 运维等垂直领域投入生产使用。</li>
+    <li><strong>经济层</strong>：Agent Payments Protocol（AP2）把 A2A 从「通信」延伸到「交易」，官方称支付与金融领域已有 60+ 组织支持。</li>
+    <li><strong>路线图</strong>：互操作性规范、注册表（registry）工作的整合、测试与工具链扩展、安全与部署最佳实践。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Cloud platforms</strong>: Microsoft integrated A2A into Azure AI Foundry and Copilot Studio; AWS added support through Amazon Bedrock AgentCore Runtime.</li>
+    <li><strong>Frameworks</strong>: agents built on different platforms such as LangGraph and CrewAI can delegate sub-tasks and coordinate complex workflows <strong>without sharing internal memory</strong> — that is the press release's own phrasing, and it captures the value precisely.</li>
+    <li><strong>Verticals</strong>: the Linux Foundation reports production deployments in supply chain, financial services, insurance, and IT operations.</li>
+    <li><strong>Economic layer</strong>: the Agent Payments Protocol (AP2) extends A2A from communication into transactions, with 60+ organizations across payments and financial services reported as supporting the initiative.</li>
+    <li><strong>Roadmap</strong>: an interoperability specification, consolidation of registry efforts, expanded testing and tooling, plus security and deployment best practices.</li>
+  </ul>
+</section>
+
+<section id="vs">
+  <h2 class="zh">06 · A2A vs MCP：分层，不是对立</h2>
+  <h2 class="en">06 · A2A vs MCP: Layers, Not Rivals</h2>
+
+  <p class="zh">「A2A 和 MCP 谁赢」是最常见也最没用的问题。官方 v1.0 公告专门辟了一节澄清：<strong>MCP 和 A2A 解决的是问题的不同层次</strong>，实践中很多系统两个都用——<em>MCP inside agents, A2A between agents</em>。</p>
+  <p class="en">"A2A versus MCP, who wins" is the most common and least useful question. The official v1.0 announcement devotes a section to clearing it up: <strong>MCP and A2A solve different layers of the problem</strong>, and in practice many systems use both — <em>MCP inside agents, A2A between agents.</em></p>
+
+  <div class="tbl-wrap zh">
+    <table>
+      <thead><tr><th>维度</th><th>MCP</th><th>A2A</th></tr></thead>
+      <tbody>
+        <tr><td>回答的核心问题</td><td>一个 Agent <strong>能做什么</strong>？</td><td><strong>哪个 Agent</strong> 来处理这个任务？</td></tr>
+        <tr><td>连接方向</td><td>向下：Agent → 工具 / 数据源</td><td>横向：Agent → 对等 Agent</td></tr>
+        <tr><td>核心原语</td><td>Tools、Resources、Prompts</td><td>Agent Card、Task、Message、Artifact</td></tr>
+        <tr><td>交互形态</td><td>调用 → 返回</td><td>委派 → 状态机 → 产物</td></tr>
+        <tr><td>对方是否透明</td><td>工具的 schema 是公开契约</td><td>对等 Agent 内部实现可以完全不透明</td></tr>
+        <tr><td>治理归属</td><td>Agentic AI Foundation（Linux Foundation）</td><td>Linux Foundation A2A 项目</td></tr>
+        <tr><td>规模参考</td><td>官方称已破 4 亿次月度 SDK 下载（2026-07 数据）</td><td>150+ 支持组织、22k+ star（2026-04 数据）</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tbl-wrap en">
+    <table>
+      <thead><tr><th>Dimension</th><th>MCP</th><th>A2A</th></tr></thead>
+      <tbody>
+        <tr><td>Core question answered</td><td><strong>What can</strong> an agent do?</td><td><strong>Which agent</strong> handles this task?</td></tr>
+        <tr><td>Direction of the link</td><td>Downward: agent → tools and data</td><td>Sideways: agent → peer agent</td></tr>
+        <tr><td>Core primitives</td><td>Tools, Resources, Prompts</td><td>Agent Card, Task, Message, Artifact</td></tr>
+        <tr><td>Interaction shape</td><td>Call → return</td><td>Delegate → state machine → artifact</td></tr>
+        <tr><td>Peer transparency</td><td>The tool schema is a public contract</td><td>A peer agent's internals can be fully opaque</td></tr>
+        <tr><td>Governance home</td><td>Agentic AI Foundation (Linux Foundation)</td><td>Linux Foundation A2A project</td></tr>
+        <tr><td>Scale reference</td><td>Reported to have passed 400M monthly SDK downloads (July 2026)</td><td>150+ supporting organizations, 22k+ stars (April 2026)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout risk zh">
+    <b>最常见的两个反向错误</b>
+    <p><strong>错误一：把所有能力都做成 Agent。</strong>计算器不需要是 Agent，天气 API 不需要是 Agent，一条数据库查询也不需要。对没有自主性、没有状态、没有生命周期的东西套 Agent 抽象，只增加开销不增加清晰度。</p>
+    <p><strong>错误二：把一个完整的 Agent 藏在一个工具后面。</strong>如果这个「工具」有自己的任务生命周期、记忆、策略、产物和转委派行为，那它其实该被建模成 Agent，而不是挤进一个函数调用的边界里。</p>
+  </div>
+  <div class="callout risk en">
+    <b>The two symmetric mistakes</b>
+    <p><strong>Mistake one: turning every capability into an agent.</strong> A calculator does not need to be an agent. Neither does a weather API or a database query. Applying the agent abstraction to components with no real autonomy, state, or lifecycle adds overhead without adding clarity.</p>
+    <p><strong>Mistake two: hiding a full agent behind one tool.</strong> If a "tool" has its own task lifecycle, memory, policies, artifacts, and delegation behaviour, it probably deserves to be modelled as an agent instead of being squeezed behind a function-call boundary.</p>
+  </div>
+  <p class="src-note zh">上述两条来自技术博客的实践总结（glukhov.org，2026-06-24），属社区观点而非官方规范。</p>
+  <p class="src-note en">Both points come from a practitioner blog's field notes (glukhov.org, 24 June 2026) — community assessment, not official spec.</p>
+
+  <h3 class="zh">还有哪些同类协议</h3>
+  <h3 class="en">Other protocols in the same space</h3>
+
+  <p class="zh">A2A 不是唯一一个，学术界目前把主要的五个放在一起比较：</p>
+  <p class="en">A2A is not alone; the literature currently compares five major approaches side by side:</p>
+
+  <div class="tbl-wrap zh">
+    <table>
+      <thead><tr><th>协议</th><th>侧重</th><th>回答的问题</th></tr></thead>
+      <tbody>
+        <tr><td>MCP（Anthropic，2024 末）</td><td>工具访问</td><td>一个 Agent 能做什么？</td></tr>
+        <tr><td>A2A（Google → Linux Foundation）</td><td>任务委派</td><td>哪个 Agent 处理这个任务？</td></tr>
+        <tr><td>ACP（IBM Research）</td><td>结构化通信</td><td>Agent 之间怎么交换消息？（带 propose/accept/reject/counter 的协商语义）</td></tr>
+        <tr><td>ANP（社区）</td><td>网络路由</td><td>消息怎么在 Agent 网络里找到对的接收方？（基于 W3C DID）</td></tr>
+        <tr><td>ERC-8004（以太坊 EIP，草案）</td><td>信任</td><td>哪些 Agent 可信？（链上身份 / 声誉 / 验证三个注册表）</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tbl-wrap en">
+    <table>
+      <thead><tr><th>Protocol</th><th>Focus</th><th>Question it answers</th></tr></thead>
+      <tbody>
+        <tr><td>MCP (Anthropic, late 2024)</td><td>Tool access</td><td>What can an agent do?</td></tr>
+        <tr><td>A2A (Google → Linux Foundation)</td><td>Delegation</td><td>Which agent handles this task?</td></tr>
+        <tr><td>ACP (IBM Research)</td><td>Communication</td><td>How do agents exchange messages? (negotiation semantics: propose / accept / reject / counter)</td></tr>
+        <tr><td>ANP (community)</td><td>Routing</td><td>How do messages reach the right agent across a network? (built on W3C DIDs)</td></tr>
+        <tr><td>ERC-8004 (Ethereum EIP, draft)</td><td>Trust</td><td>Which agents can be trusted? (on-chain identity / reputation / validation registries)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="src-note zh">分类来源：arXiv 2606.31498（2026-06-30）表 I。</p>
+  <p class="src-note en">Taxonomy source: arXiv 2606.31498 (30 June 2026), Table I.</p>
+</section>
+
+<section id="when">
+  <h2 class="zh">07 · 什么时候该用，什么时候别用</h2>
+  <h2 class="en">07 · When to Use It, and When Not To</h2>
+
+  <p class="zh">这一节是本文最有实用价值的部分。协议不是免费的——它带来新的概念、新的失败模式、新的调试成本、新的安全面和新的运维工作。</p>
+  <p class="en">This is the most practically useful part of the document. A protocol is not free: it brings new concepts, new failure modes, new debugging overhead, a new security surface, and new operational work.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 320" role="img" aria-label="是否该用 A2A 的决策树">
+      <defs>
+        <marker id="dTree" markerWidth="9" markerHeight="9" refX="7.6" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#6e6b90"/>
+        </marker>
+      </defs>
+      <rect x="252" y="12" width="216" height="46" rx="10" fill="#5548c9" data-anim/>
+      <text x="360" y="33" font-size="13" fill="#fff" text-anchor="middle" font-weight="750" data-anim>你的系统里有几个 Agent？</text>
+      <text x="360" y="50" font-size="11" fill="#d5d0f7" text-anchor="middle" data-anim>而且它们是独立部署的吗？</text>
+
+      <line x1="300" y1="58" x2="180" y2="98" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree)"/>
+      <line x1="420" y1="58" x2="540" y2="98" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree)"/>
+      <text x="222" y="82" font-size="11.5" fill="#6e6b90" text-anchor="middle">只有一个 / 同一代码库</text>
+      <text x="500" y="82" font-size="11.5" fill="#6e6b90" text-anchor="middle">多个 / 跨团队</text>
+
+      <rect x="60" y="104" width="238" height="60" rx="10" fill="#f0eff7" stroke="#6e6b90" stroke-width="1.3" data-anim/>
+      <text x="179" y="128" font-size="13" fill="#3c3a5e" text-anchor="middle" font-weight="750" data-anim>不要 A2A</text>
+      <text x="179" y="147" font-size="11.5" fill="#6e6b90" text-anchor="middle" data-anim>函数、队列、内部 HTTP 就够了</text>
+
+      <rect x="424" y="104" width="238" height="60" rx="10" fill="#eceafc" stroke="#5548c9" stroke-width="1.4" data-anim/>
+      <text x="543" y="128" font-size="13" fill="#332a8c" text-anchor="middle" font-weight="750" data-anim>它们需要发现、长任务、产物吗？</text>
+      <text x="543" y="147" font-size="11.5" fill="#6e6b90" text-anchor="middle" data-anim>或者跨越了组织 / 信任边界？</text>
+
+      <line x1="480" y1="164" x2="400" y2="204" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree)"/>
+      <line x1="600" y1="164" x2="600" y2="204" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree)"/>
+      <text x="412" y="190" font-size="11.5" fill="#6e6b90" text-anchor="middle">否</text>
+      <text x="616" y="190" font-size="11.5" fill="#6e6b90" text-anchor="middle">是</text>
+
+      <rect x="256" y="210" width="238" height="60" rx="10" fill="#fbf1da" stroke="#a5730f" stroke-width="1.3" data-anim/>
+      <text x="375" y="234" font-size="13" fill="#a5730f" text-anchor="middle" font-weight="750" data-anim>先别急</text>
+      <text x="375" y="253" font-size="11.5" fill="#8a6c22" text-anchor="middle" data-anim>把边界设计干净，需要时再上</text>
+
+      <rect x="510" y="210" width="192" height="60" rx="10" fill="#e4f3ec" stroke="#2c7a5b" stroke-width="1.4" data-anim/>
+      <text x="606" y="234" font-size="13" fill="#1f5c44" text-anchor="middle" font-weight="750" data-anim>A2A 值得认真评估</text>
+      <text x="606" y="253" font-size="11.5" fill="#3d7f65" text-anchor="middle" data-anim>配合 MCP 做工具层</text>
+
+      <text x="24" y="300" font-size="11.5" fill="#6e6b90">多数团队的正确顺序是：先 MCP，把边界设计好，等边界变成真实约束时再引入 A2A。</text>
+    </svg>
+    <div class="fig-cap">决策树。核心不是「A2A 好不好」，而是「你的架构里有没有真实的 Agent 边界」。</div>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 320" role="img" aria-label="Decision tree for adopting A2A">
+      <defs>
+        <marker id="dTree-e" markerWidth="9" markerHeight="9" refX="7.6" refY="3.4" orient="auto">
+          <path d="M0,0 L8,3.4 L0,6.8 z" fill="#6e6b90"/>
+        </marker>
+      </defs>
+      <rect x="252" y="12" width="216" height="46" rx="10" fill="#5548c9" data-anim/>
+      <text x="360" y="33" font-size="13" fill="#fff" text-anchor="middle" font-weight="750" data-anim>How many agents do you have?</text>
+      <text x="360" y="50" font-size="11" fill="#d5d0f7" text-anchor="middle" data-anim>And are they independently deployed?</text>
+
+      <line x1="300" y1="58" x2="180" y2="98" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree-e)"/>
+      <line x1="420" y1="58" x2="540" y2="98" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree-e)"/>
+      <text x="222" y="82" font-size="11.5" fill="#6e6b90" text-anchor="middle">One / same codebase</text>
+      <text x="500" y="82" font-size="11.5" fill="#6e6b90" text-anchor="middle">Several / across teams</text>
+
+      <rect x="60" y="104" width="238" height="60" rx="10" fill="#f0eff7" stroke="#6e6b90" stroke-width="1.3" data-anim/>
+      <text x="179" y="128" font-size="13" fill="#3c3a5e" text-anchor="middle" font-weight="750" data-anim>Skip A2A</text>
+      <text x="179" y="147" font-size="11.5" fill="#6e6b90" text-anchor="middle" data-anim>Functions, queues, internal HTTP suffice</text>
+
+      <rect x="424" y="104" width="238" height="60" rx="10" fill="#eceafc" stroke="#5548c9" stroke-width="1.4" data-anim/>
+      <text x="543" y="128" font-size="13" fill="#332a8c" text-anchor="middle" font-weight="750" data-anim>Need discovery, long tasks, artifacts?</text>
+      <text x="543" y="147" font-size="11.5" fill="#6e6b90" text-anchor="middle" data-anim>Or crossing an org / trust boundary?</text>
+
+      <line x1="480" y1="164" x2="400" y2="204" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree-e)"/>
+      <line x1="600" y1="164" x2="600" y2="204" stroke="#6e6b90" stroke-width="1.8" marker-end="url(#dTree-e)"/>
+      <text x="412" y="190" font-size="11.5" fill="#6e6b90" text-anchor="middle">No</text>
+      <text x="616" y="190" font-size="11.5" fill="#6e6b90" text-anchor="middle">Yes</text>
+
+      <rect x="256" y="210" width="238" height="60" rx="10" fill="#fbf1da" stroke="#a5730f" stroke-width="1.3" data-anim/>
+      <text x="375" y="234" font-size="13" fill="#a5730f" text-anchor="middle" font-weight="750" data-anim>Not yet</text>
+      <text x="375" y="253" font-size="11.5" fill="#8a6c22" text-anchor="middle" data-anim>Design clean boundaries; adopt later</text>
+
+      <rect x="510" y="210" width="192" height="60" rx="10" fill="#e4f3ec" stroke="#2c7a5b" stroke-width="1.4" data-anim/>
+      <text x="606" y="234" font-size="13" fill="#1f5c44" text-anchor="middle" font-weight="750" data-anim>A2A is worth evaluating</text>
+      <text x="606" y="253" font-size="11.5" fill="#3d7f65" text-anchor="middle" data-anim>Pair it with MCP at the tool layer</text>
+
+      <text x="24" y="300" font-size="11.5" fill="#6e6b90">For most teams the right order is: MCP first, clean boundaries next, A2A once those boundaries become real constraints.</text>
+    </svg>
+    <div class="fig-cap">A decision tree. The question is not "is A2A good" but "does your architecture contain real agent boundaries."</div>
+  </div>
+
+  <div class="grid2 zh">
+    <div class="card good"><span class="lab">适合</span><h5>✅ 该考虑 A2A 的信号</h5><p>Agent 独立部署；由不同团队拥有；用不同框架构建；由外部厂商提供；有自己的工具与权限；负责长时间运行的任务；返回的是产物而非简单值；是更大的多 Agent 工作流的一环。</p></div>
+    <div class="card bad"><span class="lab">不适合</span><h5>⛔ 说明你还不需要</h5><p>只有一个 Agent；所有组件在同一个代码库里；工作流短且同步；不需要发现机制；不需要独立的任务状态；没有第三方 Agent；一个 API 或队列更简单；团队没有余力承担额外复杂度。</p></div>
+  </div>
+  <div class="grid2 en">
+    <div class="card good"><span class="lab">Good fit</span><h5>✅ Signals you should consider A2A</h5><p>Agents are independently deployed; owned by different teams; built with different frameworks; exposed by vendors; running with their own tools and permissions; responsible for long-running tasks; returning artifacts rather than simple values; part of a broader multi-agent workflow.</p></div>
+    <div class="card bad"><span class="lab">Poor fit</span><h5>⛔ Signals you don't need it yet</h5><p>There is only one agent; all components live in one codebase; workflows are short and synchronous; no discovery needed; no independent task state; no external agent providers; an API or a queue would be simpler; the team cannot operate the extra complexity.</p></div>
+  </div>
+
+  <div class="callout warn zh">
+    <b>「架构 cosplay」</b>
+    <p>有开发者用了一个很准的说法：在小系统里引入 A2A 是<strong>架构 cosplay</strong>——借用了分布式 Agent 系统的词汇，却没有任何让这个协议真正有价值的边界问题。如果你在做一个本地编码助手、一个文档问答机器人、一个调用几个工具的内部自动化，你需要的大概率是：MCP、好的工具 schema、护栏、评测、日志、成本控制、重试逻辑、更好的提示词和更好的检索——而不是一个 Agent 间协议。</p>
+  </div>
+  <div class="callout warn en">
+    <b>"Architecture cosplay"</b>
+    <p>One practitioner coined a sharp phrase for adopting A2A in a small system: <strong>architecture cosplay</strong> — borrowing the vocabulary of distributed agent systems without any of the boundary problems that make the protocol valuable. If you are building a local coding assistant, a docs chatbot, or an internal automation that calls a handful of tools, what you most likely need is MCP, good tool schemas, guardrails, evaluation, logging, cost control, retry logic, better prompts and better retrieval — not an agent-to-agent protocol.</p>
+  </div>
+
+  <h3 class="zh">最现实的近期场景：企业内部 Agent 网络</h3>
+  <h3 class="en">The most realistic near-term use case: internal enterprise agent networks</h3>
+
+  <p class="zh">开放的公共「Agent 市场」是最吸引人的长期叙事，但它需要的远不止 Agent Card——还要身份、声誉、计费、合规、沙箱、版本管理、责任划分和争议解决。缺了这些，Agent 市场就是一起等着发生的安全事故。</p>
+  <p class="en">A public "agent marketplace" is the most seductive long-term story, but it needs far more than Agent Cards — identity, reputation, billing, compliance, sandboxing, versioning, liability, and dispute resolution. Without those, an agent marketplace is a security incident waiting to happen.</p>
+
+  <p class="zh">更现实的是企业内部：大组织本来就有团队、部门、系统、供应商、数据域、合规区、安全策略、审批流程这些边界。与其造一个能直接访问一切的巨型助手，不如做一组职责受限的专家 Agent——HR、财务、客服、DevOps、安全、知识管理、数据平台——每个自己管自己的工具和策略，彼此之间通过 A2A 交互。这从安全和运维两个角度都更好。</p>
+  <p class="en">Internal enterprise networks are the realistic near-term case. Large organizations already have boundaries — teams, departments, systems, vendors, data domains, compliance zones, security policies, approval processes. Rather than one giant assistant with direct access to everything, build a set of specialists with limited responsibility — HR, finance, support, DevOps, security, knowledge management, data platform — each owning its tools and policies internally and interacting through A2A. That is better both from a security standpoint and an operational one.</p>
+</section>
+
+<section id="pitfalls">
+  <h2 class="zh">08 · 常见坑与未解问题</h2>
+  <h2 class="en">08 · Pitfalls and Open Problems</h2>
+
+  <h3 class="zh">坑一：安全是最大的未解问题</h3>
+  <h3 class="en">Pitfall 1: security is the biggest unresolved question</h3>
+
+  <p class="zh">A2A 最难的部分不是语法和规范，而是<strong>信任</strong>——当你真的把自主 Agent 跨组织或跨系统边界部署时冒出来的一堆问题：</p>
+  <p class="en">A2A's hardest problems are not syntax or specification problems. They are <strong>trust</strong> problems that surface once you actually deploy autonomous agents across organizational or system boundaries:</p>
+
+  <ul class="zh">
+    <li>这个 Agent 是谁？谁拥有它？</li>
+    <li>它被允许知道什么？被允许做什么？</li>
+    <li>它能不能把工作再转委派出去？</li>
+    <li>它能不能代表用户调用工具？能不能保持用户的原始意图不被篡改？</li>
+    <li>事后能不能证明发生了什么？能不能被审计？</li>
+  </ul>
+  <ul class="en">
+    <li>Who is this agent, and who owns it?</li>
+    <li>What is it allowed to know? What is it allowed to do?</li>
+    <li>Can it delegate the work further?</li>
+    <li>Can it call tools on behalf of a user, and can it preserve the user's original intent?</li>
+    <li>Can it prove what happened afterwards? Can it be audited?</li>
+  </ul>
+
+  <div class="callout risk zh">
+    <b>A2A 让协作更容易，也创造了新的信任破口</b>
+    <p>恶意 Agent 可能虚报能力；被攻陷的 Agent 可能索要敏感上下文；委派出去的任务可能超出用户本身的权限；返回的 artifact 可能被投毒；一条 Agent 链条可能让责任归属变得模糊；敏感数据可能在没有恰当日志的情况下跨边界流动。</p>
+    <p><strong>A2A 本身不是安全架构，它是一个必须被部署进安全架构里的通信协议。</strong>每一个它跨越的边界，都需要你显式决定身份、授权、审计和策略执行怎么做。</p>
+  </div>
+  <div class="callout risk en">
+    <b>A2A makes collaboration easier — and creates new places for trust to break</b>
+    <p>A malicious agent could misrepresent its capabilities. A compromised agent could request sensitive context. A delegated task could exceed the user's own authority. A returned artifact could be poisoned. A chain of agents could make accountability unclear. Sensitive data could cross boundaries without proper logging.</p>
+    <p><strong>A2A is not a security architecture by itself; it is a communication protocol that must be deployed inside one.</strong> Every boundary it crosses requires an explicit decision about identity, authorization, audit, and policy enforcement.</p>
+  </div>
+
+  <p class="zh">配套需要的东西（社区总结）：强 Agent 身份、范围化授权、任务级审计日志、委派链追踪、高风险动作的人工批准、artifact 溯源、限流、策略执行、跨 Agent 边界的可观测性。</p>
+  <p class="en">What has to surround it (community synthesis): strong agent identity, scoped authorization, task-level audit logs, delegation tracking, human approval for risky actions, artifact provenance, rate limits, policy enforcement, and observability that spans agent boundaries.</p>
+
+  <div class="callout warn zh">
+    <b>与今天的行业新闻对上了</b>
+    <p>本周 Reuters 还原的 OpenAI Agent 入侵 Hugging Face 时间线显示：入侵持续 7 月 11–13 日，而 OpenAI 直到数日后才意识到是自家 agent 所为，两家公司约 7 月 20 日才沟通——距事发约 9 天。受害方 Hugging Face 独立检测、遏制并报案 FBI 时，攻击方还不知道攻击者是自己。这个 9 天的检测盲区，正是「跨 Agent 边界的可观测性」为什么不是可选项的最好注脚。</p>
+  </div>
+  <div class="callout warn en">
+    <b>This connects to the week's industry news</b>
+    <p>Reuters' reconstruction of the OpenAI agent intrusion at Hugging Face shows the breach ran 11–13 July, that OpenAI did not realize its own agent was responsible until several days later, and that the two companies did not communicate until around 20 July — roughly nine days after it began. Hugging Face detected, contained, and reported it to the FBI while the originating lab still did not know the attacker was its own system. That nine-day detection gap is the sharpest available argument for why cross-agent-boundary observability is not optional.</p>
+  </div>
+
+  <h3 class="zh">坑二：没有 trace，多 Agent 系统无法调试</h3>
+  <h3 class="en">Pitfall 2: without traces, multi-agent systems can't be debugged</h3>
+
+  <p class="zh">多 Agent 系统如果没有分布式追踪，调试会变成考古——只能靠推断复原发生了什么，而不是靠观测。你需要知道：哪个 Agent 收到了任务、交换了哪些消息、调用了哪些工具、产出了哪些 artifact、应用了哪些策略、最终是哪个 Agent 做的决定。</p>
+  <p class="en">A multi-agent system without traces turns debugging into archaeology — reconstructing what happened by inference rather than observation. You need to know which agent received the task, which messages were exchanged, which tools were called, which artifacts were produced, which policies were applied, and which agent made the final call.</p>
+
+  <h3 class="zh">坑三：把「支持」当成「在用」</h3>
+  <h3 class="en">Pitfall 3: mistaking "supports" for "uses"</h3>
+
+  <p class="zh">采纳程度是有层级的，从弱到强：<strong>logo 采纳</strong>（公司声明支持，可能只是战略站位）→ <strong>SDK 采纳</strong>（有可用的库、示例、文档，开发者真能上手）→ <strong>平台采纳</strong>（云厂商、框架、企业系统提供原生支持）→ <strong>生产留存</strong>（团队在首次真实运维事故之后依然继续用）。只有最后一层对生态健康有决定意义，而它恰恰是最难从新闻稿里读出来的。</p>
+  <p class="en">Adoption comes in tiers, weakest to strongest: <strong>logo adoption</strong> (a company states support, which may be strategic positioning) → <strong>SDK adoption</strong> (usable libraries, examples, docs, so developers can actually build) → <strong>platform adoption</strong> (clouds, frameworks, and enterprise systems expose native support) → <strong>production retention</strong> (teams keep it after their first real operational incident). Only the last tier really determines ecosystem health, and it is precisely the tier a press release cannot tell you about.</p>
+
+  <h3 class="zh">坑四：因为「听起来有战略高度」而采用</h3>
+  <h3 class="en">Pitfall 4: adopting it because it sounds strategic</h3>
+
+  <p class="zh">这是典型的企业架构陷阱。A2A 应该解决架构里<strong>真实存在</strong>的边界问题，而不是为了给协议选型找个理由而发明一个边界。没有独立部署、没有独立所有权、没有独立安全域，就没有真实边界，也就不需要 A2A。</p>
+  <p class="en">This is the classic enterprise-architecture trap. A2A should solve a boundary problem that genuinely exists in the architecture, not one invented to justify the protocol choice. No independent deployment, no separate ownership, no distinct security perimeter means no real boundary — and therefore no need for A2A.</p>
+
+  <details class="rephrase zh">
+    <summary>换个说法：怎么判断自己是不是在 cosplay</summary>
+    <div class="body"><p>问自己一个问题：<strong>如果我把这个「Agent」换成一个普通的内部 HTTP 服务，我会失去什么？</strong>如果答案是「没什么，反而更简单」，那你不需要 A2A。如果答案是「我会失去运行时发现能力、失去跨厂商互通、失去任务状态机、失去跨组织的身份验证」，那 A2A 在替你解决真问题。</p></div>
+  </details>
+  <details class="rephrase en">
+    <summary>Put another way: how to tell if you're cosplaying</summary>
+    <div class="body"><p>Ask yourself one question: <strong>if I replaced this "agent" with an ordinary internal HTTP service, what would I lose?</strong> If the answer is "nothing — it would be simpler," you do not need A2A. If the answer is "runtime discovery, cross-vendor interoperability, a task state machine, identity verification across organizations," then A2A is solving a real problem for you.</p></div>
+  </details>
+</section>
+
+<section id="governance">
+  <h2 class="zh">09 · 治理缺口：所有协议共同缺的那一层</h2>
+  <h2 class="en">09 · The Governance Gap: The Layer Every Protocol Is Missing</h2>
+
+  <p class="zh">这一节来自今天读到的一篇论文：<strong>arXiv 2606.31498《Governance Gaps in Agent Interoperability Protocols: What MCP, A2A, and ACP Cannot Express》</strong>（2026-06-30 提交，cs.MA）。它是目前对 A2A 最有价值的冷静评估之一，因为它不问「协议好不好用」，而问一个更根本的问题：<strong>这些协议能不能支撑「受治理的 Agent 社群」，还是只能支撑「面向任务的协调」？</strong></p>
+  <p class="en">This section draws on a paper published in the last month: <strong>arXiv 2606.31498, "Governance Gaps in Agent Interoperability Protocols: What MCP, A2A, and ACP Cannot Express"</strong> (submitted 30 June 2026, cs.MA). It is among the most valuable sober assessments of A2A available, because it does not ask whether the protocol is pleasant to use. It asks something more fundamental: <strong>can these protocols support governed agent communities, or only task-oriented coordination?</strong></p>
+
+  <div class="callout key zh">
+    <b>论文的核心区分：协调 ≠ 治理</b>
+    <p>当一家银行必须决定「自主编码 Agent 该不该修改生产系统」，当一家药企必须在相互竞争的研究假设之间仲裁，当监管机构必须判断某个 AI 系统是否达标——问的都不是「哪个 Agent 能干这活」，而是<strong>「这些 Agent 应该如何集体决定该相信什么、该测试什么、该做什么」</strong>。前者是协调，后者是治理。</p>
+  </div>
+  <div class="callout key en">
+    <b>The paper's core distinction: coordination is not governance</b>
+    <p>When a bank must decide whether autonomous coding agents should modify production systems, when a pharmaceutical company must arbitrate between competing research hypotheses, when a regulator must judge whether an AI system meets a compliance threshold — the question is never "which agent can perform this task?" It is <strong>"how should agents collectively decide what to believe, test, or do?"</strong> The first is coordination; the second is governance.</p>
+  </div>
+
+  <h3 class="zh">六个治理维度</h3>
+  <h3 class="en">Six governance dimensions</h3>
+
+  <div class="glossary zh">
+    <div class="g"><b>G1 成员资格</b><span>协议是否编码了准入、邀请、移除和角色分配</span></div>
+    <div class="g"><b>G2 审议</b><span>是否编码了结构化的论证交换：轮次、质询、回应语义</span></div>
+    <div class="g"><b>G3 投票</b><span>是否编码了偏好聚合：法定人数、轮次、立场裁决</span></div>
+    <div class="g"><b>G4 异议保留</b><span>少数派立场是否被保留在决策输出中，而不是被静默丢弃</span></div>
+    <div class="g"><b>G5 人工升级</b><span>是否定义了把决策转交给人类权威的条件与机制</span></div>
+    <div class="g"><b>G6 审计/回放</b><span>是否产出防篡改的事件日志，可确定性地重建决策过程</span></div>
+  </div>
+  <div class="glossary en">
+    <div class="g"><b>G1 Membership</b><span>Does the protocol encode admission, invitation, removal, and role assignment?</span></div>
+    <div class="g"><b>G2 Deliberation</b><span>Does it encode structured argument exchange with turn-taking, challenge, and response semantics?</span></div>
+    <div class="g"><b>G3 Voting</b><span>Does it encode preference aggregation with quorum, rounds, and position resolution?</span></div>
+    <div class="g"><b>G4 Dissent preservation</b><span>Are minority positions retained in decision outputs rather than silently dropped?</span></div>
+    <div class="g"><b>G5 Human escalation</b><span>Are the conditions and mechanisms for routing decisions to human authority defined?</span></div>
+    <div class="g"><b>G6 Audit / replay</b><span>Does it produce tamper-evident event logs enabling deterministic reconstruction?</span></div>
+  </div>
+
+  <h3 class="zh">缺口矩阵</h3>
+  <h3 class="en">The gap matrix</h3>
+
+  <div class="tbl-wrap zh">
+    <table>
+      <thead><tr><th>协议</th><th>G1 成员</th><th>G2 审议</th><th>G3 投票</th><th>G4 异议</th><th>G5 人工升级</th><th>G6 审计</th><th>覆盖率</th></tr></thead>
+      <tbody>
+        <tr><td>MCP v1.1</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="part">部分</td><td>1/12</td></tr>
+        <tr><td><strong>A2A v1.0.1</strong></td><td class="part">部分</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td><strong>1/12</strong></td></tr>
+        <tr><td>ACP</td><td class="part">部分</td><td class="part">部分</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td>2/12</td></tr>
+        <tr><td>ANP</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td>0/12</td></tr>
+        <tr><td>ERC-8004</td><td class="part">部分</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="no">缺失</td><td class="part">部分</td><td>2/12</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tbl-wrap en">
+    <table>
+      <thead><tr><th>Protocol</th><th>G1 Membership</th><th>G2 Deliberation</th><th>G3 Voting</th><th>G4 Dissent</th><th>G5 Human esc.</th><th>G6 Audit</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>MCP v1.1</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="part">Partial</td><td>1/12</td></tr>
+        <tr><td><strong>A2A v1.0.1</strong></td><td class="part">Partial</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td><strong>1/12</strong></td></tr>
+        <tr><td>ACP</td><td class="part">Partial</td><td class="part">Partial</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td>2/12</td></tr>
+        <tr><td>ANP</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td>0/12</td></tr>
+        <tr><td>ERC-8004</td><td class="part">Partial</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="no">Absent</td><td class="part">Partial</td><td>2/12</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="src-note zh">评分规则：Supported = 2 分，Partial = 1 分，Absent = 0 分，满分 12（6 维 × 2 分）。来源：arXiv 2606.31498 表 III。</p>
+  <p class="src-note en">Scoring: Supported = 2, Partial = 1, Absent = 0; maximum 12 (6 dimensions × 2 points). Source: arXiv 2606.31498, Table III.</p>
+
+  <h3 class="zh">对 A2A 具体的判定</h3>
+  <h3 class="en">The specific verdict on A2A</h3>
+
+  <ul class="zh">
+    <li><strong>G1 成员资格 = 部分</strong>：Agent Card 可以声明能力并注册进目录，扩展机制也支持新状态机；但协议本身没有准入、邀请、移除原语——一个 Agent 靠「发布了 Agent Card」而存在，不存在区别于「存在」的「社群成员身份」概念。</li>
+    <li><strong>G2 审议 = 缺失</strong>：A2A 支持任务委派和消息交换，但消息是面向任务的，不是带质询/回应语义的结构化论证。</li>
+    <li><strong>G3 投票 / G4 异议 / G5 人工升级 = 全部缺失</strong>：四个官方示例扩展一个都没编码这些。任务可以委派给一个「由人支撑的 Agent」，但那是路由，不是带触发条件的治理升级。</li>
+    <li><strong>G6 审计 = 缺失</strong>：Traceability 扩展加了用于分布式追踪的关联 ID，但没有定义防篡改日志或回放语义。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>G1 Membership = Partial.</strong> Agent Cards declare capabilities and can be registered in directories, and the extension mechanism supports new state machines. But there is no protocol-native admission, invitation, or removal primitive — an agent "exists" by publishing a card, and there is no notion of community membership distinct from existence.</li>
+    <li><strong>G2 Deliberation = Absent.</strong> A2A supports task delegation and message exchange, but messages are task-oriented, not structured argumentation with challenge/response semantics.</li>
+    <li><strong>G3 Voting / G4 Dissent / G5 Human escalation = all Absent.</strong> None of the four official extensions encodes them. A task can be delegated to a human-backed agent, but that is routing, not governance escalation with trigger conditions.</li>
+    <li><strong>G6 Audit = Absent.</strong> The Traceability extension adds correlation IDs for distributed tracing, but defines neither tamper-evident logs nor replay semantics.</li>
+  </ul>
+
+  <div class="callout risk zh">
+    <b>三个维度在全部五个协议中一律缺失</b>
+    <p><strong>投票、异议保留、人工升级</strong>——无论协议是工具中心、委派中心、通信中心、路由中心还是信任中心，一个都没有。作者认为这种「普遍性缺失」说明它反映的是<strong>一种共同的设计哲学</strong>（把 Agent 当作任务执行者而非社群参与者），而不是某个协议的个别疏漏。</p>
+  </div>
+  <div class="callout risk en">
+    <b>Three dimensions are absent across all five protocols</b>
+    <p><strong>Voting, dissent preservation, and human escalation</strong> — absent everywhere, regardless of whether the protocol is tool-centric, delegation-centric, communication-centric, routing-centric, or trust-centric. The authors argue this universality indicates <strong>a shared design philosophy</strong> (treating agents as task workers rather than community participants) rather than an oversight in any one protocol.</p>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 300" role="img" aria-label="Agent 互操作协议栈的四层与缺失层">
+      <rect x="40" y="16" width="640" height="66" rx="12" fill="#fbeae8" stroke="#cd5245" stroke-width="1.8" stroke-dasharray="7 5" data-anim/>
+      <text x="60" y="41" font-size="13" fill="#a03a2f" font-weight="800" data-anim>第 4 层 · Agent ↔ 社群（治理）</text>
+      <text x="60" y="62" font-size="11.5" fill="#b2564a" data-anim>成员资格 · 审议 · 投票 · 异议 · 人工升级 · 审计回放</text>
+      <text x="620" y="52" font-size="15" fill="#cd5245" text-anchor="end" font-weight="800" data-anim>⚠ 无协议编码</text>
+
+      <rect x="40" y="94" width="640" height="56" rx="12" fill="#eceafc" stroke="#c3bcee" data-anim/>
+      <text x="60" y="118" font-size="13" fill="#332a8c" font-weight="800" data-anim>第 3 层 · 信任与声誉</text>
+      <text x="60" y="137" font-size="11.5" fill="#6e6b90" data-anim>ERC-8004（身份 + 声誉 + 验证注册表）</text>
+
+      <rect x="40" y="162" width="640" height="56" rx="12" fill="#eceafc" stroke="#5548c9" stroke-width="1.5" data-anim/>
+      <text x="60" y="186" font-size="13" fill="#332a8c" font-weight="800" data-anim>第 2 层 · Agent ↔ Agent（发现 · 委派 · 通信）</text>
+      <text x="60" y="205" font-size="11.5" fill="#6e6b90" data-anim>A2A（Agent Card + 任务委派）· ACP（协商 + 角色）· ANP（DID + 图路由）</text>
+
+      <rect x="40" y="230" width="640" height="56" rx="12" fill="#fbf1da" stroke="#eddfbd" data-anim/>
+      <text x="60" y="254" font-size="13" fill="#a5730f" font-weight="800" data-anim>第 1 层 · Agent ↔ 工具（工具访问与执行）</text>
+      <text x="60" y="273" font-size="11.5" fill="#8a6c22" data-anim>MCP（Tools + Resources + Prompts）</text>
+    </svg>
+    <div class="fig-cap">论文提出的四层协议栈。第 1–3 层已被现有协议覆盖，第 4 层「治理」在所有协议中普遍缺失——作者主张这是缺一整层架构，不是缺某个功能。（改绘自 arXiv 2606.31498 图 1）</div>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 300" role="img" aria-label="Four-layer agent interoperability stack with the missing layer">
+      <rect x="40" y="16" width="640" height="66" rx="12" fill="#fbeae8" stroke="#cd5245" stroke-width="1.8" stroke-dasharray="7 5" data-anim/>
+      <text x="60" y="41" font-size="13" fill="#a03a2f" font-weight="800" data-anim>Layer 4 · Agent ↔ community (GOVERNANCE)</text>
+      <text x="60" y="62" font-size="11.5" fill="#b2564a" data-anim>Membership · deliberation · voting · dissent · human escalation · audit &amp; replay</text>
+      <text x="620" y="52" font-size="15" fill="#cd5245" text-anchor="end" font-weight="800" data-anim>⚠ No protocol encodes it</text>
+
+      <rect x="40" y="94" width="640" height="56" rx="12" fill="#eceafc" stroke="#c3bcee" data-anim/>
+      <text x="60" y="118" font-size="13" fill="#332a8c" font-weight="800" data-anim>Layer 3 · Trust &amp; reputation</text>
+      <text x="60" y="137" font-size="11.5" fill="#6e6b90" data-anim>ERC-8004 (identity + reputation + validation registries)</text>
+
+      <rect x="40" y="162" width="640" height="56" rx="12" fill="#eceafc" stroke="#5548c9" stroke-width="1.5" data-anim/>
+      <text x="60" y="186" font-size="13" fill="#332a8c" font-weight="800" data-anim>Layer 2 · Agent ↔ agent (discovery · delegation · communication)</text>
+      <text x="60" y="205" font-size="11.5" fill="#6e6b90" data-anim>A2A (Agent Cards + task delegation) · ACP (negotiation + roles) · ANP (DID + graph routing)</text>
+
+      <rect x="40" y="230" width="640" height="56" rx="12" fill="#fbf1da" stroke="#eddfbd" data-anim/>
+      <text x="60" y="254" font-size="13" fill="#a5730f" font-weight="800" data-anim>Layer 1 · Agent ↔ tool (tool access and execution)</text>
+      <text x="60" y="273" font-size="11.5" fill="#8a6c22" data-anim>MCP (Tools + Resources + Prompts)</text>
+    </svg>
+    <div class="fig-cap">The four-layer stack the paper proposes. Layers 1–3 are covered by existing protocols; layer 4, governance, is universally absent — the authors argue this is a missing architectural layer, not a missing feature. (Redrawn from arXiv 2606.31498, Figure 1.)</div>
+  </div>
+
+  <h3 class="zh">这个缺口会被补上吗</h3>
+  <h3 class="en">Will the gap close?</h3>
+
+  <p class="zh">论文的判断有意思：A2A 的扩展机制<strong>理论上完全可以</strong>定义 G1–G6 这些治理原语——「但关键观察是：没有人这么做过」。作者指出，在 A2A 公开可用 6 个多月、扩展生态活跃的情况下，<strong>零个治理扩展被提出或实现</strong>。相较之下，MCP 的客户端-服务端架构是工具中心的，加社群治理会要求 Agent 在治理语境下同时充当客户端和服务端——这不是协议设计时考虑的用法。</p>
+  <p class="en">The paper's assessment is pointed: A2A's extension mechanism <strong>could in principle</strong> define G1–G6 as extensions — "the key observation: no one has done so." The authors note that after 6+ months of public availability with an active extension ecosystem, <strong>zero governance extensions have been proposed or implemented</strong>. MCP, by contrast, is structurally awkward for this: its client-server architecture is tool-centric, and adding community governance would require agents to act as both client and server simultaneously in a governance context — a usage pattern the protocol was not designed for.</p>
+
+  <p class="zh">作者按观察到的协议演进速度估计，这个缺口<strong>可能在 6–12 个月内通过扩展机制显著收窄</strong>（尤其是通过 A2A 的扩展机制），并据此呼吁研究界抓紧提出治理层设计——「在事实标准通过临时实现自发形成之前」。</p>
+  <p class="en">Based on observed protocol evolution velocity, the authors estimate the gap <strong>could narrow significantly within 6–12 months</strong> through extensions, particularly A2A's — and they urge the research community to propose governance-layer designs "before the space fragments into incompatible application-layer solutions."</p>
+
+  <div class="callout ok zh">
+    <b>对工程师的实际含义</b>
+    <p>如果你现在要建一个需要「多个 Agent 集体做决定并留痕」的系统——比如合规审查、风险评估、多方仲裁——<strong>不要指望协议帮你做这件事</strong>。投票、异议保留、人工升级、防篡改审计这四件事，今天必须在应用层自己实现。协议能帮你把这些消息<strong>传输</strong>过去（作为不透明的负载），但无法<strong>理解、校验或执行</strong>它们的治理语义。</p>
+  </div>
+  <div class="callout ok en">
+    <b>What this means practically</b>
+    <p>If you are building a system where multiple agents must reach a collective decision with a defensible record — compliance review, risk assessment, multi-party arbitration — <strong>do not expect the protocol to do that for you</strong>. Voting, dissent preservation, human escalation, and tamper-evident audit have to be implemented at the application layer today. The protocol can <strong>transport</strong> those messages as opaque payloads; it cannot <strong>interpret, validate, or enforce</strong> their governance semantics.</p>
+  </div>
+
+  <p class="src-note zh">论文另附一个部署侧观察：AWS Bedrock AgentCore（已 GA，15 个区域）提供了带语义搜索的生产 Agent 注册表、A2A Agent Card、基于 Cedar 的授权、生命周期管理和 CloudTrail 审计，但同样没有编码信任评分、行为声誉、能力验证或治理原语。论文引用的数据还包括：AWS 报告 AgentCore 客户在一年内扩展到 17 个生产 Agent。</p>
+  <p class="src-note en">The paper adds a deployment-side observation: AWS Bedrock AgentCore (GA, 15 regions) provides a production agent registry with semantic search, A2A Agent Cards, Cedar-based authorization, lifecycle management, and CloudTrail audit — yet still encodes no trust scoring, behavioural reputation, capability verification, or governance primitives. It also cites AWS reporting AgentCore customers scaling to 17 production agents within a year.</p>
+</section>
+
+<section id="resources">
+  <h2 class="zh">10 · 学习资源与来源清单</h2>
+  <h2 class="en">10 · Resources and Sources</h2>
+
+  <h3 class="zh">官方入口（一手来源，优先看这些）</h3>
+  <h3 class="en">Official entry points (first-party; start here)</h3>
+
+  <ul class="zh">
+    <li><a href="https://a2a-protocol.org/latest/" target="_blank" rel="noopener">a2a-protocol.org</a> — 官方文档站，含「What is A2A」「A2A and MCP」「Core Concepts」「Life of a Task」「Agent Discovery」「Enterprise Features」「Streaming &amp; Async」「Multi-Tenancy」等主题页</li>
+    <li><a href="https://a2a-protocol.org/latest/specification/" target="_blank" rel="noopener">规范总览</a> 与 <a href="https://a2a-protocol.org/latest/whats-new-v1/" target="_blank" rel="noopener">What's New in v1.0</a> — 写代码前必读（v1.0 有破坏性变更）</li>
+    <li><a href="https://a2a-protocol.org/latest/topics/extensions/" target="_blank" rel="noopener">扩展机制文档</a> 与 <a href="https://a2a-protocol.org/latest/topics/extension-and-binding-governance/" target="_blank" rel="noopener">扩展与绑定治理</a></li>
+    <li><a href="https://a2a-protocol.org/latest/tutorials/" target="_blank" rel="noopener">Python Quickstart 教程</a> — 从 Agent Skills &amp; Agent Card 到流式与多轮，共 8 节</li>
+    <li><a href="https://github.com/a2aproject/A2A" target="_blank" rel="noopener">github.com/a2aproject/A2A</a> — 核心仓库（22k+ star）</li>
+    <li><a href="https://a2a-protocol.org/latest/roadmap/" target="_blank" rel="noopener">路线图</a> — 互操作性规范、registry 整合、测试工具、安全与部署最佳实践</li>
+    <li><a href="https://www.deeplearning.ai/courses/a2a-the-agent2agent-protocol" target="_blank" rel="noopener">DeepLearning.AI 短课程：A2A: The Agent2Agent Protocol</a>（官方在新闻稿中推荐，免费）</li>
+    <li><a href="https://ap2-protocol.org/" target="_blank" rel="noopener">ap2-protocol.org</a> — Agent Payments Protocol</li>
+  </ul>
+  <ul class="en">
+    <li><a href="https://a2a-protocol.org/latest/" target="_blank" rel="noopener">a2a-protocol.org</a> — the official docs site, with topic pages for "What is A2A," "A2A and MCP," "Core Concepts," "Life of a Task," "Agent Discovery," "Enterprise Features," "Streaming &amp; Async," and "Multi-Tenancy"</li>
+    <li><a href="https://a2a-protocol.org/latest/specification/" target="_blank" rel="noopener">Specification overview</a> and <a href="https://a2a-protocol.org/latest/whats-new-v1/" target="_blank" rel="noopener">What's New in v1.0</a> — required reading before writing code, since v1.0 carries breaking changes</li>
+    <li><a href="https://a2a-protocol.org/latest/topics/extensions/" target="_blank" rel="noopener">Extensions documentation</a> and <a href="https://a2a-protocol.org/latest/topics/extension-and-binding-governance/" target="_blank" rel="noopener">Extension &amp; Binding Governance</a></li>
+    <li><a href="https://a2a-protocol.org/latest/tutorials/" target="_blank" rel="noopener">Python quickstart tutorial</a> — eight parts, from Agent Skills &amp; Agent Card through streaming and multi-turn</li>
+    <li><a href="https://github.com/a2aproject/A2A" target="_blank" rel="noopener">github.com/a2aproject/A2A</a> — the core repository (22k+ stars)</li>
+    <li><a href="https://a2a-protocol.org/latest/roadmap/" target="_blank" rel="noopener">Roadmap</a> — interoperability spec, registry consolidation, testing and tooling, security and deployment best practices</li>
+    <li><a href="https://www.deeplearning.ai/courses/a2a-the-agent2agent-protocol" target="_blank" rel="noopener">DeepLearning.AI short course: A2A — The Agent2Agent Protocol</a> (recommended in the official press release; free)</li>
+    <li><a href="https://ap2-protocol.org/" target="_blank" rel="noopener">ap2-protocol.org</a> — the Agent Payments Protocol</li>
+  </ul>
+
+  <div class="callout warn zh">
+    <b>调研中信息较薄弱的两个维度</b>
+    <p><strong>① 具名的生产案例。</strong>官方新闻稿称已在供应链、金融服务、保险、IT 运维投入生产，但公开的、可核实的具名案例（哪家公司、什么场景、什么效果）在本次调研中没有找到。<strong>② 当前 v1.0 的具体 API 形态。</strong>本文的方法名与事件类型来自 v0.x 时期资料，官方明确说 v1.0 有破坏性变更，故未在文中给出可直接照抄的代码示例——查不到当前确切写法就不编。</p>
+  </div>
+  <div class="callout warn en">
+    <b>Two dimensions where this research came up thin</b>
+    <p><strong>1. Named production case studies.</strong> The official press release cites production use in supply chain, financial services, insurance, and IT operations, but no public, verifiable named case (which company, what workflow, what outcome) surfaced in this research. <strong>2. The exact shape of the v1.0 API.</strong> The method names and event types referenced here come from v0.x-era material, and the project states plainly that v1.0 introduces breaking changes — so no copy-pasteable code sample is offered. Where the current form could not be verified, nothing was invented.</p>
+  </div>
+
+  <div class="final zh">
+    <h3>带走这五句</h3>
+    <ol>
+      <li><strong>分层，不是对立。</strong>MCP 在下（Agent↔工具），A2A 在上（Agent↔Agent）；严肃的多 Agent 系统两个都用。</li>
+      <li><strong>A2A 的核心不是「换个包装的函数调用」，而是任务生命周期。</strong>Agent Card 发现、Task 状态机、Message 多轮、Artifact 交付，这四件事才是它存在的理由。</li>
+      <li><strong>v1.0 的方向是「像 Web 一样」。</strong>无状态、分层、标准绑定——和今天 MCP 2026-07-28 的无状态化是同一个工程直觉。</li>
+      <li><strong>没有真实边界就别上。</strong>独立部署、独立所有权、独立安全域，三者都没有，A2A 就是架构 cosplay。</li>
+      <li><strong>治理不在协议里。</strong>投票、异议保留、人工升级、防篡改审计——五个主流互操作协议一个都没编码，今天必须自己在应用层做。</li>
+    </ol>
+  </div>
+  <div class="final en">
+    <h3>Five things to take away</h3>
+    <ol>
+      <li><strong>Layers, not rivals.</strong> MCP sits below (agent↔tool), A2A above (agent↔agent); serious multi-agent systems run both.</li>
+      <li><strong>A2A is not a function call in new packaging — it is a task lifecycle.</strong> Agent Card discovery, the task state machine, multi-turn messages, and artifact delivery are the reason it exists.</li>
+      <li><strong>v1.0's direction is "look like the web."</strong> Stateless, layered, standard bindings — the same engineering instinct behind this week's MCP 2026-07-28 move to a stateless core.</li>
+      <li><strong>No real boundary, no A2A.</strong> Without independent deployment, separate ownership, and a distinct security perimeter, adopting it is architecture cosplay.</li>
+      <li><strong>Governance is not in the protocol.</strong> Voting, dissent preservation, human escalation, tamper-evident audit — none of the five major interoperability protocols encodes them, so today they must be built at the application layer.</li>
+    </ol>
+  </div>
+
+  <footer>
+    <p class="zh"><strong>调研时间：2026-07-29。</strong>A2A 与 MCP 都处于快速迭代中，本文的版本号、方法名与生态数据均以调研当日可核实的公开来源为准，实际开发请以官方最新规范为准。文中已区分「官方说法」与「社区观点」，未能核实的信息已明确标注。</p>
+    <p class="en"><strong>Researched 2026-07-29.</strong> Both A2A and MCP are iterating quickly. Version numbers, method names, and ecosystem figures here reflect publicly verifiable sources as of the research date; build against the current official specification. Official statements and community assessments are distinguished throughout, and anything unverified is labelled as such.</p>
+
+    <h4 class="zh">来源清单</h4>
+    <h4 class="en">Sources</h4>
+    <ol class="zh">
+      <li>A2A Protocol, "A2A Protocol Ships v1.0: Production-Ready Standard for Agent-to-Agent Communication"（官方公告） — <a href="https://a2a-protocol.org/latest/announcing-1.0/" target="_blank" rel="noopener">a2a-protocol.org/latest/announcing-1.0/</a></li>
+      <li>Linux Foundation 新闻稿, "A2A Protocol Surpasses 150 Organizations, Lands in Major Cloud Platforms, and Sees Enterprise Production Use in First Year"（2026-04-09） — <a href="https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year" target="_blank" rel="noopener">linuxfoundation.org/press/…</a></li>
+      <li>Linux Foundation, "Linux Foundation Launches the Agent2Agent Protocol Project"（2025-06-23） — <a href="https://www.linuxfoundation.org/press/linux-foundation-launches-the-agent2agent-protocol-project-to-enable-secure-intelligent-communication-between-ai-agents" target="_blank" rel="noopener">linuxfoundation.org/press/…</a></li>
+      <li>R. Kang &amp; Y. Diponegoro, "Governance Gaps in Agent Interoperability Protocols: What MCP, A2A, and ACP Cannot Express", arXiv:2606.31498（cs.MA，2026-06-30） — <a href="https://arxiv.org/pdf/2606.31498" target="_blank" rel="noopener">arxiv.org/pdf/2606.31498</a></li>
+      <li>Rost Glukhov, "Google A2A Protocol in 2026: Adoption, Hype, and Reality"（2026-06-24，社区观点） — <a href="https://www.glukhov.org/ai-systems/comparisons/a2a-protocol-2026-adoption/" target="_blank" rel="noopener">glukhov.org/ai-systems/comparisons/a2a-protocol-2026-adoption/</a></li>
+      <li>Model Context Protocol Blog, "The 2026-07-28 Specification" — <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/" target="_blank" rel="noopener">blog.modelcontextprotocol.io/posts/2026-07-28/</a></li>
+      <li>Anthropic / Claude, "MCP 2026-07-28 spec: stateless core, coming to Claude" — <a href="https://claude.com/blog/bringing-mcp-2026-07-28-to-claude" target="_blank" rel="noopener">claude.com/blog/bringing-mcp-2026-07-28-to-claude</a></li>
+      <li>Agentic AI Foundation, "MCP 2026-07-28: From Local Tool to Distributed Protocol"（迁移指南） — <a href="https://aaif.io/blog/mcp-2026-07-28-whats-changing-and-how-to-migrate" target="_blank" rel="noopener">aaif.io/blog/mcp-2026-07-28-whats-changing-and-how-to-migrate</a></li>
+      <li>Agent2Agent 规范页（v0.1.0 时期方法名参考） — <a href="https://a2a-protocol.org/v0.1.0/specification/" target="_blank" rel="noopener">a2a-protocol.org/v0.1.0/specification/</a></li>
+      <li>SecurityAffairs 转述 Reuters, "OpenAI agent hacked Hugging Face for days before being detected" — <a href="https://securityaffairs.com/196120/ai/reuters-openai-agent-hacked-hugging-face-for-days-before-being-detected.html" target="_blank" rel="noopener">securityaffairs.com/196120/ai/…</a></li>
+    </ol>
+    <ol class="en">
+      <li>A2A Protocol, "A2A Protocol Ships v1.0: Production-Ready Standard for Agent-to-Agent Communication" (official announcement) — <a href="https://a2a-protocol.org/latest/announcing-1.0/" target="_blank" rel="noopener">a2a-protocol.org/latest/announcing-1.0/</a></li>
+      <li>Linux Foundation press release, "A2A Protocol Surpasses 150 Organizations, Lands in Major Cloud Platforms, and Sees Enterprise Production Use in First Year" (2026-04-09) — <a href="https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year" target="_blank" rel="noopener">linuxfoundation.org/press/…</a></li>
+      <li>Linux Foundation, "Linux Foundation Launches the Agent2Agent Protocol Project" (2025-06-23) — <a href="https://www.linuxfoundation.org/press/linux-foundation-launches-the-agent2agent-protocol-project-to-enable-secure-intelligent-communication-between-ai-agents" target="_blank" rel="noopener">linuxfoundation.org/press/…</a></li>
+      <li>R. Kang &amp; Y. Diponegoro, "Governance Gaps in Agent Interoperability Protocols: What MCP, A2A, and ACP Cannot Express," arXiv:2606.31498 (cs.MA, 2026-06-30) — <a href="https://arxiv.org/pdf/2606.31498" target="_blank" rel="noopener">arxiv.org/pdf/2606.31498</a></li>
+      <li>Rost Glukhov, "Google A2A Protocol in 2026: Adoption, Hype, and Reality" (2026-06-24, community assessment) — <a href="https://www.glukhov.org/ai-systems/comparisons/a2a-protocol-2026-adoption/" target="_blank" rel="noopener">glukhov.org/ai-systems/comparisons/a2a-protocol-2026-adoption/</a></li>
+      <li>Model Context Protocol Blog, "The 2026-07-28 Specification" — <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/" target="_blank" rel="noopener">blog.modelcontextprotocol.io/posts/2026-07-28/</a></li>
+      <li>Anthropic / Claude, "MCP 2026-07-28 spec: stateless core, coming to Claude" — <a href="https://claude.com/blog/bringing-mcp-2026-07-28-to-claude" target="_blank" rel="noopener">claude.com/blog/bringing-mcp-2026-07-28-to-claude</a></li>
+      <li>Agentic AI Foundation, "MCP 2026-07-28: From Local Tool to Distributed Protocol" (migration guide) — <a href="https://aaif.io/blog/mcp-2026-07-28-whats-changing-and-how-to-migrate" target="_blank" rel="noopener">aaif.io/blog/mcp-2026-07-28-whats-changing-and-how-to-migrate</a></li>
+      <li>Agent2Agent specification page (v0.1.0-era method names referenced in this document) — <a href="https://a2a-protocol.org/v0.1.0/specification/" target="_blank" rel="noopener">a2a-protocol.org/v0.1.0/specification/</a></li>
+      <li>SecurityAffairs summarizing Reuters, "OpenAI agent hacked Hugging Face for days before being detected" — <a href="https://securityaffairs.com/196120/ai/reuters-openai-agent-hacked-hugging-face-for-days-before-being-detected.html" target="_blank" rel="noopener">securityaffairs.com/196120/ai/…</a></li>
+    </ol>
+  </footer>
+</section>
+
+</main>
+
+<script>
+(function(){
+  var body=document.body,html=document.documentElement;
+  var toc=document.getElementById('toc'),btn=document.getElementById('tocBtn');
+  var links=Array.prototype.slice.call(toc.querySelectorAll('a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  var bar=document.getElementById('bar'),pct=document.getElementById('pct'),top=document.getElementById('topbar');
+  var bZh=document.getElementById('btnZh'),bEn=document.getElementById('btnEn');
+  var io=null;
+
+  function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function load(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+
+  function revealVisible(){
+    Array.prototype.forEach.call(document.querySelectorAll('.figure'),function(f){
+      if(f.offsetParent===null)return;
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight*0.92 && r.bottom > 0){
+        f.classList.add('in');
+        Array.prototype.forEach.call(f.querySelectorAll('[data-anim]'),function(el,i){
+          el.style.animationDelay=(i*36)+'ms';
+        });
+      }
+    });
+  }
+
+  function setLang(l){
+    body.setAttribute('data-lang',l);
+    html.setAttribute('lang', l==='en' ? 'en' : 'zh-CN');
+    bZh.classList.toggle('on',l==='zh');
+    bEn.classList.toggle('on',l==='en');
+    store('aid-lang',l);
+    observeFigures();
+    revealVisible();
+    upd();
+  }
+  bZh.addEventListener('click',function(){setLang('zh');});
+  bEn.addEventListener('click',function(){setLang('en');});
+
+  btn.addEventListener('click',function(){toc.classList.toggle('open');});
+  links.forEach(function(a){a.addEventListener('click',function(){if(window.innerWidth<=1180)toc.classList.remove('open');});});
+
+  function upd(){
+    var st=html.scrollTop||document.body.scrollTop;
+    var max=(html.scrollHeight-html.clientHeight)||1;
+    var p=Math.min(100,Math.max(0,Math.round(st/max*100)));
+    bar.style.width=p+'%';pct.textContent=p+'%';top.style.width=p+'%';
+    var cur=0;
+    for(var i=0;i<secs.length;i++){
+      if(secs[i]&&secs[i].getBoundingClientRect().top<=140)cur=i;
+    }
+    links.forEach(function(a,i){a.classList.toggle('active',i===cur);});
+  }
+  window.addEventListener('scroll',upd,{passive:true});
+  window.addEventListener('resize',upd);
+
+  function observeFigures(){
+    if(!('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(document.querySelectorAll('.figure'),function(f){f.classList.add('in');});
+      return;
+    }
+    if(io)io.disconnect();
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){
+          var f=e.target;f.classList.add('in');
+          Array.prototype.forEach.call(f.querySelectorAll('[data-anim]'),function(el,i){
+            el.style.animationDelay=(i*36)+'ms';
+          });
+          io.unobserve(f);
+        }
+      });
+    },{threshold:.14});
+    Array.prototype.forEach.call(document.querySelectorAll('.figure:not(.in)'),function(f){io.observe(f);});
+  }
+
+  var saved=load('aid-lang');
+  if(!saved){
+    var nav=(navigator.language||navigator.userLanguage||'').toLowerCase();
+    saved = nav.indexOf('zh')===0 ? 'zh' : (nav ? 'en' : 'zh');
+  }
+  setLang(saved==='en'?'en':'zh');
+})();
+</script>
+</body>
+</html>
