@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 数学发现与长时程推理 | AI Mathematical Discovery &amp; Long-Horizon Reasoning</title>
+<style>
+:root{
+  --bg:#f7f4ec; --surface:#fffdf7; --ink:#23252e; --muted:#6d6f7a;
+  --accent:#3d418f; --accent-soft:#eceafa; --accent-2:#a06b1f; --accent-2-soft:#f7efdd;
+  --line:#e2dcc8; --warn:#9a4b22; --warn-soft:#f9ece2; --ok:#2f6b4f; --ok-soft:#e7f2ea;
+  --radius:14px; --serif:Georgia,"Times New Roman","Songti SC","SimSun",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.85}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.top-progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;z-index:60}
+.lang-btn{position:fixed;top:14px;right:14px;z-index:70;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);
+  font-family:var(--sans);font-size:14px;font-weight:700;padding:7px 14px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(40,40,80,.12)}
+.lang-btn:hover{background:var(--accent);color:#fff}
+.side-toc{position:fixed;left:18px;top:70px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:50;
+  background:rgba(255,253,247,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;font-size:13.5px;box-shadow:0 6px 24px rgba(60,60,90,.08)}
+.st-brand{font-family:var(--serif);font-weight:700;font-size:15px;color:var(--accent)}
+.st-sub{color:var(--muted);font-size:12px;margin:2px 0 10px}
+.st-progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.st-pct{font-size:11px;color:var(--muted);margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:8px;line-height:1.45}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.side-toc .num{font-family:var(--serif);color:var(--accent-2);min-width:18px}
+.toc-toggle{display:none;position:fixed;left:14px;top:14px;z-index:70;width:42px;height:42px;border-radius:12px;
+  border:1px solid var(--line);background:var(--surface);font-size:19px;cursor:pointer;box-shadow:0 2px 8px rgba(40,40,80,.12)}
+.wrap{max-width:840px;margin:0 auto;padding:28px 22px 80px}
+@media (min-width:1180px){.wrap{margin-left:300px}}
+@media (max-width:1179px){
+  .side-toc{transform:translateX(-115%);transition:transform .28s}
+  .side-toc.open{transform:none}
+  .toc-toggle{display:block}
+}
+.hero{background:var(--surface);border:1.5px solid var(--ink);border-radius:var(--radius);padding:44px 36px 36px;margin-bottom:36px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:8px;border:1px solid var(--line);border-radius:9px;pointer-events:none}
+.hero .kicker{font-size:13px;letter-spacing:.18em;color:var(--accent-2);font-weight:700;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-family:var(--serif);font-size:clamp(26px,4.5vw,40px);line-height:1.3;color:var(--ink);margin-bottom:14px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .lede{color:var(--muted);font-size:16.5px;max-width:620px}
+.hero .meta{margin-top:18px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:14px}
+.hero .meta b{color:var(--accent)}
+section{margin-bottom:46px}
+h2{font-family:var(--serif);font-size:26px;color:var(--ink);border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:18px;scroll-margin-top:70px}
+h2 .sn{color:var(--accent-2);margin-right:8px}
+h3{font-family:var(--serif);font-size:19.5px;color:var(--accent);margin:24px 0 10px}
+p{margin-bottom:14px}
+a{color:var(--accent)}
+strong{color:var(--ink)}
+.term{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px;font-weight:600}
+.hl{background:var(--accent-2-soft);padding:1px 5px;border-radius:5px}
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:18px 20px;margin:16px 0}
+.def .dt{font-weight:800;font-size:16.5px;margin-bottom:8px}
+.def .row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start}
+.def .tag{flex:0 0 auto;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;margin-top:5px}
+.tag-what{background:var(--accent-soft);color:var(--accent)}
+.tag-why{background:var(--accent-2-soft);color:var(--accent-2)}
+.tag-eg{background:var(--ok-soft);color:var(--ok)}
+.callout{border-radius:10px;padding:16px 18px;margin:16px 0;border:1px solid var(--line)}
+.callout .ct{font-weight:800;margin-bottom:6px}
+.callout.key{background:var(--accent-soft);border-color:#cfc9ee}
+.callout.warn{background:var(--warn-soft);border-color:#ecd2bf}
+.callout.warn .ct{color:var(--warn)}
+.callout.quote{background:var(--surface);border-left:4px solid var(--accent-2);font-family:var(--serif)}
+.callout.quote .who{font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+.stat .n{font-family:var(--serif);font-size:26px;font-weight:700;color:var(--accent)}
+.stat .l{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:4px}
+.steps{margin:16px 0}
+.step{display:flex;gap:14px;margin-bottom:12px}
+.step .dot{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.step .sb{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.step .sb b{display:block;margin-bottom:2px}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px;background:var(--surface);border:1px solid var(--line)}
+th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);color:var(--accent);font-size:14px}
+.glossary{margin:16px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.glossary .g{display:flex;gap:12px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);font-size:15px}
+.glossary .g:last-child{border-bottom:none}
+.glossary .g b{flex:0 0 190px;color:var(--accent)}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 14px 10px;margin:20px 0;
+  opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--muted);text-align:center;padding:8px 10px 6px;border-top:1px dashed var(--line);margin-top:8px}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{transition:stroke-dashoffset 1.1s ease .2s}
+details.rephrase{background:var(--accent-2-soft);border:1px solid #ecdcb8;border-radius:10px;padding:10px 16px;margin:14px 0}
+details.rephrase summary{cursor:pointer;font-weight:700;color:var(--accent-2)}
+details.rephrase div{padding-top:10px}
+.final{background:var(--ink);color:#efece2;border-radius:var(--radius);padding:26px 28px;margin-top:8px}
+.final h3{color:var(--accent-2-soft);margin-top:0}
+.final a{color:#c9c4f2}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer ul{list-style:none;margin-top:8px}
+footer li{margin-bottom:5px;overflow-wrap:anywhere}
+@media (max-width:640px){
+  body{font-size:16px}
+  .stats{grid-template-columns:1fr}
+  .glossary .g{flex-direction:column;gap:2px}
+  .glossary .g b{flex:none}
+  .hero{padding:32px 20px 26px}
+  .lang-btn{top:12px;right:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .figure,.figure [data-anim]{opacity:1!important;transform:none!important;transition:none!important}
+  .figure [data-draw]{transition:none!important;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 深度学习文档 · AI Daily Deep-Dive · AI Daily AI 数学发现与 长时程推理 ——当模型开始解开放问题 AI Mathematical Discovery &amp; Long-Horizon…">
+<meta property="og:title" content="AI 数学发现与长时程推理 | AI Mathematical Discovery &amp;amp; Long-Horizon Reasoning">
+<meta property="og:description" content="EN 深度学习文档 · AI Daily Deep-Dive · AI Daily AI 数学发现与 长时程推理 ——当模型开始解开放问题 AI Mathematical Discovery &amp; Long-Horizon…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-03-ai-shu-xue-fa-xian-yu-zhang-shi-cheng-tui-li.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-03-ai-shu-xue-fa-xian-yu-zhang-shi-cheng-tui-li.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "AI 数学发现与长时程推理 | AI Mathematical Discovery &amp; Long-Horizon Reasoning", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-03-ai-shu-xue-fa-xian-yu-zhang-shi-cheng-tui-li.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-03", "dateModified": "2026-08-03"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="top-progress" id="topProgress"></div>
+<button class="lang-btn" id="langBtn" aria-label="Switch language">EN</button>
+<button class="toc-toggle" id="tocToggle" aria-label="Table of contents">☰</button>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand"><span class="zh">AI 数学发现</span><span class="en">AI Math Discovery</span></div>
+  <div class="st-sub"><span class="zh">长时程推理 · 2026-08-03</span><span class="en">Long-horizon reasoning · 2026-08-03</span></div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#overview"><span class="num">1</span><span><span class="zh">开篇速览</span><span class="en">At a Glance</span></span></a></li>
+    <li><a href="#history"><span class="num">2</span><span><span class="zh">背景与脉络</span><span class="en">Background &amp; Timeline</span></span></a></li>
+    <li><a href="#concepts"><span class="num">3</span><span><span class="zh">核心概念</span><span class="en">Core Concepts</span></span></a></li>
+    <li><a href="#astra"><span class="num">4</span><span><span class="zh">Astra 十证明</span><span class="en">Astra's Ten Proofs</span></span></a></li>
+    <li><a href="#routes"><span class="num">5</span><span><span class="zh">两条技术路线</span><span class="en">Two Technical Routes</span></span></a></li>
+    <li><a href="#practice"><span class="num">6</span><span><span class="zh">实际怎么用</span><span class="en">How It's Used Today</span></span></a></li>
+    <li><a href="#limits"><span class="num">7</span><span><span class="zh">现状边界与数据</span><span class="en">Limits &amp; Data</span></span></a></li>
+    <li><a href="#debate"><span class="num">8</span><span><span class="zh">社区反应与争论</span><span class="en">Community Debate</span></span></a></li>
+    <li><a href="#pitfalls"><span class="num">9</span><span><span class="zh">常见误区</span><span class="en">Misconceptions</span></span></a></li>
+    <li><a href="#resources"><span class="num">10</span><span><span class="zh">学习资源</span><span class="en">Resources</span></span></a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker"><span class="zh">深度学习文档 · AI Daily</span><span class="en">Deep-Dive · AI Daily</span></div>
+  <h1 class="zh">AI 数学发现与<em>长时程推理</em><br>——当模型开始解开放问题</h1>
+  <h1 class="en">AI Mathematical Discovery &amp; <em>Long-Horizon Reasoning</em><br>— When Models Start Solving Open Problems</h1>
+  <p class="lede zh">2026 年 8 月 1 日,OpenAI 用「10 个悬置十年以上的开放数学问题的解答」官宣了下一代模型家族 Astra。本文讲清这波 AI 数学发现浪潮:它是什么、靠什么技术、边界在哪、数学界怎么看,以及对 Agent 工程的启示。</p>
+  <p class="lede en">On August 1, 2026, OpenAI announced its next model family, Astra, by publishing solutions to ten math problems that had been open for a decade or more. This document explains the current wave of AI mathematical discovery: what it is, the technology behind it, where its limits are, how mathematicians are reacting, and what it means for agent engineering.</p>
+  <div class="meta">
+    <span class="zh">📅 调研日期:<b>2026-08-03</b></span><span class="en">📅 Researched: <b>2026-08-03</b></span>
+    <span class="zh">🌐 来源:<b>14 篇</b>(官方 + 媒体 + 社区)</span><span class="en">🌐 Sources: <b>14</b> (official + media + community)</span>
+    <span class="zh">🀄/🅰️ 中英双语,右上角切换</span><span class="en">🀄/🅰️ Bilingual — toggle top right</span>
+  </div>
+</div>
+
+<section id="overview">
+  <h2><span class="sn">1</span><span class="zh">🔭 开篇速览:30 秒版本</span><span class="en">🔭 At a Glance: The 30-Second Version</span></h2>
+  <p class="zh"><strong>发生了什么:</strong>过去 15 个月里,AI 从「做数学竞赛题」跨到了「解真正的研究级开放问题」。标志性事件:2026 年 5 月 OpenAI 给出 1946 年提出的「单位距离猜想」的反例;此后 Erdős 问题清单上的开放问题接连被 AI 参与解决;8 月 1 日 OpenAI 发布报告,其内部模型 Astra 一次性解决 10 个开放问题,并全部用 <span class="term">Lean</span>(一种能让计算机逐行核验证明的「形式化证明助手」)做了机器可验证的形式化。</p>
+  <p class="en"><strong>What happened:</strong> Over the past 15 months, AI crossed from "solving competition math" to "solving genuine research-level open problems." The landmark: in May 2026, OpenAI published a counterexample to the Unit Distance Conjecture, open since 1946. Since then, open problems from the Erdős catalog have been falling one after another with AI involvement. On August 1, OpenAI released a report showing its internal Astra model solved ten open problems in one sweep — each formalized in <span class="term">Lean</span>, a proof assistant whose compiler mechanically verifies every logical step.</p>
+  <p class="zh"><strong>为什么这对 Agent 工程师也重要:</strong>数学是长时程推理的「极限测试场」——问题定义清晰、答案可机器验证、没有含糊空间。支撑这些成果的技术(测试时计算、多智能体证明搜索、外部验证器闭环)正是当下 Agent 工程的三条主线。</p>
+  <p class="en"><strong>Why this matters for agent engineers too:</strong> mathematics is the ultimate stress test for long-horizon reasoning — problems are precisely defined, answers are machine-checkable, and there is no room for hand-waving. The techniques behind these results (test-time compute, multi-agent proof search, verifier-in-the-loop) are exactly the three main threads of today's agent engineering.</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI 数学发现的输入-处理-输出管道">
+      <defs><marker id="ar-z1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3d418f"/></marker></defs>
+      <g data-anim><rect x="20" y="80" width="170" height="80" rx="10" fill="#eceafa" stroke="#3d418f"/><text x="105" y="112" text-anchor="middle" font-size="15" font-weight="bold" fill="#23252e">开放数学问题</text><text x="105" y="136" text-anchor="middle" font-size="12" fill="#6d6f7a">悬置数十年、无已知解法</text></g>
+      <g data-anim><rect x="250" y="60" width="220" height="120" rx="10" fill="#fffdf7" stroke="#3d418f" stroke-width="1.5"/><text x="360" y="88" text-anchor="middle" font-size="15" font-weight="bold" fill="#3d418f">长时程搜索</text><text x="360" y="112" text-anchor="middle" font-size="12" fill="#6d6f7a">连续推理数小时~数天</text><text x="360" y="132" text-anchor="middle" font-size="12" fill="#6d6f7a">多智能体分工协作</text><text x="360" y="152" text-anchor="middle" font-size="12" fill="#6d6f7a">测试时计算堆推理量</text></g>
+      <g data-anim><rect x="530" y="80" width="120" height="80" rx="10" fill="#f7efdd" stroke="#a06b1f"/><text x="590" y="112" text-anchor="middle" font-size="14" font-weight="bold" fill="#a06b1f">Lean 验证</text><text x="590" y="136" text-anchor="middle" font-size="12" fill="#6d6f7a">逐行机器核验</text></g>
+      <g data-anim><rect x="690" y="80" width="110" height="80" rx="10" fill="#e7f2ea" stroke="#2f6b4f"/><text x="745" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6b4f">可信证明</text><text x="745" y="128" text-anchor="middle" font-size="11" fill="#6d6f7a">机器可验证</text><text x="745" y="146" text-anchor="middle" font-size="11" fill="#6d6f7a">+人类整理成文</text></g>
+      <path d="M190 120 H248" fill="none" stroke="#3d418f" stroke-width="2" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M470 120 H528" fill="none" stroke="#3d418f" stroke-width="2" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M650 120 H688" fill="none" stroke="#3d418f" stroke-width="2" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M590 160 V200 H360 V182" fill="none" stroke="#a06b1f" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ar-z1)" data-draw/>
+      <text x="475" y="218" text-anchor="middle" font-size="12" fill="#a06b1f" data-anim>验证失败 → 错误信息反馈,继续搜索</text>
+    </svg>
+    <svg class="en" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Input-process-output pipeline of AI mathematical discovery">
+      <defs><marker id="ar-e1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3d418f"/></marker></defs>
+      <g data-anim><rect x="20" y="80" width="170" height="80" rx="10" fill="#eceafa" stroke="#3d418f"/><text x="105" y="112" text-anchor="middle" font-size="14" font-weight="bold" fill="#23252e">Open problem</text><text x="105" y="136" text-anchor="middle" font-size="11.5" fill="#6d6f7a">Unsolved for decades</text></g>
+      <g data-anim><rect x="250" y="60" width="220" height="120" rx="10" fill="#fffdf7" stroke="#3d418f" stroke-width="1.5"/><text x="360" y="88" text-anchor="middle" font-size="14" font-weight="bold" fill="#3d418f">Long-horizon search</text><text x="360" y="112" text-anchor="middle" font-size="11.5" fill="#6d6f7a">Hours-to-days of reasoning</text><text x="360" y="132" text-anchor="middle" font-size="11.5" fill="#6d6f7a">Multi-agent division of labor</text><text x="360" y="152" text-anchor="middle" font-size="11.5" fill="#6d6f7a">Scaled test-time compute</text></g>
+      <g data-anim><rect x="530" y="80" width="120" height="80" rx="10" fill="#f7efdd" stroke="#a06b1f"/><text x="590" y="112" text-anchor="middle" font-size="13" font-weight="bold" fill="#a06b1f">Lean check</text><text x="590" y="136" text-anchor="middle" font-size="11" fill="#6d6f7a">Line-by-line verify</text></g>
+      <g data-anim><rect x="690" y="80" width="110" height="80" rx="10" fill="#e7f2ea" stroke="#2f6b4f"/><text x="745" y="107" text-anchor="middle" font-size="12" font-weight="bold" fill="#2f6b4f">Trusted proof</text><text x="745" y="128" text-anchor="middle" font-size="10.5" fill="#6d6f7a">Machine-checkable</text><text x="745" y="146" text-anchor="middle" font-size="10.5" fill="#6d6f7a">+ human write-up</text></g>
+      <path d="M190 120 H248" fill="none" stroke="#3d418f" stroke-width="2" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M470 120 H528" fill="none" stroke="#3d418f" stroke-width="2" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M650 120 H688" fill="none" stroke="#3d418f" stroke-width="2" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M590 160 V200 H360 V182" fill="none" stroke="#a06b1f" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ar-e1)" data-draw/>
+      <text x="475" y="218" text-anchor="middle" font-size="11.5" fill="#a06b1f" data-anim>Verification fails → error feedback, keep searching</text>
+    </svg>
+    <div class="fig-cap zh">图 1 · AI 数学发现的基本管道:长时程搜索产出候选证明,Lean 编译器充当「绝不放水的审稿人」,失败信息回流驱动继续搜索。</div>
+    <div class="fig-cap en">Fig. 1 · The basic pipeline: long-horizon search produces candidate proofs; the Lean compiler acts as an incorruptible referee; failure messages flow back to drive further search.</div>
+  </div>
+</section>
+
+<section id="history">
+  <h2><span class="sn">2</span><span class="zh">📜 背景与脉络:从竞赛到开放问题</span><span class="en">📜 Background: From Competitions to Open Problems</span></h2>
+  <p class="zh">要理解 8 月这波新闻,得先看这条 15 个月的演进线。此前 AI 数学的「天花板」一直是竞赛题——题目再难,也是<em>人类已知答案</em>的题。真正的分水岭是解出<strong>无人知道答案</strong>的问题。</p>
+  <p class="en">To understand August's news, follow this 15-month arc. The previous ceiling for AI math was competition problems — hard, but with answers <em>humans already knew</em>. The real watershed is solving problems <strong>nobody</strong> knew the answer to.</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI 数学发现时间线">
+      <line x1="60" y1="150" x2="790" y2="150" stroke="#e2dcc8" stroke-width="3" data-draw/>
+      <g data-anim><circle cx="90" cy="150" r="7" fill="#3d418f"/><text x="90" y="120" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#23252e">2024-07</text><text x="90" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="90" dy="0">AlphaProof</tspan><tspan x="90" dy="15">IMO 银牌(Lean+RL)</tspan></text></g>
+      <g data-anim><circle cx="240" cy="150" r="7" fill="#3d418f"/><text x="240" y="120" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#23252e">2025-07</text><text x="240" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="240" dy="0">Gemini Deep Think</tspan><tspan x="240" dy="15">IMO 金牌(自然语言)</tspan></text></g>
+      <g data-anim><circle cx="390" cy="150" r="7" fill="#a06b1f"/><text x="390" y="120" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#23252e">2025 末</text><text x="390" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="390" dy="0">GPT-5.2 解出一个</tspan><tspan x="390" dy="15">Erdős 问题(陶哲轩确认)</tspan></text></g>
+      <g data-anim><circle cx="540" cy="150" r="9" fill="#9a4b22"/><text x="540" y="105" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#9a4b22"><tspan x="540" dy="0">2026-05 分水岭</tspan></text><text x="540" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="540" dy="0">单位距离猜想被反例推翻</tspan><tspan x="540" dy="15">(1946 年提出);同月</tspan><tspan x="540" dy="15">AlphaProof Nexus 隔夜解 Erdős 题</tspan></text></g>
+      <g data-anim><circle cx="720" cy="150" r="9" fill="#2f6b4f"/><text x="720" y="105" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#2f6b4f"><tspan x="720" dy="0">2026-08-01</tspan></text><text x="720" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="720" dy="0">Astra 官宣:一次发布</tspan><tspan x="720" dy="15">10 个开放问题解答</tspan><tspan x="720" dy="15">全部 Lean 形式化</tspan></text></g>
+      <text x="425" y="270" text-anchor="middle" font-size="12" fill="#a06b1f" data-anim>「已知答案的难题」 ──────→ 「无人知道答案的问题」</text>
+    </svg>
+    <svg class="en" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline of AI mathematical discovery">
+      <line x1="60" y1="150" x2="790" y2="150" stroke="#e2dcc8" stroke-width="3" data-draw/>
+      <g data-anim><circle cx="90" cy="150" r="7" fill="#3d418f"/><text x="90" y="120" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#23252e">2024-07</text><text x="90" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="90" dy="0">AlphaProof: IMO</tspan><tspan x="90" dy="15">silver (Lean + RL)</tspan></text></g>
+      <g data-anim><circle cx="240" cy="150" r="7" fill="#3d418f"/><text x="240" y="120" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#23252e">2025-07</text><text x="240" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="240" dy="0">Gemini Deep Think:</tspan><tspan x="240" dy="15">IMO gold (nat. language)</tspan></text></g>
+      <g data-anim><circle cx="390" cy="150" r="7" fill="#a06b1f"/><text x="390" y="120" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#23252e">Late 2025</text><text x="390" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="390" dy="0">GPT-5.2 cracks an</tspan><tspan x="390" dy="15">Erdős problem (Tao confirms)</tspan></text></g>
+      <g data-anim><circle cx="540" cy="150" r="9" fill="#9a4b22"/><text x="540" y="105" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#9a4b22"><tspan x="540" dy="0">May 2026 watershed</tspan></text><text x="540" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="540" dy="0">Unit Distance Conjecture</tspan><tspan x="540" dy="15">(1946) refuted; same month</tspan><tspan x="540" dy="15">AlphaProof Nexus solves Erdős overnight</tspan></text></g>
+      <g data-anim><circle cx="720" cy="150" r="9" fill="#2f6b4f"/><text x="720" y="105" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#2f6b4f"><tspan x="720" dy="0">2026-08-01</tspan></text><text x="720" y="185" text-anchor="middle" font-size="11.5" fill="#6d6f7a"><tspan x="720" dy="0">Astra announced with</tspan><tspan x="720" dy="15">10 open-problem solutions,</tspan><tspan x="720" dy="15">all formalized in Lean</tspan></text></g>
+      <text x="425" y="270" text-anchor="middle" font-size="12" fill="#a06b1f" data-anim>"Hard problems with known answers" ──────→ "Problems nobody has answered"</text>
+    </svg>
+    <div class="fig-cap zh">图 2 · 15 个月演进线。竞赛奖牌(2024–2025)只是热身;2026 年 5 月起,研究级开放问题开始被批量攻破。</div>
+    <div class="fig-cap en">Fig. 2 · The 15-month arc. Competition medals (2024–2025) were the warm-up; from May 2026, research-level open problems began falling in volume.</div>
+  </div>
+
+  <p class="zh">节奏有多快?据 The Decoder 汇总:自 2026 年 5 月单位距离猜想被推翻后「闸门打开」,几乎每天都有 AI 参与数学研究的新消息;仅仅一周后,人类研究者就借用该证明的核心技巧推翻了另一个重要猜想(<a href="https://doi.org/10.48550/arXiv.2605.28781">arXiv:2605.28781</a>)——AI 产出的不只是结论,还有<span class="hl">可复用的证明技术</span>。另据社区统计(经陶哲轩确认合法性),Erdős 问题清单自 2025 年圣诞以来已有 15 题从「开放」转为「已解决」,其中 11 题标注了 AI 参与,且都做了 Lean 形式化。</p>
+  <p class="en">How fast is the pace? Per The Decoder, after the Unit Distance refutation in May 2026 "the floodgates opened," with AI-in-math news landing almost daily. Just one week later, human researchers adapted the proof's core technique to refute another major conjecture (<a href="https://doi.org/10.48550/arXiv.2605.28781">arXiv:2605.28781</a>) — the AI produced not just a result but a <span class="hl">reusable proof technique</span>. Per community tallies (legitimacy confirmed by Terence Tao), fifteen Erdős problems have moved from "open" to "solved" since Christmas 2025, eleven crediting AI involvement, all formalized in Lean.</p>
+</section>
+
+<section id="concepts">
+  <h2><span class="sn">3</span><span class="zh">🧠 核心概念:撑起这一切的四块积木</span><span class="en">🧠 Core Concepts: The Four Building Blocks</span></h2>
+
+  <div class="def">
+    <div class="dt zh">长时程推理(Long-Horizon Reasoning)</div>
+    <div class="dt en">Long-Horizon Reasoning</div>
+    <div class="row zh"><span class="tag tag-what">是什么</span><span>让模型在一个问题上连续工作数小时到数天,而不是几分钟内给答案。OpenAI 首席科学家 Jakub Pachocki 明确说这是公司的方向:构建能「在一个问题上工作数小时或数天」的系统。</span></div>
+    <div class="row en"><span class="tag tag-what">What</span><span>Having a model work continuously on one problem for hours to days, instead of answering within minutes. OpenAI Chief Scientist Jakub Pachocki has named this as the company's direction: systems that can "work on a problem for hours or days."</span></div>
+    <div class="row zh"><span class="tag tag-why">为什么难</span><span>时间一长,两个敌人就出现:<strong>误差复利</strong>(每步小错在后续被放大)和<strong>上下文膨胀</strong>(历史越积越长,模型越难抓住重点)。能否自我纠偏、在过程跑偏时拉回来,是长时程系统的核心考题。</span></div>
+    <div class="row en"><span class="tag tag-why">Why hard</span><span>Over long runs, two enemies emerge: <strong>compounding errors</strong> (small mistakes amplified downstream) and <strong>context growth</strong> (an ever-longer history the model must not drown in). Whether the system can self-correct when a process drifts off course is the central exam question.</span></div>
+    <div class="row zh"><span class="tag tag-eg">例子</span><span>Astra 被描述为专为此设计的模型家族;Anthropic 的 2026 报告里也有 Rakuten 让 Agent 在 1250 万行代码库上单次连跑 7 小时实现完整功能的案例——数学和工程正在共用同一种能力。</span></div>
+    <div class="row en"><span class="tag tag-eg">Example</span><span>Astra is described as a model family purpose-built for this; Anthropic's 2026 report likewise cites a Rakuten team whose agent implemented a feature across a 12.5-million-line codebase in a single seven-hour run — math and engineering are drawing on the same capability.</span></div>
+  </div>
+
+  <div class="def">
+    <div class="dt zh">测试时计算(Test-Time Compute)</div>
+    <div class="dt en">Test-Time Compute</div>
+    <div class="row zh"><span class="tag tag-what">是什么</span><span>不改模型本身,而是在<em>推理阶段</em>投入更多算力换更好答案——多想几条路、多试几次、想得更久。这是 o1 系以来推理模型的立身之本,Astra 背后的研究者 Noam Brown 正是这条路线的代表人物。</span></div>
+    <div class="row en"><span class="tag tag-what">What</span><span>Instead of changing the model, spend more compute <em>at inference time</em> for better answers — explore more paths, retry more, think longer. This has been the foundation of reasoning models since o1; Noam Brown, one of the researchers behind Astra, is a leading figure of this line.</span></div>
+    <div class="row zh"><span class="tag tag-why">为什么关键</span><span>它把「智力」变成了可购买的量。十个证明的 token 成本约 2000 美元;Brown 说他们在每题上「花得不多」,且「测试时计算还能推得更远」——换句话说,上限是预算问题,不只是模型问题。</span></div>
+    <div class="row en"><span class="tag tag-why">Why key</span><span>It turns "intelligence" into a purchasable quantity. The tokens behind all ten proofs cost about $2,000; Brown noted they "didn't spend a lot on each problem" and that "it's possible to push test-time compute much further" — the ceiling is partly a budget question, not just a model question.</span></div>
+  </div>
+
+  <div class="def">
+    <div class="dt zh">形式化验证与 Lean(Formal Verification)</div>
+    <div class="dt en">Formal Verification &amp; Lean</div>
+    <div class="row zh"><span class="tag tag-what">是什么</span><span><span class="term">Lean</span> 是一个证明助手:把证明写成一种特殊的程序,编译器逐行核验逻辑,任何跳步、含糊、循环论证都编译不过。编译通过 = 证明在逻辑上无懈可击。</span></div>
+    <div class="row en"><span class="tag tag-what">What</span><span><span class="term">Lean</span> is a proof assistant: proofs are written as a special kind of program whose compiler verifies every logical step. Any gap, hand-wave, or circular argument fails to compile. If it compiles, the proof is logically airtight.</span></div>
+    <div class="row zh"><span class="tag tag-why">为什么是解药</span><span>LLM 最大的原罪是幻觉——写出「看起来像证明的东西」。Lean 把验证成本从「资深数学家审几个月」降到「编译器跑一遍」,幻觉在这里无处遁形。这就是为什么近期成果几乎都附 Lean 形式化:它是 AI 数学结果可信度的基石。</span></div>
+    <div class="row en"><span class="tag tag-why">Why it's the antidote</span><span>The LLM's original sin is hallucination — producing things that merely look like proofs. Lean collapses verification cost from "months of expert review" to "one compiler run"; hallucination has nowhere to hide. That is why nearly all recent results ship with Lean formalizations: it is the credibility bedrock of AI math.</span></div>
+    <div class="row zh"><span class="tag tag-eg">例子</span><span>OpenAI 把 Astra 十证明全部形式化并开源(<a href="https://github.com/openai/ten-proofs">github.com/openai/ten-proofs</a>);Erdős 清单上 AI 参与的解也都有 Lean 版本。</span></div>
+    <div class="row en"><span class="tag tag-eg">Example</span><span>OpenAI formalized and open-sourced all ten Astra proofs (<a href="https://github.com/openai/ten-proofs">github.com/openai/ten-proofs</a>); the AI-assisted Erdős solutions also ship Lean versions.</span></div>
+  </div>
+
+  <div class="def">
+    <div class="dt zh">多智能体证明搜索(Multi-Agent Proof Search)</div>
+    <div class="dt en">Multi-Agent Proof Search</div>
+    <div class="row zh"><span class="tag tag-what">是什么</span><span>把一个大问题拆给多个分工不同的 Agent 并行探索。据社区技术资料,DeepMind 的 AlphaProof Nexus 用「prover 子代理」跑多轮 LLM 推理循环、配合 Lean 编译器反馈做进化式搜索;Astra 的卖点同样是「多个 Agent 协作攻坚」。</span></div>
+    <div class="row en"><span class="tag tag-what">What</span><span>Split one big problem across multiple specialized agents exploring in parallel. Per community technical write-ups, DeepMind's AlphaProof Nexus runs "prover subagents" in multi-turn LLM inference loops with Lean compiler feedback in an evolutionary search; Astra's pitch is likewise "multiple agents tackling hard problems together."</span></div>
+    <div class="row zh"><span class="tag tag-why">注意</span><span>多智能体不是免费午餐:Google 与 MIT 的研究发现,在规划类等耦合紧密的任务上,协调开销与误差复利可能吃掉全部收益。「更多 Agent」不总是「更好」。</span></div>
+    <div class="row en"><span class="tag tag-why">Caveat</span><span>Multi-agent is no free lunch: a Google–MIT study found that on tightly coupled tasks such as planning, coordination overhead and compounding errors can wipe out the gains. More agents is not always better.</span></div>
+  </div>
+
+  <div class="glossary">
+    <div class="g"><b class="zh">Erdős 问题</b><b class="en">Erdős problems</b><span class="zh">匈牙利数学家 Paul Erdős 留下的数百个未解问题清单,由社区网站 erdosproblems.com 追踪,是衡量 AI 研究级数学能力的「野生基准」。</span><span class="en">Hundreds of unsolved problems left by Hungarian mathematician Paul Erdős, tracked at erdosproblems.com — a "wild benchmark" for research-level AI math.</span></div>
+    <div class="g"><b class="zh">单位距离猜想</b><b class="en">Unit Distance Conjecture</b><span class="zh">几何图论中 1946 年提出的猜想,2026 年 5 月被 OpenAI 的模型给出反例推翻——本轮浪潮的标志性事件。</span><span class="en">A 1946 conjecture in geometric graph theory, refuted by an OpenAI-model counterexample in May 2026 — the emblematic event of this wave.</span></div>
+    <div class="g"><b>FrontierMath</b><span class="zh">Epoch AI 的高难数学基准;其「Open Problems」子集直接取自真正的未解问题(详见第 7 节)。</span><span class="en">Epoch AI's hard-math benchmark; its "Open Problems" track draws directly from genuinely unsolved questions (see §7).</span></div>
+    <div class="g"><b class="zh">Leiden 宣言</b><b class="en">Leiden Declaration</b><span class="zh">国际数学联盟支持的 AI-数学行为准则:透明使用、保护作者权利、人类对结果负责,已获 3000+ 数学家签名。</span><span class="en">An IMU-backed code of conduct for AI in mathematics — transparency, authors' rights, human responsibility — signed by 3,000+ mathematicians.</span></div>
+    <div class="g"><b class="zh">non-sofic 群</b><b class="en">Non-sofic groups</b><span class="zh">群论中长期悬而未决的存在性问题;Astra 十证明之一确立了这类群的存在,被视为其中分量最重的结果之一。</span><span class="en">A long-open existence question in group theory; one Astra proof established that such groups exist — regarded as among the weightiest of the ten results.</span></div>
+  </div>
+</section>
+
+<section id="astra">
+  <h2><span class="sn">4</span><span class="zh">🌟 Astra 十证明:到底发生了什么</span><span class="en">🌟 Astra's Ten Proofs: What Actually Happened</span></h2>
+  <p class="zh">2026 年 8 月 1 日,OpenAI 发布数学报告(<a href="https://cdn.openai.com/pdf/ten-proofs-oai.pdf">ten-proofs-oai.pdf</a>),首次官方确认「Astra」这一「下一代主力模型家族」的名字,并给出其内部版本解决的 10 个开放问题。关键事实如下:</p>
+  <p class="en">On August 1, 2026, OpenAI released its math report (<a href="https://cdn.openai.com/pdf/ten-proofs-oai.pdf">ten-proofs-oai.pdf</a>), officially confirming "Astra" as the name of its "next major model family," together with ten open problems its internal version solved. The key facts:</p>
+
+  <div class="stats">
+    <div class="stat"><div class="n">10</div><div class="l zh">被解决的开放问题,每个至少悬置十年,多数远超十年</div><div class="l en">Open problems solved, each untouched for at least a decade, most far longer</div></div>
+    <div class="stat"><div class="n">~$2,000</div><div class="l zh">按 Sol API 价格计,产出全部 10 个解答所用 token 的成本</div><div class="l en">Token cost of generating all ten solutions at Sol API rates</div></div>
+    <div class="stat"><div class="n">10/10</div><div class="l zh">在 Lean 中完成形式化、获得机器可验证证书的比例</div><div class="l en">Proofs formalized in Lean with machine-checkable certificates</div></div>
+  </div>
+
+  <p class="zh">覆盖领域横跨<strong>高维几何、编码理论、群论、量子复杂性、格密码、极值组合</strong>。分量最重的结果之一是确立 <span class="term">non-sofic 群</span>的存在性,解决了群论中的一个重大开放问题。运营 erdosproblems.com 的曼彻斯特大学数学家 Thomas Bloom 在 X 上称其为「big news」,认为在「构造」类结果里,这比 5 月的单位距离反例更重大。</p>
+  <p class="en">The results span <strong>high-dimensional geometry, coding theory, group theory, quantum complexity, lattice cryptography, and extremal combinatorics</strong>. Among the weightiest: establishing the existence of <span class="term">non-sofic groups</span>, resolving a major open question in group theory. Thomas Bloom, the University of Manchester mathematician who runs erdosproblems.com, called the results "big news" on X — in terms of constructions, bigger than May's unit-distance counterexample.</p>
+
+  <p class="zh">流程上值得注意的细节:模型独立产出数学论证后,<span class="hl">人类与同一个模型协作</span>把论证整理成论文,并完成 Lean 形式化;OpenAI 同时发布了每道题的<a href="https://cdn.openai.com/pdf/reasoning-walkthroughs.pdf">推理过程走读</a>。OpenAI 明确表示:论证本身出自 Astra,公司对其正确性负责;并援引 Leiden 宣言主张——对完全由 AI 生成的证明宣称人类作者身份,是对双方贡献的失实描述。</p>
+  <p class="en">A notable process detail: after the model produced the mathematical arguments on its own, <span class="hl">humans worked with the same model</span> to turn them into papers and complete the Lean formalizations; OpenAI also published <a href="https://cdn.openai.com/pdf/reasoning-walkthroughs.pdf">reasoning walkthroughs</a> for each solution. OpenAI stated the arguments themselves came from Astra, that the company takes responsibility for their accuracy — and, citing the Leiden Declaration, that claiming human authorship for an entirely AI-generated proof would misrepresent both sides' contributions.</p>
+
+  <div class="callout warn">
+    <div class="ct zh">⚠️ 同样重要的「没做到」</div>
+    <div class="ct en">⚠️ Equally important: what it did not do</div>
+    <p class="zh" style="margin:0">研究者 Noam Brown 坦言:OpenAI 也尝试过其他重大问题并失败,「遗憾,还没有千禧年大奖问题(yet)」。七个千禧年问题(每个悬赏 100 万美元)自 2000 年以来只被人类解决过一个,AI 至今为零。但他补充:每题投入其实不大,「测试时计算还能推得更远」。</p>
+    <p class="en" style="margin:0">Researcher Noam Brown was candid: OpenAI also tried and failed on other major problems — "Sadly, no Millennium Prize Problems (yet)." Of the seven Millennium Problems ($1M each), only one has been solved by humans since 2000, and none by AI. But he added that spend per problem was modest: "It's possible to push test-time compute much further."</p>
+  </div>
+
+  <p class="zh">背景一并交代:据 The Information(7 月 31 日,三位知情人),Astra 定位为与 Sol、Terra、Luna 并列的新模型类别,主打<strong>多 Agent 长时程协作</strong>;Sam Altman 已于 7 月 29–30 日在华盛顿向官员演示;它将成为美国政府拟议的模型发布前审查框架下<strong>首个受审模型</strong>。以 GPT-6 还是 GPT-5.7 的形式发布、何时发布,均未决定。OpenAI 的长期目标线:2026 年 9 月达到「研究实习生」水平,<strong>2028 年 3 月实现全自主 AI 研究员</strong>。</p>
+  <p class="en">For context: per The Information (July 31, citing three sources), Astra forms a new model class alongside Sol, Terra, and Luna, built around <strong>multi-agent, long-horizon collaboration</strong>; Sam Altman demoed it to officials in Washington on July 29–30; and it is expected to be the <strong>first model reviewed</strong> under the U.S. government's planned pre-release framework. Whether it ships as GPT-6 or GPT-5.7, and when, is undecided. OpenAI's long-term line: "research-intern-level" skills by September 2026, and a <strong>fully autonomous AI researcher by March 2028</strong>.</p>
+</section>
+
+<section id="routes">
+  <h2><span class="sn">5</span><span class="zh">🔀 两条技术路线:自然语言先行 vs 形式化原生</span><span class="en">🔀 Two Technical Routes: Natural-Language-First vs Formal-Native</span></h2>
+  <p class="zh">当前的 AI 数学系统大致分两条路线,分歧点在「证明在哪个世界里被找到」:</p>
+  <p class="en">Today's AI math systems split into two routes; the fork is over <em>which world the proof is found in</em>:</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="两条技术路线对比分叉图">
+      <defs><marker id="ar-z2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6d6f7a"/></marker></defs>
+      <g data-anim><rect x="310" y="20" width="200" height="56" rx="10" fill="#eceafa" stroke="#3d418f"/><text x="410" y="44" text-anchor="middle" font-size="14" font-weight="bold" fill="#23252e">开放数学问题</text><text x="410" y="64" text-anchor="middle" font-size="11.5" fill="#6d6f7a">用哪种「语言」思考?</text></g>
+      <path d="M370 76 L215 120" fill="none" stroke="#6d6f7a" stroke-width="2" marker-end="url(#ar-z2)" data-draw/>
+      <path d="M450 76 L605 120" fill="none" stroke="#6d6f7a" stroke-width="2" marker-end="url(#ar-z2)" data-draw/>
+      <g data-anim><rect x="60" y="126" width="310" height="120" rx="10" fill="#fffdf7" stroke="#3d418f" stroke-width="1.5"/><text x="215" y="152" text-anchor="middle" font-size="14" font-weight="bold" fill="#3d418f">路线 A · 自然语言先行(OpenAI)</text><text x="215" y="176" text-anchor="middle" font-size="11.5" fill="#6d6f7a">模型用自然语言/草稿式推理找证明</text><text x="215" y="196" text-anchor="middle" font-size="11.5" fill="#6d6f7a">找到后再(与人协作)翻译成 Lean</text><text x="215" y="216" text-anchor="middle" font-size="11.5" fill="#6d6f7a">思路自由、更接近人类数学家工作方式</text><text x="215" y="236" text-anchor="middle" font-size="11.5" fill="#9a4b22">风险:形式化之前,错误可能藏在直觉里</text></g>
+      <g data-anim><rect x="450" y="126" width="310" height="120" rx="10" fill="#fffdf7" stroke="#a06b1f" stroke-width="1.5"/><text x="605" y="152" text-anchor="middle" font-size="14" font-weight="bold" fill="#a06b1f">路线 B · 形式化原生(AlphaProof 系)</text><text x="605" y="176" text-anchor="middle" font-size="11.5" fill="#6d6f7a">直接在 Lean 里搜索证明</text><text x="605" y="196" text-anchor="middle" font-size="11.5" fill="#6d6f7a">编译器每一步实时判对错(RL/进化搜索)</text><text x="605" y="216" text-anchor="middle" font-size="11.5" fill="#6d6f7a">每步都可信、无幻觉空间</text><text x="605" y="236" text-anchor="middle" font-size="11.5" fill="#9a4b22">风险:受限于 Lean 数学库覆盖面,表达更难</text></g>
+      <path d="M215 246 L390 292" fill="none" stroke="#2f6b4f" stroke-width="2" marker-end="url(#ar-z2)" data-draw/>
+      <path d="M605 246 L430 292" fill="none" stroke="#2f6b4f" stroke-width="2" marker-end="url(#ar-z2)" data-draw/>
+      <g data-anim><rect x="290" y="286" width="240" height="34" rx="8" fill="#e7f2ea" stroke="#2f6b4f"/><text x="410" y="308" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#2f6b4f">殊途同归:最终都以 Lean 证书交付</text></g>
+    </svg>
+    <svg class="en" viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison fork of the two technical routes">
+      <defs><marker id="ar-e2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6d6f7a"/></marker></defs>
+      <g data-anim><rect x="310" y="20" width="200" height="56" rx="10" fill="#eceafa" stroke="#3d418f"/><text x="410" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="#23252e">Open problem</text><text x="410" y="64" text-anchor="middle" font-size="11" fill="#6d6f7a">Which "language" to think in?</text></g>
+      <path d="M370 76 L215 120" fill="none" stroke="#6d6f7a" stroke-width="2" marker-end="url(#ar-e2)" data-draw/>
+      <path d="M450 76 L605 120" fill="none" stroke="#6d6f7a" stroke-width="2" marker-end="url(#ar-e2)" data-draw/>
+      <g data-anim><rect x="60" y="126" width="310" height="120" rx="10" fill="#fffdf7" stroke="#3d418f" stroke-width="1.5"/><text x="215" y="152" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#3d418f">Route A · NL-first (OpenAI)</text><text x="215" y="176" text-anchor="middle" font-size="11" fill="#6d6f7a">Model finds the proof in natural language</text><text x="215" y="196" text-anchor="middle" font-size="11" fill="#6d6f7a">Then translates to Lean (with humans)</text><text x="215" y="216" text-anchor="middle" font-size="11" fill="#6d6f7a">Free-form; closest to how humans work</text><text x="215" y="236" text-anchor="middle" font-size="11" fill="#9a4b22">Risk: pre-formalization errors hide in intuition</text></g>
+      <g data-anim><rect x="450" y="126" width="310" height="120" rx="10" fill="#fffdf7" stroke="#a06b1f" stroke-width="1.5"/><text x="605" y="152" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#a06b1f">Route B · Formal-native (AlphaProof line)</text><text x="605" y="176" text-anchor="middle" font-size="11" fill="#6d6f7a">Searches for proofs directly inside Lean</text><text x="605" y="196" text-anchor="middle" font-size="11" fill="#6d6f7a">Compiler grades every step (RL / evolutionary)</text><text x="605" y="216" text-anchor="middle" font-size="11" fill="#6d6f7a">Every step trusted; no room for hallucination</text><text x="605" y="236" text-anchor="middle" font-size="11" fill="#9a4b22">Risk: bounded by Lean library coverage; harder to express</text></g>
+      <path d="M215 246 L390 292" fill="none" stroke="#2f6b4f" stroke-width="2" marker-end="url(#ar-e2)" data-draw/>
+      <path d="M605 246 L430 292" fill="none" stroke="#2f6b4f" stroke-width="2" marker-end="url(#ar-e2)" data-draw/>
+      <g data-anim><rect x="270" y="286" width="280" height="34" rx="8" fill="#e7f2ea" stroke="#2f6b4f"/><text x="410" y="308" text-anchor="middle" font-size="12" font-weight="bold" fill="#2f6b4f">Convergence: both deliver Lean certificates in the end</text></g>
+    </svg>
+    <div class="fig-cap zh">图 3 · 分歧在「证明在哪个世界被找到」,但两条路线最终都靠 Lean 证书取得可信度。</div>
+    <div class="fig-cap en">Fig. 3 · The fork is where the proof is found — but both routes ultimately earn trust through Lean certificates.</div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th class="zh">维度</th><th class="zh">路线 A:自然语言先行</th><th class="zh">路线 B:形式化原生</th>
+      <th class="en">Dimension</th><th class="en">Route A: NL-first</th><th class="en">Route B: Formal-native</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="zh">代表系统</td><td class="zh">Astra / GPT-5.x Pro 系;Gemini Deep Think(IMO 2025 金牌即自然语言作答)</td><td class="zh">AlphaProof(IMO 2024 银牌)及社区所称 AlphaProof Nexus</td>
+          <td class="en">Representative systems</td><td class="en">Astra / GPT-5.x Pro line; Gemini Deep Think (its IMO 2025 gold was in natural language)</td><td class="en">AlphaProof (IMO 2024 silver) and the community-reported AlphaProof Nexus</td></tr>
+      <tr><td class="zh">验证时机</td><td class="zh">事后形式化(证明找到后再翻译)</td><td class="zh">全程在编译器监督下搜索</td>
+          <td class="en">When verified</td><td class="en">Post-hoc formalization (translate after finding)</td><td class="en">Search under compiler supervision throughout</td></tr>
+      <tr><td class="zh">已公开战绩(截至调研日)</td><td class="zh">单位距离反例、Astra 十证明、多个 Erdős 题</td><td class="zh">据社区资料:9/353 Erdős 题、44/492 OEIS 猜想(单来源,未获官方页面印证)</td>
+          <td class="en">Public track record (as of research date)</td><td class="en">Unit-distance counterexample, Astra's ten proofs, several Erdős problems</td><td class="en">Per community write-ups: 9/353 Erdős problems, 44/492 OEIS conjectures (single-source, not confirmed on an official page)</td></tr>
+      <tr><td class="zh">适合场景</td><td class="zh">需要「灵感一跃」的构造、反例、跨领域组合</td><td class="zh">可在现有数学库上逐步搭建的定理、批量猜想清扫</td>
+          <td class="en">Best suited for</td><td class="en">Constructions, counterexamples, cross-field leaps needing "flashes of insight"</td><td class="en">Theorems buildable step-by-step on existing libraries; sweeping conjecture backlogs</td></tr>
+    </tbody>
+  </table>
+
+  <details class="rephrase">
+    <summary><span class="zh">💬 没看懂两条路线?点这里换个说法</span><span class="en">💬 Routes unclear? Click for a plainer version</span></summary>
+    <div class="zh">路线 A 像一位天才在草稿纸上乱涂乱画找思路,找到后再请一位一丝不苟的公证员(Lean)把每一步誊清盖章;路线 B 则是从头到尾当着公证员的面写,每写一行公证员立刻说「行」或「不行」。前者思路野、翻译费劲;后者步步扎实、但迈步慢,而且公证员只认它字典(数学库)里有的词。</div>
+    <div class="en">Route A is a genius scribbling on scratch paper until an idea clicks, then hiring a meticulous notary (Lean) to transcribe and stamp every step. Route B writes in front of the notary from the start — every line gets an instant "valid/invalid." The former thinks wildly but translation is painful; the latter is rock-solid but slower, and the notary only accepts words already in its dictionary (the math library).</div>
+  </details>
+</section>
+
+<section id="practice">
+  <h2><span class="sn">6</span><span class="zh">🛠️ 实际怎么用:今天的数学家工作流</span><span class="en">🛠️ How It's Used Today: Working Mathematicians' Playbook</span></h2>
+  <p class="zh">抛开头条,普通研究者(以及想借鉴方法论的工程师)今天实际在怎么用?综合 Saha、陶哲轩与 CMU 团队的公开描述,常见的是三种由浅入深的用法:</p>
+  <p class="en">Headlines aside, how are ordinary researchers (and engineers borrowing the methodology) actually using this today? From the public accounts of Saha, Tao, and the CMU team, three usage tiers recur:</p>
+
+  <div class="steps">
+    <div class="step"><div class="dot">1</div><div class="sb">
+      <b class="zh">当「不知疲倦的博士生」用:委托常规工作</b>
+      <b class="en">As a "tireless PhD student": delegating routine work</b>
+      <span class="zh">伦敦玛丽女王大学教授 Abhishek Saha 用 GPT-5.5 Pro 一天做完了过去要数周的常规研究工作(文献比对、验证性演算、特例检查),自称越来越像「指挥,而不是整个乐团」。他判断前沿模型在他的领域「至少相当于一个扎实、不知疲倦的博士生」。</span>
+      <span class="en">Abhishek Saha, professor at Queen Mary University of London, used GPT-5.5 Pro to finish in one day routine research work (literature cross-checks, verification calculations, special-case checks) that used to take weeks — "increasingly playing the role of conductor, rather than doubling up as the whole orchestra." His assessment: frontier models are "at least as good as a solid and indefatigable PhD student" in his area.</span>
+    </div></div>
+    <div class="step"><div class="dot">2</div><div class="sb">
+      <b class="zh">当计算伙伴用:人主导、AI 算与写</b>
+      <b class="en">As a computational partner: human leads, AI computes and codes</b>
+      <span class="zh">陶哲轩 2025 年 10 月描述过与 ChatGPT 逐步对话:让它计算数值、写 Python 验证代码,为一个数学问题省下数小时手工劳动。这是最低门槛、任何研究者今天就能复制的用法。</span>
+      <span class="en">In October 2025, Terence Tao described a step-by-step ChatGPT exchange — computing numerical values and writing Python verification code, saving hours of manual work on a math problem. The lowest-barrier pattern, reproducible by any researcher today.</span>
+    </div></div>
+    <div class="step"><div class="dot">3</div><div class="sb">
+      <b class="zh">组合成流水线:SAT 求解器 + LLM 代码 + 形式化验证</b>
+      <b class="en">As a pipeline: SAT solvers + LLM-generated code + formal verification</b>
+      <span class="zh">CMU 团队 2026 年 4 月的论文(<a href="https://arxiv.org/pdf/2604.21187">arXiv:2604.21187</a>)解决了 Ramsey 理论中的一个开放问题,方法是把三件工具拼起来:SAT 求解器做暴力搜索、LLM 生成搜索代码、形式化系统验证结果。论文自评:Gowers 2000 年预言的「黄金时代」正在到来。</span>
+      <span class="en">A CMU team's April 2026 paper (<a href="https://arxiv.org/pdf/2604.21187">arXiv:2604.21187</a>) solved an open problem in Ramsey theory by chaining three tools: SAT solvers for brute-force search, LLM-generated search code, and formal verification of results. The authors' own verdict: the "golden age" Gowers predicted in 2000 is arriving.</span>
+    </div></div>
+  </div>
+
+  <div class="callout key">
+    <div class="ct zh">🔧 给 Agent 工程师的迁移笔记</div>
+    <div class="ct en">🔧 Transfer notes for agent engineers</div>
+    <p class="zh" style="margin-bottom:8px">这套数学工作流对通用 Agent 设计的三条可直接借鉴的启示:</p>
+    <p class="en" style="margin-bottom:8px">Three directly transferable lessons for general agent design:</p>
+    <p class="zh" style="margin-bottom:6px">① <strong>找一个「Lean 等价物」</strong>:凡是能给任务配上硬验证器(编译器、测试套件、schema 校验、对账单)的场景,Agent 的可靠性都会发生质变——验证器把「概率性输出」变成「可拒收的产品」。这正是 rubric 式评测(如 Claude 的 Outcomes)背后的思想。</p>
+    <p class="en" style="margin-bottom:6px">① <strong>Find your "Lean equivalent"</strong>: wherever a task admits a hard verifier (compiler, test suite, schema check, reconciliation), agent reliability changes in kind — the verifier turns probabilistic output into a rejectable deliverable. This is the idea behind rubric-based evaluation (e.g. Claude's Outcomes).</p>
+    <p class="zh" style="margin-bottom:6px">② <strong>把预算当一等参数</strong>:十证明 ≈ $2,000 说明「再想久一点」是有明码标价的旋钮;Agent 系统应把测试时计算(重试、并行采样、思考时长)做成可配置项,而非隐藏常量。</p>
+    <p class="en" style="margin-bottom:6px">② <strong>Treat budget as a first-class parameter</strong>: ten proofs ≈ $2,000 shows "think longer" is a knob with a price tag; agent systems should expose test-time compute (retries, parallel samples, thinking time) as configuration, not hidden constants.</p>
+    <p class="zh" style="margin:0">③ <strong>多 Agent 要算协调税</strong>:数学搜索天然可并行(不同证明思路互不干扰),所以多智能体收益大;强耦合任务则未必——先问你的任务像哪一种。</p>
+    <p class="en" style="margin:0">③ <strong>Price in the coordination tax</strong>: proof search parallelizes naturally (independent proof attempts don't interfere), so multi-agent pays off; tightly coupled tasks may not — ask which kind your task resembles first.</p>
+  </div>
+</section>
+
+<section id="limits">
+  <h2><span class="sn">7</span><span class="zh">📏 现状边界:基准数据怎么说</span><span class="en">📏 Current Limits: What the Benchmark Data Says</span></h2>
+  <p class="zh">头条容易造成「数学已被攻克」的错觉。Epoch AI 的 FrontierMath 系列基准提供了更冷静的标尺——它专为抗饱和设计,题目由职业数学家出、绝大多数从未公开:</p>
+  <p class="en">Headlines can create the illusion that math has been conquered. Epoch AI's FrontierMath benchmarks offer a cooler yardstick — deliberately designed to resist saturation, with problems written by professional mathematicians and mostly unpublished:</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI 数学能力难度阶梯">
+      <g data-anim><rect x="80" y="270" width="660" height="48" rx="8" fill="#e7f2ea" stroke="#2f6b4f"/><text x="110" y="290" font-size="13.5" font-weight="bold" fill="#2f6b4f">竞赛数学(IMO 级)</text><text x="110" y="308" font-size="11.5" fill="#6d6f7a">✅ 已达金牌水平(2025)——基本「毕业」</text></g>
+      <g data-anim><rect x="120" y="212" width="580" height="48" rx="8" fill="#eceafa" stroke="#3d418f"/><text x="150" y="232" font-size="13.5" font-weight="bold" fill="#3d418f">FrontierMath 常规题(研究生~专家级)</text><text x="150" y="250" font-size="11.5" fill="#6d6f7a">🟦 2024 年底接近 0% → 2026 年中 30–40%,爬坡迅猛</text></g>
+      <g data-anim><rect x="160" y="154" width="500" height="48" rx="8" fill="#f7efdd" stroke="#a06b1f"/><text x="190" y="174" font-size="13.5" font-weight="bold" fill="#a06b1f">Open Problems(真·未解问题,约 50 题)</text><text x="190" y="192" font-size="11.5" fill="#6d6f7a">🟨 已解约 3 题(≈6%)——刚破门,远未扫荡</text></g>
+      <g data-anim><rect x="200" y="96" width="420" height="48" rx="8" fill="#f9ece2" stroke="#9a4b22"/><text x="230" y="116" font-size="13.5" font-weight="bold" fill="#9a4b22">Major Advance / Breakthrough 档</text><text x="230" y="134" font-size="11.5" fill="#6d6f7a">🟥 至今 0 题——尚无「真正的大突破」</text></g>
+      <g data-anim><rect x="240" y="38" width="340" height="48" rx="8" fill="#fffdf7" stroke="#23252e" stroke-dasharray="6 4"/><text x="270" y="58" font-size="13.5" font-weight="bold" fill="#23252e">千禧年大奖问题(7 题,各 $1M)</text><text x="270" y="76" font-size="11.5" fill="#6d6f7a">⬜ 人类 26 年解 1 题;AI 为 0(Astra 也失败)</text></g>
+      <text x="60" y="180" font-size="12" fill="#6d6f7a" transform="rotate(-90 60 180)" data-anim>难度 →</text>
+    </svg>
+    <svg class="en" viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Difficulty ladder of AI math capability">
+      <g data-anim><rect x="80" y="270" width="660" height="48" rx="8" fill="#e7f2ea" stroke="#2f6b4f"/><text x="110" y="290" font-size="13" font-weight="bold" fill="#2f6b4f">Competition math (IMO level)</text><text x="110" y="308" font-size="11" fill="#6d6f7a">✅ Gold-medal level reached (2025) — essentially graduated</text></g>
+      <g data-anim><rect x="120" y="212" width="580" height="48" rx="8" fill="#eceafa" stroke="#3d418f"/><text x="150" y="232" font-size="13" font-weight="bold" fill="#3d418f">FrontierMath standard tiers (graduate-to-expert)</text><text x="150" y="250" font-size="11" fill="#6d6f7a">🟦 Near 0% in late 2024 → 30–40% by mid-2026 — a steep climb</text></g>
+      <g data-anim><rect x="160" y="154" width="500" height="48" rx="8" fill="#f7efdd" stroke="#a06b1f"/><text x="190" y="174" font-size="13" font-weight="bold" fill="#a06b1f">Open Problems (genuinely unsolved, ~50 problems)</text><text x="190" y="192" font-size="11" fill="#6d6f7a">🟨 ~3 solved (≈6%) — door cracked open, far from swept</text></g>
+      <g data-anim><rect x="200" y="96" width="420" height="48" rx="8" fill="#f9ece2" stroke="#9a4b22"/><text x="230" y="116" font-size="13" font-weight="bold" fill="#9a4b22">"Major Advance" / "Breakthrough" tiers</text><text x="230" y="134" font-size="11" fill="#6d6f7a">🟥 Zero solved to date — no truly major result yet</text></g>
+      <g data-anim><rect x="240" y="38" width="340" height="48" rx="8" fill="#fffdf7" stroke="#23252e" stroke-dasharray="6 4"/><text x="270" y="58" font-size="13" font-weight="bold" fill="#23252e">Millennium Prize Problems (7, $1M each)</text><text x="270" y="76" font-size="11" fill="#6d6f7a">⬜ Humans: 1 in 26 years; AI: 0 (Astra failed too)</text></g>
+      <text x="60" y="190" font-size="12" fill="#6d6f7a" transform="rotate(-90 60 190)" data-anim>Difficulty →</text>
+    </svg>
+    <div class="fig-cap zh">图 4 · 难度阶梯:下两层进展惊人,上两层仍然纹丝不动——「井喷」与「远未攻克」同时为真。数据:Epoch AI / The Decoder,2026-08。</div>
+    <div class="fig-cap en">Fig. 4 · The difficulty ladder: stunning progress on the lower rungs, zero movement on the top ones — "explosion" and "far from conquered" are both true. Data: Epoch AI / The Decoder, Aug 2026.</div>
+  </div>
+
+  <p class="zh">另一个边界是<strong>领域不均衡</strong>:数学家 Trefor Bazett 指出,图论等领域特别适合机器生成证明,另一些领域则明显「抗药」。每解决一题的背后,是更多题依然无从下手。还要记住汇率:AI 解的多是「陈述清晰、可暴力+巧思组合攻破」的问题;千禧年级问题需要的可能是全新数学框架,而不只是更多算力。</p>
+  <p class="en">Another boundary is <strong>field imbalance</strong>: mathematician Trefor Bazett notes that fields like graph theory suit machine-generated proofs especially well, while others remain resistant. Behind every solved problem stand many more with no known angle of attack. Mind the exchange rate, too: AI's wins are mostly cleanly-stated problems crackable by brute force plus clever construction; Millennium-level problems may require entirely new mathematical frameworks, not just more compute.</p>
+</section>
+
+<section id="debate">
+  <h2><span class="sn">8</span><span class="zh">🗣️ 社区反应:从工具论到「数学的暗夜」</span><span class="en">🗣️ Community Reactions: From "Just a Tool" to "The Dark Night"</span></h2>
+  <p class="zh">数学界的反应谱系比任何头条都有信息量。按乐观到悲观排列:</p>
+  <p class="en">The spectrum of mathematicians' reactions carries more information than any headline. From optimistic to dark:</p>
+
+  <div class="callout quote">
+    <p class="zh" style="margin:0">「在我的研究领域,前沿模型至少相当于一个扎实且不知疲倦的博士生。……有人会很快适应,发现无限可能;也有人会像民谣英雄 John Henry 一样,怀疑到最后一刻。」</p>
+    <p class="en" style="margin:0">"At the moment, in my area of research mathematics, frontier AI models are at least as good as a solid and indefatigable PhD student. … Some will adapt soon, and find boundless possibilities; other academics will continue to be AI-sceptical until the very end, like the folklore hero John Henry."</p>
+    <div class="who zh">— Abhishek Saha(伦敦玛丽女王大学教授)· 立场:生产力工具论</div>
+    <div class="who en">— Abhishek Saha (Queen Mary University of London) · Position: productivity tool</div>
+  </div>
+
+  <div class="callout quote">
+    <p class="zh" style="margin:0">陶哲轩在 ICM 2026 演讲中把当下类比为 20 世纪初的数学基础危机:那场危机最终让数学地基更牢。他提出「证明过载」问题——结果产出的速度将超过人类审读消化的速度,数学家的角色会转向:判断哪些结果重要、如何呈现、研究该追求什么目标。他 2023 年预言「AI 到 2026 年成为可靠合著者」,已然应验。</p>
+    <p class="en" style="margin:0">In his ICM 2026 talk, Terence Tao compares this moment to the foundational crisis of the early 20th century — a crisis that ultimately left mathematics on firmer ground. He warns of "proof overload": results arriving faster than humans can review and absorb, shifting mathematicians' role toward deciding which results matter, how to present them, and what goals research should pursue. His 2023 prediction that AI would become a reliable co-author by 2026 has come true.</p>
+    <div class="who zh">— Terence Tao · 立场:审慎乐观,呼吁重建工作流</div>
+    <div class="who en">— Terence Tao · Position: cautiously optimistic; calls for new workflows</div>
+  </div>
+
+  <div class="callout quote">
+    <p class="zh" style="margin:0">「感觉非常奇怪、且并不愉快——脚下的地毯就这样被抽走了。」Gowers 说 GPT 5.6 Pro 两次一击解出他投入大量时间的问题。他最担心的是「数学文化的可能毁灭」:如果不再有人花多年建立深层专业素养,一二十年后文献可能膨胀到没有任何人类共同体真正理解它。</p>
+    <p class="en" style="margin:0">"It felt very strange and not particularly pleasant to have the rug pulled out from under my feet like that." Gowers says GPT 5.6 Pro twice solved, on the first attempt, problems he had worked on at length. His deepest worry is "the possible destruction of mathematical culture": if fewer people spend years building deep expertise, the literature could balloon within a decade or two with no human community that truly understands it.</p>
+    <div class="who zh">— Timothy Gowers(菲尔兹奖得主)· 立场:忧虑文化断层</div>
+    <div class="who en">— Timothy Gowers (Fields Medalist) · Position: worried about cultural rupture</div>
+  </div>
+
+  <div class="callout quote">
+    <p class="zh" style="margin:0">「最近的 Leiden 宣言,在我听来是一声捂住的尖叫。」数学家 Kirwin Hampshire 在《数学的暗夜》中直指要害:创造新数学历来是人类触及「不可言说之物」的方式之一;当每个定理都可能已在「巴别图书馆」中被机器写完,为什么还要让作者忍受这场噩梦?</p>
+    <p class="en" style="margin:0">"The recent Leiden Declaration on Artificial Intelligence and Mathematics is, to me, a well-muffled scream." In "The Dark Night of Mathematics," Kirwin Hampshire cuts to the core: creating new mathematics has historically been one way humans access the ineffable; if every theorem may already sit finished in a machine's Library of Babel, why force authors to endure that nightmare?</p>
+    <div class="who zh">— Kirwin Hampshire · 立场:精神性危机论</div>
+    <div class="who en">— Kirwin Hampshire · Position: a spiritual crisis</div>
+  </div>
+
+  <p class="zh">制度层面的回应是 <a href="https://leidendeclaration.ai/">Leiden 宣言</a>:3000+ 数学家签名、国际数学联盟支持,不反对 AI,但要求使用透明、保护作者权利、人类对结果负责。Gowers 未签但表示大体支持。同时值得记住 Bloom 对「AI 取代数学家」叙事的反驳:这些 AI 建立在一个多世纪的数学理论上、由数学家建造、拿数学家写下的一切训练——把它的成果说成「取代」数学家,逻辑不通。</p>
+  <p class="en">The institutional response is the <a href="https://leidendeclaration.ai/">Leiden Declaration</a>: 3,000+ signatures, backed by the International Mathematical Union — not anti-AI, but demanding transparency of use, protection of authors' rights, and human responsibility for results. Gowers hasn't signed but broadly supports it. Also worth keeping is Bloom's rebuttal of the "AI replaces mathematicians" narrative: these systems draw on over a century of mathematical theory, were built by mathematicians, and were trained on everything mathematicians ever wrote — calling that "replacement" doesn't parse.</p>
+</section>
+
+<section id="pitfalls">
+  <h2><span class="sn">9</span><span class="zh">🕳️ 常见误区与阅读此类新闻的防坑指南</span><span class="en">🕳️ Misconceptions &amp; A Field Guide to Reading This News</span></h2>
+
+  <div class="callout warn">
+    <div class="ct zh">误区一:「AI 已经比数学家强了」</div>
+    <div class="ct en">Misconception 1: "AI is now better than mathematicians"</div>
+    <p class="zh" style="margin:0">图 4 的阶梯是最好的解毒剂:最高两档仍是 0。AI 强在「广度 + 不知疲倦 + 便宜」(十题 $2,000),不在「深度的新框架」。目前所有重大成果的论文化、审查、意义判断仍由人类完成。</p>
+    <p class="en" style="margin:0">The ladder in Fig. 4 is the best antidote: the top two tiers are still at zero. AI's strength is breadth + tirelessness + cheapness ($2,000 for ten problems), not deep new frameworks. Every major result still gets its write-up, review, and significance judgment from humans.</p>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct zh">误区二:「Lean 编译通过 = 这件事重要」</div>
+    <div class="ct en">Misconception 2: "It compiles in Lean, therefore it matters"</div>
+    <p class="zh" style="margin:0">Lean 只保证<strong>逻辑正确</strong>,不保证<strong>数学上有趣</strong>。陶哲轩早先评论 GPT-5.2 解出 Erdős 题时就提醒:那更多说明「速度」而非「难度」。正确性验证已自动化,重要性判断没有——这正是 Tao 说数学家角色转移的方向。</p>
+    <p class="en" style="margin:0">Lean guarantees <strong>logical correctness</strong>, not <strong>mathematical interest</strong>. When GPT-5.2 cracked an Erdős problem, Tao cautioned the win said more about speed than difficulty. Correctness checking is automated; significance judgment is not — exactly where Tao says the mathematician's role is moving.</p>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct zh">误区三:「多智能体 + 更长时间 = 万能」</div>
+    <div class="ct en">Misconception 3: "Multi-agent + more time = universal solvent"</div>
+    <p class="zh" style="margin:0">长时程系统的两大顽疾(误差复利、上下文膨胀)并没有被宣布解决;Google–MIT 研究还表明强耦合任务上多智能体可能负收益。数学是「验证器完美 + 天然可并行」的最优场景——你的业务任务未必满足这两条,迁移预期要打折。</p>
+    <p class="en" style="margin:0">The two chronic ills of long-horizon systems (compounding errors, context growth) have not been declared solved; the Google–MIT study shows multi-agent can go negative on tightly coupled tasks. Math is the best-case scenario — perfect verifier, naturally parallel. Your business task may satisfy neither; discount accordingly when transferring expectations.</p>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct zh">误区四:把预告当发布、把单源当定论</div>
+    <div class="ct en">Misconception 4: Treating previews as releases, single sources as settled fact</div>
+    <p class="zh" style="margin:0">Astra 本身<strong>没有发布</strong>:无日期、无定名(GPT-6 还是 5.7 未定),能力叙述部分来自 The Information 的匿名信源。本文中「AlphaProof Nexus」的具体战绩数字同样来自社区资料、未见官方页面印证,已在表格中标注。阅读这个领域,来源等级意识(官方论文 &gt; 官方博客 &gt; 大媒体 &gt; 社区)是基本功。</p>
+    <p class="en" style="margin:0">Astra itself is <strong>not released</strong>: no date, no final name (GPT-6 vs 5.7 undecided), and parts of the capability story come from The Information's anonymous sources. Likewise, the specific "AlphaProof Nexus" tallies here come from community write-ups without an official page confirmation, as flagged in the table. In this field, source-tier awareness (official paper &gt; official blog &gt; major press &gt; community) is table stakes.</p>
+  </div>
+</section>
+
+<section id="resources">
+  <h2><span class="sn">10</span><span class="zh">📚 学习资源清单</span><span class="en">📚 Learning Resources</span></h2>
+  <p class="zh">按「先读什么」排序:</p>
+  <p class="en">In suggested reading order:</p>
+  <div class="glossary">
+    <div class="g"><b class="zh">一手材料</b><b class="en">Primary</b><span class="zh"><a href="https://cdn.openai.com/pdf/ten-proofs-oai.pdf">OpenAI 十证明报告</a> · <a href="https://cdn.openai.com/pdf/reasoning-walkthroughs.pdf">推理走读</a> · <a href="https://github.com/openai/ten-proofs">Lean 证明仓库</a></span><span class="en"><a href="https://cdn.openai.com/pdf/ten-proofs-oai.pdf">OpenAI ten-proofs report</a> · <a href="https://cdn.openai.com/pdf/reasoning-walkthroughs.pdf">Reasoning walkthroughs</a> · <a href="https://github.com/openai/ten-proofs">Lean proof repo</a></span></div>
+    <div class="g"><b class="zh">全局视角</b><b class="en">Big picture</b><span class="zh"><a href="https://teorth.github.io/tao-web/slides/age-of-ai-icm-2026.pdf">陶哲轩 ICM 2026 讲稿《The Age of AI》</a> · <a href="https://gowers.wordpress.com/2026/07/26/thoughts-about-the-leiden-declaration/">Gowers 博客</a> · <a href="https://leidendeclaration.ai/">Leiden 宣言</a></span><span class="en"><a href="https://teorth.github.io/tao-web/slides/age-of-ai-icm-2026.pdf">Tao's ICM 2026 slides, "The Age of AI"</a> · <a href="https://gowers.wordpress.com/2026/07/26/thoughts-about-the-leiden-declaration/">Gowers's blog</a> · <a href="https://leidendeclaration.ai/">Leiden Declaration</a></span></div>
+    <div class="g"><b class="zh">基准与数据</b><b class="en">Benchmarks</b><span class="zh"><a href="https://epoch.ai/frontiermath/open-problems/about">Epoch AI · FrontierMath Open Problems</a> · <a href="https://ourworldindata.org/grapher/ai-frontiermath-over-time">OWID 进度曲线</a></span><span class="en"><a href="https://epoch.ai/frontiermath/open-problems/about">Epoch AI · FrontierMath Open Problems</a> · <a href="https://ourworldindata.org/grapher/ai-frontiermath-over-time">OWID progress curve</a></span></div>
+    <div class="g"><b class="zh">方法论文</b><b class="en">Method papers</b><span class="zh"><a href="https://arxiv.org/pdf/2604.21187">CMU:SAT+LLM+形式化解 Ramsey 开放问题</a> · <a href="https://arxiv.org/pdf/2605.13171">Formal Conjectures 基准</a> · <a href="https://arxiv.org/pdf/2606.05400">LeanMarathon:长时程自动形式化</a></span><span class="en"><a href="https://arxiv.org/pdf/2604.21187">CMU: SAT+LLM+formal verification on a Ramsey open problem</a> · <a href="https://arxiv.org/pdf/2605.13171">Formal Conjectures benchmark</a> · <a href="https://arxiv.org/pdf/2606.05400">LeanMarathon: long-horizon autoformalization</a></span></div>
+    <div class="g"><b class="zh">追踪动态</b><b class="en">Tracking</b><span class="zh">erdosproblems.com(开放问题状态)· The Decoder AI research 频道 · Epoch AI 的 X 账号</span><span class="en">erdosproblems.com (open-problem status) · The Decoder's AI research desk · Epoch AI on X</span></div>
+  </div>
+
+  <div class="final">
+    <h3 class="zh">一句话带走</h3>
+    <h3 class="en">The One-Line Takeaway</h3>
+    <p class="zh" style="margin:0">AI 数学发现 = <strong>长时程搜索</strong>(测试时计算 + 多智能体)× <strong>硬验证器</strong>(Lean)。前者提供野蛮的探索广度,后者把探索产物点石成金为可信知识——而这对组合,正是所有严肃 Agent 系统的原型设计图。竞赛已经毕业,开放问题刚刚破门,最高峰纹丝不动:2026 年 8 月的真实坐标,就在这三句话之间。</p>
+    <p class="en" style="margin:0">AI mathematical discovery = <strong>long-horizon search</strong> (test-time compute + multi-agent) × <strong>hard verifiers</strong> (Lean). The former buys brute exploratory breadth; the latter transmutes its output into trusted knowledge — and that pairing is the prototype blueprint for every serious agent system. Competitions: graduated. Open problems: door just cracked. The summits: unmoved. The honest coordinates of August 2026 sit between those three sentences.</p>
+  </div>
+</section>
+
+<footer>
+  <p class="zh"><strong>调研时间:2026-08-03</strong> · 本文档由 AI Daily 定时任务生成:全网搜索 + 原文抓取,关键事实标注来源;单一来源信息已在正文注明「据报道 / 社区资料」。快速迭代领域,请以官方最新发布为准。</p>
+  <p class="en"><strong>Researched: 2026-08-03</strong> · Generated by the AI Daily scheduled task via web search + full-text fetching, with key facts attributed; single-source items are flagged in the text. This field moves fast — defer to the latest official publications.</p>
+  <ul>
+    <li>1. OpenAI, "Ten proofs" report — cdn.openai.com/pdf/ten-proofs-oai.pdf (2026-08-01)</li>
+    <li>2. OpenAI, Reasoning walkthroughs — cdn.openai.com/pdf/reasoning-walkthroughs.pdf (2026-08-01)</li>
+    <li>3. OpenAI, Lean formalizations — github.com/openai/ten-proofs</li>
+    <li>4. The Decoder, "OpenAI announces its next major model Astra…" (2026-08-01)</li>
+    <li>5. The Decoder, "AI keeps cracking unsolved math problems…" (2026-08-01)</li>
+    <li>6. The Information, "Exclusive: OpenAI Previews 'Astra' AI Model in DC" (2026-07-31)</li>
+    <li>7. Terence Tao, "The Age of AI" — ICM 2026 slides (teorth.github.io)</li>
+    <li>8. Timothy Gowers, "Thoughts about the Leiden Declaration" — gowers.wordpress.com (2026-07-26)</li>
+    <li>9. Leiden Declaration on AI and Mathematics — leidendeclaration.ai</li>
+    <li>10. Epoch AI, FrontierMath: Open Problems — epoch.ai/frontiermath/open-problems/about</li>
+    <li>11. CMU team, Ramsey theory paper — arXiv:2604.21187 (2026-04)</li>
+    <li>12. Kirwin Hampshire, "The Dark Night of Mathematics" — Substack (2026-07)</li>
+    <li>13. Trefor Bazett, The Conversation, "A new golden age of mathematics…" (2026)</li>
+    <li>14. Community technical write-ups on AlphaProof Nexus (Medium / dev.to / UVA course page, 2026-05) — 单源,标注为未获官方印证 / single-source, flagged as unconfirmed</li>
+  </ul>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var body=document.body, htmlEl=document.documentElement;
+  var btn=document.getElementById('langBtn');
+  var toc=document.getElementById('sideToc'), tocBtn=document.getElementById('tocToggle');
+  var stBar=document.getElementById('stBar'), stPct=document.getElementById('stPct'), topBar=document.getElementById('topProgress');
+  var links=[].slice.call(document.querySelectorAll('.side-toc li a'));
+  var sections=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  var figures=[].slice.call(document.querySelectorAll('.figure'));
+
+  figures.forEach(function(f){
+    [].slice.call(f.querySelectorAll('[data-anim]')).forEach(function(el,i){el.style.transitionDelay=(0.15+i*0.12)+'s';});
+    [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){
+      try{var len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len;}catch(e){}
+    });
+  });
+  function reveal(f){
+    if(f.classList.contains('in'))return;
+    f.classList.add('in');
+    [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){p.style.strokeDashoffset='0';});
+  }
+  var obs=null;
+  if('IntersectionObserver' in window){
+    obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){reveal(e.target);obs.unobserve(e.target);}});},{threshold:0.18});
+    figures.forEach(function(f){obs.observe(f);});
+  }else{figures.forEach(reveal);}
+
+  function revealVisible(){
+    figures.forEach(function(f){
+      if(f.classList.contains('in'))return;
+      var r=f.getBoundingClientRect();
+      if(r.width>0&&r.top<window.innerHeight&&r.bottom>0){reveal(f);if(obs)obs.unobserve(f);}
+      else if(obs){obs.observe(f);}
+    });
+  }
+  function setLang(l){
+    body.setAttribute('data-lang',l);
+    htmlEl.setAttribute('lang',l==='zh'?'zh-CN':'en');
+    btn.textContent=(l==='zh')?'EN':'中';
+    try{localStorage.setItem('aidaily-math-lang',l);}catch(e){}
+    requestAnimationFrame(function(){requestAnimationFrame(revealVisible);});
+  }
+  var initial='zh';
+  try{
+    var saved=localStorage.getItem('aidaily-math-lang');
+    if(saved==='zh'||saved==='en'){initial=saved;}
+    else{initial=(navigator.language||'zh').toLowerCase().indexOf('zh')===0?'zh':'en';}
+  }catch(e){}
+  setLang(initial);
+  btn.addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh');});
+
+  tocBtn.addEventListener('click',function(){toc.classList.toggle('open');});
+  links.forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open');});});
+
+  function onScroll(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+    var p=max>0?Math.min(100,Math.round(h.scrollTop/max*100)):0;
+    stBar.style.width=p+'%'; stPct.textContent=p+'%'; topBar.style.width=p+'%';
+    var cur=0, y=h.scrollTop+120;
+    sections.forEach(function(s,i){if(s&&s.offsetTop<=y)cur=i;});
+    links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>
