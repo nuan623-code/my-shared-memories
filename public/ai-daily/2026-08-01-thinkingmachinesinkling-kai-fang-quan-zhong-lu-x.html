@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thinking Machines Inkling:开放权重路线深读 | Thinking Machines' Inkling: The Open-Weights Bet</title>
+<style>
+:root{
+  --bg:#eef5f4; --surface:#fbfdfd; --ink:#17302c; --muted:#5f7572;
+  --accent:#0e7266; --accent-soft:#dcefec; --accent-2:#7d4ba0; --accent-2-soft:#efe5f7;
+  --line:#d3e3df; --warn:#a04d1c; --warn-soft:#f8ecdf; --ok:#2f6b4f; --ok-soft:#e7f2ea;
+  --radius:16px; --serif:"Avenir Next","Helvetica Neue","PingFang SC","Hiragino Sans GB",sans-serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.85}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.top-progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;z-index:60}
+.lang-btn{position:fixed;top:14px;right:14px;z-index:70;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);
+  font-family:var(--sans);font-size:14px;font-weight:700;padding:7px 14px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(40,40,80,.12)}
+.lang-btn:hover{background:var(--accent);color:#fff}
+.side-toc{position:fixed;left:18px;top:70px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:50;
+  background:rgba(255,253,247,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;font-size:13.5px;box-shadow:0 6px 24px rgba(60,60,90,.08)}
+.st-brand{font-family:var(--serif);font-weight:700;font-size:15px;color:var(--accent)}
+.st-sub{color:var(--muted);font-size:12px;margin:2px 0 10px}
+.st-progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.st-pct{font-size:11px;color:var(--muted);margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:8px;line-height:1.45}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.side-toc .num{font-family:var(--serif);color:var(--accent-2);min-width:18px}
+.toc-toggle{display:none;position:fixed;left:14px;top:14px;z-index:70;width:42px;height:42px;border-radius:12px;
+  border:1px solid var(--line);background:var(--surface);font-size:19px;cursor:pointer;box-shadow:0 2px 8px rgba(40,40,80,.12)}
+.wrap{max-width:840px;margin:0 auto;padding:28px 22px 80px}
+@media (min-width:1180px){.wrap{margin-left:300px}}
+@media (max-width:1179px){
+  .side-toc{transform:translateX(-115%);transition:transform .28s}
+  .side-toc.open{transform:none}
+  .toc-toggle{display:block}
+}
+.hero{background:var(--surface);border:1px solid var(--line);background:linear-gradient(150deg,#fbfdfd 0%,#dcefec 100%);border-radius:var(--radius);padding:44px 36px 36px;margin-bottom:36px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:8px;border:1px solid var(--line);border-radius:9px;pointer-events:none}
+.hero .kicker{font-size:13px;letter-spacing:.18em;color:var(--accent-2);font-weight:700;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-family:var(--serif);font-size:clamp(26px,4.5vw,40px);line-height:1.3;color:var(--ink);margin-bottom:14px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .lede{color:var(--muted);font-size:16.5px;max-width:620px}
+.hero .meta{margin-top:18px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:14px}
+.hero .meta b{color:var(--accent)}
+section{margin-bottom:46px}
+h2{font-family:var(--serif);font-size:26px;color:var(--ink);border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:18px;scroll-margin-top:70px}
+h2 .sn{color:var(--accent-2);margin-right:8px}
+h3{font-family:var(--serif);font-size:19.5px;color:var(--accent);margin:24px 0 10px}
+p{margin-bottom:14px}
+a{color:var(--accent)}
+strong{color:var(--ink)}
+.term{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px;font-weight:600}
+.hl{background:var(--accent-2-soft);padding:1px 5px;border-radius:5px}
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:18px 20px;margin:16px 0}
+.def .dt{font-weight:800;font-size:16.5px;margin-bottom:8px}
+.def .row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start}
+.def .tag{flex:0 0 auto;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;margin-top:5px}
+.tag-what{background:var(--accent-soft);color:var(--accent)}
+.tag-why{background:var(--accent-2-soft);color:var(--accent-2)}
+.tag-eg{background:var(--ok-soft);color:var(--ok)}
+.callout{border-radius:10px;padding:16px 18px;margin:16px 0;border:1px solid var(--line)}
+.callout .ct{font-weight:800;margin-bottom:6px}
+.callout.key{background:var(--accent-soft);border-color:#cfc9ee}
+.callout.warn{background:var(--warn-soft);border-color:#ecd2bf}
+.callout.warn .ct{color:var(--warn)}
+.callout.quote{background:var(--surface);border-left:4px solid var(--accent-2);font-family:var(--serif)}
+.callout.quote .who{font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+.stat .n{font-family:var(--serif);font-size:26px;font-weight:700;color:var(--accent)}
+.stat .l{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:4px}
+.steps{margin:16px 0}
+.step{display:flex;gap:14px;margin-bottom:12px}
+.step .dot{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.step .sb{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.step .sb b{display:block;margin-bottom:2px}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px;background:var(--surface);border:1px solid var(--line)}
+th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);color:var(--accent);font-size:14px}
+.glossary{margin:16px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.glossary .g{display:flex;gap:12px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);font-size:15px}
+.glossary .g:last-child{border-bottom:none}
+.glossary .g b{flex:0 0 190px;color:var(--accent)}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 14px 10px;margin:20px 0;
+  opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--muted);text-align:center;padding:8px 10px 6px;border-top:1px dashed var(--line);margin-top:8px}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{transition:stroke-dashoffset 1.1s ease .2s}
+details.rephrase{background:var(--accent-2-soft);border:1px solid #ecdcb8;border-radius:10px;padding:10px 16px;margin:14px 0}
+details.rephrase summary{cursor:pointer;font-weight:700;color:var(--accent-2)}
+details.rephrase div{padding-top:10px}
+.final{background:var(--ink);color:#efece2;border-radius:var(--radius);padding:26px 28px;margin-top:8px}
+.final h3{color:var(--accent-2-soft);margin-top:0}
+.final a{color:#c9c4f2}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer ul{list-style:none;margin-top:8px}
+footer li{margin-bottom:5px;overflow-wrap:anywhere}
+@media (max-width:640px){
+  body{font-size:16px}
+  .stats{grid-template-columns:1fr}
+  .glossary .g{flex-direction:column;gap:2px}
+  .glossary .g b{flex:none}
+  .hero{padding:32px 20px 26px}
+  .lang-btn{top:12px;right:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .figure,.figure [data-anim]{opacity:1!important;transform:none!important;transition:none!important}
+  .figure [data-draw]{transition:none!important;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 深度学习文档 · AI Daily(08-03 补生成) Deep-Dive · AI Daily (backfilled 08-03) Thinking Machines Inkling ——开放权重路线深读 T…">
+<meta property="og:title" content="Thinking Machines Inkling:开放权重路线深读 | Thinking Machines&#x27; Inkling: The Open-Weights Bet">
+<meta property="og:description" content="EN 深度学习文档 · AI Daily(08-03 补生成) Deep-Dive · AI Daily (backfilled 08-03) Thinking Machines Inkling ——开放权重路线深读 T…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-01-thinkingmachinesinkling-kai-fang-quan-zhong-lu-x.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-01-thinkingmachinesinkling-kai-fang-quan-zhong-lu-x.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Thinking Machines Inkling:开放权重路线深读 | Thinking Machines' Inkling: The Open-Weights Bet", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-01-thinkingmachinesinkling-kai-fang-quan-zhong-lu-x.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-01", "dateModified": "2026-08-03"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="top-progress" id="topProgress"></div>
+<button class="lang-btn" id="langBtn" aria-label="Switch language">EN</button>
+<button class="toc-toggle" id="tocToggle" aria-label="Table of contents">☰</button>
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand"><span class="zh">Inkling 深读</span><span class="en">Inkling Deep-Dive</span></div>
+  <div class="st-sub"><span class="zh">开放权重路线 · 2026-08-01</span><span class="en">The open-weights bet · 2026-08-01</span></div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#overview"><span class="num">1</span><span><span class="zh">开篇速览</span><span class="en">At a Glance</span></span></a></li>
+    <li><a href="#bet"><span class="num">2</span><span><span class="zh">它在赌什么</span><span class="en">The Bet</span></span></a></li>
+    <li><a href="#arch"><span class="num">3</span><span><span class="zh">架构与训练</span><span class="en">Architecture &amp; Training</span></span></a></li>
+    <li><a href="#capability"><span class="num">4</span><span><span class="zh">能力与思考档位</span><span class="en">Capabilities &amp; Effort Dial</span></span></a></li>
+    <li><a href="#small"><span class="num">5</span><span><span class="zh">Inkling Small</span><span class="en">Inkling Small</span></span></a></li>
+    <li><a href="#use"><span class="num">6</span><span><span class="zh">怎么用与生态</span><span class="en">How to Use It</span></span></a></li>
+    <li><a href="#compare"><span class="num">7</span><span><span class="zh">选型与常见坑</span><span class="en">Choosing &amp; Pitfalls</span></span></a></li>
+    <li><a href="#resources"><span class="num">8</span><span><span class="zh">学习资源</span><span class="en">Resources</span></span></a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker"><span class="zh">深度学习文档 · AI Daily(08-03 补生成)</span><span class="en">Deep-Dive · AI Daily (backfilled 08-03)</span></div>
+  <h1 class="zh">Thinking Machines <em>Inkling</em><br>——开放权重路线深读</h1>
+  <h1 class="en">Thinking Machines' <em>Inkling</em><br>— The Open-Weights Bet, Explained</h1>
+  <p class="lede zh">前 OpenAI CTO Mira Murati 的实验室在 7 月 15 日放出首个从零训练的开放权重模型 Inkling(Apache 2.0),7 月 31 日又用 Inkling Small 证明「三分之一参数、几乎同等智能」。本文讲清:它是什么、架构上有什么讲究、思考档位怎么用、和 Kimi/GLM/DeepSeek 怎么选,以及要避开的坑。</p>
+  <p class="lede en">On July 15, the lab of former OpenAI CTO Mira Murati released Inkling, its first open-weights model trained from scratch (Apache 2.0); on July 31, Inkling Small showed "a third of the parameters, nearly the same intelligence." This document covers what it is, what's distinctive in the architecture, how the thinking-effort dial works, how it stacks up against Kimi/GLM/DeepSeek — and the pitfalls to avoid.</p>
+  <div class="meta">
+    <span class="zh">📅 调研日期:<b>2026-08-03</b></span><span class="en">📅 Researched: <b>2026-08-03</b></span>
+    <span class="zh">🌐 主来源:官方发布长文 + Artificial Analysis + 媒体</span><span class="en">🌐 Primary: official launch post + Artificial Analysis + press</span>
+    <span class="zh">🀄/🅰️ 中英双语,右上角切换</span><span class="en">🀄/🅰️ Bilingual — toggle top right</span>
+  </div>
+</div>
+
+<section id="overview">
+  <h2><span class="sn">1</span><span class="zh">🔭 开篇速览:30 秒版本</span><span class="en">🔭 At a Glance: The 30-Second Version</span></h2>
+  <p class="zh"><strong>是什么:</strong><span class="term">Inkling</span> 是一个 MoE(混合专家)Transformer:975B 总参数、41B 激活,上下文最长 1M token,在 45 万亿 token 的文本+图像+音频+视频上从零预训练,原生多模态推理,Apache 2.0 开源权重。官方定位很坦诚:<span class="hl">「不是今天最强的模型」,而是一个为微调定制而生的宽基座</span>——多模态、省 token、可控思考档位,且直接接入自家微调平台 Tinker。</p>
+  <p class="en"><strong>What it is:</strong> <span class="term">Inkling</span> is a Mixture-of-Experts transformer: 975B total parameters, 41B active, up to a 1M-token context, pretrained from scratch on 45 trillion tokens of text, images, audio and video, reasoning natively across modalities, with Apache 2.0 open weights. The official positioning is refreshingly candid: <span class="hl">"not the strongest overall model available today" — but a broad base built for customization</span>: multimodal, token-efficient, with a controllable effort dial, wired into the lab's Tinker fine-tuning platform.</p>
+  <p class="zh"><strong>为什么值得关注:</strong>它是开放权重阵营里罕见的「从零训练 + 全家桶思路」样本:模型(Inkling / Inkling-Small)+ 微调平台(Tinker)+ 交互系统(interaction models)一体设计;发布长文还公开了大量训练细节(30M rollouts 的大规模 RL、校准训练、反审查训练),透明度在同类中少见。</p>
+  <p class="en"><strong>Why it matters:</strong> it's a rare open-weights specimen of "trained from scratch + full-stack thinking": models (Inkling / Inkling-Small) + a fine-tuning platform (Tinker) + an interaction system, designed together; and the launch post discloses unusual amounts of training detail (30M-rollout large-scale RL, calibration training, censorship-resistance training).</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Inkling 家族与生态管道">
+      <defs><marker id="ar-z1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0e7266"/></marker></defs>
+      <g data-anim><rect x="20" y="40" width="200" height="72" rx="12" fill="#dcefec" stroke="#0e7266" stroke-width="1.5"/><text x="120" y="66" text-anchor="middle" font-size="14" font-weight="bold" fill="#17302c">Inkling(旗舰)</text><text x="120" y="86" text-anchor="middle" font-size="11" fill="#5f7572">975B 总 / 41B 激活 · 1M 上下文</text><text x="120" y="102" text-anchor="middle" font-size="11" fill="#5f7572">多模态 · Apache 2.0</text></g>
+      <g data-anim><rect x="20" y="140" width="200" height="72" rx="12" fill="#efe5f7" stroke="#7d4ba0" stroke-width="1.5"/><text x="120" y="166" text-anchor="middle" font-size="14" font-weight="bold" fill="#17302c">Inkling Small</text><text x="120" y="186" text-anchor="middle" font-size="11" fill="#5f7572">276B 总 / 12B 激活 · 256K</text><text x="120" y="202" text-anchor="middle" font-size="11" fill="#5f7572">07-31 发布 · 效率优先</text></g>
+      <path d="M220 90 H300" stroke="#0e7266" stroke-width="2" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M220 172 H300" stroke="#7d4ba0" stroke-width="2" marker-end="url(#ar-z1)" data-draw/>
+      <g data-anim><rect x="304" y="86" width="200" height="110" rx="12" fill="#fbfdfd" stroke="#0e7266" stroke-width="1.5"/><text x="404" y="112" text-anchor="middle" font-size="14" font-weight="bold" fill="#0e7266">Tinker 微调平台</text><text x="404" y="134" text-anchor="middle" font-size="11" fill="#5f7572">浏览器内微调 / Playground</text><text x="404" y="152" text-anchor="middle" font-size="11" fill="#5f7572">cookbook 配方 · tml-renderer</text><text x="404" y="170" text-anchor="middle" font-size="11" fill="#5f7572">64K / 256K 上下文档位</text></g>
+      <path d="M504 140 H584" stroke="#0e7266" stroke-width="2" marker-end="url(#ar-z1)" data-draw/>
+      <g data-anim><rect x="588" y="60" width="212" height="160" rx="12" fill="#fbfdfd" stroke="#d3e3df"/><text x="694" y="86" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#17302c">部署生态</text><text x="694" y="110" text-anchor="middle" font-size="11" fill="#5f7572">API:Together / Fireworks /</text><text x="694" y="126" text-anchor="middle" font-size="11" fill="#5f7572">Modal / Databricks / Baseten</text><text x="694" y="148" text-anchor="middle" font-size="11" fill="#5f7572">推理:SGLang · vLLM ·</text><text x="694" y="164" text-anchor="middle" font-size="11" fill="#5f7572">llama.cpp · transformers</text><text x="694" y="188" text-anchor="middle" font-size="11" fill="#5f7572">权重:Hugging Face</text><text x="694" y="204" text-anchor="middle" font-size="11" fill="#5f7572">(含 NVFP4 Blackwell 版)</text></g>
+    </svg>
+    <svg class="en" viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Inkling family and ecosystem pipeline">
+      <defs><marker id="ar-e1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0e7266"/></marker></defs>
+      <g data-anim><rect x="20" y="40" width="200" height="72" rx="12" fill="#dcefec" stroke="#0e7266" stroke-width="1.5"/><text x="120" y="66" text-anchor="middle" font-size="13" font-weight="bold" fill="#17302c">Inkling (flagship)</text><text x="120" y="86" text-anchor="middle" font-size="10.5" fill="#5f7572">975B total / 41B active · 1M ctx</text><text x="120" y="102" text-anchor="middle" font-size="10.5" fill="#5f7572">Multimodal · Apache 2.0</text></g>
+      <g data-anim><rect x="20" y="140" width="200" height="72" rx="12" fill="#efe5f7" stroke="#7d4ba0" stroke-width="1.5"/><text x="120" y="166" text-anchor="middle" font-size="13" font-weight="bold" fill="#17302c">Inkling Small</text><text x="120" y="186" text-anchor="middle" font-size="10.5" fill="#5f7572">276B total / 12B active · 256K</text><text x="120" y="202" text-anchor="middle" font-size="10.5" fill="#5f7572">Shipped 07-31 · efficiency-first</text></g>
+      <path d="M220 90 H300" stroke="#0e7266" stroke-width="2" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M220 172 H300" stroke="#7d4ba0" stroke-width="2" marker-end="url(#ar-e1)" data-draw/>
+      <g data-anim><rect x="304" y="86" width="200" height="110" rx="12" fill="#fbfdfd" stroke="#0e7266" stroke-width="1.5"/><text x="404" y="112" text-anchor="middle" font-size="13" font-weight="bold" fill="#0e7266">Tinker fine-tuning</text><text x="404" y="134" text-anchor="middle" font-size="10.5" fill="#5f7572">In-browser fine-tuning / Playground</text><text x="404" y="152" text-anchor="middle" font-size="10.5" fill="#5f7572">Cookbook recipes · tml-renderer</text><text x="404" y="170" text-anchor="middle" font-size="10.5" fill="#5f7572">64K / 256K context tiers</text></g>
+      <path d="M504 140 H584" stroke="#0e7266" stroke-width="2" marker-end="url(#ar-e1)" data-draw/>
+      <g data-anim><rect x="588" y="60" width="212" height="160" rx="12" fill="#fbfdfd" stroke="#d3e3df"/><text x="694" y="86" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#17302c">Deployment ecosystem</text><text x="694" y="110" text-anchor="middle" font-size="10.5" fill="#5f7572">APIs: Together / Fireworks /</text><text x="694" y="126" text-anchor="middle" font-size="10.5" fill="#5f7572">Modal / Databricks / Baseten</text><text x="694" y="148" text-anchor="middle" font-size="10.5" fill="#5f7572">Inference: SGLang · vLLM ·</text><text x="694" y="164" text-anchor="middle" font-size="10.5" fill="#5f7572">llama.cpp · transformers</text><text x="694" y="188" text-anchor="middle" font-size="10.5" fill="#5f7572">Weights: Hugging Face</text><text x="694" y="204" text-anchor="middle" font-size="10.5" fill="#5f7572">(incl. NVFP4 for Blackwell)</text></g>
+    </svg>
+    <div class="fig-cap zh">图 1 · Inkling 家族与生态:模型—微调平台—部署伙伴一体设计。数据:官方发布长文(2026-07-15 / 07-31)。</div>
+    <div class="fig-cap en">Fig. 1 · The Inkling family and ecosystem: models, fine-tuning platform, and deployment partners designed as one. Data: official launch posts (2026-07-15 / 07-31).</div>
+  </div>
+</section>
+
+<section id="bet">
+  <h2><span class="sn">2</span><span class="zh">🎯 它在赌什么:反「一体适用」</span><span class="en">🎯 The Bet: Against One-Size-Fits-All</span></h2>
+  <p class="zh">读这个模型,先读它的立场。Thinking Machines 的使命表述是「构建扩展人类意志与判断的 AI」,落到产品上是一个明确的赌注:<strong>未来不属于一个万能的封闭模型,而属于「拿一个够宽的开放基座,用自己的数据调成自己的模型」</strong>。所以发布的重心不是刷榜,而是三件事:</p>
+  <p class="en">To read this model, read its stance first. Thinking Machines' mission line is "building AI that extends human will and judgment," which lands as a concrete bet: <strong>the future belongs not to one universal closed model, but to "take a broad open base and tune it into your own model with your own data."</strong> Hence the launch emphasizes three things over leaderboard-chasing:</p>
+  <div class="glossary">
+    <div class="g"><b class="zh">宽而平衡的基座</b><b class="en">A broad, balanced base</b><span class="zh">刻意训练成跨 Agent、推理、代码、指令遵循、事实性、视觉、音频的全能型,而非窄域刷分——因为要适配的下游工作流千差万别。</span><span class="en">Deliberately trained across agentic, reasoning, coding, instruction-following, factuality, vision and audio rather than narrowly optimized — because downstream workflows vary wildly.</span></div>
+    <div class="g"><b class="zh">Epistemics(求真品质)</b><b class="en">Epistemics</b><span class="zh">official 把「校准、指令遵循、反审查」合称模型的 epistemics:用适当的置信度说话(ForecastBench 上与 Grok 4.3、Gemini 3.1 Pro 同档)、该说「不知道」时说不知道;并专门训练了对可能被审查话题的直接回答(Cognition 的 Propaganda and Censorship Eval 验证)。VentureBeat 把「低成本 + 抗审查」总结为其两大卖点。</span><span class="en">The post groups calibration, instruction following, and censorship resistance as the model's epistemics: speaking with appropriate confidence (on par with Grok 4.3 and Gemini 3.1 Pro on ForecastBench), saying "I don't know" when warranted — and specifically training direct answers on censorable topics (verified via Cognition's Propaganda and Censorship Eval). VentureBeat summarized its pitch as "low cost and resistance to censorship."</span></div>
+    <div class="g"><b class="zh">微调即产品</b><b class="en">Fine-tuning as the product</b><span class="zh">发布演示里最有态度的一幕:让 Inkling 在 OpenCode harness 里<em>给自己写微调任务</em>——起草方案、生成评测与合成数据、调 Tinker API 训练、加载新权重完成闭环。模型是原料,Tinker 才是主打商品。</span><span class="en">The launch's most pointed demo: Inkling, inside the OpenCode harness, <em>fine-tuning itself</em> — drafting the plan, generating evals and synthetic data, calling the Tinker API to train, then loading the new weights. The model is raw material; Tinker is the flagship product.</span></div>
+  </div>
+  <div class="callout key">
+    <div class="ct zh">🧭 一个诚实的定位声明</div>
+    <div class="ct en">🧭 An honest positioning statement</div>
+    <p class="zh" style="margin:0">官方原话:「Inkling 不是今天可用的最强模型,无论开放或封闭」——它押的是「多模态 + 高 token 效率 + 可微调」这个组合拳。读任何厂商发布都该以此为镜:敢写明短板的发布,数字部分的可信度通常也更高。</p>
+    <p class="en" style="margin:0">In the post's own words: "Inkling is not the strongest overall model available today, open or closed" — the bet is the combination of multimodality, token efficiency, and tunability. Read every vendor launch against this mirror: posts that state their weaknesses plainly tend to have more trustworthy numbers too.</p>
+  </div>
+</section>
+
+<section id="arch">
+  <h2><span class="sn">3</span><span class="zh">🏗️ 架构与训练:几处有讲究的偏离</span><span class="en">🏗️ Architecture &amp; Training: Deliberate Departures</span></h2>
+  <p class="zh">MoE 主体大致沿用 DeepSeek-V3 配方,但有几处为效率和长上下文特意做的偏离,官方长文写得相当具体:</p>
+  <p class="en">The MoE core largely follows the DeepSeek-V3 recipe, with several departures made deliberately for efficiency and long context — the post is unusually specific:</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Inkling 架构分层图">
+      <g data-anim><rect x="60" y="20" width="700" height="56" rx="10" fill="#dcefec" stroke="#0e7266"/><text x="410" y="43" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#0e7266">MoE 层:256 路由专家 + 2 共享专家,每 token 激活 6 个路由专家</text><text x="410" y="63" text-anchor="middle" font-size="11.5" fill="#5f7572">sigmoid 路由器 + 无辅助损失的负载均衡偏置;选中专家与共享专家联合归一化加权</text></g>
+      <g data-anim><rect x="60" y="90" width="700" height="56" rx="10" fill="#fbfdfd" stroke="#0e7266"/><text x="410" y="113" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#17302c">注意力:滑窗层 : 全局层 = 5 : 1,8 个 KV 头</text><text x="410" y="133" text-anchor="middle" font-size="11.5" fill="#5f7572">位置编码用相对位置嵌入(非 RoPE)——官方称长序列外推更好;KV 投影与残差出口处加短卷积</text></g>
+      <g data-anim><rect x="60" y="160" width="700" height="56" rx="10" fill="#fbfdfd" stroke="#7d4ba0"/><text x="410" y="183" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#7d4ba0">多模态:无编码器(encoder-free)设计</text><text x="410" y="203" text-anchor="middle" font-size="11.5" fill="#5f7572">音频输入 dMel 频谱图;图像切 40×40 像素块过四层 hMLP;轻量嵌入后与文本 token 联合处理</text></g>
+      <g data-anim><rect x="60" y="230" width="700" height="56" rx="10" fill="#efe5f7" stroke="#7d4ba0"/><text x="410" y="253" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#7d4ba0">训练:45T token 预训练 + 30M rollouts 大规模异步 RL</text><text x="410" y="273" text-anchor="middle" font-size="11.5" fill="#5f7572">Muon(大矩阵)+ Adam 混合优化;权重衰减 ∝ 学习率²;NVIDIA GB300 NVL72 训练</text></g>
+    </svg>
+    <svg class="en" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Inkling architecture layer diagram">
+      <g data-anim><rect x="60" y="20" width="700" height="56" rx="10" fill="#dcefec" stroke="#0e7266"/><text x="410" y="43" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#0e7266">MoE layers: 256 routed + 2 shared experts, 6 routed active per token</text><text x="410" y="63" text-anchor="middle" font-size="11" fill="#5f7572">Sigmoid router with auxiliary-loss-free load balancing; selected + shared experts jointly normalized</text></g>
+      <g data-anim><rect x="60" y="90" width="700" height="56" rx="10" fill="#fbfdfd" stroke="#0e7266"/><text x="410" y="113" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#17302c">Attention: sliding-window : global = 5 : 1, 8 KV heads</text><text x="410" y="133" text-anchor="middle" font-size="11" fill="#5f7572">Relative positional embeddings (not RoPE) — better long-sequence extrapolation, per the post; short convs at KV projections and residual outputs</text></g>
+      <g data-anim><rect x="60" y="160" width="700" height="56" rx="10" fill="#fbfdfd" stroke="#7d4ba0"/><text x="410" y="183" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#7d4ba0">Multimodality: encoder-free design</text><text x="410" y="203" text-anchor="middle" font-size="11" fill="#5f7572">Audio as dMel spectrograms; images as 40×40 patches through a 4-layer hMLP; light embedding, processed jointly with text tokens</text></g>
+      <g data-anim><rect x="60" y="230" width="700" height="56" rx="10" fill="#efe5f7" stroke="#7d4ba0"/><text x="410" y="253" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#7d4ba0">Training: 45T-token pretraining + 30M-rollout async RL</text><text x="410" y="273" text-anchor="middle" font-size="11" fill="#5f7572">Muon (large matrices) + Adam hybrid; weight decay ∝ LR²; trained on NVIDIA GB300 NVL72</text></g>
+    </svg>
+    <div class="fig-cap zh">图 2 · 架构四层速览。全部细节出自官方发布长文;departures 的动机均为「效率 + 长上下文」。</div>
+    <div class="fig-cap en">Fig. 2 · The architecture in four layers. All details from the official launch post; every departure is motivated by efficiency and long context.</div>
+  </div>
+
+  <p class="zh">训练侧还有两个值得记住的细节:① 后训练冷启动用了包括 Kimi K2.5 在内的开放模型生成的合成数据做初始 SFT(占算力小头),大头是在合成与人工环境上的大规模 RL;② RL 过程中出现了一个<strong>未被奖励直接鼓励的涌现现象</strong>——思维链随训练越来越「电报化」,丢掉冠词和连接词但保持可读、答案不变,纯粹由效率压力驱动(Cognition 训练 SWE-1.7 时也报告过同样现象)。</p>
+  <p class="en">Two training details worth remembering: ① post-training was bootstrapped with an initial SFT on synthetic data generated by open models including Kimi K2.5 (a small fraction of compute), with the bulk spent on large-scale RL over synthetic and human-created environments; ② an <strong>emergent, unrewarded phenomenon</strong> appeared during RL — the chain of thought grew telegraphic over training, dropping articles and connectives while staying comprehensible with unchanged answers, driven purely by efficiency pressure (Cognition reported the same while training SWE-1.7).</p>
+</section>
+
+<section id="capability">
+  <h2><span class="sn">4</span><span class="zh">🎚️ 能力与思考档位</span><span class="en">🎚️ Capabilities &amp; the Effort Dial</span></h2>
+  <p class="zh">基准面上,Inkling 的姿态是「宽而平衡」:HLE(带工具)46.0%、GPQA Diamond 87.2%、SWE-Bench Verified 77.6%、MCP Atlas 76.0%,多数项落在开放权重第一梯队之内、封闭旗舰之下;Design Arena 的盲测人评里排开放模型前列。安全上,FORTRESS 对抗档 78.0% 为其对比的开放模型中最高,且良性误拒率低(Benign 95.9%)。</p>
+  <p class="en">On benchmarks, Inkling's posture is "broad and balanced": HLE with tools 46.0%, GPQA Diamond 87.2%, SWE-Bench Verified 77.6%, MCP Atlas 76.0% — mostly within the open-weights first tier, below closed flagships; among the top open models in Design Arena's blinded human evals. On safety, its FORTRESS adversarial score of 78.0% is the highest among the open models it compared, with low benign over-refusal (95.9%).</p>
+  <div class="def">
+    <div class="dt zh">可控思考档位(effort 0.2 – 0.99)</div>
+    <div class="dt en">Controllable thinking effort (0.2 – 0.99)</div>
+    <div class="row zh"><span class="tag tag-what">是什么</span><span>一个推理时旋钮:调高多想、调低省钱,harness 内即可设置。训练方式是在不同样本上通过系统消息+逐 token 成本设定不同档位,让模型「学会」控制思考量。</span></div>
+    <div class="row en"><span class="tag tag-what">What</span><span>An inference-time knob: turn it up to think more, down to save money, settable from within the harness. It was trained by assigning different effort levels via system messages and per-token costs so the model learned to control its own thinking budget.</span></div>
+    <div class="row zh"><span class="tag tag-why">为什么重要</span><span>官方展示了完整的「效果 × token 消耗」曲线,而非单点分数:在 Terminal Bench 2.1 上,Inkling 用约<strong>三分之一的 token</strong> 达到 Nemotron 3 Ultra 的同等成绩。对要跑百万次的生产负载,看整条成本曲线选工作点,比看单点最高分更相关。</span></div>
+    <div class="row en"><span class="tag tag-why">Why it matters</span><span>The post shows full performance-vs-token curves rather than single points: on Terminal Bench 2.1, Inkling matches Nemotron 3 Ultra at roughly <strong>a third of the tokens</strong>. For workloads run millions of times, choosing an operating point on the full cost curve beats comparing single max scores.</span></div>
+    <div class="row zh"><span class="tag tag-eg">呼应</span><span>「测试时计算可购买」正在成为行业通用语:OpenAI 十证明约 $2000 的 token 账单(见 08-03 文档)、Cursor 的 planner/worker 分账(见 07-31 文档)、Inkling 的档位,是同一逻辑的三种落地。</span></div>
+    <div class="row en"><span class="tag tag-eg">Echoes</span><span>"Purchasable test-time compute" is becoming the industry's lingua franca: OpenAI's ~$2,000 token bill for ten proofs (see the 08-03 doc), Cursor's planner/worker cost split (07-31 doc), and Inkling's dial are three implementations of one logic.</span></div>
+  </div>
+</section>
+
+<section id="small">
+  <h2><span class="sn">5</span><span class="zh">🐜 Inkling Small:三分之一参数的反超</span><span class="en">🐜 Inkling Small: The Third-Size Overtake</span></h2>
+  <p class="zh">7 月 31 日正式发布的 Inkling Small 把「效率而非规模」推到台前:276B 总参数、12B 激活(旗舰为 975B/41B),用改进后的预训练数据与配方 + 同一套后训练栈,在多个基准上追平甚至反超旗舰。Artificial Analysis 智能指数 40(旗舰 41),并称<strong>同尺寸及以下的开放模型无一更高</strong>。</p>
+  <p class="en">Officially released July 31, Inkling Small pushes "efficiency over size" to the front: 276B total, 12B active (vs. the flagship's 975B/41B), using improved pretraining data and recipe plus the same post-training stack to match or beat its big sibling on several benchmarks. Artificial Analysis scores it 40 on the Intelligence Index (flagship: 41) and says <strong>no open model of equal or smaller size scores higher</strong>.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">40 vs 41</div><div class="l zh">AA 智能指数:Small 仅比旗舰低 1 分,激活参数不到 1/3</div><div class="l en">AA Intelligence Index: Small trails the flagship by one point with &lt;1/3 the active parameters</div></div>
+    <div class="stat"><div class="n">32% / 89%</div><div class="l zh">HLE 与 GPQA Diamond 上反超旗舰(30% / 87%);SWE-Bench Verified 几乎持平(77.4 vs 77.6)</div><div class="l en">Beats the flagship on HLE and GPQA Diamond (vs. 30% / 87%); near-parity on SWE-Bench Verified (77.4 vs. 77.6)</div></div>
+    <div class="stat"><div class="n">24K</div><div class="l zh">平均每任务输出 token(DeepSeek V4 Flash 45K、GPT-5.4 mini 78K)——省的是真金白银</div><div class="l en">Average output tokens per task (DeepSeek V4 Flash: 45K; GPT-5.4 mini: 78K) — real money saved</div></div>
+  </div>
+  <p class="zh">短板同样明确:<strong>Agent 类任务与事实性知识明显落后</strong>——Tau 3 Banking 13.6%(旗舰 23.7%)、SimpleQA Verified 仅 20.9%(旗舰 43.9%)。官方给它的定位是成本/延迟敏感的工作负载:编码、当评分器(LLM-as-grader)、生成合成数据。256K 上下文、文本/图像/语音输入、Apache 2.0,可在 Tinker Playground 浏览器内直接微调。</p>
+  <p class="en">The weaknesses are equally clear: <strong>it lags on agentic tasks and factual knowledge</strong> — Tau 3 Banking 13.6% (flagship 23.7%), SimpleQA Verified just 20.9% (flagship 43.9%). The official framing: cost/latency-sensitive workloads — coding, LLM-as-grader, synthetic data generation. 256K context, text/image/speech input, Apache 2.0, fine-tunable in the browser via Tinker Playground.</p>
+</section>
+
+<section id="use">
+  <h2><span class="sn">6</span><span class="zh">🧰 怎么用与生态位</span><span class="en">🧰 How to Use It &amp; the Ecosystem</span></h2>
+  <div class="steps">
+    <div class="step"><div class="dot">1</div><div class="sb">
+      <b class="zh">先上手感受:Tinker Playground</b>
+      <b class="en">Get a feel first: Tinker Playground</b>
+      <span class="zh">Tinker 控制台内置聊天界面(带 agentic 搜索,限时免费),官方明说选基座模型是「基准数字 + 手感」的综合判断——先玩再决定。</span>
+      <span class="en">The Tinker console ships a chat interface (with agentic search, free for a limited time); the post itself says picking a base model combines benchmarks with feel — play before committing.</span>
+    </div></div>
+    <div class="step"><div class="dot">2</div><div class="sb">
+      <b class="zh">托管调用:五家 Day-0 伙伴</b>
+      <b class="en">Hosted access: five day-0 partners</b>
+      <span class="zh">Together AI、Fireworks、Modal、Databricks、Baseten 提供 API;自托管拉 Hugging Face 权重,Blackwell 硬件可用 NVFP4 检查点;推理栈覆盖 SGLang、vLLM、llama.cpp、transformers。</span>
+      <span class="en">APIs on Together AI, Fireworks, Modal, Databricks, and Baseten; self-hosters pull Hugging Face weights, with an NVFP4 checkpoint for Blackwell; inference support spans SGLang, vLLM, llama.cpp, and transformers.</span>
+    </div></div>
+    <div class="step"><div class="dot">3</div><div class="sb">
+      <b class="zh">微调落地:cookbook + tml-renderer</b>
+      <b class="en">Fine-tuning in practice: cookbook + tml-renderer</b>
+      <span class="zh">Tinker 上提供 64K/256K 两档上下文与限时五折;官方 cookbook 新增三个音频能力配方;tml-renderer 处理工具调用/推理内容/多模态输入的采样与后训练。微调完的检查点可直接部署到上述伙伴平台。</span>
+      <span class="en">Tinker offers 64K/256K context tiers at a limited-time 50% discount; the cookbook adds three audio recipes; tml-renderer handles sampling and post-training with tool calls, reasoning content, and multimodal inputs. Fine-tuned checkpoints deploy straight to the partners above.</span>
+    </div></div>
+  </div>
+</section>
+
+<section id="compare">
+  <h2><span class="sn">7</span><span class="zh">⚖️ 选型对照与常见坑</span><span class="en">⚖️ Choosing It — and the Pitfalls</span></h2>
+  <table>
+    <thead><tr>
+      <th class="zh">你在选什么</th><th class="zh">选 Inkling / Small 的理由</th><th class="zh">选别家的理由</th>
+      <th class="en">What you're choosing</th><th class="en">Reasons to pick Inkling / Small</th><th class="en">Reasons to pick others</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="zh">开放多模态基座做微调</td><td class="zh">从零训练的原生多模态 + Apache 2.0 + Tinker 一条龙;音频能力在开放阵营名列前茅(VoiceBench 91.4%)</td><td class="zh">纯文本任务上 Kimi K2.6 / GLM 5.2 多项基准更高</td>
+          <td class="en">An open multimodal base for fine-tuning</td><td class="en">Natively multimodal from scratch + Apache 2.0 + the Tinker pipeline; top-tier open audio (VoiceBench 91.4%)</td><td class="en">On text-only tasks, Kimi K2.6 / GLM 5.2 score higher on several benchmarks</td></tr>
+      <tr><td class="zh">高吞吐生产负载</td><td class="zh">effort 档位 + Small 的 24K 平均输出,成本曲线优势明显</td><td class="zh">若需要强事实性(SimpleQA)或复杂 Agent 流程,旗舰封闭模型仍有明显差距优势</td>
+          <td class="en">High-throughput production workloads</td><td class="en">The effort dial + Small's 24K average output give a clear cost-curve edge</td><td class="en">For strong factuality (SimpleQA) or complex agentic flows, closed flagships keep a sizable lead</td></tr>
+      <tr><td class="zh">合规与可控性</td><td class="zh">Apache 2.0 商用友好;FORTRESS 对抗档开放阵营最高;反审查训练明确</td><td class="zh">需要厂商托管的企业合规栈(审计、SLA)时,封闭 API 更省事</td>
+          <td class="en">Compliance &amp; control</td><td class="en">Apache 2.0 is enterprise-friendly; highest open-model FORTRESS adversarial score; explicit censorship-resistance training</td><td class="en">If you need vendor-managed compliance (audits, SLAs), closed APIs are less work</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <div class="ct zh">⚠️ 四个常见坑</div>
+    <div class="ct en">⚠️ Four pitfalls</div>
+    <p class="zh" style="margin-bottom:6px">① <strong>别拿 Small 当知识库</strong>:SimpleQA 20.9% 意味着裸问事实极易出错——接检索再用。② <strong>Agent 流程先试后上</strong>:Tau 3 Banking 13.6% 提示复杂多步工具流程是短板。③ <strong>基准脚注要读</strong>:官方 Terminal Bench 成绩剔除了少量「从网络搜索污染」的解;各家 harness 不同,横向对比有水分。④ <strong>时效</strong>:Small 于 7 月 31 日刚发布、评分主要来自 Artificial Analysis 单一评测方,更多独立复测还在路上;价格与折扣(Tinker 五折)均为限时信息。</p>
+    <p class="en" style="margin:0">① <strong>Don't use Small as a knowledge base</strong>: 20.9% SimpleQA means bare factual queries fail often — pair it with retrieval. ② <strong>Pilot agentic flows before production</strong>: 13.6% on Tau 3 Banking flags complex multi-step tool use as the weak spot. ③ <strong>Read benchmark footnotes</strong>: official Terminal Bench scores zero out solutions contaminated by web search, and harnesses differ across labs. ④ <strong>Freshness</strong>: Small shipped July 31; scores lean on a single evaluator (Artificial Analysis) with independent replications pending; pricing and the Tinker discount are limited-time.</p>
+  </div>
+</section>
+
+<section id="resources">
+  <h2><span class="sn">8</span><span class="zh">📚 学习资源清单</span><span class="en">📚 Learning Resources</span></h2>
+  <div class="glossary">
+    <div class="g"><b class="zh">一手材料</b><b class="en">Primary</b><span class="zh"><a href="https://thinkingmachines.ai/news/introducing-inkling/">Inkling 发布长文</a>(07-15)· <a href="https://thinkingmachines.ai/news/inkling-small/">Inkling Small 发布</a>(07-31)· <a href="https://thinkingmachines.ai/model-card/inkling/">模型卡</a> · <a href="https://huggingface.co/thinkingmachines/inkling">Hugging Face 权重</a></span><span class="en"><a href="https://thinkingmachines.ai/news/introducing-inkling/">The Inkling launch post</a> (07-15) · <a href="https://thinkingmachines.ai/news/inkling-small/">Inkling Small announcement</a> (07-31) · <a href="https://thinkingmachines.ai/model-card/inkling/">Model card</a> · <a href="https://huggingface.co/thinkingmachines/inkling">Hugging Face weights</a></span></div>
+    <div class="g"><b class="zh">评测与解读</b><b class="en">Evals &amp; analysis</b><span class="zh"><a href="https://artificialanalysis.ai/articles/inkling-small-lands-within-a-point-of-inkling-on-the-artificial-analysis-intelligence-index-with-less-than-a-third-of-the-parameters">Artificial Analysis 评测</a> · <a href="https://the-decoder.com/thinking-machines-bets-on-efficiency-over-size-with-its-second-model-inkling-small/">The Decoder</a> · <a href="https://venturebeat.com/technology/thinking-machines-open-sources-first-multimodal-language-model-inkling-focused-on-low-cost-and-resistance-to-censorship">VentureBeat</a> · <a href="https://techcrunch.com/2026/07/15/thinking-machines-amps-up-its-bet-against-one-size-fits-all-ai-with-its-first-open-model-inkling/">TechCrunch</a></span><span class="en"><a href="https://artificialanalysis.ai/articles/inkling-small-lands-within-a-point-of-inkling-on-the-artificial-analysis-intelligence-index-with-less-than-a-third-of-the-parameters">Artificial Analysis</a> · <a href="https://the-decoder.com/thinking-machines-bets-on-efficiency-over-size-with-its-second-model-inkling-small/">The Decoder</a> · <a href="https://venturebeat.com/technology/thinking-machines-open-sources-first-multimodal-language-model-inkling-focused-on-low-cost-and-resistance-to-censorship">VentureBeat</a> · <a href="https://techcrunch.com/2026/07/15/thinking-machines-amps-up-its-bet-against-one-size-fits-all-ai-with-its-first-open-model-inkling/">TechCrunch</a></span></div>
+    <div class="g"><b class="zh">动手工具</b><b class="en">Hands-on</b><span class="zh"><a href="https://tinker.thinkingmachines.ai/playground">Tinker Playground</a> · <a href="https://github.com/thinking-machines-lab/tinker-cookbook">tinker-cookbook</a> · <a href="https://pypi.org/project/tml-renderers/">tml-renderer</a></span><span class="en"><a href="https://tinker.thinkingmachines.ai/playground">Tinker Playground</a> · <a href="https://github.com/thinking-machines-lab/tinker-cookbook">tinker-cookbook</a> · <a href="https://pypi.org/project/tml-renderers/">tml-renderer</a></span></div>
+  </div>
+  <div class="final">
+    <h3 class="zh">一句话带走</h3>
+    <h3 class="en">The One-Line Takeaway</h3>
+    <p class="zh" style="margin:0">Inkling 不是要赢今天的榜,而是要押中明天的分发方式:<strong>开放权重 × 原生多模态 × 可购买的思考量 × 微调即产品</strong>。Small 用「三分之一参数打平旗舰」证明了配方在进步——但事实性与 Agent 短板提醒你:它是等你雕刻的基座,不是开箱即用的全才。</p>
+    <p class="en" style="margin:0">Inkling isn't built to win today's leaderboard but to bet on tomorrow's distribution: <strong>open weights × native multimodality × purchasable thinking × fine-tuning as the product</strong>. Small's "third the size, same intelligence" shows the recipe improving — while its factuality and agentic gaps remind you it's a base awaiting your carving, not an out-of-the-box generalist.</p>
+  </div>
+</section>
+
+<footer>
+  <p class="zh"><strong>调研时间:2026-08-03(补生成 08-01 档)</strong> · 架构、训练与基准数字均出自官方发布长文;Small 的横向评分来自 Artificial Analysis(单一评测方,已标注)。快速迭代领域,请以官方最新发布为准。</p>
+  <p class="en"><strong>Researched: 2026-08-03 (backfilled for 08-01)</strong> · Architecture, training and benchmark figures come from the official launch posts; Small's comparative scores come from Artificial Analysis (single evaluator, as flagged). This field moves fast — defer to the latest official publications.</p>
+  <ul>
+    <li>1. Thinking Machines Lab, "Inkling: Our Open-Weights Model" — thinkingmachines.ai/news/introducing-inkling (2026-07-15)</li>
+    <li>2. Thinking Machines Lab, "Inkling-Small" — thinkingmachines.ai/news/inkling-small (2026-07-31)</li>
+    <li>3. The Decoder, "Thinking Machines bets on efficiency over size…" (2026-07-31)</li>
+    <li>4. Artificial Analysis, Inkling Small analysis (2026-07-31)</li>
+    <li>5. VentureBeat, "Thinking Machines open sources first multimodal language model, Inkling…" (2026-07)</li>
+    <li>6. TechCrunch, "Thinking Machines amps up its bet against one-size-fits-all AI…" (2026-07-15)</li>
+    <li>7. The Register, "Former OpenAI CTO does what Altman won't…" (2026-07-16)</li>
+  </ul>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var body=document.body, htmlEl=document.documentElement;
+  var btn=document.getElementById('langBtn');
+  var toc=document.getElementById('sideToc'), tocBtn=document.getElementById('tocToggle');
+  var stBar=document.getElementById('stBar'), stPct=document.getElementById('stPct'), topBar=document.getElementById('topProgress');
+  var links=[].slice.call(document.querySelectorAll('.side-toc li a'));
+  var sections=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  var figures=[].slice.call(document.querySelectorAll('.figure'));
+
+  figures.forEach(function(f){
+    [].slice.call(f.querySelectorAll('[data-anim]')).forEach(function(el,i){el.style.transitionDelay=(0.15+i*0.12)+'s';});
+    [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){
+      try{var len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len;}catch(e){}
+    });
+  });
+  function reveal(f){
+    if(f.classList.contains('in'))return;
+    f.classList.add('in');
+    [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){p.style.strokeDashoffset='0';});
+  }
+  var obs=null;
+  if('IntersectionObserver' in window){
+    obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){reveal(e.target);obs.unobserve(e.target);}});},{threshold:0.18});
+    figures.forEach(function(f){obs.observe(f);});
+  }else{figures.forEach(reveal);}
+
+  function revealVisible(){
+    figures.forEach(function(f){
+      if(f.classList.contains('in'))return;
+      var r=f.getBoundingClientRect();
+      if(r.width>0&&r.top<window.innerHeight&&r.bottom>0){reveal(f);if(obs)obs.unobserve(f);}
+      else if(obs){obs.observe(f);}
+    });
+  }
+  function setLang(l){
+    body.setAttribute('data-lang',l);
+    htmlEl.setAttribute('lang',l==='zh'?'zh-CN':'en');
+    btn.textContent=(l==='zh')?'EN':'中';
+    try{localStorage.setItem('aidaily-inkling-lang',l);}catch(e){}
+    requestAnimationFrame(function(){requestAnimationFrame(revealVisible);});
+  }
+  var initial='zh';
+  try{
+    var saved=localStorage.getItem('aidaily-inkling-lang');
+    if(saved==='zh'||saved==='en'){initial=saved;}
+    else{initial=(navigator.language||'zh').toLowerCase().indexOf('zh')===0?'zh':'en';}
+  }catch(e){}
+  setLang(initial);
+  btn.addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh');});
+
+  tocBtn.addEventListener('click',function(){toc.classList.toggle('open');});
+  links.forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open');});});
+
+  function onScroll(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+    var p=max>0?Math.min(100,Math.round(h.scrollTop/max*100)):0;
+    stBar.style.width=p+'%'; stPct.textContent=p+'%'; topBar.style.width=p+'%';
+    var cur=0, y=h.scrollTop+120;
+    sections.forEach(function(s,i){if(s&&s.offsetTop<=y)cur=i;});
+    links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>
