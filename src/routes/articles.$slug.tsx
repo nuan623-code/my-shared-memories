@@ -1,14 +1,14 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
 import { absUrl, SHARE_IMAGE } from "@/lib/site";
 import { ShareButton } from "@/components/ShareButton";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
-import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { fetchResourceBySlug, fetchResources, fetchTranslations, formatDate } from "@/lib/resources";
-import { fetchAdjacentArticles, fetchRelatedArticles } from "@/lib/related";
+import { fetchAdjacentArticles, fetchRelatedArticles, fetchSeriesAdjacent, isDatedSeries, seriesAdjacentFrom } from "@/lib/related";
 import { useAuth } from "@/hooks/use-auth";
 import { trackView } from "@/lib/views";
 import { readingMinutes } from "@/lib/article-utils";
@@ -120,7 +120,6 @@ function cleanTocText(raw: string): string {
 // (Route 是模块级常量,直接复用会读到中文路由的 loader)。
 export function ArticleDetailPage({ article }: { article: Resource }) {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [progress, setProgress] = useState(0);
   const [toc, setToc] = useState<TocItem[]>([]);
@@ -130,6 +129,11 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
   const [annotationsHydrated, setAnnotationsHydrated] = useState(false);
   const [tocOpen, setTocOpen] = useState<boolean>(true);
   const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({ prev: null, next: null });
+  // 每日连载栏目(简报/深度学习)的前一天、后一天
+  const [series, setSeries] = useState<{ prev: Resource | null; next: Resource | null; inSeries: boolean }>({ prev: null, next: null, inSeries: false });
+  // iframe 每次载入完自增,让键盘监听重新挂到新的 contentDocument 上
+  const [frameLoads, setFrameLoads] = useState(0);
+  const navigate = useNavigate();
   const [related, setRelated] = useState<Resource[]>([]);
   // 静态文档的正文在 iframe 里、库里 content 为空,先按摘要估,iframe 载入后用真实正文重算
   const [docMins, setDocMins] = useState<number | null>(null);
@@ -158,18 +162,65 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
   useEffect(() => {
     trackView(article.id, user?.id ?? null).catch(() => {});
     fetchAdjacentArticles(article).then(setAdjacent).catch(() => {});
+    fetchSeriesAdjacent(article).then(setSeries).catch(() => {});
     fetchRelatedArticles(article).then(setRelated).catch(() => {});
   }, [article, user?.id]);
 
+  // 全量列表:既为返回资料库时预热缓存,也用来就地算同栏目的前后一天
+  const { data: allResources } = useQuery({
+    queryKey: ["resources", "all"],
+    queryFn: () => fetchResources({}),
+  });
 
+  // 连载栏目走同栏目的前后一天,其余文章沿用全库的上一篇/下一篇。
+  // 全量列表已被预取,命中缓存时先就地算一份,免得翻页按钮和快捷键要等一次网络往返
+  // (连按 ← 时第二下常常落在查询还没回来的空档里,会被吞掉)。
+  const inSeries = isDatedSeries(article);
+  const cachedSeries = useMemo(
+    () => (allResources ? seriesAdjacentFrom(allResources, article) : null),
+    [allResources, article],
+  );
+  const effectiveSeries = series.inSeries ? series : cachedSeries;
+  const navPrev = inSeries ? (effectiveSeries?.prev ?? null) : adjacent.prev;
+  const navNext = inSeries ? (effectiveSeries?.next ?? null) : adjacent.next;
+  const prevLabel = inSeries ? "前一天" : "上一篇";
+  const nextLabel = inSeries ? "后一天" : "下一篇";
 
-
+  // ← / → 翻页。正文在 iframe 里,焦点落进去后按键不冒泡到外层 document,
+  // 所以同源的 contentDocument 上要单独再挂一份。
   useEffect(() => {
-    queryClient.prefetchQuery({
-      queryKey: ["resources", "all"],
-      queryFn: () => fetchResources({}),
-    });
-  }, [queryClient]);
+    const go = (target: Resource | null) => {
+      if (!target?.slug) return false;
+      navigate({ to: "/articles/$slug", params: { slug: target.slug } });
+      return true;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      // 输入框/评论框/批注框里按方向键是移动光标,不能抢
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const back = e.key === "ArrowLeft" || e.key === "[";
+      const fwd = e.key === "ArrowRight" || e.key === "]";
+      if (!back && !fwd) return;
+      if (go(back ? navPrev : navNext)) e.preventDefault();
+    };
+    const handler = onKey as EventListener;
+    window.addEventListener("keydown", handler);
+    let doc: Document | null = null;
+    try {
+      doc = iframeRef.current?.contentDocument ?? null;
+    } catch {
+      doc = null; // 跨域 iframe(站外链接)读不到,忽略
+    }
+    doc?.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      doc?.removeEventListener("keydown", handler);
+    };
+  }, [navPrev, navNext, navigate, frameLoads]);
+
+
+
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -181,6 +232,7 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
     let winResize: (() => void) | null = null;
 
     const onLoad = () => {
+      setFrameLoads((n) => n + 1); // 通知键盘监听重新挂到新文档上
       try {
         const doc = iframe.contentDocument;
         const win = iframe.contentWindow;
@@ -374,6 +426,47 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
               <ArrowLeft className="h-4 w-4" />
               返回
             </Link>
+
+            {/* 前后翻页:每日栏目按天翻,其余按收录时间翻。快捷键 ← / →。
+                窄屏不显示——顶栏本来就已经挤到换行,且手机没键盘,翻页走正文末尾的前后卡片。 */}
+            {(navPrev || navNext) && (
+              <div className="hidden shrink-0 items-center overflow-hidden rounded-md border border-border sm:flex">
+                {navPrev ? (
+                  <Link
+                    to="/articles/$slug"
+                    params={{ slug: navPrev.slug! }}
+                    title={`${prevLabel}(←):${navPrev.title ?? ""}`}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{prevLabel}</span>
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground/40">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{prevLabel}</span>
+                  </span>
+                )}
+                <span className="h-4 w-px bg-border" />
+                {navNext ? (
+                  <Link
+                    to="/articles/$slug"
+                    params={{ slug: navNext.slug! }}
+                    title={`${nextLabel}(→):${navNext.title ?? ""}`}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <span className="hidden sm:inline">{nextLabel}</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground/40">
+                    <span className="hidden sm:inline">{nextLabel}</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </span>
+                )}
+              </div>
+            )}
+
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" /> 约 {mins} 分钟
             </span>
@@ -559,20 +652,20 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
             title={article.title ?? undefined}
           />
 
-          {(adjacent.prev || adjacent.next) && (
+          {(navPrev || navNext) && (
             <nav className="mt-8 grid gap-3 sm:grid-cols-2">
-              {adjacent.prev ? (
-                <Link to="/articles/$slug" params={{ slug: adjacent.prev.slug! }}
+              {navPrev ? (
+                <Link to="/articles/$slug" params={{ slug: navPrev.slug! }}
                   className="group rounded-lg border border-border bg-card p-4 transition hover:border-primary/40 hover:bg-muted/50">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><ChevronLeft className="h-3 w-3" /> 上一篇</div>
-                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{adjacent.prev.title}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><ChevronLeft className="h-3 w-3" /> {prevLabel}<span className="ml-1 opacity-60">←</span></div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{navPrev.title}</div>
                 </Link>
               ) : <div />}
-              {adjacent.next ? (
-                <Link to="/articles/$slug" params={{ slug: adjacent.next.slug! }}
+              {navNext ? (
+                <Link to="/articles/$slug" params={{ slug: navNext.slug! }}
                   className="group rounded-lg border border-border bg-card p-4 text-right transition hover:border-primary/40 hover:bg-muted/50">
-                  <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">下一篇 <ChevronRight className="h-3 w-3" /></div>
-                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{adjacent.next.title}</div>
+                  <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground"><span className="mr-1 opacity-60">→</span>{nextLabel} <ChevronRight className="h-3 w-3" /></div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{navNext.title}</div>
                 </Link>
               ) : <div />}
             </nav>
