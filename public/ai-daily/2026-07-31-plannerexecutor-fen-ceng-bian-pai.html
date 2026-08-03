@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planner–Executor 分层编排:Cursor Agent Swarm 深读 | Planner–Executor Orchestration: Inside Cursor's Agent Swarm</title>
+<style>
+:root{
+  --bg:#f4f4ef; --surface:#fdfdf9; --ink:#22261f; --muted:#6c6f66;
+  --accent:#b4530a; --accent-soft:#f9e8da; --accent-2:#41634f; --accent-2-soft:#e6efe8;
+  --line:#ddddce; --warn:#8f3d14; --warn-soft:#f9e9e0; --ok:#2f6b4f; --ok-soft:#e7f2ea;
+  --radius:12px; --serif:"Avenir Next","Helvetica Neue","PingFang SC","Hiragino Sans GB",sans-serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.85}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.top-progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;z-index:60}
+.lang-btn{position:fixed;top:14px;right:14px;z-index:70;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);
+  font-family:var(--sans);font-size:14px;font-weight:700;padding:7px 14px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(40,40,80,.12)}
+.lang-btn:hover{background:var(--accent);color:#fff}
+.side-toc{position:fixed;left:18px;top:70px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:50;
+  background:rgba(255,253,247,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;font-size:13.5px;box-shadow:0 6px 24px rgba(60,60,90,.08)}
+.st-brand{font-family:var(--serif);font-weight:700;font-size:15px;color:var(--accent)}
+.st-sub{color:var(--muted);font-size:12px;margin:2px 0 10px}
+.st-progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.st-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.st-pct{font-size:11px;color:var(--muted);margin-bottom:8px}
+.side-toc ol{list-style:none}
+.side-toc li a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:8px;line-height:1.45}
+.side-toc li a:hover{background:var(--accent-soft);color:var(--accent)}
+.side-toc li a.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.side-toc .num{font-family:var(--serif);color:var(--accent-2);min-width:18px}
+.toc-toggle{display:none;position:fixed;left:14px;top:14px;z-index:70;width:42px;height:42px;border-radius:12px;
+  border:1px solid var(--line);background:var(--surface);font-size:19px;cursor:pointer;box-shadow:0 2px 8px rgba(40,40,80,.12)}
+.wrap{max-width:840px;margin:0 auto;padding:28px 22px 80px}
+@media (min-width:1180px){.wrap{margin-left:300px}}
+@media (max-width:1179px){
+  .side-toc{transform:translateX(-115%);transition:transform .28s}
+  .side-toc.open{transform:none}
+  .toc-toggle{display:block}
+}
+.hero{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:44px 36px 36px;margin-bottom:36px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:8px;border:1px solid var(--line);border-radius:9px;pointer-events:none}
+.hero .kicker{font-size:13px;letter-spacing:.18em;color:var(--accent-2);font-weight:700;text-transform:uppercase;margin-bottom:12px}
+.hero h1{font-family:var(--serif);font-size:clamp(26px,4.5vw,40px);line-height:1.3;color:var(--ink);margin-bottom:14px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .lede{color:var(--muted);font-size:16.5px;max-width:620px}
+.hero .meta{margin-top:18px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:14px}
+.hero .meta b{color:var(--accent)}
+section{margin-bottom:46px}
+h2{font-family:var(--serif);font-size:26px;color:var(--ink);border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:18px;scroll-margin-top:70px}
+h2 .sn{color:var(--accent-2);margin-right:8px}
+h3{font-family:var(--serif);font-size:19.5px;color:var(--accent);margin:24px 0 10px}
+p{margin-bottom:14px}
+a{color:var(--accent)}
+strong{color:var(--ink)}
+.term{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px;font-weight:600}
+.hl{background:var(--accent-2-soft);padding:1px 5px;border-radius:5px}
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:18px 20px;margin:16px 0}
+.def .dt{font-weight:800;font-size:16.5px;margin-bottom:8px}
+.def .row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start}
+.def .tag{flex:0 0 auto;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;margin-top:5px}
+.tag-what{background:var(--accent-soft);color:var(--accent)}
+.tag-why{background:var(--accent-2-soft);color:var(--accent-2)}
+.tag-eg{background:var(--ok-soft);color:var(--ok)}
+.callout{border-radius:10px;padding:16px 18px;margin:16px 0;border:1px solid var(--line)}
+.callout .ct{font-weight:800;margin-bottom:6px}
+.callout.key{background:var(--accent-soft);border-color:#cfc9ee}
+.callout.warn{background:var(--warn-soft);border-color:#ecd2bf}
+.callout.warn .ct{color:var(--warn)}
+.callout.quote{background:var(--surface);border-left:4px solid var(--accent-2);font-family:var(--serif)}
+.callout.quote .who{font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+.stat .n{font-family:var(--serif);font-size:26px;font-weight:700;color:var(--accent)}
+.stat .l{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:4px}
+.steps{margin:16px 0}
+.step{display:flex;gap:14px;margin-bottom:12px}
+.step .dot{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.step .sb{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.step .sb b{display:block;margin-bottom:2px}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px;background:var(--surface);border:1px solid var(--line)}
+th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);color:var(--accent);font-size:14px}
+.glossary{margin:16px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.glossary .g{display:flex;gap:12px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);font-size:15px}
+.glossary .g:last-child{border-bottom:none}
+.glossary .g b{flex:0 0 190px;color:var(--accent)}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 14px 10px;margin:20px 0;
+  opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--muted);text-align:center;padding:8px 10px 6px;border-top:1px dashed var(--line);margin-top:8px}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure [data-draw]{transition:stroke-dashoffset 1.1s ease .2s}
+details.rephrase{background:var(--accent-2-soft);border:1px solid #ecdcb8;border-radius:10px;padding:10px 16px;margin:14px 0}
+details.rephrase summary{cursor:pointer;font-weight:700;color:var(--accent-2)}
+details.rephrase div{padding-top:10px}
+.final{background:var(--ink);color:#efece2;border-radius:var(--radius);padding:26px 28px;margin-top:8px}
+.final h3{color:var(--accent-2-soft);margin-top:0}
+.final a{color:#c9c4f2}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer ul{list-style:none;margin-top:8px}
+footer li{margin-bottom:5px;overflow-wrap:anywhere}
+@media (max-width:640px){
+  body{font-size:16px}
+  .stats{grid-template-columns:1fr}
+  .glossary .g{flex-direction:column;gap:2px}
+  .glossary .g b{flex:none}
+  .hero{padding:32px 20px 26px}
+  .lang-btn{top:12px;right:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .figure,.figure [data-anim]{opacity:1!important;transform:none!important;transition:none!important}
+  .figure [data-draw]{transition:none!important;stroke-dashoffset:0!important}
+  html{scroll-behavior:auto}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 深度学习文档 · AI Daily(08-03 补生成) Deep-Dive · AI Daily (backfilled 08-03) Planner–Executor 分层编排 ——Cursor Agent S…">
+<meta property="og:title" content="Planner–Executor 分层编排:Cursor Agent Swarm 深读 | Planner–Executor Orchestration: Inside Cursor&#x27;s Agent Swarm">
+<meta property="og:description" content="EN 深度学习文档 · AI Daily(08-03 补生成) Deep-Dive · AI Daily (backfilled 08-03) Planner–Executor 分层编排 ——Cursor Agent S…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-07-31-plannerexecutor-fen-ceng-bian-pai.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-07-31-plannerexecutor-fen-ceng-bian-pai.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Planner–Executor 分层编排:Cursor Agent Swarm 深读 | Planner–Executor Orchestration: Inside Cursor's Agent Swarm", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-07-31-plannerexecutor-fen-ceng-bian-pai.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-31", "dateModified": "2026-08-03"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="top-progress" id="topProgress"></div>
+<button class="lang-btn" id="langBtn" aria-label="Switch language">EN</button>
+<button class="toc-toggle" id="tocToggle" aria-label="Table of contents">☰</button>
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand"><span class="zh">分层编排</span><span class="en">Swarm Orchestration</span></div>
+  <div class="st-sub"><span class="zh">Cursor Swarm · 2026-07-31</span><span class="en">Cursor Swarm · 2026-07-31</span></div>
+  <div class="st-progress"><i id="stBar"></i></div>
+  <div class="st-pct" id="stPct">0%</div>
+  <ol>
+    <li><a href="#overview"><span class="num">1</span><span><span class="zh">开篇速览</span><span class="en">At a Glance</span></span></a></li>
+    <li><a href="#mechanism"><span class="num">2</span><span><span class="zh">核心机制:任务树与双角色</span><span class="en">Task Tree &amp; Two Roles</span></span></a></li>
+    <li><a href="#coordination"><span class="num">3</span><span><span class="zh">协调工程:失效与修法</span><span class="en">Coordination Engineering</span></span></a></li>
+    <li><a href="#experiment"><span class="num">4</span><span><span class="zh">SQLite 实验</span><span class="en">The SQLite Experiment</span></span></a></li>
+    <li><a href="#economics"><span class="num">5</span><span><span class="zh">模型经济学</span><span class="en">Model Economics</span></span></a></li>
+    <li><a href="#transfer"><span class="num">6</span><span><span class="zh">迁移要点与局限</span><span class="en">Transfer Notes &amp; Limits</span></span></a></li>
+    <li><a href="#resources"><span class="num">7</span><span><span class="zh">学习资源</span><span class="en">Resources</span></span></a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker"><span class="zh">深度学习文档 · AI Daily(08-03 补生成)</span><span class="en">Deep-Dive · AI Daily (backfilled 08-03)</span></div>
+  <h1 class="zh">Planner–Executor <em>分层编排</em><br>——Cursor Agent Swarm 深读</h1>
+  <h1 class="en">Planner–Executor <em>Orchestration</em><br>— Inside Cursor's Agent Swarm</h1>
+  <p class="lede zh">「前沿模型只做规划,廉价模型负责执行」——Cursor 2026 年 7 月 20 日的研究长文用一场 SQLite 重写实验给出了迄今最有数字支撑的多智能体工程报告:同等质量,执行成本相差 22 倍。本文拆解它的机制、失效模式与可迁移的设计原则。</p>
+  <p class="lede en">"Frontier models plan; cheap models execute." Cursor's July 20, 2026 research post backs this with the most data-rich multi-agent engineering report to date — a SQLite-rebuild experiment where identical quality came at a 22x spread in execution cost. This document unpacks the mechanism, the failure modes, and the transferable design principles.</p>
+  <div class="meta">
+    <span class="zh">📅 调研日期:<b>2026-08-03</b></span><span class="en">📅 Researched: <b>2026-08-03</b></span>
+    <span class="zh">🌐 主来源:Cursor 官方博客(Wilson Lin)+ 媒体解读</span><span class="en">🌐 Primary source: Cursor blog (Wilson Lin) + press analysis</span>
+    <span class="zh">🀄/🅰️ 中英双语,右上角切换</span><span class="en">🀄/🅰️ Bilingual — toggle top right</span>
+  </div>
+</div>
+
+<section id="overview">
+  <h2><span class="sn">1</span><span class="zh">🔭 开篇速览:30 秒版本</span><span class="en">🔭 At a Glance: The 30-Second Version</span></h2>
+  <p class="zh"><strong>它解决什么痛点:</strong>单个 Agent 跑长任务会「跑丢」——要么埋头细节忘了全局,要么盯着全局做不好细节;而把一群 Agent 简单并行起来,又会陷入合并冲突和重复劳动的泥潭(Cursor 旧系统重写 SQLite 时,两小时攒下 7 万+ 次合并冲突,被迫中止)。</p>
+  <p class="en"><strong>The pain it solves:</strong> a single agent on a long task drifts — either it buries itself in detail and loses the big picture, or holds the big picture and botches the details. Naively parallelizing a crowd of agents instead drowns in merge conflicts and duplicated work (Cursor's old system racked up 70,000+ merge conflicts in two hours of the SQLite rebuild and had to be paused).</p>
+  <p class="zh"><strong>它的答案:</strong>把任务组织成一棵<span class="term">任务树</span>,由两种角色分工:<strong>Planner(规划者)</strong>用最强的模型,只做拆解、设计决策和委派,从不写代码;<strong>Worker(执行者)</strong>用快而便宜的模型,只执行叶子任务,从不做规划。配上专为高并发自研的版本控制系统和一组「评审透镜」,新蜂群仅凭 835 页官方文档就用 Rust 重写了 SQLite,并最终 100% 通过 sqllogictest 测试套件。</p>
+  <p class="en"><strong>Its answer:</strong> organize work as a <span class="term">task tree</span> with two roles: <strong>planners</strong> on the strongest models do only decomposition, design decisions and delegation — they never touch code; <strong>workers</strong> on fast, cheap models only execute leaf tasks — they never plan. Add a purpose-built high-concurrency version control system and a set of "review lenses," and the new swarm rebuilt SQLite in Rust from nothing but its 835-page manual, ultimately passing 100% of the sqllogictest suite.</p>
+  <div class="callout key">
+    <div class="ct zh">💰 一句话记住结论</div>
+    <div class="ct en">💰 The one-line result</div>
+    <p class="zh" style="margin:0">四种模型搭配,质量几乎相同,总成本从 $1,339(Opus 4.8 规划 + Composer 2.5 执行)到 $10,565(GPT-5.5 包办一切)不等;仅看执行侧,$411 对 $9,373,相差 22 倍。<strong>贵的智力只该花在少数真正需要它的时刻。</strong></p>
+    <p class="en" style="margin:0">Four model mixes, near-identical quality, total costs from $1,339 (Opus 4.8 planning + Composer 2.5 executing) to $10,565 (GPT-5.5 doing everything); on the execution side alone, $411 vs. $9,373 — a 22x spread. <strong>Expensive intelligence should be spent only on the few moments that genuinely require it.</strong></p>
+  </div>
+</section>
+
+<section id="mechanism">
+  <h2><span class="sn">2</span><span class="zh">🌳 核心机制:任务树与双角色</span><span class="en">🌳 Core Mechanism: The Task Tree &amp; Two Roles</span></h2>
+  <p class="zh">大任务的描述天然长成一棵树:根部是目标,递归拆分到基本工作单元。Cursor 蜂群的两种角色就绕着这棵树分工——这不是随意的架构选择,而是对「单 Agent 为什么会漂移」的直接回应。</p>
+  <p class="en">Descriptions of large tasks naturally take the shape of a tree: a goal at the root, subdividing recursively into basic units of work. The swarm's two roles organize around that tree — not an arbitrary choice, but a direct answer to why single agents drift.</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Planner-Worker 任务树结构">
+      <defs><marker id="ar-z1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b4530a"/></marker></defs>
+      <g data-anim><rect x="320" y="18" width="180" height="52" rx="10" fill="#f9e8da" stroke="#b4530a" stroke-width="1.6"/><text x="410" y="40" text-anchor="middle" font-size="14" font-weight="bold" fill="#22261f">目标(Spec)</text><text x="410" y="58" text-anchor="middle" font-size="11.5" fill="#6c6f66">如:按 835 页文档重写 SQLite</text></g>
+      <path d="M410 70 V96" stroke="#b4530a" stroke-width="2" marker-end="url(#ar-z1)" data-draw/>
+      <g data-anim><rect x="330" y="100" width="160" height="50" rx="10" fill="#fdfdf9" stroke="#b4530a" stroke-width="1.6"/><text x="410" y="121" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#b4530a">Planner · 最强模型</text><text x="410" y="139" text-anchor="middle" font-size="11" fill="#6c6f66">拆解 / 设计决策 / 委派,从不写码</text></g>
+      <path d="M360 150 L215 190" stroke="#b4530a" stroke-width="1.8" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M460 150 L605 190" stroke="#b4530a" stroke-width="1.8" marker-end="url(#ar-z1)" data-draw/>
+      <g data-anim><rect x="130" y="194" width="170" height="46" rx="10" fill="#fdfdf9" stroke="#b4530a"/><text x="215" y="213" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#b4530a">子 Planner</text><text x="215" y="231" text-anchor="middle" font-size="10.5" fill="#6c6f66">继续拆,树随问题轮廓生长</text></g>
+      <g data-anim><rect x="520" y="194" width="170" height="46" rx="10" fill="#fdfdf9" stroke="#b4530a"/><text x="605" y="213" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#b4530a">子 Planner</text><text x="605" y="231" text-anchor="middle" font-size="10.5" fill="#6c6f66">上下文只装规划,不装细节</text></g>
+      <path d="M175 240 L130 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M255 240 L300 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M565 240 L520 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-z1)" data-draw/>
+      <path d="M645 240 L690 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-z1)" data-draw/>
+      <g data-anim><rect x="60" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="130" y="299" text-anchor="middle" font-size="12" fill="#41634f" font-weight="bold">Worker · 廉价模型</text></g>
+      <g data-anim><rect x="230" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="300" y="299" text-anchor="middle" font-size="12" fill="#41634f" font-weight="bold">Worker · 只执行</text></g>
+      <g data-anim><rect x="450" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="520" y="299" text-anchor="middle" font-size="12" fill="#41634f" font-weight="bold">Worker · 不规划</text></g>
+      <g data-anim><rect x="620" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="690" y="299" text-anchor="middle" font-size="12" fill="#41634f" font-weight="bold">Worker · 窄上下文</text></g>
+    </svg>
+    <svg class="en" viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Planner-worker task tree structure">
+      <defs><marker id="ar-e1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b4530a"/></marker></defs>
+      <g data-anim><rect x="320" y="18" width="180" height="52" rx="10" fill="#f9e8da" stroke="#b4530a" stroke-width="1.6"/><text x="410" y="40" text-anchor="middle" font-size="13" font-weight="bold" fill="#22261f">Goal (spec)</text><text x="410" y="58" text-anchor="middle" font-size="10.5" fill="#6c6f66">e.g. rebuild SQLite from an 835-page manual</text></g>
+      <path d="M410 70 V96" stroke="#b4530a" stroke-width="2" marker-end="url(#ar-e1)" data-draw/>
+      <g data-anim><rect x="325" y="100" width="170" height="50" rx="10" fill="#fdfdf9" stroke="#b4530a" stroke-width="1.6"/><text x="410" y="121" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#b4530a">Planner · strongest model</text><text x="410" y="139" text-anchor="middle" font-size="10" fill="#6c6f66">Decompose / decide / delegate — never codes</text></g>
+      <path d="M360 150 L215 190" stroke="#b4530a" stroke-width="1.8" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M460 150 L605 190" stroke="#b4530a" stroke-width="1.8" marker-end="url(#ar-e1)" data-draw/>
+      <g data-anim><rect x="130" y="194" width="170" height="46" rx="10" fill="#fdfdf9" stroke="#b4530a"/><text x="215" y="213" text-anchor="middle" font-size="12" font-weight="bold" fill="#b4530a">Sub-planner</text><text x="215" y="231" text-anchor="middle" font-size="10" fill="#6c6f66">Tree grows to fit the problem</text></g>
+      <g data-anim><rect x="520" y="194" width="170" height="46" rx="10" fill="#fdfdf9" stroke="#b4530a"/><text x="605" y="213" text-anchor="middle" font-size="12" font-weight="bold" fill="#b4530a">Sub-planner</text><text x="605" y="231" text-anchor="middle" font-size="10" fill="#6c6f66">Context holds plans, not detail</text></g>
+      <path d="M175 240 L130 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M255 240 L300 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M565 240 L520 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-e1)" data-draw/>
+      <path d="M645 240 L690 274" stroke="#41634f" stroke-width="1.6" marker-end="url(#ar-e1)" data-draw/>
+      <g data-anim><rect x="60" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="130" y="299" text-anchor="middle" font-size="11" fill="#41634f" font-weight="bold">Worker · cheap model</text></g>
+      <g data-anim><rect x="230" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="300" y="299" text-anchor="middle" font-size="11" fill="#41634f" font-weight="bold">Worker · executes only</text></g>
+      <g data-anim><rect x="450" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="520" y="299" text-anchor="middle" font-size="11" fill="#41634f" font-weight="bold">Worker · never plans</text></g>
+      <g data-anim><rect x="620" y="278" width="140" height="34" rx="8" fill="#e6efe8" stroke="#41634f"/><text x="690" y="299" text-anchor="middle" font-size="11" fill="#41634f" font-weight="bold">Worker · narrow context</text></g>
+    </svg>
+    <div class="fig-cap zh">图 1 · 任务树与双角色:树的形状随问题轮廓生长,算力与上下文随复杂度按比例伸缩。图据 Cursor 博客描述重绘。</div>
+    <div class="fig-cap en">Fig. 1 · The task tree and two roles: the tree's shape grows to fit the problem; compute and context scale with complexity. Redrawn from the Cursor post's description.</div>
+  </div>
+
+  <div class="def">
+    <div class="dt zh">为什么分层能治「漂移」:上下文效率</div>
+    <div class="dt en">Why layering cures drift: context efficiency</div>
+    <div class="row zh"><span class="tag tag-what">机制</span><span>单 Agent 走完整棵树,必须同时在上下文里装着祖先节点、当前位置和总目标。Cursor 认为这正是长跑单 Agent 漂移的原因:专注眼前就丢全局,顾着全局就做不好眼前。分层后,<span class="term">Planner 的上下文永远不被底层细节填满,Worker 的上下文全部花在一小块活上</span>。</span></div>
+    <div class="row en"><span class="tag tag-what">Mechanism</span><span>A single agent walking the whole tree must hold ancestors, current position, and the wider goal in context at once. Cursor argues this is exactly why long-running single agents drift: focus on the work and lose the picture, or hold the picture and do worse work. With layering, <span class="term">a planner's context never fills with low-level detail, and a worker spends all of its context on one narrow piece</span>.</span></div>
+    <div class="row zh"><span class="tag tag-why">关键判断</span><span>Cursor 明确说:蜂群的可扩展性「更多来自上下文效率,而非并行本身」——这也是为什么这套分解在中等任务上同样有收益。</span></div>
+    <div class="row en"><span class="tag tag-why">Key claim</span><span>Cursor states the swarm's scalability comes "from this context efficiency, more than from parallelism itself" — which is why the decomposition helps even on moderately sized tasks.</span></div>
+    <div class="row zh"><span class="tag tag-eg">类比</span><span>文章援引经济学家科斯(Ronald Coase)的企业理论:协调成本比工作本身涨得快,所以组织总会沉淀为有边界的分层单元,而不是人人互相直连。</span></div>
+    <div class="row en"><span class="tag tag-eg">Analogy</span><span>The post invokes economist Ronald Coase's theory of the firm: coordination costs grow faster than the work itself, so organizations settle into tiers of bounded units rather than letting everyone talk to everyone.</span></div>
+  </div>
+  <p class="zh">同一套设计已被 Cursor 用在多种任务上:从零造浏览器、解数学题、优化 GPU kernel、给开源软件找漏洞、提高自家代码库测试覆盖率、生成数十亿 token 的合成训练数据。</p>
+  <p class="en">Cursor reports using the same design across diverse tasks: building a browser from scratch, solving math problems, optimizing GPU kernels, finding vulnerabilities in open-source software, raising test coverage on its own codebase, and generating billions of tokens of synthetic training data.</p>
+</section>
+
+<section id="coordination">
+  <h2><span class="sn">3</span><span class="zh">🛠️ 协调工程:每秒千次提交下的失效与修法</span><span class="en">🛠️ Coordination Engineering: Failures &amp; Fixes at 1,000 Commits/Second</span></h2>
+  <p class="zh">分层只是骨架,真正的工程量在协调层。Git 这类工具靠粗粒度锁做并发控制,对一名开发者够用,对数百个并发 Agent 完全不够——旧蜂群在 Git 上峰值约每小时 1000 次提交,新系统为此<strong>从零自研了版本控制系统(VCS)</strong>,峰值达每秒约 1000 次提交。所有变更都过 VCS,冲突在这里最先显形,多项协调机制也直接内建其中。</p>
+  <p class="en">Layering is just the skeleton; the real engineering lives in coordination. Tools like Git use coarse locks for concurrency — fine for one developer, unworkable for hundreds of concurrent agents. The old swarm peaked at ~1,000 commits per hour on Git; the new system <strong>ships a version control system built from scratch</strong>, peaking at ~1,000 commits per second. Every change passes through it, collisions surface there first, and several coordination mechanisms are implemented directly inside it.</p>
+  <p class="zh">在这种节奏下,Cursor 观察到五种人类团队很少遇到的失效模式,并给出了各自的修法:</p>
+  <p class="en">At that tempo, Cursor observed five failure modes human teams rarely hit, each with its own fix:</p>
+
+  <div class="steps">
+    <div class="step"><div class="dot">1</div><div class="sb">
+      <b class="zh">裂脑设计(Split-brain)→ 决策上收</b>
+      <b class="en">Split-brain design → pull decisions up</b>
+      <span class="zh">两个互不知情的 Planner 在代码库不同角落用不同方式实现同一概念。修法是提示词层面的纪律:设计决策由 Planner 自己做、不下放,且保证任何问题不会被两棵子树各自决定一遍。</span>
+      <span class="en">Two planners, unaware of each other, implement the same concept differently in different corners. Fix: prompt-level discipline — planners make design decisions themselves rather than delegating, ensuring no two subtrees decide the same question.</span>
+    </div></div>
+    <div class="step"><div class="dot">2</div><div class="sb">
+      <b class="zh">Planner 互怼 → 共享设计文档 + 调解者</b>
+      <b class="en">Planner contention → shared design docs + a reconciler</b>
+      <span class="zh">两个 Planner 对同一批文件来回改、互相覆盖——本质是「两幅现实图景」,合并工具解决不了分歧。修法:决策写进共享设计文档,依赖该决策的代码带一个编译期校验的引用指回文档;当 Planner 无意间互相矛盾时,由调解 Agent 合并文档,引用把裁决自动传导到下游。</span>
+      <span class="en">Two planners fight through back-and-forth changes over the same files — two pictures of reality that merge tooling can't fix. Fix: decisions live in shared design docs; dependent code carries a compile-checked reference back to its doc; when planners unknowingly contradict, a reconciler merges the docs and the references propagate the resolution downstream.</span>
+    </div></div>
+    <div class="step"><div class="dot">3</div><div class="sb">
+      <b class="zh">合并冲突 → 中立第三方 Agent 仲裁</b>
+      <b class="en">Merge conflicts → a neutral third-party agent</b>
+      <span class="zh">Worker 处理冲突很差,实践中要么覆盖对方、要么放弃自己。修法:由一个只求公正高效的中立 Agent 代表各方解决冲突,类似人类团队的 merge queue。</span>
+      <span class="en">Workers are bad at conflicts — in practice they overwrite the other change or abandon their own. Fix: a neutral agent whose only goal is impartial, efficient resolution intervenes on behalf of all parties, like a merge queue in human teams.</span>
+    </div></div>
+    <div class="step"><div class="dot">4</div><div class="sb">
+      <b class="zh">巨型文件(Megafiles)→ 标记冻结 + 外部拆分</b>
+      <b class="en">Megafiles → flag, freeze, decompose</b>
+      <span class="zh">热门文件人人都添几行,没人负责瘦身,最终「堵死一切」。修法:Worker 可标记臃肿文件,标记后冻结新提交,由外部 Agent 把它拆成小模块。旧系统最热的文件被 1,173 个 Agent 碰过、攒下 7,771 次冲突;新系统全库最热文件只有 47 次。</span>
+      <span class="en">Popular files grow a few lines per agent with nobody responsible for keeping them small, until they choke everything. Fix: workers flag bloated files; commits freeze; an outside agent decomposes them. The old system's hottest file was touched by 1,173 agents and collected 7,771 conflicts; the new system's most contested file saw 47.</span>
+    </div></div>
+    <div class="step"><div class="dot">5</div><div class="sb">
+      <b class="zh">僵化(Ossification)→ 许可「有意破坏」</b>
+      <b class="en">Ossification → license intentional breakage</b>
+      <span class="zh">Agent 从「与人协作」的习惯里学会了不碰核心代码,即使核心确实该改。修法:允许 Agent 在职责范围外做一个聚焦补丁并留言说明理由;编译器让所有依赖旧设计的代码构建失败,每个撞上错误的 Agent 读到留言后自行更新自己那块。</span>
+      <span class="en">From working alongside humans, agents learned never to touch core code — even when it needs to change. Fix: license intentional breakage. An agent may make a focused out-of-scope patch with an explanatory comment; the compiler fails everything depending on the old design, and each agent that hits an error reads the reasoning and updates its own piece.</span>
+    </div></div>
+  </div>
+
+  <h3 class="zh">评审透镜与 Field Guide</h3>
+  <h3 class="en">Review lenses &amp; the Field Guide</h3>
+  <p class="zh">长时程 + 多智能体意味着错误会累积,蜂群需要在小错变成地基之前自我纠偏。Cursor 试验了多种「评审透镜」:有的评审 Agent 看 Worker 全程记录,有的只看产出,有的只看代码库,还让不同模型、不同「性格」的评审并存。结论:<span class="hl">没有单一透镜能抓住一切,但彼此不相关的透镜可以叠加</span>——就像自动驾驶靠多个不完美组件叠出超人可靠性。评审算力回报很高,因为评审远比它审计的工作便宜。</p>
+  <p class="en">Long-running plus multi-agent means errors accumulate; the swarm must self-correct before small mistakes become foundational. Cursor tried many "review lenses": reviewers seeing the worker's full transcript, only its output, or nothing but the codebase — across different models and personalities. Conclusion: <span class="hl">no single lens catches everything, but decorrelated lenses stack</span> — the way self-driving systems reach above-human reliability without any single perfect component. Review compute is high-return, since review is much cheaper than the work it audits.</p>
+  <p class="zh">另一项实验借鉴了蚁群的<span class="term">共识主动性(stigmergy)</span>——通过改造环境来协调彼此:一个完全由 Agent 拥有的「Field Guide」文件夹,其 index.md 自动注入每个新启动的 Agent,由 Agent 自己决定什么值得写进去(唯一约束是行数预算)。逻辑很朴素:模型权重是冻结的,恰恰是「意外遭遇」值得记录,好让下一个 Agent 的轨迹更短。</p>
+  <p class="en">Another experiment borrows <span class="term">stigmergy</span> from ant colonies — coordinating by shaping the environment: a "Field Guide" folder owned entirely by the agents, whose index.md is auto-injected into every agent at start; the agents curate it themselves under a line budget. The logic is plain: model weights are frozen, so it's precisely the surprise encounters worth capturing so the next agent's trajectory is shorter.</p>
+</section>
+
+<section id="experiment">
+  <h2><span class="sn">4</span><span class="zh">🧪 SQLite 实验:设置与结果</span><span class="en">🧪 The SQLite Experiment: Setup &amp; Results</span></h2>
+  <p class="zh">考题:仅凭 835 页 SQLite 官方手册,用 Rust 从零实现整个数据库——源码、测试套件、SQLite 程序、互联网,一律不给。评分用 SQLite 项目自己的 sqllogictest(数百万条已知正确答案的查询),蜂群<strong>不知道</strong>这套测试的存在;每轮结束后 Cursor 人工审查代码与过程,排查作弊与偷工。</p>
+  <p class="en">The exam: implement the entire database in Rust from nothing but SQLite's 835-page manual — no source, no test suites, no SQLite binary, no internet. Grading used the SQLite project's own sqllogictest (millions of queries with known answers); the swarm <strong>was never told the suite existed</strong>, and Cursor manually reviewed code and runs afterward for cheating and shortcuts.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">100%</div><div class="l zh">新蜂群四种模型组合最终全部通过全套测试;四小时截点成绩 73–85%(旧蜂群 11–77%)</div><div class="l en">All four new-swarm mixes ultimately passed the full suite; 73–85% at the 4-hour cutoff (old swarm: 11–77%)</div></div>
+    <div class="stat"><div class="n">70,000+ → &lt;1,000</div><div class="l zh">旧 vs 新蜂群(Grok 4.5)累计合并冲突数;旧系统冲突加速失控被暂停</div><div class="l en">Old vs. new swarm (Grok 4.5) cumulative merge conflicts; the old run accelerated out of control and was paused</div></div>
+    <div class="stat"><div class="n">64,305 → 9,908</div><div class="l zh">通过全套测试所需引擎代码行数(Fable 5 组合,旧 vs 新)——协调好了,代码也更精炼</div><div class="l en">Engine LOC needed to pass the full suite (Fable 5 mix, old vs. new) — better coordination, leaner code</div></div>
+  </div>
+  <p class="zh">结构性指标同样说明问题:旧系统(Grok 4.5)前两小时狂产 68,000 次提交——约为新系统节奏的 70 倍,但多数是空转(冲突、争抢、翻烧饼);包结构上,旧系统蔓生出 54 个 Rust crate、其中 3 个都是 SQL 包(裂脑的直接证据),新系统早早定型 9 个 crate 后再未增加。</p>
+  <p class="en">Structural metrics tell the same story: the old system (Grok 4.5) churned out 68,000 commits in its first two hours — about 70x the new system's pace, mostly busywork (thrash, contention, churn). In package structure, the old run sprawled to 54 Rust crates including three separate SQL packages (split-brain in the flesh); the new run settled on nine crates early and never added another.</p>
+  <div class="callout warn">
+    <div class="ct zh">⚠️ 读数须知</div>
+    <div class="ct en">⚠️ Reading the numbers</div>
+    <p class="zh" style="margin:0">这是厂商自述的内部实验:评分虽用外部测试套件,但实验设计、人工审查和数字均出自 Cursor 一方;曲线形状受 Agent 自选策略影响(「趋势比某时刻的确切分数更重要」是 Cursor 自己的提醒)。Opus 4.8 单跑产出的代码库已公开(github.com/cursor/minisqlite),可自行检验。</p>
+    <p class="en" style="margin:0">This is a vendor-reported internal experiment: the grader is an external suite, but design, review, and numbers all come from Cursor. Curve shapes reflect agents' self-chosen strategies ("trends matter more than exact scores at exact moments" is Cursor's own caveat). The solo Opus 4.8 codebase is public at github.com/cursor/minisqlite for independent inspection.</p>
+  </div>
+</section>
+
+<section id="economics">
+  <h2><span class="sn">5</span><span class="zh">📊 模型经济学:钱花在哪、省在哪</span><span class="en">📊 Model Economics: Where the Money Goes</span></h2>
+  <p class="zh">四种配置质量趋同,成本天差地别。token 的分布很一致——Worker 至少吞掉 69% 的 token(多数配置超 90%);但钱的分布不同,因为 Planner 的 token 更贵:在 Opus 4.8 + Composer 2.5 组合里,Opus 产出的 token 占比很小,却占了约三分之二的花费。</p>
+  <p class="en">Four configurations, converging quality, wildly different costs. Token structure was consistent — workers carried at least 69% of tokens (over 90% in most runs); but dollars split differently because planner tokens cost more: in the Opus 4.8 + Composer 2.5 mix, the planner produced a small fraction of tokens yet roughly two-thirds of the cost.</p>
+
+  <div class="figure">
+    <svg class="zh" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="四种模型组合的总成本对比条形图">
+      <text x="20" y="30" font-size="14" font-weight="bold" fill="#22261f" data-anim>重写 SQLite 的总成本(质量相近,数据:Cursor)</text>
+      <g data-anim><text x="20" y="70" font-size="12.5" fill="#6c6f66">GPT-5.5 包办规划+执行</text><rect x="250" y="55" width="520" height="24" rx="5" fill="#b4530a"/><text x="762" y="72" text-anchor="end" font-size="12.5" font-weight="bold" fill="#fff">$10,565</text></g>
+      <g data-anim><text x="20" y="120" font-size="12.5" fill="#6c6f66">Grok 4.5 包办规划+执行</text><rect x="250" y="105" width="200" height="24" rx="5" fill="#c9762e"/><text x="458" y="122" font-size="12.5" font-weight="bold" fill="#22261f">约 1/4 – 1/2(未公布精确值)</text></g>
+      <g data-anim><text x="20" y="170" font-size="12.5" fill="#6c6f66">Fable 5 规划 + Composer 2.5 执行</text><rect x="250" y="155" width="160" height="24" rx="5" fill="#8a9a6d"/><text x="418" y="172" font-size="12.5" fill="#22261f">高于 Opus 组合(worker 端 token 更多)</text></g>
+      <g data-anim><text x="20" y="220" font-size="12.5" fill="#6c6f66">Opus 4.8 规划 + Composer 2.5 执行</text><rect x="250" y="205" width="66" height="24" rx="5" fill="#41634f"/><text x="324" y="222" font-size="12.5" font-weight="bold" fill="#41634f">$1,339</text></g>
+      <text x="20" y="268" font-size="12" fill="#8f3d14" data-anim>仅执行侧:GPT-5.5 workers $9,373 vs Composer 2.5 workers $411 —— 相差 22 倍</text>
+      <text x="20" y="288" font-size="11" fill="#6c6f66" data-anim>注:条长按已公布数字示意;Grok / Fable 组合官方未给出精确总额,仅给相对描述。</text>
+    </svg>
+    <svg class="en" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bar chart of total cost across four model mixes">
+      <text x="20" y="30" font-size="14" font-weight="bold" fill="#22261f" data-anim>Total cost to rebuild SQLite (similar quality; data: Cursor)</text>
+      <g data-anim><text x="20" y="70" font-size="12" fill="#6c6f66">GPT-5.5 plans + executes</text><rect x="250" y="55" width="520" height="24" rx="5" fill="#b4530a"/><text x="762" y="72" text-anchor="end" font-size="12.5" font-weight="bold" fill="#fff">$10,565</text></g>
+      <g data-anim><text x="20" y="120" font-size="12" fill="#6c6f66">Grok 4.5 plans + executes</text><rect x="250" y="105" width="200" height="24" rx="5" fill="#c9762e"/><text x="458" y="122" font-size="12" font-weight="bold" fill="#22261f">~1/4–1/2 (exact figure not published)</text></g>
+      <g data-anim><text x="20" y="170" font-size="12" fill="#6c6f66">Fable 5 plans + Composer 2.5 executes</text><rect x="250" y="155" width="160" height="24" rx="5" fill="#8a9a6d"/><text x="418" y="172" font-size="12" fill="#22261f">above the Opus mix (more worker tokens)</text></g>
+      <g data-anim><text x="20" y="220" font-size="12" fill="#6c6f66">Opus 4.8 plans + Composer 2.5 executes</text><rect x="250" y="205" width="66" height="24" rx="5" fill="#41634f"/><text x="324" y="222" font-size="12.5" font-weight="bold" fill="#41634f">$1,339</text></g>
+      <text x="20" y="268" font-size="12" fill="#8f3d14" data-anim>Execution side only: GPT-5.5 workers $9,373 vs. Composer 2.5 workers $411 — a 22x spread</text>
+      <text x="20" y="288" font-size="11" fill="#6c6f66" data-anim>Note: bar lengths are indicative, anchored to published figures; Grok/Fable totals were described only relatively.</text>
+    </svg>
+    <div class="fig-cap zh">图 2 · 同等质量下的成本谱系。Cursor 的解释:大任务中真正需要前沿智力的时刻很少(最初的拆解、设计决策、关键取舍);前沿 Planner 把歧义坍缩成明确指令后,便宜模型照做即可。</div>
+    <div class="fig-cap en">Fig. 2 · The cost spectrum at equal quality. Cursor's explanation: few moments in a large task genuinely require frontier intelligence (the original decomposition, design decisions, key trade-offs); once a frontier planner collapses ambiguity into explicit instructions, cheap models simply follow.</div>
+  </div>
+
+  <div class="callout key">
+    <div class="ct zh">🔍 一个反直觉细节:更强的 Planner ≠ 更省的整体</div>
+    <div class="ct en">🔍 A counterintuitive detail: a stronger planner ≠ a cheaper run</div>
+    <p class="zh" style="margin:0">Fable 5 做 Planner 时,规划账单反而比 Opus 4.8 略低(单价约两倍,但规划 token 少得多)——然而它带的 Worker 消耗了数倍 token,整体反而明显更贵。规划的质量不只体现在规划本身的开销,更体现在<strong>它给执行端省了多少弯路</strong>;这两者未必同向。</p>
+    <p class="en" style="margin:0">With Fable 5 as planner, the planning bill came out slightly below Opus 4.8's (about twice the per-token price, far fewer planning tokens) — yet its workers burned several times as many tokens, making the run substantially more expensive overall. Planning quality shows up not in the planner's own bill but in <strong>how many detours it saves the executors</strong> — and the two don't necessarily move together.</p>
+  </div>
+</section>
+
+<section id="transfer">
+  <h2><span class="sn">6</span><span class="zh">🧭 迁移要点与局限</span><span class="en">🧭 Transfer Notes &amp; Limits</span></h2>
+  <p class="zh">给自己搭 Agent 系统的读者,可直接带走的设计原则:</p>
+  <p class="en">If you're building your own agent systems, the portable principles:</p>
+  <div class="glossary">
+    <div class="g"><b class="zh">角色即模型档位</b><b class="en">Roles are model tiers</b><span class="zh">把「用哪个模型」从全局配置变成按角色配置:规划/评审用贵的,执行用便宜的。The Decoder 的解读估计,凡是存在可验证性的场景,当下就有 6–8 倍的成本空间。</span><span class="en">Turn "which model" from a global setting into a per-role setting: expensive for planning/review, cheap for execution. The Decoder's read: a 6–8x saving is available today wherever verification exists.</span></div>
+    <div class="g"><b class="zh">验证器前置</b><b class="en">Verification first</b><span class="zh">整个便宜执行的前提是「结果可被廉价判对错」(编译器、测试套件)。没有验证器的领域,分层省钱的逻辑要打折——先补验证,再谈蜂群。</span><span class="en">Cheap execution presupposes cheap verification (compilers, test suites). In domains without verifiers, the economics discount heavily — build verification before building swarms.</span></div>
+    <div class="g"><b class="zh">协调是一等公民</b><b class="en">Coordination is first-class</b><span class="zh">Cursor 为协调专门造了 VCS、调解 Agent、文件拆分 Agent、评审栈——协调机制的工程量不小于 Agent 本身。想省掉这层的多智能体系统,大概率复演「7 万次合并冲突」。</span><span class="en">Cursor built a VCS, reconciler agents, file-decomposition agents, and a review stack just for coordination — engineering rivaling the agents themselves. Skip this layer and you'll likely re-enact the 70,000 merge conflicts.</span></div>
+    <div class="g"><b class="zh">Spec 成为工作单元</b><b class="en">The spec becomes the unit of work</b><span class="zh">Cursor 的收尾判断:自动补全的单位是行,Agent 的单位是文件/功能,蜂群的单位是 spec;蜂群像一台「意图编译器」,而稀缺的将是「对意图的正确描述」。</span><span class="en">Cursor's closing claim: autocomplete worked in lines, agents in files/features, swarms in specs; the swarm resembles a compiler for intent — and what's scarce is the right description of intent.</span></div>
+  </div>
+  <div class="callout warn">
+    <div class="ct zh">⚠️ 三条局限,别外推过头</div>
+    <div class="ct en">⚠️ Three limits — don't over-extrapolate</div>
+    <p class="zh" style="margin-bottom:6px">① <strong>单源厂商报告</strong>:数字未经独立复现,且 Cursor 自家销售廉价模型(Composer)与该结论存在利益一致性。② <strong>任务选择偏向</strong>:SQLite 重写是「规格明确 + 验证完美 + 高度可并行」的理想蜂群任务;Google–MIT 研究提示,强耦合任务上多智能体的协调开销可能吃掉收益。③ <strong>模型敏感性真实存在</strong>:Cursor 自己就因 GPT-5.6 Sol 对措辞过敏、出现「失控螺旋」而弃用之——换模型不是免费的。</p>
+    <p class="en" style="margin:0">① <strong>Single-source vendor report</strong>: figures aren't independently reproduced, and Cursor sells a cheap model (Composer) aligned with the conclusion. ② <strong>Task-selection bias</strong>: the SQLite rebuild is an ideal swarm task — precise spec, perfect verifier, highly parallel; the Google–MIT study warns coordination overhead can erase gains on tightly coupled tasks. ③ <strong>Model sensitivity is real</strong>: Cursor itself dropped GPT-5.6 Sol after "runaway spirals" from its sensitivity to emphatic wording — swapping models isn't free.</p>
+  </div>
+</section>
+
+<section id="resources">
+  <h2><span class="sn">7</span><span class="zh">📚 学习资源清单</span><span class="en">📚 Learning Resources</span></h2>
+  <div class="glossary">
+    <div class="g"><b class="zh">一手材料</b><b class="en">Primary</b><span class="zh"><a href="https://cursor.com/blog/agent-swarm-model-economics">Cursor:Agent swarms and the new model economics</a>(2026-07-20,Wilson Lin)· <a href="https://github.com/cursor/minisqlite">minisqlite 代码库</a></span><span class="en"><a href="https://cursor.com/blog/agent-swarm-model-economics">Cursor: Agent swarms and the new model economics</a> (2026-07-20, Wilson Lin) · <a href="https://github.com/cursor/minisqlite">the minisqlite codebase</a></span></div>
+    <div class="g"><b class="zh">前情脉络</b><b class="en">Backstory</b><span class="zh"><a href="https://cursor.com/blog/scaling-agents">从零造浏览器(scaling agents)</a> · <a href="https://cursor.com/blog/self-driving-codebases">Self-driving codebases</a> · <a href="https://cursor.com/blog/multi-agent-kernels">多 Agent 优化 GPU kernel</a></span><span class="en"><a href="https://cursor.com/blog/scaling-agents">Building a browser (scaling agents)</a> · <a href="https://cursor.com/blog/self-driving-codebases">Self-driving codebases</a> · <a href="https://cursor.com/blog/multi-agent-kernels">Multi-agent GPU kernels</a></span></div>
+    <div class="g"><b class="zh">解读与对照</b><b class="en">Analysis</b><span class="zh"><a href="https://the-decoder.com/cursors-agent-swarm-suggests-cheaper-models-can-handle-most-coding-when-frontier-models-plan-the-work/">The Decoder 解读</a> · 关联主题:本系列 07-09《多智能体编排》、07-19《多模型路由》、07-28《Agent 可观测性》</span><span class="en"><a href="https://the-decoder.com/cursors-agent-swarm-suggests-cheaper-models-can-handle-most-coding-when-frontier-models-plan-the-work/">The Decoder's analysis</a> · Related in this series: Multi-Agent Orchestration (07-09), Model Routing (07-19), Agent Observability (07-28)</span></div>
+  </div>
+  <div class="final">
+    <h3 class="zh">一句话带走</h3>
+    <h3 class="en">The One-Line Takeaway</h3>
+    <p class="zh" style="margin:0">蜂群的可扩展性来自<strong>上下文效率</strong>而非并行本身;成本优势来自<strong>把前沿智力限定在拆解与决策的少数时刻</strong>;而这一切能立住的前提,是验证器和一整层不输于 Agent 本身的协调工程。</p>
+    <p class="en" style="margin:0">Swarm scalability comes from <strong>context efficiency</strong>, not parallelism itself; the cost advantage comes from <strong>confining frontier intelligence to the few moments of decomposition and decision</strong>; and both stand only on verifiers plus a coordination layer engineered as seriously as the agents themselves.</p>
+  </div>
+</section>
+
+<footer>
+  <p class="zh"><strong>调研时间:2026-08-03(补生成 07-31 档)</strong> · 关键数字均出自 Cursor 官方博文;厂商单源性质已在正文标注。快速迭代领域,请以官方最新发布为准。</p>
+  <p class="en"><strong>Researched: 2026-08-03 (backfilled for 07-31)</strong> · Key figures come from Cursor's official post; its single-vendor nature is flagged in the text. This field moves fast — defer to the latest official publications.</p>
+  <ul>
+    <li>1. Cursor (Wilson Lin), "Agent swarms and the new model economics" — cursor.com/blog/agent-swarm-model-economics (2026-07-20)</li>
+    <li>2. Cursor, minisqlite — github.com/cursor/minisqlite</li>
+    <li>3. The Decoder, "Cursor's agent swarm suggests cheaper models can handle most coding…" (2026-07)</li>
+    <li>4. Tech Times, "Cursor Agent Swarm: Worker Fleet Dropped From $9,373 to $411…" (2026-07-27)</li>
+    <li>5. Google–MIT study on multi-agent coordination overhead — via The Decoder (2026)</li>
+  </ul>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var body=document.body, htmlEl=document.documentElement;
+  var btn=document.getElementById('langBtn');
+  var toc=document.getElementById('sideToc'), tocBtn=document.getElementById('tocToggle');
+  var stBar=document.getElementById('stBar'), stPct=document.getElementById('stPct'), topBar=document.getElementById('topProgress');
+  var links=[].slice.call(document.querySelectorAll('.side-toc li a'));
+  var sections=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  var figures=[].slice.call(document.querySelectorAll('.figure'));
+
+  figures.forEach(function(f){
+    [].slice.call(f.querySelectorAll('[data-anim]')).forEach(function(el,i){el.style.transitionDelay=(0.15+i*0.12)+'s';});
+    [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){
+      try{var len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len;}catch(e){}
+    });
+  });
+  function reveal(f){
+    if(f.classList.contains('in'))return;
+    f.classList.add('in');
+    [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){p.style.strokeDashoffset='0';});
+  }
+  var obs=null;
+  if('IntersectionObserver' in window){
+    obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){reveal(e.target);obs.unobserve(e.target);}});},{threshold:0.18});
+    figures.forEach(function(f){obs.observe(f);});
+  }else{figures.forEach(reveal);}
+
+  function revealVisible(){
+    figures.forEach(function(f){
+      if(f.classList.contains('in'))return;
+      var r=f.getBoundingClientRect();
+      if(r.width>0&&r.top<window.innerHeight&&r.bottom>0){reveal(f);if(obs)obs.unobserve(f);}
+      else if(obs){obs.observe(f);}
+    });
+  }
+  function setLang(l){
+    body.setAttribute('data-lang',l);
+    htmlEl.setAttribute('lang',l==='zh'?'zh-CN':'en');
+    btn.textContent=(l==='zh')?'EN':'中';
+    try{localStorage.setItem('aidaily-swarm-lang',l);}catch(e){}
+    requestAnimationFrame(function(){requestAnimationFrame(revealVisible);});
+  }
+  var initial='zh';
+  try{
+    var saved=localStorage.getItem('aidaily-swarm-lang');
+    if(saved==='zh'||saved==='en'){initial=saved;}
+    else{initial=(navigator.language||'zh').toLowerCase().indexOf('zh')===0?'zh':'en';}
+  }catch(e){}
+  setLang(initial);
+  btn.addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh');});
+
+  tocBtn.addEventListener('click',function(){toc.classList.toggle('open');});
+  links.forEach(function(a){a.addEventListener('click',function(){toc.classList.remove('open');});});
+
+  function onScroll(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+    var p=max>0?Math.min(100,Math.round(h.scrollTop/max*100)):0;
+    stBar.style.width=p+'%'; stPct.textContent=p+'%'; topBar.style.width=p+'%';
+    var cur=0, y=h.scrollTop+120;
+    sections.forEach(function(s,i){if(s&&s.offsetTop<=y)cur=i;});
+    links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>
