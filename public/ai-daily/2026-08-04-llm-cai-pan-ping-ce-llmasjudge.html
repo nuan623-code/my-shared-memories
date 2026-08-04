@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM-as-Judge:让模型当裁判——可靠性、偏见与工程实践 | LLM-as-Judge: Reliability, Bias, and Engineering Practice</title>
+<style>
+:root{
+  --bg:#faf6ef; --paper:#fffdf8; --ink:#2b2118; --ink2:#5c5044; --line:#e6dcc9;
+  --accent:#8c2f39; --accent2:#a8434e; --brass:#a07c2e; --brass-bg:#f7efdb;
+  --ok:#3e6b4f; --ok-bg:#e9f1ea; --warn:#8a5a1e; --warn-bg:#f9efdd;
+  --code-bg:#2d2620; --code-ink:#e8ddc9;
+  --radius:14px; --shadow:0 2px 14px rgba(60,40,20,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.8 Georgia,"Songti SC","Noto Serif SC",serif;-webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--brass));width:0;z-index:99}
+#langbtn{position:fixed;top:14px;right:14px;z-index:98;background:var(--paper);border:1.5px solid var(--accent);color:var(--accent);font:bold 14px Georgia,serif;padding:7px 14px;border-radius:20px;cursor:pointer;box-shadow:var(--shadow)}
+#langbtn:hover{background:var(--accent);color:#fff}
+.hero{background:linear-gradient(160deg,#332822 0%,#4a3226 55%,#6b3a34 100%);color:#f5ecda;padding:74px 22px 58px;text-align:center}
+.hero .kicker{letter-spacing:.28em;font-size:12px;text-transform:uppercase;color:#cbb98f;margin-bottom:14px}
+.hero h1{font-size:clamp(26px,4.5vw,42px);margin:0 0 16px;line-height:1.35}
+.hero p{max-width:720px;margin:0 auto;color:#e0d3b8;font-size:17px}
+.hero .date{margin-top:20px;font-size:13px;color:#b3a486}
+.layout{max-width:1160px;margin:0 auto;padding:34px 20px 80px;display:flex;gap:34px;align-items:flex-start}
+nav#toc{position:sticky;top:24px;width:246px;flex:none;background:rgba(255,253,248,.82);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;font-size:13.5px;box-shadow:var(--shadow);max-height:calc(100vh - 60px);overflow:auto}
+nav#toc b{display:block;margin-bottom:8px;color:var(--accent);letter-spacing:.08em}
+nav#toc a{display:block;color:var(--ink2);text-decoration:none;padding:5px 8px;border-radius:7px;line-height:1.45}
+nav#toc a.on{background:var(--brass-bg);color:var(--accent);font-weight:bold}
+#tocbtn{display:none}
+main{flex:1;min-width:0}
+section{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:30px 32px;margin-bottom:26px;box-shadow:var(--shadow)}
+h2{font-size:24px;margin:0 0 6px;color:var(--accent)}
+h2 .no{color:var(--brass);margin-right:8px}
+h3{font-size:18px;margin:26px 0 8px;color:#5a3a2e}
+p{margin:12px 0}
+a{color:var(--accent)}
+code{background:#f1e9d8;border-radius:5px;padding:2px 6px;font:14.5px/1.6 "SF Mono",Menlo,Consolas,monospace;color:#6b3a34}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;font:13.5px/1.65 "SF Mono",Menlo,Consolas,monospace}
+pre code{background:none;padding:0;color:inherit}
+.def{border-left:4px solid var(--brass);background:var(--brass-bg);border-radius:0 10px 10px 0;padding:14px 18px;margin:16px 0}
+.callout{border-radius:10px;padding:14px 18px;margin:16px 0;border:1px solid}
+.callout.key{background:var(--ok-bg);border-color:#c4d6c8}
+.callout.warn{background:var(--warn-bg);border-color:#e5cf9f}
+.callout .ct{font-weight:bold;display:block;margin-bottom:4px}
+.steps{counter-reset:st;margin:16px 0;padding:0;list-style:none}
+.steps li{counter-increment:st;position:relative;padding:10px 14px 10px 52px;margin:10px 0;background:#fbf7ee;border:1px solid var(--line);border-radius:10px}
+.steps li::before{content:counter(st);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font:bold 14px/26px Georgia;text-align:center}
+table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14.5px}
+th{background:#3d2f26;color:#f0e6d2;text-align:left;padding:9px 12px}
+td{border-bottom:1px solid var(--line);padding:9px 12px;vertical-align:top}
+tr:nth-child(even) td{background:#faf5ea}
+.figure{margin:22px 0;text-align:center;opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{max-width:100%;height:auto}
+.fig-cap{font-size:13px;color:var(--ink2);margin-top:8px}
+.gcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0}
+.gcard{background:#fbf7ee;border:1px solid var(--line);border-radius:10px;padding:13px 15px;font-size:14.5px}
+.gcard b{color:var(--accent);display:block;margin-bottom:4px}
+footer{max-width:1160px;margin:0 auto;padding:0 20px 60px;font-size:13.5px;color:var(--ink2)}
+footer ul{padding-left:20px}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}}
+@media(max-width:900px){
+  .layout{flex-direction:column}
+  nav#toc{position:fixed;top:0;left:0;width:min(78vw,300px);height:100vh;max-height:100vh;border-radius:0;transform:translateX(-105%);transition:transform .3s;z-index:97}
+  nav#toc.open{transform:none}
+  #tocbtn{display:block;position:fixed;bottom:18px;left:18px;z-index:98;width:46px;height:46px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:20px;box-shadow:var(--shadow);cursor:pointer}
+  section{padding:22px 18px}
+  body{font-size:16px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN ☰ 深度学习文档 · AI Daily Deep-Dive Document · AI Daily LLM-as-Judge:让模型当裁判 LLM-as-Judge: Using Models as Evaluat…">
+<meta property="og:title" content="LLM-as-Judge:让模型当裁判——可靠性、偏见与工程实践 | LLM-as-Judge: Reliability, Bias, and Engineering Practice">
+<meta property="og:description" content="EN ☰ 深度学习文档 · AI Daily Deep-Dive Document · AI Daily LLM-as-Judge:让模型当裁判 LLM-as-Judge: Using Models as Evaluat…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-04-llm-cai-pan-ping-ce-llmasjudge.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-04-llm-cai-pan-ping-ce-llmasjudge.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "LLM-as-Judge:让模型当裁判——可靠性、偏见与工程实践 | LLM-as-Judge: Reliability, Bias, and Engineering Practice", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-04-llm-cai-pan-ping-ce-llmasjudge.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-04", "dateModified": "2026-08-04"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="pbar"></div>
+<button id="langbtn">EN</button>
+<button id="tocbtn">☰</button>
+
+<div class="hero">
+  <div class="kicker zh">深度学习文档 · AI Daily</div>
+  <div class="kicker en">Deep-Dive Document · AI Daily</div>
+  <h1 class="zh">LLM-as-Judge:让模型当裁判</h1>
+  <h1 class="en">LLM-as-Judge: Using Models as Evaluators</h1>
+  <p class="zh">用一个大模型给另一个大模型的输出打分——它是 Agent 评测、CI 回归测试和生产监控的基础设施,但自带五种系统性偏见。这份文档讲清:是什么、怎么用、怎么让它可信。</p>
+  <p class="en">Using one LLM to score another LLM's outputs — it is the infrastructure behind agent evals, CI regression testing, and production monitoring, yet it ships with five systematic biases. This document covers: what it is, how to use it, and how to make it trustworthy.</p>
+  <div class="date zh">调研时间:2026-08-04 · 中英双语,右上角切换</div>
+  <div class="date en">Researched: 2026-08-04 · Bilingual — toggle at top right</div>
+</div>
+
+<div class="layout">
+<nav id="toc"><b class="zh">目录</b><b class="en">Contents</b>
+  <a href="#s1"><span class="zh">1 · 30 秒速览</span><span class="en">1 · 30-Second Overview</span></a>
+  <a href="#s2"><span class="zh">2 · 为什么需要它</span><span class="en">2 · Why It Exists</span></a>
+  <a href="#s3"><span class="zh">3 · 核心概念</span><span class="en">3 · Core Concepts</span></a>
+  <a href="#s4"><span class="zh">4 · 三种主流裁判技术</span><span class="en">4 · Three Judge Techniques</span></a>
+  <a href="#s5"><span class="zh">5 · 五大系统性偏见</span><span class="en">5 · Five Systematic Biases</span></a>
+  <a href="#s6"><span class="zh">6 · 工程落地十步</span><span class="en">6 · Ten Steps to Production</span></a>
+  <a href="#s7"><span class="zh">7 · 三个典型工作流</span><span class="en">7 · Three Typical Workflows</span></a>
+  <a href="#s8"><span class="zh">8 · 对比与选型</span><span class="en">8 · Comparison &amp; Selection</span></a>
+  <a href="#s9"><span class="zh">9 · 常见坑与限制</span><span class="en">9 · Pitfalls &amp; Limitations</span></a>
+  <a href="#s10"><span class="zh">10 · 前沿动态</span><span class="en">10 · Research Frontier</span></a>
+  <a href="#s11"><span class="zh">11 · 学习资源</span><span class="en">11 · Resources</span></a>
+</nav>
+<main>
+
+<section id="s1">
+  <h2 class="zh"><span class="no">1</span>30 秒速览</h2>
+  <h2 class="en"><span class="no">1</span>30-Second Overview</h2>
+  <div class="def zh"><b>LLM-as-Judge(模型裁判)</b>:把「被测系统的输入和输出」连同一份「评分标准(rubric,即打分细则)」交给另一个大模型,让它给出分数、判定或两者胜负。它取代的不是人类的最终判断,而是「人不可能逐条看几千条输出」这件事。</div>
+  <div class="def en"><b>LLM-as-Judge</b>: you hand the input and output of a system under test, together with a scoring rubric, to another large model, and it returns a score, a verdict, or a pairwise winner. It does not replace final human judgment — it replaces the impossibility of a human reading thousands of outputs one by one.</div>
+  <p class="zh">一句话定位:传统指标(精确匹配、BLEU/ROUGE)只能比对字面相似,人工评审又慢又贵;模型裁判坐在两者中间——够便宜可以大规模跑,又足够「懂语义」能判断回答是否切题、是否有依据、任务是否完成。DeepEval 官方文档把它总结为:大多数 LLM 应用的失败「不是二元的对错」,而恰恰是传统指标漏掉的那些灰色地带。</p>
+  <p class="en">Positioning in one sentence: traditional metrics (exact match, BLEU/ROUGE) can only compare surface similarity, while human review is slow and expensive; an LLM judge sits in between — cheap enough to run at scale, yet semantic enough to judge whether an answer is relevant, grounded, and whether the task was completed. The DeepEval docs put it this way: most LLM application failures "are not binary right-or-wrong," and those grey areas are exactly what traditional metrics miss.</p>
+  <div class="figure" data-anim>
+    <svg class="zh" viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LLM裁判流程图">
+      <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8c2f39"/></marker></defs>
+      <rect x="10" y="30" width="170" height="60" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="95" y="55" text-anchor="middle" font-size="14" fill="#2b2118">被测系统的</text>
+      <text x="95" y="75" text-anchor="middle" font-size="14" fill="#2b2118">输入 + 输出</text>
+      <rect x="10" y="120" width="170" height="50" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="95" y="150" text-anchor="middle" font-size="14" fill="#2b2118">评分标准 rubric</text>
+      <line x1="180" y1="60" x2="270" y2="90" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar1)"/>
+      <line x1="180" y1="145" x2="270" y2="110" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar1)"/>
+      <rect x="275" y="65" width="160" height="70" rx="12" fill="#8c2f39"/>
+      <text x="355" y="95" text-anchor="middle" font-size="15" fill="#fff" font-weight="bold">裁判 LLM</text>
+      <text x="355" y="117" text-anchor="middle" font-size="12" fill="#f0d9d9">读 rubric → 打分</text>
+      <line x1="435" y1="100" x2="530" y2="100" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar1)"/>
+      <rect x="535" y="45" width="175" height="110" rx="10" fill="#e9f1ea" stroke="#3e6b4f"/>
+      <text x="622" y="75" text-anchor="middle" font-size="14" fill="#2b2118">分数 0–1 / 通过与否</text>
+      <text x="622" y="100" text-anchor="middle" font-size="14" fill="#2b2118">+ 打分理由</text>
+      <text x="622" y="125" text-anchor="middle" font-size="14" fill="#2b2118">(或 A/B 胜负)</text>
+    </svg>
+    <svg class="en" viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LLM judge pipeline">
+      <defs><marker id="ar1-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8c2f39"/></marker></defs>
+      <rect x="10" y="30" width="170" height="60" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="95" y="55" text-anchor="middle" font-size="13" fill="#2b2118">Input + output of</text>
+      <text x="95" y="75" text-anchor="middle" font-size="13" fill="#2b2118">system under test</text>
+      <rect x="10" y="120" width="170" height="50" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="95" y="150" text-anchor="middle" font-size="13" fill="#2b2118">Scoring rubric</text>
+      <line x1="180" y1="60" x2="270" y2="90" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar1-e)"/>
+      <line x1="180" y1="145" x2="270" y2="110" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar1-e)"/>
+      <rect x="275" y="65" width="160" height="70" rx="12" fill="#8c2f39"/>
+      <text x="355" y="95" text-anchor="middle" font-size="15" fill="#fff" font-weight="bold">Judge LLM</text>
+      <text x="355" y="117" text-anchor="middle" font-size="12" fill="#f0d9d9">reads rubric → scores</text>
+      <line x1="435" y1="100" x2="530" y2="100" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar1-e)"/>
+      <rect x="535" y="45" width="175" height="110" rx="10" fill="#e9f1ea" stroke="#3e6b4f"/>
+      <text x="622" y="75" text-anchor="middle" font-size="13" fill="#2b2118">Score 0–1 / pass-fail</text>
+      <text x="622" y="100" text-anchor="middle" font-size="13" fill="#2b2118">+ reasoning</text>
+      <text x="622" y="125" text-anchor="middle" font-size="13" fill="#2b2118">(or A/B winner)</text>
+    </svg>
+    <div class="fig-cap zh">图 1 · 模型裁判的基本流程:输入输出 + rubric → 裁判模型 → 分数与理由(依据 DeepEval 文档整理)</div>
+    <div class="fig-cap en">Fig. 1 · The basic judge pipeline: input/output + rubric → judge model → score with reasoning (based on DeepEval docs)</div>
+  </div>
+</section>
+
+<section id="s2">
+  <h2 class="zh"><span class="no">2</span>为什么需要它:评测的三难困境</h2>
+  <h2 class="en"><span class="no">2</span>Why It Exists: The Evaluation Trilemma</h2>
+  <p class="zh">先说痛点。你上线了一个客服机器人或者代码 Agent,想知道「这次改 prompt 之后有没有变差」。你有三个老办法,各有致命伤:</p>
+  <p class="en">Start with the pain. You ship a support chatbot or a coding agent and want to know "did my latest prompt change make things worse?" You have three classic options, each with a fatal flaw:</p>
+  <table>
+    <thead><tr><th class="zh">方法</th><th class="zh">擅长</th><th class="zh">致命伤</th></tr><tr><th class="en">Approach</th><th class="en">Good at</th><th class="en">Fatal flaw</th></tr></thead>
+    <tbody>
+      <tr><td class="zh">人工评审</td><td class="zh">细腻判断、最终质检</td><td class="zh">慢、贵、规模化后不一致</td><td class="en">Human review</td><td class="en">Nuanced judgment, final QA</td><td class="en">Slow, expensive, inconsistent at scale</td></tr>
+      <tr><td class="zh">精确匹配</td><td class="zh">确定性输出</td><td class="zh">对自然语言太苛刻</td><td class="en">Exact match</td><td class="en">Deterministic outputs</td><td class="en">Too strict for natural language</td></tr>
+      <tr><td class="zh">BLEU/ROUGE 类</td><td class="zh">与参考文本的相似度</td><td class="zh">测不出语义正确性与开放式任务</td><td class="en">BLEU/ROUGE-style</td><td class="en">Similarity to a reference text</td><td class="en">Weak for semantic correctness &amp; open-ended tasks</td></tr>
+    </tbody>
+  </table>
+  <p class="zh">举个具体例子(来自 DeepEval 文档):一条客服回答可以「事实全对但含糊到没用」;一条 RAG 回答可以「读起来流畅但在编造」;一个 Agent 可以「每个工具都调对了但没解决用户的事」。这三种失败,上面三个老办法全都抓不住——而这正是模型裁判的用武之地。这个思路在 2023 年由 MT-Bench / Chatbot Arena 论文(Zheng et al., arXiv:2306.05685)系统化提出,如今已是评测领域的标准工具。</p>
+  <p class="en">A concrete example (from the DeepEval docs): a support answer can be "factually correct but too vague to help"; a RAG answer can "sound fluent while hallucinating"; an agent can "call every tool correctly and still fail the user's task." All three failures slip past all three classic approaches — and that is exactly where LLM judges earn their keep. The idea was systematized in 2023 by the MT-Bench / Chatbot Arena paper (Zheng et al., arXiv:2306.05685) and is now a standard tool in evaluation.</p>
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 但裁判自己也会「冤判」</span><p class="zh" style="margin:0">Future AGI 的最佳实践文章开头讲了一个真实的失败模式:某团队用 GPT-4 当裁判去评 GPT-4 自己的产出,仪表盘绿了三个月;后来请领域专家人工复核 50 条,专家与裁判的一致性系数(kappa)只有 0.31——裁判一直在系统性地给「自家模型」和「流畅的幻觉」放水。所以这份文档的后半部分,全在讲怎么防止这件事。</p>
+    <span class="ct en">⚠️ But the judge itself can misjudge</span><p class="en" style="margin:0">Future AGI's best-practices article opens with a real failure mode: a team used GPT-4 to judge GPT-4's own outputs, and dashboards glowed green for three months; then a domain expert hand-graded 50 outputs, and the agreement coefficient (kappa) between expert and judge was only 0.31 — the judge had been systematically favoring its own model family and letting fluent hallucinations through. The second half of this document is entirely about preventing that.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2 class="zh"><span class="no">3</span>核心概念:四个必须分清的维度</h2>
+  <h2 class="en"><span class="no">3</span>Core Concepts: Four Distinctions That Matter</h2>
+  <h3 class="zh">① 单输出打分 vs 成对比较</h3>
+  <h3 class="en">① Single-output scoring vs pairwise comparison</h3>
+  <p class="zh">单输出打分:一次评一条输出,返回 0–1 的分数——适合回归测试和生产监控。成对比较(pairwise):把两个候选输出放一起选胜者——适合「prompt v1 和 v2 哪个更好」「模型 A 换 B 值不值」这类相对比较。DeepEval 里分别对应 <code>GEval</code>/<code>DAGMetric</code> 和 <code>ArenaGEval</code>。</p>
+  <p class="en">Single-output scoring evaluates one output at a time and returns a 0–1 score — best for regression tests and production monitoring. Pairwise comparison puts two candidates side by side and picks a winner — best for relative questions like "is prompt v2 better than v1" or "is switching model A for B worth it." In DeepEval these map to <code>GEval</code>/<code>DAGMetric</code> and <code>ArenaGEval</code> respectively.</p>
+  <h3 class="zh">② 有参考 vs 无参考</h3>
+  <h3 class="en">② Reference-based vs referenceless</h3>
+  <p class="zh">有参考(reference-based):裁判手里有标准答案(<code>expected_output</code>)、真值上下文或预期工具调用,对照着打分。无参考(referenceless):只看输入和输出本身,判断「有没有帮助、是否切题、语气对不对」。关键实践点:<b>线上生产流量没有标准答案,所以生产监控几乎只能用无参考指标</b>——这决定了你的指标设计。</p>
+  <p class="en">Reference-based: the judge holds a gold answer (<code>expected_output</code>), ground-truth context, or expected tool calls, and scores against them. Referenceless: the judge sees only the input and output and asks "is this helpful, relevant, in the right tone?" The key practical point: <b>production traffic comes without gold answers, so production monitoring is almost always referenceless</b> — which shapes your metric design.</p>
+  <h3 class="zh">③ rubric:裁判的「量刑标准」</h3>
+  <h3 class="en">③ The rubric: the judge's sentencing guidelines</h3>
+  <p class="zh">rubric 就是写给裁判的打分细则。「给 helpfulness 打 1–10 分」是烂 rubric;好 rubric 要:给指标下定义(「groundedness = 每条事实性断言都要有上下文支持」)、规定输出格式(返回 JSON <code>{"score":0-1,"reasoning":"…"}</code>)、给正反例子、列边界情况(「上下文为空时,只要输出还敢下事实断言就打 0」)。Future AGI 的原话:「模糊的 rubric 产出模糊的裁判」。</p>
+  <p class="en">The rubric is the scoring guideline you write for the judge. "Rate helpfulness 1–10" is a bad rubric; a good one defines the metric ("groundedness = every factual claim must be supported by the provided context"), fixes the output format (return JSON <code>{"score":0-1,"reasoning":"…"}</code>), gives positive and negative examples, and lists edge cases ("if the context is empty, score 0 if any factual claim is made"). As Future AGI puts it: "a vague rubric produces a vague judge."</p>
+  <h3 class="zh">④ 裁判的三种角色分工</h3>
+  <h3 class="en">④ Three roles for three judges</h3>
+  <p class="zh">生产打分(大流量、抽样)用蒸馏小裁判——成本比前沿模型低 10–50 倍;校准锚点(小流量、高保真)用前沿大模型评黄金集;领域专属 rubric 用在自家标注数据上微调过的裁判。大多数生产系统是「蒸馏裁判跑量 + 前沿裁判定期校准」的组合。</p>
+  <p class="en">Production scoring (high volume, sampled) uses a distilled small judge — 10–50x cheaper than frontier models; the calibration anchor (low volume, high fidelity) uses a frontier model on the gold-set; workload-specific rubrics use a judge fine-tuned on your own labeled data. Most production stacks combine a distilled judge for volume with a frontier judge for periodic calibration.</p>
+</section>
+
+<section id="s4">
+  <h2 class="zh"><span class="no">4</span>三种主流裁判技术:G-Eval、DAG、QAG</h2>
+  <h2 class="en"><span class="no">4</span>Three Judge Techniques: G-Eval, DAG, QAG</h2>
+  <p class="zh">「用 LLM 打分」不是一种做法,而是一个技术族。DeepEval 把单输出裁判归纳为三种,各有明确的适用场景:</p>
+  <p class="en">"Score with an LLM" is not one method but a family. DeepEval organizes single-output judges into three techniques, each with a clear fit:</p>
+  <div class="figure" data-anim>
+    <svg class="zh" viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三种裁判技术分叉图">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a07c2e"/></marker></defs>
+      <rect x="270" y="12" width="180" height="46" rx="10" fill="#8c2f39"/>
+      <text x="360" y="40" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">你的评分标准是?</text>
+      <line x1="300" y1="58" x2="130" y2="105" stroke="#a07c2e" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="360" y1="58" x2="360" y2="105" stroke="#a07c2e" stroke-width="2" marker-end="url(#ar2)"/>
+      <line x1="420" y1="58" x2="590" y2="105" stroke="#a07c2e" stroke-width="2" marker-end="url(#ar2)"/>
+      <text x="185" y="88" font-size="12" fill="#5c5044">主观、自定义</text>
+      <text x="372" y="88" font-size="12" fill="#5c5044">有硬性关卡</text>
+      <text x="470" y="88" font-size="12" fill="#5c5044">常见通用场景</text>
+      <rect x="20" y="110" width="215" height="120" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="127" y="136" text-anchor="middle" font-size="15" fill="#8c2f39" font-weight="bold">G-Eval</text>
+      <text x="127" y="160" text-anchor="middle" font-size="12" fill="#2b2118">自然语言写标准</text>
+      <text x="127" y="180" text-anchor="middle" font-size="12" fill="#2b2118">最快搭起自定义裁判</text>
+      <text x="127" y="200" text-anchor="middle" font-size="12" fill="#5c5044">正确性/语气/连贯性</text>
+      <rect x="252" y="110" width="215" height="120" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="359" y="136" text-anchor="middle" font-size="15" fill="#8c2f39" font-weight="bold">DAG(决策树)</text>
+      <text x="359" y="160" text-anchor="middle" font-size="12" fill="#2b2118">拆成小判断+分支路径</text>
+      <text x="359" y="180" text-anchor="middle" font-size="12" fill="#2b2118">确定性强、路径可追溯</text>
+      <text x="359" y="200" text-anchor="middle" font-size="12" fill="#5c5044">格式关卡/分级扣分</text>
+      <rect x="484" y="110" width="215" height="120" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="591" y="136" text-anchor="middle" font-size="15" fill="#8c2f39" font-weight="bold">QAG(问答分解)</text>
+      <text x="591" y="160" text-anchor="middle" font-size="12" fill="#2b2118">拆成封闭式小问题</text>
+      <text x="591" y="180" text-anchor="middle" font-size="12" fill="#2b2118">内置指标已实现好</text>
+      <text x="591" y="200" text-anchor="middle" font-size="12" fill="#5c5044">RAG 忠实度/切题度</text>
+    </svg>
+    <svg class="en" viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three judge techniques decision fork">
+      <defs><marker id="ar2-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a07c2e"/></marker></defs>
+      <rect x="255" y="12" width="210" height="46" rx="10" fill="#8c2f39"/>
+      <text x="360" y="40" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">What is your criterion like?</text>
+      <line x1="300" y1="58" x2="130" y2="105" stroke="#a07c2e" stroke-width="2" marker-end="url(#ar2-e)"/>
+      <line x1="360" y1="58" x2="360" y2="105" stroke="#a07c2e" stroke-width="2" marker-end="url(#ar2-e)"/>
+      <line x1="420" y1="58" x2="590" y2="105" stroke="#a07c2e" stroke-width="2" marker-end="url(#ar2-e)"/>
+      <text x="160" y="88" font-size="12" fill="#5c5044">subjective, custom</text>
+      <text x="370" y="88" font-size="12" fill="#5c5044">hard gates</text>
+      <text x="460" y="88" font-size="12" fill="#5c5044">common patterns</text>
+      <rect x="20" y="110" width="215" height="120" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="127" y="136" text-anchor="middle" font-size="15" fill="#8c2f39" font-weight="bold">G-Eval</text>
+      <text x="127" y="160" text-anchor="middle" font-size="12" fill="#2b2118">criteria in plain English</text>
+      <text x="127" y="180" text-anchor="middle" font-size="12" fill="#2b2118">fastest custom judge</text>
+      <text x="127" y="200" text-anchor="middle" font-size="12" fill="#5c5044">correctness / tone / coherence</text>
+      <rect x="252" y="110" width="215" height="120" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="359" y="136" text-anchor="middle" font-size="15" fill="#8c2f39" font-weight="bold">DAG (decision tree)</text>
+      <text x="359" y="160" text-anchor="middle" font-size="12" fill="#2b2118">small judgments + branches</text>
+      <text x="359" y="180" text-anchor="middle" font-size="12" fill="#2b2118">deterministic, traceable</text>
+      <text x="359" y="200" text-anchor="middle" font-size="12" fill="#5c5044">format gates / tiered penalties</text>
+      <rect x="484" y="110" width="215" height="120" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="591" y="136" text-anchor="middle" font-size="15" fill="#8c2f39" font-weight="bold">QAG (Q&amp;A decomposition)</text>
+      <text x="591" y="160" text-anchor="middle" font-size="12" fill="#2b2118">closed-ended sub-questions</text>
+      <text x="591" y="180" text-anchor="middle" font-size="12" fill="#2b2118">built-in metrics ready-made</text>
+      <text x="591" y="200" text-anchor="middle" font-size="12" fill="#5c5044">RAG faithfulness / relevancy</text>
+    </svg>
+    <div class="fig-cap zh">图 2 · 按评分标准的性质选技术(依据 DeepEval 文档整理)</div>
+    <div class="fig-cap en">Fig. 2 · Pick the technique by the nature of your criterion (based on DeepEval docs)</div>
+  </div>
+  <p class="zh"><b>G-Eval</b>:用自然语言写评分标准,框架自动生成评估步骤。原型阶段用 <code>criteria</code> 一句话起步;要进 CI/CD 时改成显式的 <code>evaluation_steps</code>,更稳定可控。<b>DAG</b>:把一个大判断拆成决策树——比如「先判断输出是不是合法 JSON,不是直接 0 分;是,再进入主观质量评分」,每条路径的分数是确定的、可追溯的。<b>QAG</b>(question-answer generation,问答生成):把宽泛判断分解成一串封闭式小问题再合成分数,DeepEval 的内置 RAG/Agent 指标(忠实度、切题度、工具正确性、任务完成度)大多用这个算法,拿来即用。代码示例(来自 DeepEval 官方文档):</p>
+  <p class="en"><b>G-Eval</b>: write the criterion in natural language and the framework auto-generates evaluation steps. Prototype with a one-line <code>criteria</code>; switch to explicit <code>evaluation_steps</code> before it enters CI/CD, for stability and control. <b>DAG</b>: split one broad judgment into a decision tree — e.g. "first check the output is valid JSON, score 0 if not; if yes, proceed to subjective quality" — every path yields a deterministic, traceable score. <b>QAG</b> (question-answer generation): decompose a broad judgment into closed-ended sub-questions and compute the score from the answers; DeepEval's built-in RAG/agent metrics (faithfulness, relevancy, tool correctness, task completion) mostly use this algorithm, ready out of the box. Code example (from the DeepEval docs):</p>
+  <pre><code>from deepeval import evaluate
+from deepeval.metrics import GEval
+from deepeval.test_case import LLMTestCase, SingleTurnParams
+
+correctness = GEval(
+    name="Correctness",
+    evaluation_steps=[
+        "Check whether the actual output contradicts the expected output.",
+        "Penalize missing eligibility conditions that change the meaning.",
+        "Do not penalize harmless wording differences.",
+    ],
+    evaluation_params=[SingleTurnParams.ACTUAL_OUTPUT,
+                       SingleTurnParams.EXPECTED_OUTPUT],
+)
+evaluate(test_cases=[test_case], metrics=[correctness])</code></pre>
+</section>
+
+<section id="s5">
+  <h2 class="zh"><span class="no">5</span>五大系统性偏见:裁判为什么会冤判</h2>
+  <h2 class="en"><span class="no">5</span>Five Systematic Biases: Why Judges Misjudge</h2>
+  <p class="zh">这是本主题最重要的一节。模型裁判的偏见不是随机噪声,而是<b>系统性的、方向一致的</b>——不治理它,你的所有评测结论都会朝同一个方向歪。Future AGI 与多篇研究归纳出五种反复出现的偏见,每种都有已知的缓解手段:</p>
+  <p class="en">This is the most important section. Judge biases are not random noise — they are <b>systematic and directional</b>. Left untreated, every conclusion you draw from evals tilts the same way. Future AGI and multiple studies converge on five recurring biases, each with a known mitigation:</p>
+  <div class="gcards">
+    <div class="gcard"><b class="zh">① 长度偏见</b><span class="zh">更长的回答得分更高,与质量无关。缓解:rubric 里明写「惩罚不必要的冗长」;在黄金集上按长度排序,检查裁判分数与长度的相关性是否高于人类。</span><b class="en">① Length bias</b><span class="en">Longer answers score higher regardless of quality. Mitigation: write "penalize unnecessary length" into the rubric; sort the gold-set by length and check whether judge scores correlate with length more than human scores do.</span></div>
+    <div class="gcard"><b class="zh">② 位置偏见</b><span class="zh">成对比较里,放第一位(或第二位)的固定占便宜。缓解:随机交换 A/B 顺序多次取平均;或各自独立打分再事后比较。</span><b class="en">② Position bias</b><span class="en">In pairwise comparisons, whichever sits in slot A (or B) is consistently favored. Mitigation: randomize the order and aggregate; or score each independently and derive the winner post-hoc.</span></div>
+    <div class="gcard"><b class="zh">③ 同族偏见</b><span class="zh">GPT 裁判系统性偏爱 GPT 家族的产出(共享训练数据与文风)。缓解:<b>裁判与生成模型永远用不同家族</b>——生成用 GPT,裁判就用 Claude/Gemini/异族蒸馏模型。</span><b class="en">③ Family bias</b><span class="en">A GPT judge systematically over-rewards GPT-family outputs (shared training data and style). Mitigation: <b>always use a different model family for the judge than the generator</b> — GPT generates, Claude/Gemini/other-lineage distilled models judge.</span></div>
+    <div class="gcard"><b class="zh">④ 自我偏爱</b><span class="zh">模型给自己的输出打分时会高估自己。缓解:同上,绝不让模型当自己的裁判。</span><b class="en">④ Self-enhancement bias</b><span class="en">A model rates its own outputs more favorably. Mitigation: same as above — never let a model judge itself.</span></div>
+    <div class="gcard"><b class="zh">⑤ 自信-冗长偏见</b><span class="zh">「说得笃定的错误答案」比「说得犹豫的正确答案」得分高。缓解:rubric 强制「先核对事实断言,再看表达」;高风险场景用多裁判集成。</span><b class="en">⑤ Verbosity-confidence bias</b><span class="en">Confident-sounding wrong answers outscore tentative correct ones. Mitigation: force the rubric to "verify factual claims first, style second"; use multi-judge ensembles for high-stakes rubrics.</span></div>
+    <div class="gcard"><b class="zh">＋ 权威偏见(补充)</b><span class="zh">Openlayer 指南另指出:带引用的回答更容易得高分,<b>哪怕引用是编造的</b>。审核类 rubric 要求裁判核实引用与断言的对应关系。</span><b class="en">＋ Authority bias (bonus)</b><span class="en">The Openlayer guide adds: answers containing citations score higher <b>even when the citations are fabricated</b>. Audit-style rubrics must ask the judge to verify that citations actually support the claims.</span></div>
+  </div>
+  <div class="callout key">
+    <span class="ct zh">✅ 一个可复用的判断标准</span><p class="zh" style="margin:0">Future AGI 的说法值得记住:每种偏见都有文档化的缓解手段,所以跳过缓解「不再是不知道,而是知道了还不做」。你上线裁判前至少要能回答:裁判和生成模型是不是不同家族?成对比较有没有随机换序?rubric 有没有反冗长条款?</p>
+    <span class="ct en">✅ A reusable bar</span><p class="en" style="margin:0">Future AGI's framing is worth memorizing: every bias has a documented mitigation, so skipping them "is no longer 'we did not know'; it is 'we knew and skipped.'" Before shipping a judge, you should at minimum answer: is the judge a different family from the generator? Are pairwise comparisons order-randomized? Does the rubric penalize verbosity?</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2 class="zh"><span class="no">6</span>怎么用:工程落地十步</h2>
+  <h2 class="en"><span class="no">6</span>How to Use It: Ten Steps to Production</h2>
+  <p class="zh">下面是 Future AGI 给出的生产部署清单(原文为 10 步,此处完整保留),核心思想一句话:<b>裁判本身也是一个需要被评测和监控的模型</b>。</p>
+  <p class="en">Below is Future AGI's production deployment checklist (10 steps in the original, kept in full). The core idea in one line: <b>the judge is itself a model that must be evaluated and monitored</b>.</p>
+  <ol class="steps">
+    <li><span class="zh"><b>定义 rubric</b>:具体、带例子、带离散输出格式。</span><span class="en"><b>Define the rubric</b>: specific, with examples, with a discrete output format.</span></li>
+    <li><span class="zh"><b>建黄金集(gold-set)</b>:每个业务场景 200–500 条人工标注样本,每条 2–3 人标,跟踪标注者间一致性(Cohen's kappa)。</span><span class="en"><b>Build the gold-set</b>: 200–500 hand-labeled traces per workload, each labeled by 2–3 humans; track inter-annotator agreement (Cohen's kappa).</span></li>
+    <li><span class="zh"><b>选裁判模型</b>:生产用蒸馏小裁判,校准用前沿模型。</span><span class="en"><b>Pick the judge model</b>: distilled for production, frontier for calibration runs.</span></li>
+    <li><span class="zh"><b>避开同族偏见</b>:裁判与生成模型用不同家族。</span><span class="en"><b>Avoid family bias</b>: use a different family than the generator.</span></li>
+    <li><span class="zh"><b>上线前校准</b>:裁判跑一遍黄金集,验证与人类标注的 kappa 达标(常用门槛 0.6;Openlayer 建议高置信场景以 Krippendorff's alpha ≈0.8 为目标)。</span><span class="en"><b>Calibrate at launch</b>: run the judge over the gold-set and verify kappa against human labels clears the bar (0.6 is common; Openlayer suggests targeting Krippendorff's alpha ≈0.8 for high-confidence use).</span></li>
+    <li><span class="zh"><b>异步跑,别挡请求路径</b>:抽样 5–20% 的生产流量(错误与异常 100% 抽),由异步 worker 打分并把分数挂到 trace span 上——裁判一次调用有 100ms–2s 延迟,不能让用户等。</span><span class="en"><b>Run async, off the request path</b>: sample 5–20% of production traffic (100% of errors and outliers), score in an async worker, attach scores to trace spans — a judge call adds 100ms–2s and users should not wait for it.</span></li>
+    <li><span class="zh"><b>建每月校准任务</b>:每月重跑黄金集,kappa 掉了就报警。掉了怎么修:收紧 rubric → 换裁判模型 → 刷新黄金集 → rubric 里加 few-shot 例子。裁判会在 60–90 天内漂移。</span><span class="en"><b>Build the monthly calibration job</b>: rerun the gold-set monthly, alert on kappa drops. Fixes, in order: tighten the rubric → swap the judge model → refresh the gold-set → add few-shot examples. Judges drift within 60–90 days.</span></li>
+    <li><span class="zh"><b>成本单列</b>:裁判成本控制在生产 LLM 成本的 10–15% 以内,超过 25% 就降抽样率或换更小的蒸馏裁判。</span><span class="en"><b>Track judge cost as its own line</b>: keep judge cost under 10–15% of production LLM cost; past 25%, reduce sampling or swap to a smaller distilled judge.</span></li>
+    <li><span class="zh"><b>建漂移监控</b>:rubric 分数滚动均值,劣化即报警。</span><span class="en"><b>Build the drift monitor</b>: rolling-mean rubric scores, alert on degradation.</span></li>
+    <li><span class="zh"><b>季度刷新黄金集</b>:换掉 100–200 条旧样本,保持与当前流量分布一致。</span><span class="en"><b>Refresh the gold-set quarterly</b>: replace 100–200 stale entries so it stays representative of current traffic.</span></li>
+  </ol>
+  <div class="figure" data-anim>
+    <svg class="zh" viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="校准循环图">
+      <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8c2f39"/></marker></defs>
+      <rect x="30" y="80" width="150" height="64" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="105" y="106" text-anchor="middle" font-size="13" fill="#2b2118">人工黄金集</text>
+      <text x="105" y="126" text-anchor="middle" font-size="12" fill="#5c5044">200–500 条标注</text>
+      <line x1="180" y1="112" x2="265" y2="112" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar3)"/>
+      <rect x="270" y="80" width="150" height="64" rx="10" fill="#8c2f39"/>
+      <text x="345" y="106" text-anchor="middle" font-size="13" fill="#fff">裁判跑黄金集</text>
+      <text x="345" y="126" text-anchor="middle" font-size="12" fill="#f0d9d9">每月一次</text>
+      <line x1="420" y1="112" x2="505" y2="112" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar3)"/>
+      <rect x="510" y="80" width="180" height="64" rx="10" fill="#e9f1ea" stroke="#3e6b4f"/>
+      <text x="600" y="106" text-anchor="middle" font-size="13" fill="#2b2118">算 kappa 一致性</text>
+      <text x="600" y="126" text-anchor="middle" font-size="12" fill="#5c5044">≥0.6 通过 / 掉线报警</text>
+      <path d="M600 144 L600 190 L345 190 L345 150" fill="none" stroke="#8a5a1e" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ar3)"/>
+      <text x="472" y="182" text-anchor="middle" font-size="12" fill="#8a5a1e">不达标:收紧 rubric / 换裁判 / 刷新黄金集</text>
+      <text x="105" y="60" text-anchor="middle" font-size="12" fill="#5c5044">季度刷新 ↺</text>
+    </svg>
+    <svg class="en" viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Calibration loop">
+      <defs><marker id="ar3-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8c2f39"/></marker></defs>
+      <rect x="30" y="80" width="150" height="64" rx="10" fill="#f7efdb" stroke="#a07c2e"/>
+      <text x="105" y="106" text-anchor="middle" font-size="13" fill="#2b2118">Human gold-set</text>
+      <text x="105" y="126" text-anchor="middle" font-size="12" fill="#5c5044">200–500 labels</text>
+      <line x1="180" y1="112" x2="265" y2="112" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar3-e)"/>
+      <rect x="270" y="80" width="150" height="64" rx="10" fill="#8c2f39"/>
+      <text x="345" y="106" text-anchor="middle" font-size="13" fill="#fff">Judge runs gold-set</text>
+      <text x="345" y="126" text-anchor="middle" font-size="12" fill="#f0d9d9">monthly</text>
+      <line x1="420" y1="112" x2="505" y2="112" stroke="#8c2f39" stroke-width="2" marker-end="url(#ar3-e)"/>
+      <rect x="510" y="80" width="180" height="64" rx="10" fill="#e9f1ea" stroke="#3e6b4f"/>
+      <text x="600" y="106" text-anchor="middle" font-size="13" fill="#2b2118">Compute kappa</text>
+      <text x="600" y="126" text-anchor="middle" font-size="12" fill="#5c5044">≥0.6 pass / alert on drop</text>
+      <path d="M600 144 L600 190 L345 190 L345 150" fill="none" stroke="#8a5a1e" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ar3-e)"/>
+      <text x="472" y="182" text-anchor="middle" font-size="12" fill="#8a5a1e">Fail: tighten rubric / swap judge / refresh gold-set</text>
+      <text x="105" y="60" text-anchor="middle" font-size="12" fill="#5c5044">quarterly refresh ↺</text>
+    </svg>
+    <div class="fig-cap zh">图 3 · 校准循环:没有这个闭环,裁判分数只是「看起来合理」(依据 Future AGI 整理)</div>
+    <div class="fig-cap en">Fig. 3 · The calibration loop: without it, judge scores merely "look reasonable" (based on Future AGI)</div>
+  </div>
+</section>
+
+<section id="s7">
+  <h2 class="zh"><span class="no">7</span>三个典型工作流</h2>
+  <h2 class="en"><span class="no">7</span>Three Typical Workflows</h2>
+  <p class="zh"><b>① CI/CD 回归测试</b>:把裁判包装成 pytest 断言,改 prompt/模型后自动挡住回归。DeepEval 里用 <code>assert_test()</code> + <code>deepeval test run</code>,不达标测试直接红。<b>② 组件级评测</b>:在 trace 里对检索器、生成器、工具调用步骤分别打分(<code>@observe(metrics=[…])</code>),定位「是检索烂还是生成烂」。<b>③ 生产监控</b>:对线上流量抽样跑无参考指标(切题度、任务完成度、安全性),跟踪趋势、把低分 trace 采样回测试集——注意起步只选少量高信号指标,裁判太多会「又贵又吵」。</p>
+  <p class="en"><b>① CI/CD regression testing</b>: wrap judges as pytest assertions so prompt/model changes are gated automatically. In DeepEval: <code>assert_test()</code> + <code>deepeval test run</code>; failing metrics turn the build red. <b>② Component-level evaluation</b>: score the retriever, generator, and tool-calling steps separately on traces (<code>@observe(metrics=[…])</code>) to localize whether retrieval or generation is at fault. <b>③ Production monitoring</b>: run referenceless metrics (relevancy, task completion, safety) on sampled live traffic, track trends, and recycle low-scoring traces into your test sets — start with a small number of high-signal metrics; too many judges get "noisy, expensive, and hard to interpret."</p>
+  <pre><code>from deepeval import assert_test
+
+def test_refund_answer():
+    metric = GEval(name="Correctness",
+        criteria="Determine whether the actual output is correct "
+                 "based on the expected output.",
+        evaluation_params=[SingleTurnParams.ACTUAL_OUTPUT,
+                           SingleTurnParams.EXPECTED_OUTPUT],
+        threshold=0.7)
+    assert_test(test_case, [metric])   # deepeval test run test_refund_answer.py</code></pre>
+</section>
+
+<section id="s8">
+  <h2 class="zh"><span class="no">8</span>对比与选型</h2>
+  <h2 class="en"><span class="no">8</span>Comparison &amp; Selection</h2>
+  <p class="zh">工具生态(2026 年主流选项,信息来自 Future AGI 工具综述,含其自家产品,注意立场):</p>
+  <p class="en">Tooling landscape (mainstream options in 2026, per Future AGI's survey — which includes its own product, so mind the vantage point):</p>
+  <table>
+    <thead><tr><th class="zh">工具</th><th class="zh">性质</th><th class="zh">特点</th></tr><tr><th class="en">Tool</th><th class="en">Type</th><th class="en">Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="zh">DeepEval</td><td class="zh">开源(Apache-2.0)</td><td class="zh">pytest 原生,50+ 内置裁判指标(G-Eval/DAG/Arena),生态最活跃的开源框架之一</td><td class="en">DeepEval</td><td class="en">OSS (Apache-2.0)</td><td class="en">Pytest-native, 50+ built-in judge metrics (G-Eval/DAG/Arena); one of the most active OSS frameworks</td></tr>
+      <tr><td class="zh">RAGAS</td><td class="zh">开源</td><td class="zh">RAG 专用裁判(忠实度、答案相关性、上下文精确度)</td><td class="en">RAGAS</td><td class="en">OSS</td><td class="en">RAG-specific judges (faithfulness, answer relevance, context precision)</td></tr>
+      <tr><td class="zh">Promptfoo / OpenAI Evals</td><td class="zh">开源</td><td class="zh">CLI/YAML 优先、模型评分评测</td><td class="en">Promptfoo / OpenAI Evals</td><td class="en">OSS</td><td class="en">CLI/YAML-first; model-graded evals</td></tr>
+      <tr><td class="zh">Galileo / Braintrust / LangSmith / Future AGI</td><td class="zh">商业平台</td><td class="zh">蒸馏裁判(Luna、turing_flash 等)、校准 UI、标注队列、漂移监控</td><td class="en">Galileo / Braintrust / LangSmith / Future AGI</td><td class="en">Commercial platforms</td><td class="en">Distilled judges (Luna, turing_flash, etc.), calibration UIs, annotation queues, drift monitors</td></tr>
+    </tbody>
+  </table>
+  <p class="zh">选型判断:测试集和 trace 存在哪、CI 用什么,比工具功能列表更重要——Future AGI 自己也承认「纪律在所有工具上都是一样的」。什么时候<b>不该</b>用模型裁判:输出本身可程序化验证时(代码能跑测试、JSON 能 schema 校验、数学有标准答案),用确定性检查,更便宜更准;模型裁判留给「只有语义判断能覆盖」的部分。</p>
+  <p class="en">Selection judgment: where your test sets and traces live, and which CI you use, matter more than feature lists — Future AGI itself concedes "the discipline is the same across tools." When <b>not</b> to use an LLM judge: whenever the output is programmatically verifiable (code runs tests, JSON validates against a schema, math has a ground truth), use deterministic checks — cheaper and more accurate; reserve the LLM judge for what only semantic judgment can cover.</p>
+</section>
+
+<section id="s9">
+  <h2 class="zh"><span class="no">9</span>常见坑与限制</h2>
+  <h2 class="en"><span class="no">9</span>Pitfalls &amp; Limitations</h2>
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 高频错误清单(社区与厂商共同反馈)</span>
+    <p class="zh" style="margin:0">没有人工黄金集(无锚点,漂移无感知)· 同族裁判(系统性放水)· rubric 含糊(「打个 1–10 分」= 噪声)· 没有校准节奏(60–90 天内漂移)· 裁判放在请求路径上(用户白等 100ms–2s)· 单裁判打高风险分(方差大,应上集成)· 成对比较不换序(位置偏见决定胜负)· 裁判成本不单列(可能悄悄逼近生产成本)· 每条都打分(成本无界,应抽样)· rubric prompt 不做版本管理(改一次 rubric 分数全变,却无法回溯定位)。</p>
+    <span class="ct en">⚠️ High-frequency mistakes (community + vendor consensus)</span>
+    <p class="en" style="margin:0">No human gold-set (no anchor; drift goes undetected) · same-family judge (systematic over-rewarding) · vague rubric ("rate 1–10" = noise) · no calibration cadence (drift within 60–90 days) · judges on the request path (users wait 100ms–2s) · a single judge for high-stakes scores (high variance; use ensembles) · pairwise without order randomization (position bias decides) · judge cost not tracked separately (can quietly rival production cost) · scoring every span (unbounded cost; sample) · unversioned rubric prompts (a rubric tweak shifts all scores and you cannot bisect it).</p>
+  </div>
+  <p class="zh">还有两条更根本的限制要心里有数:第一,<b>裁判的上限是 rubric 与校准数据的质量</b>——它不会比你的人工标注更懂你的业务;第二,合规压力正在把校准从「良好实践」变成「硬要求」:据 Future AGI 引述,EU AI Act 分阶段实施(GPAI 义务 2025 年 8 月生效,2027 年前全面执行),「与人类系统性不一致的裁判」在审计里是一条 finding,不是通过项。</p>
+  <p class="en">Two deeper limitations to keep in mind: first, <b>a judge's ceiling is the quality of your rubric and calibration data</b> — it will never understand your domain better than your human annotations do; second, compliance pressure is turning calibration from good practice into a hard requirement: per Future AGI, the EU AI Act phases in (GPAI obligations applied Aug 2025, full enforcement through 2027), and "a judge that disagrees with humans in systematic ways is a finding, not a passing audit."</p>
+</section>
+
+<section id="s10">
+  <h2 class="zh"><span class="no">10</span>前沿动态(截至 2026-08)</h2>
+  <h2 class="en"><span class="no">10</span>Research Frontier (as of 2026-08)</h2>
+  <p class="zh">为什么今天选这个主题:8 月 3 日 arXiv 上线了《Chain-of-Models: Cross-Model Auditing for Bias-Robust LLM Judges》(arXiv:2607.28636),提出用「跨模型审计链」代替单一裁判——摘要指出现有缓解手段大多依赖 prompt 层面的修补,而链式互审能在结构上对冲单个裁判的认知偏见(注:仅读到摘要,结论以论文全文为准)。同方向上,2026 年还有《Judging the Judges》(arXiv:2604.23178)系统评测各种偏见缓解策略的实际效果,以及 Openlayer 指南总结的两条重要研究线:基于校准的偏见修正与置信区间(把裁判的敏感度/特异度不完美纳入统计);把项目反应理论(IRT,教育测量学中评估「考官」质量的方法)反过来用在裁判身上。</p>
+  <p class="en">Why this topic today: on August 3 arXiv posted "Chain-of-Models: Cross-Model Auditing for Bias-Robust LLM Judges" (arXiv:2607.28636), proposing a cross-model auditing chain in place of a single judge — the abstract argues most existing mitigations are prompt-level patches, while chained mutual auditing structurally hedges any one judge's cognitive biases (note: abstract only; defer to the full paper). In the same direction, 2026 also brought "Judging the Judges" (arXiv:2604.23178), a systematic evaluation of how well bias-mitigation strategies actually work, plus two research lines highlighted by the Openlayer guide: calibration-based bias correction with confidence intervals (accounting for imperfect judge sensitivity/specificity), and applying item response theory (IRT — the psychometric method for assessing examiners) to the judges themselves.</p>
+  <p class="zh">工程侧的三个趋势(据 Future AGI 时间线):蒸馏小裁判(Galileo Luna、turing_flash 等)让 10–20% 的抽样率在成本上可行;OpenTelemetry GenAI 的评测分数属性标准化,让「分数流可观测」成了开箱即用能力;多裁判集成从论文技巧变成文档化的工程模式。</p>
+  <p class="en">Three engineering trends (per Future AGI's timeline): distilled small judges (Galileo Luna, turing_flash, etc.) made 10–20% sampling rates cost-tractable; OpenTelemetry GenAI standardized eval-score attributes, making score-stream observability an off-the-shelf capability; and multi-judge ensembles graduated from a paper trick to a documented engineering pattern.</p>
+</section>
+
+<section id="s11">
+  <h2 class="zh"><span class="no">11</span>学习资源</h2>
+  <h2 class="en"><span class="no">11</span>Resources</h2>
+  <ul>
+    <li class="zh"><a href="https://arxiv.org/abs/2306.05685">MT-Bench / Chatbot Arena 论文(Zheng et al., 2023)</a> — 领域奠基之作,先读它理解问题的由来</li>
+    <li class="en"><a href="https://arxiv.org/abs/2306.05685">The MT-Bench / Chatbot Arena paper (Zheng et al., 2023)</a> — the foundational work; read it first to understand where the problem comes from</li>
+    <li class="zh"><a href="https://deepeval.com/blog/llm-as-a-judge">DeepEval《LLM-as-a-Judge in 2026》</a>与<a href="https://deepeval.com/docs/metrics-introduction">指标文档</a> — 技术分类与代码上手最全面</li>
+    <li class="en"><a href="https://deepeval.com/blog/llm-as-a-judge">DeepEval, "LLM-as-a-Judge in 2026"</a> and the <a href="https://deepeval.com/docs/metrics-introduction">metrics docs</a> — the most complete taxonomy and hands-on code</li>
+    <li class="zh"><a href="https://futureagi.com/blog/llm-as-judge-best-practices-2026">Future AGI 十条最佳实践</a> — 校准、偏见、成本的生产纪律清单</li>
+    <li class="en"><a href="https://futureagi.com/blog/llm-as-judge-best-practices-2026">Future AGI's ten best practices</a> — the production discipline checklist for calibration, bias, and cost</li>
+    <li class="zh"><a href="https://arxiv.org/abs/2607.28636">Chain-of-Models(2026-08-03)</a>、<a href="https://arxiv.org/pdf/2604.23178">Judging the Judges(2026)</a> — 偏见治理的最新研究</li>
+    <li class="en"><a href="https://arxiv.org/abs/2607.28636">Chain-of-Models (2026-08-03)</a> and <a href="https://arxiv.org/pdf/2604.23178">Judging the Judges (2026)</a> — the latest research on bias governance</li>
+    <li class="zh"><a href="https://docs.ragas.io/">RAGAS 文档</a> — RAG 场景的现成裁判指标</li>
+    <li class="en"><a href="https://docs.ragas.io/">RAGAS docs</a> — ready-made judge metrics for RAG</li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <p class="zh"><b>调研时间:2026-08-04</b> · 本文档所有关键事实均来自当日实际抓取的来源;LLM 评测领域迭代快,请以各官方最新文档为准。本文不构成对任何工具的采购建议。</p>
+  <p class="en"><b>Researched: 2026-08-04</b> · Every key fact in this document comes from sources actually fetched on that date; the LLM evaluation field moves fast — defer to each project's latest official docs. This is not a purchasing recommendation for any tool.</p>
+  <b class="zh">来源清单</b><b class="en">Sources</b>
+  <ul>
+    <li><span class="zh">DeepEval 官方博客《LLM-as-a-Judge in 2026》(2026-06-15 发布,07-22 更新,已全文阅读)</span><span class="en">DeepEval blog, "LLM-as-a-Judge in 2026" (published 2026-06-15, updated 07-22; read in full)</span> — <a href="https://deepeval.com/blog/llm-as-a-judge">deepeval.com/blog/llm-as-a-judge</a></li>
+    <li><span class="zh">Future AGI《LLM-as-Judge Best Practices in 2026: Calibration, Bias, and Cost》(2025-12-08 发布,已全文阅读)</span><span class="en">Future AGI, "LLM-as-Judge Best Practices in 2026: Calibration, Bias, and Cost" (published 2025-12-08; read in full)</span> — <a href="https://futureagi.com/blog/llm-as-judge-best-practices-2026">futureagi.com/blog/llm-as-judge-best-practices-2026</a></li>
+    <li><span class="zh">Zheng et al.《Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena》(2023,奠基论文)</span><span class="en">Zheng et al., "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena" (2023, foundational paper)</span> — <a href="https://arxiv.org/abs/2306.05685">arXiv:2306.05685</a></li>
+    <li><span class="zh">《Chain-of-Models: Cross-Model Auditing for Bias-Robust LLM Judges》(2026-08-03 上线,仅读摘要)</span><span class="en">"Chain-of-Models: Cross-Model Auditing for Bias-Robust LLM Judges" (posted 2026-08-03; abstract only)</span> — <a href="https://arxiv.org/abs/2607.28636">arXiv:2607.28636</a></li>
+    <li><span class="zh">《Judging the Judges: A Systematic Evaluation of Bias Mitigation Strategies in LLM-as-a-Judge Pipelines》(2026,搜索结果)</span><span class="en">"Judging the Judges: A Systematic Evaluation of Bias Mitigation Strategies in LLM-as-a-Judge Pipelines" (2026; from search results)</span> — <a href="https://arxiv.org/pdf/2604.23178">arXiv:2604.23178</a></li>
+    <li><span class="zh">Openlayer《LLM as Judge Guide》(2026-03,搜索结果:Krippendorff's alpha ≈0.8 的高置信目标)</span><span class="en">Openlayer, "LLM as Judge Guide" (2026-03; from search results: Krippendorff's alpha ≈0.8 target for high confidence)</span> — <a href="https://www.openlayer.com/blog/post/llm-as-judge-evaluation-guide">openlayer.com</a></li>
+  </ul>
+</footer>
+
+<script>
+(function(){
+  // language toggle
+  var btn=document.getElementById('langbtn');
+  var saved=null;
+  try{saved=localStorage.getItem('aidaily-lang');}catch(e){}
+  var lang=saved||((navigator.language||'').toLowerCase().indexOf('zh')===0?'zh':'en');
+  function apply(l){
+    document.body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang',l==='zh'?'zh-CN':'en');
+    btn.textContent=l==='zh'?'EN':'中';
+    try{localStorage.setItem('aidaily-lang',l);}catch(e){}
+    // re-trigger figure animations: display:none elements never intersected
+    var figs=document.querySelectorAll('.figure:not(.in)');
+    figs.forEach(function(f){io.observe(f);});
+    document.querySelectorAll('.figure').forEach(function(f){
+      var r=f.getBoundingClientRect();
+      if(r.top<window.innerHeight&&r.bottom>0)f.classList.add('in');
+    });
+  }
+  // progress bar
+  var pbar=document.getElementById('pbar');
+  window.addEventListener('scroll',function(){
+    var h=document.documentElement;
+    var p=h.scrollTop/(h.scrollHeight-h.clientHeight);
+    pbar.style.width=(p*100)+'%';
+    // toc highlight
+    var cur=null;
+    document.querySelectorAll('main section').forEach(function(s){
+      if(s.getBoundingClientRect().top<140)cur=s.id;
+    });
+    document.querySelectorAll('#toc a').forEach(function(a){
+      a.classList.toggle('on',a.getAttribute('href')==='#'+cur);
+    });
+  },{passive:true});
+  // figure entrance
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:0.15});
+  document.querySelectorAll('.figure').forEach(function(f){io.observe(f);});
+  btn.addEventListener('click',function(){
+    apply(document.body.getAttribute('data-lang')==='zh'?'en':'zh');
+  });
+  apply(lang);
+  // mobile toc
+  var tb=document.getElementById('tocbtn'),toc=document.getElementById('toc');
+  tb.addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A')toc.classList.remove('open');});
+})();
+</script>
+</body>
+</html>
