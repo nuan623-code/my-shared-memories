@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP 接多了更慢更贵 · Claude Code 学习站</title>
+<meta name="description" content="MCP server 的工具定义会占 Claude Code 的上下文预算。讲清默认的 tool search 深度延迟机制、哪些场景工具会全量进前缀、怎么用 /context 与 /usage 查占用、/mcp 按需启停。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/too-many-mcp-servers.html">
+<meta property="og:title" content="MCP 接多了更慢更贵 · Claude Code 学习站">
+<meta property="og:description" content="tool search 默认已把 MCP 工具定义按需延迟加载;但 alwaysLoad、网关等场景仍全量进前缀。查占用、按需启停的完整做法。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/too-many-mcp-servers.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · 成本与上下文</span></p>
+  <h1>MCP 接多了更慢更贵</h1>
+  <p>每接一个 MCP server 都在动你的上下文预算——好在默认的 tool search 已把大头压下去,剩下的要自己查、自己关。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">MCP 的成本不在「接了」,而在「工具定义进没进上下文前缀」。搞清默认机制和例外场景,就知道该关哪些、留哪些。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      <span class="badge badge-official">官方</span>tool search 默认开启:MCP 工具定义被延迟(deferred),会话开始只加载工具名和 server instructions,接多影响有限。但 <code>alwaysLoad</code>、非第一方网关、部分云平台等场景工具会全量进前缀——既占上下文,server 连断还会打穿 prompt cache。用 <code>/context</code> 查占用,<code>/mcp</code> 关掉不用的。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>先搞清默认机制:tool search。</strong><span class="badge badge-official">官方</span>tool search 默认开启,MCP 工具不再全量加载:会话开始只有工具名和 server instructions 进上下文,任务需要时 Claude 通过搜索工具按需加载具体 schema,只有真正用到的工具进 context。官方明确「再加 MCP server 对 context window 的影响也很小」,且没有固定的每 server 工具数上限,实际约束就是你的上下文预算。所以「接多了必然爆上下文」在默认配置下已不成立。</li>
+      <li><strong>认清例外:这些场景工具会全量进前缀。</strong><span class="badge badge-official">官方</span>
+        <ul>
+          <li>设置了 <code>ENABLE_TOOL_SEARCH=false</code>,或 <code>CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS</code>;</li>
+          <li><code>ENABLE_TOOL_SEARCH=auto</code> 阈值模式下,工具总量在阈值(默认 context 的 10%)以内时直接上前缀;</li>
+          <li>server 或单个工具标了 <code>alwaysLoad: true</code>;</li>
+          <li><code>ANTHROPIC_BASE_URL</code> 指向非第一方网关(多数代理不转发 tool_reference,Claude Code 自动回退为全量加载);</li>
+          <li>Azure 托管的 Microsoft Foundry 部署(服务端拒绝 tool search)、Google Cloud Agent Platform 上早于 Claude 4.5 代的模型。</li>
+        </ul>
+        全量进前缀时问题加倍:server 连接、断开、工具列表变化都会让 prompt cache 失效,下一轮全量重算——而且 stdio 进程退出、HTTP 会话过期这类「自动连断」不需要你做任何操作。详见 <a href="/claude-code/tips/prompt-cache-invalidation.html">哪些操作会让 prompt cache 失效</a>。</li>
+      <li><strong>查占用三件套。</strong><span class="badge badge-official">官方</span><code>/context</code> 看当前上下文按类别的占用和优化建议;<code>/usage</code> 的归因 breakdown 能看到各 MCP server 占最近用量的百分比(Pro/Max/Team/Enterprise);<code>/mcp</code> 面板显示每个 server 的连接状态和工具数。先看数据再动手,别凭感觉删。</li>
+      <li><strong>按需启停,而不是全删。</strong><span class="badge badge-official">官方</span>在 <code>/mcp</code> 面板把不用的 server toggle off:配置保留,选择按项目记在 <code>~/.claude.json</code> 的 <code>disabledMcpServers</code> 里,要用再打开。彻底不要的跑 <code>claude mcp remove &lt;name&gt;</code>。装新 server 时用 <code>-s</code> 控制 scope(local / project / user),只在真的每个项目都用时才挂 user 级(见 <a href="/claude-code/course/day-09.html">D9 · MCP</a>)。</li>
+      <li><strong>能用 CLI 就别用 MCP。</strong><span class="badge badge-official">官方</span>gh、aws、gcloud、sentry-cli 这类 CLI 工具不产生任何 per-tool 上下文开销,官方明确说它们比 MCP server 更省 context——Claude 直接跑命令就行。</li>
+      <li><strong>管住工具输出这另一半成本。</strong><span class="badge badge-official">官方</span>MCP 工具输出默认限 25,000 tokens(超 10,000 就警告),大输出照样吃你的上下文;高频大结果的调用,考虑委托 subagent 执行、只回摘要。需要调 tool search 行为时用 <code>ENABLE_TOOL_SEARCH</code>:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>取值</th><th>行为</th></tr></thead>
+          <tbody>
+            <tr><td>(不设)</td><td>默认:全部 MCP 工具延迟、按需加载(网关/特定平台自动回退全量)</td></tr>
+            <tr><td><code>true</code></td><td>强制延迟(服务端拒绝的平台除外)</td></tr>
+            <tr><td><code>auto</code> / <code>auto:N</code></td><td>阈值模式:占 context 不超过 10%(或 N%)就全量上前缀,超了才延迟</td></tr>
+            <tr><td><code>false</code></td><td>全部工具全量加载,不延迟</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>帮我审计这个项目的 MCP 配置,目标是省上下文、省钱:
+1. 读取项目 .mcp.json、~/.claude.json 和各级 settings 里的 MCP server
+   配置,列出全部 server 的名称、scope 和传输类型;
+2. 标出配置了 alwaysLoad: true 的 server 或工具,逐个评估是否
+   真的每轮都需要;
+3. 检查环境和 settings 里是否设置了 ENABLE_TOOL_SEARCH 或
+   ANTHROPIC_BASE_URL(网关会导致工具全量加载);
+4. 问我最近两周实际用过哪些 server,把没用过的列成
+   「/mcp 里关掉」或「claude mcp remove」两档建议;
+5. 提醒我自己跑 /context 和 /mcp 核对占用(用户命令,你代跑不了),
+   说明重点看什么。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/mcp.md" rel="noopener">code.claude.com/docs/en/mcp.md</a>(tool search 机制与配置表、alwaysLoad、/mcp 面板与 disabledMcpServers、输出限制),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/costs.md" rel="noopener">code.claude.com/docs/en/costs.md</a>(Reduce MCP server overhead:/context 查占用、/mcp 关闲置、CLI 优先),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/prompt-caching.md" rel="noopener">code.claude.com/docs/en/prompt-caching.md</a>(MCP server 连断对 cache 的影响、deferred 工具的例外),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-site">本站观点</span>「先看数据再删」「只在每个项目都用时才挂 user 级」为本站基于官方机制的建议。</li>
+      <li>最后核实:2026-08-05 · volatility:high(tool search 默认值与平台例外随版本变化,官方文档水位 v2.1.222,需定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

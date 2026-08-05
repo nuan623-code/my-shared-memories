@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定时任务 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 三种定时方式对比与选型:会话内 /loop、桌面 Desktop 定时任务、云端 Routines,各自的运行位置、持久性、最小间隔,附一个每日任务的完整例子。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="定时任务 · Claude Code 学习站">
+<meta property="og:description" content="/loop、Desktop 定时任务、云端 Routines 三种定时方式怎么选,附每日任务完整例子。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/scheduled-tasks.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/scheduled-tasks.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">簇 F · 端到端场景</span></p>
+  <h1>定时任务</h1>
+  <p>想让 Claude Code 每天自动干活?官方给了三种定时方式——会话内 /loop、桌面定时任务、云端 Routines——选错一种,任务可能压根不会跑。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">三种方式的本质区别只有一个问题:任务跑的时候,你的机器(和会话)在不在?想清楚这一点,选型就定了。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      按「机器要不要开着」选:完全无人值守(关机也要跑)选云端 <strong>Routines</strong>;要读写本地文件、机器常开选 <strong>Desktop 定时任务</strong>;只是当前会话里盯个部署、轮询个 CI 用 <strong>/loop</strong>。<span class="badge badge-official">官方</span>官方文档的建议原话即「cloud 用于机器不在也要可靠运行,Desktop 用于需要本地文件和工具,/loop 用于会话内快速轮询」。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>先选型。</strong><span class="badge badge-official">官方</span>官方对比表(两个文档页同表)关键行如下:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th></th><th>云端 Routines</th><th>Desktop 定时任务</th><th>/loop(会话内)</th></tr></thead>
+          <tbody>
+            <tr><td>跑在哪</td><td>Anthropic 云</td><td>你的机器</td><td>你的机器</td></tr>
+            <tr><td>要求机器开着</td><td>否</td><td>是</td><td>是</td></tr>
+            <tr><td>要求会话开着</td><td>否</td><td>否</td><td>是</td></tr>
+            <tr><td>重启后仍在</td><td>是</td><td>是</td><td>未过期时 --resume 可恢复</td></tr>
+            <tr><td>能读本地文件</td><td>否(每次 fresh clone)</td><td>是</td><td>是</td></tr>
+            <tr><td>权限提示</td><td>无(自主运行)</td><td>每任务可配</td><td>继承会话</td></tr>
+            <tr><td>最小间隔</td><td>1 小时</td><td>1 分钟</td><td>1 分钟</td></tr>
+          </tbody>
+        </table></div></li>
+      <li><strong>/loop(会话内):</strong><span class="badge badge-official">官方</span><code>/loop 5m check if the deployment finished</code> 按固定间隔重跑 prompt;省略间隔则 Claude 每轮自选 1 分钟到 1 小时的等待。任务是会话级的:新开会话就没了,recurring 任务创建 7 天后自动过期。防拥挤有抖动:整点任务最多晚 30 分钟触发,在意准点就别用 <code>:00/:30</code>,写 <code>3 9 * * *</code> 这类分钟。一次性提醒直接说人话:「remind me at 3pm to push the release branch」。管理用自然语言(「what scheduled tasks do I have?」),底层是 CronCreate/CronList/CronDelete 三个工具。</li>
+      <li><strong>Desktop 定时任务(本地持久):</strong><span class="badge badge-official">官方</span>Desktop 侧栏 <strong>Routines → New routine → 选 Local</strong>,填名称、说明、指令、日程(Manual/Hourly/Daily/Weekdays/Weekly 预设,更细粒度让 Claude 帮你设);到点自动开一个新会话跑。只在 app 开着且电脑醒着时运行;睡过头会在唤醒后补跑最近错过的那一次(只补一次)——所以 prompt 里要写时间护栏(见下例)。权限按任务配:建好先点 <strong>Run now</strong>,把弹出的权限逐个「always allow」,之后就不会卡住。任务 prompt 存在 <code>~/.claude/scheduled-tasks/&lt;task-name&gt;/SKILL.md</code>,改文件下次运行生效。</li>
+      <li><strong>云端 Routines(无人值守):</strong><span class="badge badge-official">官方</span>研究预览中。在 <a href="https://claude.ai/code/routines" rel="noopener">claude.ai/code/routines</a> 或 CLI 里用 <code>/schedule</code> 创建:prompt + 仓库 + connectors 打包成 routine,跑在 Anthropic 云上,每次 fresh clone 仓库、无权限弹窗、自主运行。除定时外还能被 API POST 或 GitHub 事件(PR/release)触发。最小间隔 1 小时;有每日运行次数上限,消耗订阅用量。需要 claude.ai 订阅登录(API key 登录用不了 <code>/schedule</code>)。</li>
+      <li><strong>写 prompt 的共同要点:</strong><span class="badge badge-official">官方</span>定时任务自主运行、没法追问,所以 prompt 必须自包含:明确做什么、成功长什么样、结果放哪。<span class="badge badge-site">本站观点</span>再加两条:让任务留下可核查的产物(文件/PR/报告),别只在会话里说说;云端 routine 显示绿色状态只代表会话正常退出,不代表任务成功,要点开 transcript 看。CI 场景的定时也可以走 GitHub Actions 的 cron,见<a href="/claude-code/tips/github-actions-integration.html">接进 GitHub Actions</a>;移动端盯背景任务见<a href="/claude-code/tips/background-runs-mobile-monitoring.html">后台运行与手机监控</a>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <p>每日任务完整例子 A——云端版,在 CLI 里(需 claude.ai 订阅登录):</p>
+    <pre class="prompt"><code>/schedule 每天早上 9 点:总结本仓库过去 24 小时合并的 PR 和新开的 issue,
+按模块归类,标出高风险改动;把晨报写成 reports/daily-&lt;日期&gt;.md,
+提交到 claude/ 前缀分支并开 PR。
+成功标准:PR 恰好新增这一个文件,晨报里每条结论都附 PR/issue 编号。</code></pre>
+    <p>每日任务完整例子 B——本地版,在任意 Desktop 会话里直接说:</p>
+    <pre class="prompt"><code>帮我建一个本地定时任务:工作日每天 09:10 运行,工作目录 ~/work/my-app。
+任务内容:拉最新代码,跑完整测试套件;有失败就定位原因,
+把分析和修复建议写进 notes/test-failures-&lt;日期&gt;.md。
+时间护栏:如果是电脑睡醒后的补跑且已过下午 5 点,只写一份「今天错过了什么」摘要,不做修复。
+建好后立刻 Run now 一次,让我把权限提示逐个设为 always allow。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/scheduled-tasks.md" rel="noopener">Run prompts on a schedule</a>(/loop、7 天过期、抖动、cron 工具),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/desktop-scheduled-tasks.md" rel="noopener">Schedule recurring tasks in Claude Code Desktop</a>(创建流程、补跑、权限、SKILL.md 路径),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/routines.md" rel="noopener">Automate work with routines</a>(云端 routines、三类触发器、/schedule、限额),抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(Routines 处于 research preview,行为与限额可能变化;/loop 细节随版本演进)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

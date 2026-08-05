@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D5 · plan mode 与 explore→plan→code · Claude Code 学习站</title>
+<meta name="description" content="plan mode 是什么、怎么进出、计划批准的三个选项,以及官方推荐的 explore→plan→code 工作流:为什么先探索再计划再写码,比直接开写更不容易做错方向。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-05.html">
+<meta property="og:title" content="D5 · plan mode 与 explore→plan→code · Claude Code 学习站">
+<meta property="og:description" content="plan mode 是什么、怎么进出、计划批准的三个选项,以及官方推荐的 explore→plan→code 工作流。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-05.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D5</p>
+  <h1>D5 · plan mode 与 explore→plan→code</h1>
+  <p>让 Claude 先只读研究、写出计划、经你批准后再动手改代码——本课讲透 plan mode 的进出与批准流程,以及官方为什么推荐「先探索、再计划、再写码」。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">D3 讲过:plan mode 本质上只是权限模式之一。但它值得单独上一课,因为围绕它长出了 Claude Code 官方最推荐的工作流——explore→plan→code。学完本课,你能判断一个任务该不该先 plan,并完整走通一次「探索 → 出计划 → 批准 → 实现」。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p>本课直接承接 <a href="/claude-code/course/day-03.html">D3 · 权限模式与沙箱</a>:那天你学了 default、acceptEdits、auto 等模式各自「不问就能做什么」,plan mode 也在那张表里。今天换一个视角——不再把 plan mode 当成一条权限配置,而是当成一种工作方式:把「搞清楚问题」和「动手改代码」拆成两个阶段,中间加一道由你把关的闸门。</p>
+    <p>它也为后面铺路:<a href="/claude-code/course/day-06.html">D6 · checkpoint / rewind</a> 讲的是做错了怎么回退,而 plan mode 是让你少走到「需要回退」那一步;实战 Tip <a href="/claude-code/tips/interview-to-spec.html">「让 Claude 面试你,把需求聊成 SPEC」</a> 则是本课思路的进阶版——计划做得更重、更正式。<span class="badge badge-site">本站观点</span>跳过这课,你会习惯性让 Claude 拿到需求就开写,大任务上返工率明显更高。</p>
+
+    <h2>概念讲清楚</h2>
+    <p><span class="badge badge-official">官方</span>plan mode 的定义一句话:让 Claude 只做研究、提出改法,但不真正改动。Claude 可以读文件、跑命令做探索、写出一份计划,但不会编辑你的源码;在批准计划之前,编辑一直被挡住(唯一例外见下文误区节)。CLI 状态栏此时显示 <code>⏸ plan mode on</code>。官方给它的定位是「改动一个代码库之前先探索它」。</p>
+
+    <h3>权限视角:拦住了什么、放行了什么</h3>
+    <p><span class="badge badge-official">官方</span>在 plan mode 下,读操作不需要批准。shell 命令分两种情况:如果你的账号具备 auto mode 条件,且 <code>useAutoModeDuringPlan</code> 设置开启(默认开启),计划阶段的 shell 命令由分类器模型审查——通过的直接运行,不通过的被拦下,不再弹窗问你;否则,内置只读命令集之外的命令仍会弹窗请求批准。</p>
+    <p><span class="badge badge-site">本站观点</span>可以这样记:plan mode = 「读随便、写不行、跑命令看情况」。它拦的是对源码的修改,不拦你为搞清楚问题所需的一切探索动作。</p>
+
+    <h3>进出与批准:一道闸门</h3>
+    <p><span class="badge badge-official">官方</span>进入 plan mode 有三条路:</p>
+    <ul>
+      <li>会话中按 <code>Shift+Tab</code> 循环切换权限模式,顺序是 <code>default</code> → <code>acceptEdits</code> → <code>plan</code>;再按一次 <code>Shift+Tab</code> 即可不批准计划直接离开 plan mode。</li>
+      <li>单条消息前缀 <code>/plan</code>,只对这一条 prompt 启用计划模式。</li>
+      <li>启动时 <code>claude --permission-mode plan</code>;想让某个项目默认进 plan,可在 <code>.claude/settings.json</code> 里设 <code>"permissions": {"defaultMode": "plan"}</code>。</li>
+    </ul>
+    <figure>
+      <svg viewBox="0 0 760 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="explore→plan→code 流程图:探索与计划在 plan mode 内完成,经过计划批准闸门后退出 plan mode 进入实现与提交;不批准则回到计划继续修改">
+        <rect class="svg-line" x="8" y="48" width="318" height="100" rx="12" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text class="svg-ink-soft" x="167" y="38" text-anchor="middle" font-size="12">plan mode 之内:只读研究,不改源码</text>
+
+        <rect class="svg-box" x="18" y="64" width="120" height="48" rx="10"/>
+        <text class="svg-ink" x="78" y="86" text-anchor="middle" font-size="14">探索 Explore</text>
+        <text class="svg-ink-soft" x="78" y="103" text-anchor="middle" font-size="11">读文件、问问题</text>
+
+        <rect class="svg-box" x="188" y="64" width="120" height="48" rx="10"/>
+        <text class="svg-ink" x="248" y="86" text-anchor="middle" font-size="14">计划 Plan</text>
+        <text class="svg-ink-soft" x="248" y="103" text-anchor="middle" font-size="11">产出实现计划</text>
+
+        <rect class="svg-box-accent" x="356" y="56" width="130" height="64" rx="10"/>
+        <text class="svg-ink" x="421" y="84" text-anchor="middle" font-size="14">计划批准</text>
+        <text class="svg-ink-soft" x="421" y="101" text-anchor="middle" font-size="11">闸门:你来把关</text>
+
+        <rect class="svg-box" x="516" y="64" width="100" height="48" rx="10"/>
+        <text class="svg-ink" x="566" y="86" text-anchor="middle" font-size="14">实现 Code</text>
+        <text class="svg-ink-soft" x="566" y="103" text-anchor="middle" font-size="11">按计划改代码</text>
+
+        <rect class="svg-box" x="646" y="64" width="100" height="48" rx="10"/>
+        <text class="svg-ink" x="696" y="86" text-anchor="middle" font-size="14">提交 Commit</text>
+        <text class="svg-ink-soft" x="696" y="103" text-anchor="middle" font-size="11">commit + PR</text>
+
+        <line class="svg-line" x1="138" y1="88" x2="180" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="180,83 190,88 180,93"/>
+        <line class="svg-line" x1="308" y1="88" x2="348" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="348,83 358,88 348,93"/>
+        <line class="svg-line" x1="486" y1="88" x2="508" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="508,83 518,88 508,93"/>
+        <line class="svg-line" x1="616" y1="88" x2="638" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="638,83 648,88 638,93"/>
+
+        <path class="svg-line" d="M421 122 v44 H248 v-42" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="243,126 248,114 253,126"/>
+        <text class="svg-ink-soft" x="334" y="184" text-anchor="middle" font-size="12">不批准:留在 plan mode,继续改计划</text>
+
+        <text class="svg-ink-soft" x="631" y="140" text-anchor="middle" font-size="11">已退出 plan mode,按你选的模式执行</text>
+      </svg>
+      <figcaption>explore→plan→code 工作流:探索与计划都发生在 plan mode 里,「计划批准」是唯一的闸门;批准即退出 plan mode 开始实现,不批准则留在计划阶段继续打磨。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>计划写好后,Claude 会把它摆出来问你怎么继续,通常有三个选项:</p>
+    <ul>
+      <li><strong>Yes, and use auto mode</strong>——批准并以 auto mode 开始执行;auto mode 不可用时这一项显示为 <strong>Yes, auto-accept edits</strong>;以 bypass permissions 启动的会话则显示 <strong>Yes, and bypass permissions</strong>。</li>
+      <li><strong>Yes, manually approve edits</strong>——批准计划,但每个编辑逐一人工确认。</li>
+      <li><strong>No, keep planning</strong>——留在 plan mode,告诉 Claude 计划哪里要改。</li>
+    </ul>
+    <p><span class="badge badge-official">官方</span>注意:批准计划会<strong>退出 plan mode</strong>,并把会话切换到你所选选项对应的权限模式。想再规划一轮,得重新 <code>Shift+Tab</code> 切回去或用 <code>/plan</code> 前缀。批准前还可以按 <code>Ctrl+G</code> 把计划文本打开到你的默认编辑器里直接改;接受计划还会自动用计划内容给会话命名(除非你已用 <code>--name</code> 或 <code>/rename</code> 起过名)。</p>
+
+    <h3>为什么先探索再计划:官方的理由</h3>
+    <p><span class="badge badge-official">官方</span>best practices 里把这条列为核心建议之一,理由很直接:让 Claude 拿到需求就写码,产出的很可能是「解决了错误问题」的代码。plan mode 的作用就是把探索与执行分开。官方推荐的完整工作流是四步:<strong>Explore</strong>(在 plan mode 里读代码、回答问题)→ <strong>Plan</strong>(让 Claude 写出详细实现计划)→ <strong>Implement</strong>(批准计划或 <code>Shift+Tab</code> 退出后开始编码,并对照计划验证)→ <strong>Commit</strong>(提交并开 PR)。</p>
+    <p><span class="badge badge-site">本站观点</span>换个讲法——这就是装修的逻辑:先量房看承重墙(探索),再画图纸报价(计划),你签字(批准)之后才开工(实现),最后验收交付(提交)。跳过前两步直接砸墙,砸错了的成本远高于画图纸的时间。对 LLM 还有一层额外收益:探索阶段读进上下文的代码,恰好构成实现阶段最相关的背景知识,写出的计划则把「要做什么」固定成文字,后续实现有了可对照的锚点,不容易越写越偏。</p>
+
+    <h3>什么任务值得先 plan、什么不值得</h3>
+    <div class="callout"><span class="callout-label">官方判断标准</span><span class="badge badge-official">官方</span>plan mode 有用,但也有开销。范围清楚、改动很小的任务——改个 typo、加一行日志、重命名变量——直接让 Claude 做。计划最有价值的场景是:你对做法不确定、改动横跨多个文件、或者你对要改的代码不熟。官方给的一句话判断法:如果这个 diff 你能用一句话描述清楚,就跳过计划。</div>
+    <p><span class="badge badge-site">本站观点</span>还有一个实用信号:你打算之后离开屏幕让 Claude 自己跑(比如批准后切 auto mode),就更值得先 plan——闸门是你在无人值守前的最后一次人工把关。</p>
+
+    <h3>常见误区</h3>
+    <p><strong>误区一:「plan mode 下 Claude 什么命令都跑不了」。</strong><span class="badge badge-official">官方</span>不对。读操作一直放行;auto mode 可用时,计划阶段的 shell 命令由分类器审查后自动放行或拦截。plan mode 拦的核心是「改你的源码」,不是「动任何东西」。</p>
+    <p><strong>误区二:「进了 plan mode 就绝对安全」。</strong><span class="badge badge-official">官方</span>有一个明确例外:在启用了 bypass permissions 的会话里,plan mode 的拦截并不强制执行——Claude 仍被指示只规划不编辑,但它若真的尝试编辑或跑命令,会直接执行而不弹窗。别把 plan mode 和 bypass 组合当成「只读保险箱」。</p>
+    <p><strong>误区三:「批准计划后我还在 plan mode 里」。</strong><span class="badge badge-official">官方</span>不在了。批准即退出,会话切换到你选的那个模式(auto / 逐个批准等)。很多人实现到一半想「再规划一下」,以为自己还在 plan mode,其实早已切出去了——要再按 <code>Shift+Tab</code> 或用 <code>/plan</code>。</p>
+
+    <h2>当天能做完的实操</h2>
+    <p>找一个你熟悉的真实项目(有几个源码文件即可),完整走一遍闸门流程,约 20–30 分钟:</p>
+    <ol>
+      <li>以 plan mode 启动:<code>claude --permission-mode plan</code>。预期:状态栏出现 <code>⏸ plan mode on</code>。</li>
+      <li>发一条探索 prompt(下面第一段可直接抄,把目录名换成你的)。预期:Claude 读文件、给出分析,但不改任何文件。</li>
+      <li>接着发第二段 prompt 让它出计划。预期:Claude 给出分步骤计划,并弹出批准选单(Yes, and use auto mode / Yes, manually approve edits / No, keep planning 三类选项,措辞随你的账号配置略有差异)。</li>
+      <li>先选 <strong>No, keep planning</strong>,提一条修改意见(比如「第 2 步先写测试再改实现」)。预期:仍在 plan mode,计划被更新。</li>
+      <li>在批准选单出现时按 <code>Ctrl+G</code>。预期:计划文本在你的默认编辑器里打开,可直接编辑,保存后回到选单。</li>
+      <li>选 <strong>Yes, manually approve edits</strong>。预期:状态栏的 plan mode 标记消失,Claude 开始按计划改代码,每个编辑单独弹窗让你确认。</li>
+      <li>收尾时按几次 <code>Shift+Tab</code>,观察 <code>default</code> → <code>acceptEdits</code> → <code>plan</code> 的循环,确认你能随时切回 plan mode。</li>
+    </ol>
+    <pre class="prompt"><code>通读 src/ 下和登录、会话相关的代码,搞清楚现在的认证流程。
+先不要改任何文件。回答我两个问题:
+1. token 是在哪里生成、哪里校验的?
+2. 现在的会话过期逻辑写在哪个文件?</code></pre>
+    <pre class="prompt"><code>我想给登录加一个「记住我 30 天」选项。
+基于刚才的探索,给我一份分步骤的实现计划:
+每一步列出要改哪些文件、为什么改、以及改完怎么验证。
+计划里明确标出哪些东西不在本次范围内。</code></pre>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看文档说出进入 plan mode 的三种方式(<code>Shift+Tab</code> 循环、<code>/plan</code> 前缀、<code>--permission-mode plan</code>),以及不批准计划时怎么退出。</li>
+      <li>能解释 plan mode 在权限层面拦了什么、放行了什么,以及 bypass permissions 会话里的那个例外。</li>
+      <li>能复述批准选单的三类选项,并说清「批准 = 退出 plan mode + 切到对应模式」。</li>
+      <li>实操 7 步全部跑通,包括用 <code>Ctrl+G</code> 编辑过一次计划。</li>
+      <li>自测题一:「改一个 typo」和「跨五个文件接入 OAuth」,哪个该先 plan?用官方的一句话判断法说明理由。</li>
+      <li>自测题二:批准计划时选了「Yes, and use auto mode」,此刻会话处于什么权限模式?还在 plan mode 里吗?</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/permission-modes" rel="noopener">Choose a permission mode(plan mode、批准流程、模式切换)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices" rel="noopener">Best practices for Claude Code(Explore first, then plan, then code)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/common-workflows" rel="noopener">Common workflows(Plan before editing)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/interactive-mode" rel="noopener">Interactive mode(Shift+Tab、Ctrl+G 等快捷键)</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-04.html">上一课 D4 · CLAUDE.md 与 rules</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-06.html">下一课 D6 · checkpoint / rewind 与会话管理</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

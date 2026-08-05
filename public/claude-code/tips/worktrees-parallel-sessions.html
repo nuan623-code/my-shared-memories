@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>worktree 让多会话不打架 · Claude Code 学习站</title>
+<meta name="description" content="多个 Claude Code 会话同时改一个仓库会互踩文件:用 claude --worktree 给每个会话独立 checkout,含环境初始化、合并与清理。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="worktree 让多会话不打架 · Claude Code 学习站">
+<meta property="og:description" content="用 claude --worktree 给每个并行会话一个独立 checkout:开法、环境初始化、合并与清理。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/worktrees-parallel-sessions.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/worktrees-parallel-sessions.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / B · 并行与效率</p>
+  <h1>worktree 让多会话不打架</h1>
+  <p>两个会话同时改同一个仓库:一个在跑测试,另一个把文件改了——结果谁都不可信。解法是一人一个 checkout。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">git worktree 是同一个仓库的另一份工作目录:独立文件、独立分支,共享历史和 remote。每个 Claude Code 会话占一个 worktree,一个会话的编辑就永远碰不到另一个会话的文件。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      <span class="badge badge-official">官方</span>每个并行会话用 <code>claude --worktree &lt;名字&gt;</code> 起在自己的 worktree 里:各有独立文件和分支,一边做 feature 一边修 bug 互不干扰;worktree 分支是普通 git 分支,改完照常 merge 或发 PR 收回来,退出会话时 Claude 会引导你清理。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>确认问题确实是「互踩」。</strong>症状:同一个目录里开了两个 session,A 会话的 <code>git status</code> 冒出 B 会话的改动、测试跑一半文件被改。<span class="badge badge-official">官方</span>worktree 的定位就是「running each Claude Code session in its own worktree means edits in one session never touch files in another」。前提:必须是 git 仓库。</li>
+      <li><strong>开第一个隔离会话。</strong>在仓库里运行 <code>claude --worktree feature-auth</code>(简写 <code>-w</code>)。<span class="badge badge-official">官方</span>默认在仓库根的 <code>.claude/worktrees/feature-auth/</code> 创建 worktree,新分支名为 <code>worktree-feature-auth</code>,从仓库默认分支(通常 main)拉出。省略名字会自动生成一个。首次使用前需在该目录跑过一次 <code>claude</code> 接受 workspace trust。</li>
+      <li><strong>换个名字再开第二个。</strong>另一个终端运行 <code>claude --worktree fix-login-bug</code>,两个会话从此各改各的。<span class="badge badge-official">官方</span>建议把 <code>.claude/worktrees/</code> 加进 <code>.gitignore</code>,避免 worktree 内容出现在主 checkout 的未跟踪文件里。</li>
+      <li><strong>初始化环境。</strong>worktree 是全新 checkout,依赖要重装,<code>.env</code> 这类 gitignored 文件也不在。<span class="badge badge-official">官方</span>在项目根加一个 <code>.worktreeinclude</code> 文件(.gitignore 语法),列出 <code>.env</code>、<code>.env.local</code> 等,之后每个新 worktree 自动带上;只有「匹配模式且本身被 gitignore」的文件才会被复制。</li>
+      <li><strong>收回改动。</strong><span class="badge badge-official">官方</span>worktree 与主 checkout 共享 <code>.git</code> 目录和 remote,在里面 <code>git commit</code>、push 都照常工作。<span class="badge badge-site">本站观点</span>所以合并没有任何特殊仪式:push 后发 PR,或回主 checkout <code>git merge worktree-feature-auth</code>,当普通分支处理即可。</li>
+      <li><strong>清理。</strong><span class="badge badge-official">官方</span>退出交互会话时 Claude 检查 worktree:干净且未命名的自动删掉;里面还有改动或新 commit 的,会问你 keep 还是 remove。<code>claude -p</code> 非交互跑出来的 worktree 没有退出提示,手动 <code>git worktree remove &lt;路径&gt;</code>(有未提交改动加 <code>--force</code>),<code>git worktree list</code> 随时查看现存的。</li>
+      <li><strong>两个进阶开关。</strong><span class="badge badge-official">官方</span>① 会话中途直接说「work in a worktree」,Claude 会用 EnterWorktree 工具当场建一个;② subagent 也能各占一个 worktree:自定义 subagent 的 frontmatter 加 <code>isolation: worktree</code>(subagent 基础见 <a href="/claude-code/course/day-10.html">D10 · Subagents</a>)。若希望 worktree 从当前未推送的工作(而非默认分支)拉出,settings 里设 <code>"worktree": {"baseRef": "head"}</code>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>在一个新的 worktree 里做这个任务:&lt;任务描述&gt;。
+要求:
+1. 用 worktree 隔离,不要动我主 checkout 里的任何文件;
+2. 进入 worktree 后先初始化环境:安装依赖,检查 .env 等本地配置文件
+   是否存在,缺了先列出来问我;
+3. 改完运行 &lt;测试命令&gt;,通过后 commit 到 worktree 分支,
+   最后告诉我分支名和改动摘要,由我决定 merge 还是发 PR,你不要自己合并。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/worktrees.md">Run parallel sessions with worktrees</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(清理、baseRef、EnterWorktree 审批等行为近几个版本变动频繁)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

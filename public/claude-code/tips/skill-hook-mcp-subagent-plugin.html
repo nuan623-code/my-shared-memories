@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill/Hook/MCP/Subagent/Plugin 该用哪个 · Claude Code 学习站</title>
+<meta name="description" content="五种扩展机制一张决策表:知识用 Skill、强制动作用 Hook、外部系统用 MCP、隔离并行用 Subagent、打包分发用 Plugin,附官方触发信号与易混对比。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Skill/Hook/MCP/Subagent/Plugin 该用哪个 · Claude Code 学习站">
+<meta property="og:description" content="五种扩展机制一张决策表:知识用 Skill、强制动作用 Hook、外部系统用 MCP、隔离并行用 Subagent、打包分发用 Plugin。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/skill-hook-mcp-subagent-plugin.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/skill-hook-mcp-subagent-plugin.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · 配置与选型</span></p>
+  <h1>Skill/Hook/MCP/Subagent/Plugin 该用哪个</h1>
+  <p>五种扩展机制名字都听过,真要配置时不知道选哪个——按「你要解决什么问题」对号入座,一张表定选型。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">这五个机制不是五选一的竞品,它们插在 agentic loop 的不同位置,解决不同的问题,而且经常组合使用。选错的代价通常是「上下文被浪费」或「该发生的事没发生」。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      按目的选:可复用的<strong>知识和工作流</strong>用 Skill;必须每次都发生的<strong>强制动作</strong>用 Hook;连接<strong>外部工具和数据</strong>用 MCP;需要<strong>隔离上下文或并行</strong>用 Subagent;要把这一套<strong>打包分发</strong>给别的仓库或团队才用 Plugin——Plugin 是打包层,不是第五种独立能力。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>先对一张决策表。</strong><span class="badge badge-official">官方</span>官方 features-overview 文档给出了各机制的定位与适用场景,整理成对比表如下(「不适用」一列是<span class="badge badge-site">本站观点</span>的反向提醒):
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>机制</th><th>它是什么</th><th>适用</th><th>不适用(该换成)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Skill</strong></td><td>装着知识、清单或工作流的 markdown 文件,可 <code>/名字</code> 调用,Claude 也能在相关时自动加载</td><td>反复粘贴的同一段 prompt、API 风格指南、<code>/deploy</code> 这类可触发流程</td><td>「每次都必须发生」的动作(→ Hook);连外部系统(→ MCP)</td></tr>
+            <tr><td><strong>Hook</strong></td><td>在生命周期事件(如 PostToolUse、SessionStart)上<em>必然执行</em>的脚本/HTTP 请求/prompt/子代理</td><td>编辑后自动 lint、拦截危险命令、结束时发通知——不需要模型思考的确定性动作</td><td>需要 Claude 判断怎么做的流程(→ Skill)</td></tr>
+            <tr><td><strong>MCP</strong></td><td>连接外部服务的开放协议,由服务器提供工具和数据访问</td><td>查数据库、读 issue、发 Slack、控制浏览器——Claude 本来看不到的系统</td><td>教 Claude「怎么用好这些工具」的知识(→ Skill,两者常搭配)</td></tr>
+            <tr><td><strong>Subagent</strong></td><td>拥有独立上下文窗口的隔离工人,干完只把摘要交回主会话</td><td>要读几十个文件的调研、并行任务、防止副任务淹没主上下文</td><td>想跨会话复用的内容(→ Skill);多个会话相互通信(→ agent teams)</td></tr>
+            <tr><td><strong>Plugin</strong></td><td>打包层:把 skills、hooks、subagents、MCP 服务器捆成一个可安装单元,skill 带命名空间(<code>/my-plugin:review</code>)</td><td>第二个仓库需要同一套配置、要分发给团队或社区</td><td>单项目的个人配置(直接放 <code>.claude/</code> 就够)</td></tr>
+          </tbody>
+        </table></div>
+        <p><span class="badge badge-official">官方</span>别忘了还有第六个更基础的选项:总是要遵守的「always do X」规则放 <a href="/claude-code/course/day-04.html">CLAUDE.md</a>,它每个会话自动全文载入,不需要任何触发。</p>
+      </li>
+      <li><strong>用官方「触发信号」自查。</strong><span class="badge badge-official">官方</span>官方建议不要一上来配齐所有机制,而是遇到对应信号再加:Claude 把同一个约定搞错两次 → 写进 CLAUDE.md;你第三次粘贴同一段操作手册 → 存成 Skill;你老是从浏览器复制 Claude 看不到的数据 → 接 MCP;某个副任务的输出淹没了对话 → 走 Subagent;想要某件事「每次都自动发生」 → 写 Hook;第二个仓库需要同样配置 → 打包成 Plugin。</li>
+      <li><strong>易混的两对,记住判别句。</strong><span class="badge badge-official">官方</span>Skill vs Hook:Hook 在事件上必然触发(确定性有保证),Skill 靠 Claude 理解执行(结果可能有偏差)——所以<strong>护栏必须放 Hook</strong>,在 CLAUDE.md 或 Skill 里写「never edit .env」只是请求,PreToolUse hook 拦截才是强制。Skill vs Subagent:Skill 是「可加载的内容」,Subagent 是「隔离的执行环境」,二者可组合——skill 可以用 <code>context: fork</code> 在隔离上下文跑,subagent 可以用 <code>skills:</code> 字段预载 skill。</li>
+      <li><strong>算一笔上下文账再定。</strong><span class="badge badge-official">官方</span>各机制的上下文成本不同:CLAUDE.md 全文每次请求都在;Skill 默认只常驻描述、用到才载全文;MCP 只载工具名、schema 用到才取;Subagent 完全隔离;Hook 在外部执行、除非有输出返回否则零成本。上下文越金贵(参见 <a href="/claude-code/tips/too-many-mcp-servers.html">MCP 服务器装太多的代价</a>),越应该把重内容往 Skill/Subagent/Hook 挪。</li>
+      <li><strong>组合而不是单选。</strong><span class="badge badge-official">官方</span>真实配置通常是组合:MCP 连上数据库 + Skill 记录你的 schema 和查询习惯;<code>/audit</code> Skill 派出安全/性能/风格三个并行 Subagent;编辑后 Hook 跑 lint 并把结果喂回上下文。深入每个机制可看课程 <a href="/claude-code/course/day-07.html">D7 Skills</a>、<a href="/claude-code/course/day-08.html">D8 Hooks</a>、<a href="/claude-code/course/day-09.html">D9 MCP</a>、<a href="/claude-code/course/day-10.html">D10 Subagents</a>、<a href="/claude-code/course/day-14.html">D14 Plugins</a>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>我想给 Claude Code 加一个能力:&lt;描述你的需求,例如「每次编辑完文件自动跑 eslint」「把团队的发布检查清单交给 Claude」「让 Claude 能查我们的 PostgreSQL」&gt;。
+
+请按官方选型逻辑判断该用 Skill、Hook、MCP、Subagent 还是 Plugin(或组合),说明理由,
+然后直接生成对应配置:
+- Skill 写到 .claude/skills/&lt;名字&gt;/SKILL.md
+- Hook 写进 .claude/settings.json 的 "hooks" 键
+- MCP 给出 claude mcp add 命令
+- Subagent 写到 .claude/agents/&lt;名字&gt;.md
+最后解释这个配置什么时候载入、占多少上下文。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/features-overview.md" rel="noopener">features-overview(Extend Claude Code,含决策表/触发信号/上下文成本)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/skills.md" rel="noopener">skills</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/hooks-guide.md" rel="noopener">hooks-guide</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/mcp.md" rel="noopener">mcp</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sub-agents.md" rel="noopener">sub-agents</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/plugins.md" rel="noopener">plugins</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 Claude Code 当前机制划分,版本水位 2.1.222)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>接手陌生代码库第一天问哪五个问题 · Claude Code 学习站</title>
+<meta name="description" content="用 Claude Code onboarding 陌生代码库:架构总览、入口与数据流、构建测试跑法、约定与雷区、最近在改什么,五个问题配可抄 prompt,最后用 /init 沉淀成 CLAUDE.md。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="接手陌生代码库第一天问哪五个问题 · Claude Code 学习站">
+<meta property="og:description" content="五个按顺序问的问题 + 可抄 prompt,让 Claude Code 当你的 onboarding 向导,最后用 /init 沉淀成 CLAUDE.md。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/five-questions-new-codebase.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/five-questions-new-codebase.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">簇 F · 端到端场景</span></p>
+  <h1>接手陌生代码库第一天问哪五个问题</h1>
+  <p>入职新团队、接手别人的项目,第一天与其自己翻代码,不如让 Claude Code 当向导:五个问题按顺序问完,你就有了一张能干活的地图。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">官方文档的建议是「把 Claude 当资深同事问」,不需要特殊 prompt 技巧;本页把这个建议编排成第一天就能执行的五问清单,每问一个目的,问完顺手沉淀进 CLAUDE.md。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      在项目根目录启动 Claude Code(建议先切 plan mode 只读探索),按「架构总览 → 入口与数据流 → 构建测试跑法 → 约定与雷区 → 最近在改什么」五个问题从宽到窄问下来,最后跑 <code>/init</code> 把结论沉淀成 CLAUDE.md。从宽问到窄是官方建议的探索姿势,五问框架是本站对它的具体编排。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>准备:</strong>进入项目根目录跑 <code>claude</code>,按 <code>Shift+Tab</code> 切到 plan mode(状态栏显示 <code>⏸ plan mode on</code>),Claude 只读文件不做修改,适合第一天纯探索。<span class="badge badge-official">官方</span>官方推荐「explore first」并从宽泛问题开始、逐步收窄。参见 <a href="/claude-code/course/day-05.html">D5 · plan mode</a>。</li>
+      <li><strong>问题一 · 架构总览:</strong>先要一份鸟瞰图——仓库做什么、分几个模块、什么技术栈和架构模式。<span class="badge badge-official">官方</span>这是官方文档「Understand new codebases」的第一步,原句 prompt 就是 <code>give me an overview of this codebase</code>,再追问 <code>explain the main architecture patterns used here</code>。预期得到模块清单和它们的职责。</li>
+      <li><strong>问题二 · 入口与数据流:</strong>程序从哪启动、一次典型请求走过哪些层。<span class="badge badge-official">官方</span>官方 recipe:<code>trace the login process from front-end to database</code>——换成你项目里最核心的一条链路。预期得到带文件名的调用路径。</li>
+      <li><strong>问题三 · 构建测试跑法:</strong>怎么装依赖、怎么本地跑起来、怎么跑测试和 lint。<span class="badge badge-site">本站观点</span>把命令要到手并当场跑一遍,是第一天最实在的验收——跑不通的项目文档等于没有。</li>
+      <li><strong>问题四 · 约定与雷区:</strong>这个项目哪些做法和默认习惯不一样。<span class="badge badge-official">官方</span>官方 tips 明确建议「ask about coding conventions and patterns used in the project」并「request a glossary of project-specific terms」。预期得到术语表 + 差异化约定清单。</li>
+      <li><strong>问题五 · 最近在改什么:</strong>让 Claude 读 git 历史,总结活跃分支和高频改动文件。<span class="badge badge-official">官方</span>best practices 的「Point to sources」模式:与其问「这个 API 为什么这么怪」,不如让它 <code>look through the git history and summarize</code>。你会知道团队正在推进什么、哪些区域是雷区。</li>
+      <li><strong>收尾 · 沉淀:</strong>跑 <code>/init</code>,它会分析代码库探测构建系统、测试框架与代码模式,生成一份初始 CLAUDE.md;把今天五问里的关键结论(命令、约定、雷区)补进去,用 <code>/context</code> 确认它已被加载。<span class="badge badge-official">官方</span>CLAUDE.md 每次会话都会读,只放普适内容、保持精简。参见 <a href="/claude-code/course/day-04.html">D4 · CLAUDE.md 与 rules</a>。</li>
+    </ol>
+    <p><span class="badge badge-site">本站观点</span>大仓库里问题一、二容易读进大量文件挤爆上下文:让 Claude「用 subagent 去调查」,只把结论带回主会话(参见 <a href="/claude-code/course/day-10.html">D10 · Subagents</a>);两问之间上下文变脏就 <code>/clear</code>。</p>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>我今天刚接手这个代码库,请在只读前提下按顺序帮我回答五个问题,每答完一个停下来等我确认:
+1) 架构总览:这个仓库做什么?分几个模块,各自职责是什么?用了什么技术栈和架构模式?
+2) 入口与数据流:程序从哪里启动?挑一条最核心的链路,给出从入口到落库(或输出)的完整调用路径,带文件名。
+3) 构建与测试:本地怎么装依赖、怎么跑起来、怎么跑测试和 lint?把命令逐条列出来。
+4) 约定与雷区:这个项目有哪些和默认做法不同的编码约定、命名习惯?整理一份项目专有术语表,并指出新人容易踩的坑。
+5) 最近在改什么:读最近 30 条 git log 和活跃分支,总结团队正在推进什么、哪些文件改动最频繁。
+探索大目录时用 subagent,别把文件内容全读进主上下文。
+最后把 1–4 的结论压缩成要点清单,我会用它补充 CLAUDE.md。</code></pre>
+    <p>问完后运行 <code>/init</code> 生成 CLAUDE.md,再把上面的要点清单让 Claude 合并进去。</p>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/common-workflows.md" rel="noopener">Common workflows · Understand new codebases</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" rel="noopener">Best practices for Claude Code</a>(/init、CLAUDE.md、plan mode、subagents、Point to sources),抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:low(五问是方法论;涉及的 <code>/init</code> <code>/context</code> plan mode 为现行产品行为)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

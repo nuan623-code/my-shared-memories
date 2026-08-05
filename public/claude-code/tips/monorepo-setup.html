@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大仓库 monorepo · Claude Code 学习站</title>
+<meta name="description" content="大仓库里让 Claude 只看见相关代码:CLAUDE.md 分层、启动位置作用域、claudeMdExcludes、Read deny 规则与搜索上下文策略。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="大仓库 monorepo · Claude Code 学习站">
+<meta property="og:description" content="大仓库里让 Claude 只看见相关代码:CLAUDE.md 分层、启动位置作用域、claudeMdExcludes、Read deny 规则与搜索上下文策略。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/monorepo-setup.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/monorepo-setup.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · 配置与选型</span></p>
+  <h1>大仓库 monorepo</h1>
+  <p>仓库百万行、几十个 package,Claude 的上下文很快被无关代码和别的团队的约定填满——解法是给它划作用域。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">大仓库配置的核心思路只有一句:<strong>让 Claude 只看见当前任务相关的那部分</strong>。手段有四类——CLAUDE.md 分层、启动位置选作用域、deny 规则挡无关读取、探索走隔离上下文,层层叠加而不是互相替代。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      根目录 CLAUDE.md 只讲全仓布局和通用约定(200 行内),每个 package 放自己的 CLAUDE.md(子目录文件按需加载不占启动上下文);单包任务从包目录启动 Claude 缩小作用域;再用 <code>claudeMdExcludes</code> 排除别的团队的文件、用 <code>Read</code> deny 规则挡住 dist/build/vendored 代码。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>分层 CLAUDE.md:根讲全局,包讲局部。</strong><span class="badge badge-official">官方</span>Claude Code 启动时加载工作目录及所有祖先目录的 CLAUDE.md;子目录的 CLAUDE.md 不在启动时加载,而是当 Claude 用 Read 工具读到那个目录的文件时按需载入。所以正确分工是:根 CLAUDE.md 写仓库结构、全局编码/提交约定;<code>packages/api/CLAUDE.md</code> 写该包的测试命令、目录结构、局部规矩。都提交进仓库让全队继承。单文件目标 200 行内,超了就把参考材料挪到 skill 或 <code>.claude/rules/</code>(规则可用 <code>paths:</code> frontmatter 只在匹配文件时加载,详见 <a href="/claude-code/course/day-04.html">D4 CLAUDE.md 与 rules</a>)。</li>
+      <li><strong>用启动位置选作用域。</strong><span class="badge badge-official">官方</span>从哪里运行 <code>claude</code> 决定文件访问范围和载入哪些 CLAUDE.md:跨包任务从仓库根启动(能读所有文件,只载根 CLAUDE.md,子目录的按需来);单包任务从 <code>packages/api/</code> 启动(只载该包 + 祖先的 CLAUDE.md,别的包完全不进上下文)。注意 <code>.claude/settings.json</code> 项目设置只从启动目录加载、不像 CLAUDE.md 那样从父目录继承。从子目录启动后要跨包改文件,用 <code>--add-dir ../shared</code> 或在设置里配 <code>additionalDirectories</code>。</li>
+      <li><strong>排除无关内容:两个开关。</strong><span class="badge badge-official">官方</span>其一,<code>claudeMdExcludes</code>(放 <code>.claude/settings.local.json</code> 保持个人生效)按 glob 跳过别的团队的 CLAUDE.md,如 <code>"**/packages/web/**"</code>;管理策略下发的 CLAUDE.md 不可排除。其二,内容搜索默认尊重 <code>.gitignore</code>,已忽略的 <code>node_modules/</code>、<code>dist/</code> 不会进搜索结果;但对<em>已提交</em>的生成代码和 vendored 依赖,要加 <code>Read</code> deny 规则,例如 <code>"Read(./**/dist/**)"</code>、<code>"Read(./**/*.generated.*)"</code>、<code>"Read(./vendor/**)"</code>,Claude 连打开都不会打开。</li>
+      <li><strong>搜索与上下文策略。</strong><span class="badge badge-official">官方</span>两招减少「为找一个符号读几十个文件」:装语言对应的 code intelligence 插件(<code>/plugin install typescript-lsp@claude-plugins-official</code>),让 Claude 走 language server 跳定义/找引用而不是全文扫描;大范围探索交给 subagent,在独立上下文里读文件、只把结论带回主会话(<a href="/claude-code/course/day-10.html">D10 Subagents</a>)。跨包大改动前先 plan 并让 Claude 把计划写成 markdown 文件——长会话会压缩上下文,落盘的计划不会丢。</li>
+      <li><strong>可选进阶。</strong><span class="badge badge-official">官方</span>worktree 隔离开发时,<code>worktree.sparsePaths</code> 让新 worktree 只检出列出的目录(记得包含 <code>.claude</code>),<code>symlinkDirectories</code> 把 <code>node_modules</code> 软链回主检出;每个包还可以放自己的 <code>.claude/skills/</code>,API 包的测试套路只在做 API 任务时载入。配好后跑 <code>/context</code>,在 Memory files 一栏确认载入的正是你预期的那几个文件。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>这是一个 monorepo,帮我做大仓库配置:
+
+1. 读根目录结构和 packages/ 下各包的用途,在仓库根写一个 200 行以内的
+   CLAUDE.md:只讲仓库布局、各包一句话说明、全局约定(包管理器、提交规范、
+   「在包目录跑命令而不是根目录」这类规则);
+2. 给我正在做的包 packages/&lt;包名&gt; 写它自己的 CLAUDE.md:构建/测试/迁移
+   命令、目录结构、该包特有的约定;
+3. 在启动目录的 .claude/settings.json 里加 permissions.deny 的 Read 规则,
+   挡住 dist/、build/、*.generated.* 和 vendored 代码;
+4. 列出你创建/修改的所有文件。我之后会重启会话并用 /context 验证
+   Memory files 里只载入了预期的文件。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/large-codebases.md" rel="noopener">large-codebases(monorepo 配置全指南:分层/排除/deny/sparsePaths/per-package skills)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/memory.md" rel="noopener">memory(CLAUDE.md 加载机制/rules/claudeMdExcludes/200 行建议)</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 claudeMdExcludes、sparsePaths 等具体配置键,版本水位 2.1.222)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

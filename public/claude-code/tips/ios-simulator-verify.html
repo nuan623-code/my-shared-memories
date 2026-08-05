@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iOS 模拟器里跑起来才算做完 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code Desktop 的 iOS Simulator pane 让 Claude 自己 build、装 app、点按、读屏验证。把「模拟器里验证通过」写进完成标准,iOS 开发才能真正放手。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/ios-simulator-verify.html">
+<meta property="og:title" content="iOS 模拟器里跑起来才算做完 · Claude Code 学习站">
+<meta property="og:description" content="Claude Code Desktop 自带 iOS Simulator pane:Claude 自己 build、装 app、点按、读屏验证。把模拟器验证写进完成标准。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/ios-simulator-verify.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">C · 设计与素材</span></p>
+  <h1>iOS 模拟器里跑起来才算做完</h1>
+  <p>iOS 代码「编译通过」离「能用」还差十万八千里——让 Claude 自己在模拟器里装上、点开、跑一遍,验证过了才收工。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code Desktop(macOS)内置 iOS Simulator pane:Claude build、安装、启动或检查你的 app 时,会话旁边会自动打开一块实时流式显示的模拟器画面,Claude 在里面自己点按、读屏、验证改动,你全程可看可插手。这一页讲怎么用它,以及怎么把「模拟器验证通过」变成任务的硬性完成标准。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      给 iOS 任务的指令按「跑起来验证」措辞(如「build 后在模拟器里跑一遍 onboarding」),Claude 会自动打开 iOS Simulator pane、装 app、自己 tap 和读屏验证;再把「模拟器里逐屏验证通过 + 汇报所见」写进完成标准,它就不能只靠「编译通过」交差。<span class="badge badge-official">官方</span>pane 为公共测试版,需 macOS + Claude Code Desktop,Pro/Max/Team 计划(Enterprise 不可用)。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>备齐环境。</strong><span class="badge badge-official">官方</span>需要:Claude Desktop v1.24012.0+、Mac(iOS 模拟器只在 macOS 上有)、装好 iOS 平台的 Xcode——注意用 Xcode 26.x,pane 还不支持把 Simulator 换成 Device Hub 的 Xcode 27(多版本共存时用 <code>sudo xcode-select -s /Applications/Xcode-26.4.app</code> 指回去)。提示找不到模拟器就跑 <code>xcodebuild -downloadPlatform iOS</code> 装运行时。另外 pane 仅本地会话可用,云端和 SSH 会话摸不到你 Mac 上的模拟器。</li>
+      <li><strong>用「跑起来验证」的措辞下任务。</strong><span class="badge badge-official">官方</span>不需要任何命令或设置,Claude 在模拟器里启动 app 时 pane 自动打开。官方示例措辞:「Build the app and run it in the simulator to check the onboarding flow.」要指定机型就直接说(「run it on the iPhone SE simulator」)。首次使用某台设备时桌面 app 会请求一次授权(按设备记住,之后 tap、输入、截图不再逐次弹窗)。预期:pane 打开,app 装上,Claude 开始自己点。</li>
+      <li><strong>把完成标准写死。</strong><span class="badge badge-site">本站观点</span>光让它「跑一下」还不够,要在任务里列出验证清单:哪些屏、哪些操作、预期看到什么,并要求逐项汇报所见(通用原则见 <a href="/claude-code/tips/self-verifiable-done.html">给它能自己跑的验证</a>)。<span class="badge badge-official">官方</span>文档本身也建议:改完 bug 或界面后,让 Claude 重新启动 app 验证改动——relaunch 会自动重开 pane。</li>
+      <li><strong>人机同屏配合。</strong><span class="badge badge-official">官方</span>pane 是可交互的:你可以直接点/拖模拟器画面、Cmd+Shift+H 回主屏、Cmd+S 截图 / Cmd+R 录屏(存到桌面)。你和 Claude 操作同一台设备,想让它检查某个特定页面,自己点过去再开口;看到「Claude is using this device」徽章时先别碰,等它操作完。每个会话有自己的设备(最多 4 台),互不串台;Claude 启动的模拟器会在退出/归档/断开 10 分钟后自动关闭。</li>
+      <li><strong>认清边界。</strong><span class="badge badge-official">官方</span>CLI 里没有 pane,Claude 通过 computer use 像人一样操作屏幕上的模拟器(<a href="/claude-code/tips/screenshot-diff-ui-check.html">截图对比</a>那套照常可用);真机不支持——想在物理 iPhone 上测,自己用 Xcode 跑,再把所见描述或截图贴给 Claude。隐私上注意:Claude 对设备的截图会发送给 Anthropic,按你的会话保留设置存储,所以别在它用的模拟器里登录真实账号。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>实现这个功能后,必须在 iOS 模拟器里验证通过才算完成:
+1. build app 并在 iPhone 17 模拟器里启动(build 失败先修到能跑)。
+2. 按这份清单逐项验证,每项说明你实际看到了什么:
+   - 冷启动进入首页,无崩溃、无白屏
+   - 新功能入口可见,点进去后界面与需求一致
+   - 主流程从头到尾走一遍,每一步的跳转和状态都正常
+   - 旋转屏幕 / 回到主屏再切回,状态不丢
+3. 发现问题就修复,重新 build、重新在模拟器里走一遍,直到清单全部通过。
+4. 结束时汇报:每项的验证结果、修了哪些问题;不接受只有「编译通过」的完成汇报。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/desktop-ios-simulator.md" target="_blank" rel="noopener">Test iOS apps in the simulator(pane 的要求、授权、交互、设备管理、边界)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/computer-use.md" target="_blank" rel="noopener">Computer use from the CLI(CLI 场景下驱动 iOS 模拟器)</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(pane 处于 public beta,版本门槛、Xcode 兼容性、计划范围都可能变)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

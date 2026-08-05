@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多session还是多agent能有效提高开发效率 · Claude Code 学习站</title>
+<meta name="description" content="多 session 与多 agent 不是二选一:subagent 解决一次任务内部的并行宽度,多 session 解决跨时间的任务切换,按问题分类选工具。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="多session还是多agent能有效提高开发效率 · Claude Code 学习站">
+<meta property="og:description" content="subagent 解决一次任务内部的并行宽度,多 session 解决跨时间的任务切换,两轴正交,按问题分类选工具。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/multi-session-vs-multi-agent.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/multi-session-vs-multi-agent.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / B · 并行与效率</p>
+  <h1>多session还是多agent能有效提高开发效率</h1>
+  <p>手头的事一多,是该开更多终端窗口,还是让 Claude 派更多 agent?这页给一个可直接套用的判断方法。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">这两个东西经常被当成同一件事的两种做法,其实它们解决的是两个不同方向的问题,不冲突,也不能互相替代。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      <span class="badge badge-site">本站观点</span>不是二选一:多 agent(subagent)解决<strong>一次任务内部的宽度</strong>——把搜索、测试、研究这类旁支放进独立上下文并行做,只把摘要带回主对话;多 session 解决<strong>跨时间的长度</strong>——每件独立的事各占一个可命名、可恢复的会话。先问「这是当前任务的旁支,还是另一件事」,答案就出来了。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>先给手头的事分类。</strong><span class="badge badge-official">官方</span>subagent 的适用条件是:一个旁支任务会用搜索结果、日志、你不会再引用的文件内容淹没主对话——它在自己的 context window 里干完,只返回摘要。反过来,如果是和当前工作无关的另一件事,它就该有自己的 session。</li>
+      <li><strong>同一任务要宽度,用 subagent。</strong>直接在对话里说「用 subagent 并行研究 auth、database、API 三个模块」即可。<span class="badge badge-official">官方</span>自 v2.1.198 起 subagent 默认在后台运行,主对话不被阻塞;但注意每个 subagent 的结果最终会回流主对话,开太多、每个都返回长报告,一样挤占上下文。</li>
+      <li><strong>跨时间多任务,用多 session。</strong><span class="badge badge-official">官方</span>session 是绑定项目目录、持续落盘的会话:启动时 <code>claude -n auth-refactor</code> 命名,之后 <code>claude --resume auth-refactor</code> 按名恢复;会话内 <code>/branch</code> 可以复制当前对话去试另一条路,原对话不动。会话管理的完整玩法见 <a href="/claude-code/course/day-06.html">D6 · 会话管理</a>。</li>
+      <li><strong>多 session 同时改同一个仓库会互踩文件</strong>——解法是每个 session 一个 worktree,见 <a href="/claude-code/tips/worktrees-parallel-sessions.html">worktree 让多会话不打架</a>。</li>
+      <li><strong>规模再大,按「谁来协调」升级。</strong><span class="badge badge-official">官方</span>文档给了四种并行方式的选择标准:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>方式</th><th>谁协调</th><th>适用场景</th></tr></thead>
+          <tbody>
+            <tr><td>Subagents</td><td>Claude 在一个对话内派发、收结果</td><td>旁支任务会淹没主对话</td></tr>
+            <tr><td>Agent view(<code>claude agents</code>)</td><td>你把独立任务丢到后台,回头看状态</td><td>几件互不相关的事同时推进(research preview)</td></tr>
+            <tr><td>Agent teams</td><td>一个 lead agent 拆分、指派、盯进度</td><td>要 Claude 自己协调一组 worker(实验特性,默认关闭)</td></tr>
+            <tr><td>Dynamic workflows</td><td>一段脚本持有计划,跑几十上百个 subagent</td><td>全库审计、大规模迁移这类超出单对话协调能力的活</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>本站实测佐证。</strong><span class="badge badge-site">本站观点</span>我们跑了 27 个 agent 做对照实验,结论与上面一致:多 agent 管一次任务内部的宽度,多 session 管跨时间的长度与上下文总量,两轴正交;真正决定并行开发成败的是有没有一份人人遵守的接口契约。全文见<a href="/articles/ai-notes-multi-session-vs-multi-agent">《多 Session 还是多 Agent?我跑了 27 个 agent 来回答这个问题》</a>。</li>
+      <li><strong>成本提醒。</strong><span class="badge badge-official">官方</span>同时跑多个 session 或 subagent 会成倍消耗 token,计入你套餐的用量与速率限制。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>我现在有这几件事要做:
+1. &lt;任务 A&gt;
+2. &lt;任务 B&gt;
+3. &lt;任务 C&gt;
+
+请先帮我分类,不要直接开工:
+- 哪些是同一个任务内部可以并行的旁支?这类由你用 subagent 在后台做,
+  每个 subagent 只返回结论和改动清单,不要把过程输出带回主对话;
+- 哪些是相互独立的任务?这类列出来还给我,
+  我自己用 claude -n &lt;名字&gt; 各开一个 session 处理。
+
+分类结果先给我确认,确认后再执行属于本会话的部分。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sessions.md">Manage sessions</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sub-agents.md">Create custom subagents</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/agents.md">Run agents in parallel</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-site">本站观点</span><a href="/articles/ai-notes-multi-session-vs-multi-agent">多 Session 还是多 Agent?我跑了 27 个 agent 来回答这个问题</a>,本站实测长文,核实于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(agent view、agent teams 均为预览/实验特性,行为随版本变化)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

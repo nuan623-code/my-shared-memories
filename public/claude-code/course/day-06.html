@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D6 · checkpoint / rewind / 会话管理 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 的两层安全网:checkpoint 自动打点与 /rewind 回退,加上会话的继续、恢复、分支与压缩,让长任务敢做、做错能退、隔天不丢上下文。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D6 · checkpoint / rewind / 会话管理 · Claude Code 学习站">
+<meta property="og:description" content="checkpoint 什么时候自动打点、rewind 能回退什么、和 git 怎么分工,以及会话的继续、恢复、分支与压缩。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-06.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-06.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D6</p>
+  <h1>D6 · checkpoint / rewind / 会话管理</h1>
+  <p>做错能一键退回,隔天能原地续上:本课讲 checkpoint 自动打点与 /rewind 的边界,以及会话的继续、恢复、分支与压缩。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code 给你两层安全网:会话内的 checkpoint(每条 prompt 前自动给文件拍快照,随时 <code>/rewind</code>)和会话间的管理命令(继续、恢复、分支、压缩)。学会这两层,你才敢把大任务放心交出去——因为任何一步都退得回来,任何一天都续得上。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-02.html">D2</a> 讲过上下文窗口会被聊满,压缩(compaction)是保命手段;<a href="/claude-code/course/day-05.html">D5</a> 讲了动手前先规划。但规划再好,长任务也会中途偏航:改坏了想反悔、想换条思路重试、上下文吃紧要瘦身、今天做不完明天接着做。这些「反悔与续命」的能力全在本课。</p>
+    <p>它也为后面铺路:<a href="/claude-code/course/day-10.html">D10 Subagents</a> 会再遇到本课的一个限制(子代理的编辑不进 checkpoint),<a href="/claude-code/course/day-11.html">D11 Worktrees</a> 的并行会话则完全建立在你熟练管理单个会话之上。跳过本课,后面每次改砸了你只能手动 <code>git checkout</code> 救火。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>checkpoint:每条 prompt 前自动打点</h3>
+    <p><span class="badge badge-official">官方</span>你每发送一条 prompt,Claude Code 就在执行前自动创建一个 checkpoint,记录当前代码状态;凡是 Claude 用自己的文件编辑工具做的修改都被追踪。快照只保留会话里最近 100 个 checkpoint;checkpoint 随会话一起保存,所以恢复(resume)一个旧会话后仍然可以 <code>/rewind</code>;会话(连同 checkpoint)默认 30 天后删除,可用设置项 <code>cleanupPeriodDays</code> 调整。</p>
+    <p><span class="badge badge-site">本站观点</span>理解它的关键是「两条轨」:一条是会话历史(你和 Claude 说过的话),一条是文件状态(磁盘上的代码)。checkpoint 在每条 prompt 处把两条轨「钉」在一起,rewind 时可以只回退其中一条,也可以两条一起回退:</p>
+    <figure>
+      <svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="checkpoint 时间线:会话历史与文件状态两条轨,每条 prompt 打点,rewind 可分别或同时回退">
+        <path class="svg-line" d="M610 64 C 566 16, 356 16, 312 56" stroke-width="1.5" fill="none"/>
+        <polygon class="svg-arrow" points="305,55 317,55 311,66"/>
+        <text class="svg-ink-soft" x="460" y="34" text-anchor="middle" font-size="12">Restore conversation:对话回到 prompt 2</text>
+
+        <text class="svg-ink" x="16" y="96" font-size="14">会话历史</text>
+        <rect class="svg-box" x="102" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="150" y="96" text-anchor="middle" font-size="13">prompt 1</text>
+        <rect class="svg-box-accent" x="252" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="300" y="96" text-anchor="middle" font-size="13">prompt 2</text>
+        <rect class="svg-box" x="402" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="450" y="96" text-anchor="middle" font-size="13">prompt 3</text>
+        <rect class="svg-box" x="562" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="610" y="96" text-anchor="middle" font-size="13">当前对话</text>
+        <line class="svg-line" x1="198" y1="91" x2="242" y2="91" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="242,86 252,91 242,96"/>
+        <line class="svg-line" x1="348" y1="91" x2="392" y2="91" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,86 402,91 392,96"/>
+        <line class="svg-line" x1="498" y1="91" x2="552" y2="91" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="552,86 562,91 552,96"/>
+
+        <line class="svg-line" x1="150" y1="110" x2="150" y2="192" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <line class="svg-line" x1="300" y1="110" x2="300" y2="192" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <line class="svg-line" x1="450" y1="110" x2="450" y2="192" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <text class="svg-ink-soft" x="158" y="156" font-size="11">checkpoint 打点</text>
+
+        <text class="svg-ink" x="16" y="216" font-size="14">文件状态</text>
+        <rect class="svg-box" x="102" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="150" y="216" text-anchor="middle" font-size="13">快照 1</text>
+        <rect class="svg-box-accent" x="252" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="300" y="216" text-anchor="middle" font-size="13">快照 2</text>
+        <rect class="svg-box" x="402" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="450" y="216" text-anchor="middle" font-size="13">快照 3</text>
+        <rect class="svg-box" x="562" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="610" y="216" text-anchor="middle" font-size="13">当前文件</text>
+
+        <path class="svg-line" d="M610 236 C 566 286, 356 286, 312 246" stroke-width="1.5" fill="none"/>
+        <polygon class="svg-arrow" points="306,247 318,247 312,236"/>
+        <text class="svg-ink-soft" x="460" y="298" text-anchor="middle" font-size="12">Restore code:文件回到快照 2</text>
+        <text class="svg-ink-soft" x="360" y="326" text-anchor="middle" font-size="12">每条 user prompt 前自动打点;两条轨可分开回退,也可一起回退(高亮 = 回退目标)</text>
+      </svg>
+      <figcaption>checkpoint 时间线:会话历史与文件状态是两条独立的轨,每条 prompt 处打点对齐;rewind 到 prompt 2 时,可以只回对话、只回文件,或两者一起回。</figcaption>
+    </figure>
+
+    <h3>rewind 菜单:三种回退 + 两种压缩</h3>
+    <p><span class="badge badge-official">官方</span>运行 <code>/rewind</code>,或在输入框为空时连按两次 <code>Esc</code>,打开 rewind 菜单(输入框有文字时,双击 <code>Esc</code> 是清空输入;被清掉的文字进了输入历史,按 <code>↑</code> 可找回)。菜单列出本会话你发过的每条 prompt,选中一个点后有六个动作:</p>
+    <ul>
+      <li><strong>Restore code and conversation</strong>:代码和对话一起回到该点;</li>
+      <li><strong>Restore conversation</strong>:只回退对话,保留当前代码;</li>
+      <li><strong>Restore code</strong>:只回退文件,保留对话;</li>
+      <li><strong>Summarize from here</strong>:把该点之后的对话压缩成摘要,腾出上下文空间;</li>
+      <li><strong>Summarize up to here</strong>:把该点之前的对话压缩成摘要,保留之后的消息;</li>
+      <li><strong>Never mind</strong>:什么都不做,返回列表。</li>
+    </ul>
+    <p><span class="badge badge-official">官方</span>两个代码回退选项只在选中的 checkpoint 之后确有被追踪的文件改动时才出现。回退对话或选 Summarize from here 之后,那条 prompt 的原文会回填到输入框,方便你改一改重发。压缩(summarize)不改磁盘文件,原始消息也仍留在会话转录(transcript)里;选中 Summarize 选项时可以在「add context (optional)」处输入指示,引导摘要保留什么。官方把 summarize 定位为「定点的 <code>/compact</code>」——留在原会话里压上下文;想另起炉灶试新思路,应该用 <code>/branch</code>(见下文)。</p>
+    <p><span class="badge badge-official">官方</span>还有一个隐藏入口:如果本次 Claude Code 进程里执行过 <code>/clear</code>,rewind 菜单顶部会多出一行 <code>/resume &lt;session-id&gt; (previous session)</code>,选它即可回到 <code>/clear</code> 之前的那个会话(需 v2.1.191+)。</p>
+
+    <h3>误区澄清:checkpoint 不是 git</h3>
+    <p><span class="badge badge-site">本站观点</span>常见误解是「有了 rewind 就不用 git 了」。实际上 checkpoint 只覆盖一类改动:<em>本会话里 Claude 用文件编辑工具做的修改</em>。以下四类它都管不了,判断方法就是问一句「这个改动是 Claude 在本会话里用编辑工具做的吗」:</p>
+    <ul>
+      <li><span class="badge badge-official">官方</span><strong>bash 命令的改动不追踪</strong>:Claude 跑 <code>rm file.txt</code>、<code>mv old.txt new.txt</code>、<code>cp source.txt dest.txt</code> 造成的文件变化,rewind 撤不掉;</li>
+      <li><span class="badge badge-official">官方</span><strong>子代理(subagent)的编辑不回退</strong>:除了在前台运行的 <code>context: fork</code> skill,子代理的编辑落在你会话的 checkpoint 之外,得用 git 撤销;</li>
+      <li><span class="badge badge-official">官方</span><strong>会话外的改动不追踪</strong>:你手动改的文件、其他并行会话改的文件,通常不被捕获;</li>
+      <li><span class="badge badge-official">官方</span><strong>软链接/硬链接路径不回退</strong>:restore 时这些路径会被跳过并提示 <code>Restored the code, but skipped N files</code>(v2.1.216 起有此警告)。</li>
+    </ul>
+    <p><span class="badge badge-official">官方</span>官方的定位是:checkpoint 是「本地撤销」(local undo),git 是「永久历史」(permanent history),前者补充而非替代后者。<span class="badge badge-site">本站观点</span>实用分工:大改动开工前先 <code>git commit</code> 一个干净基线;干活途中用 rewind 快速反悔;收尾满意了再用 git 固化。两者怎么选、什么场景各自兜底,展开见 <a href="/claude-code/tips/rollback-checkpoint-vs-git.html">Tip:改砸了怎么回退——checkpoint 还是 git</a>。</p>
+
+    <h3>会话生命周期:继续、恢复、fork、压缩</h3>
+    <p><span class="badge badge-official">官方</span>会话(session)是绑定项目目录的一段保存的对话,边聊边持续写入本地转录文件(默认在 <code>~/.claude/projects/&lt;project&gt;/&lt;session-id&gt;.jsonl</code>)。所以退出、断电、<code>/clear</code> 都不丢:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>命令</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude --continue</code></td><td>接着当前目录里最近的一个会话</td></tr>
+        <tr><td><code>claude --resume</code></td><td>打开会话选择器(<code>Ctrl+A</code> 看所有项目,<code>Ctrl+W</code> 看所有 worktree,<code>Ctrl+B</code> 按分支过滤,<code>Space</code> 预览)</td></tr>
+        <tr><td><code>claude --resume &lt;name&gt;</code></td><td>按名字直接恢复;起名用 <code>claude -n &lt;name&gt;</code>、会话内 <code>/rename</code>,或选择器里 <code>Ctrl+R</code></td></tr>
+        <tr><td><code>claude --from-pr &lt;number&gt;</code></td><td>选择器只显示与该 PR 关联的会话</td></tr>
+        <tr><td><code>/resume</code></td><td>在会话内切换到另一个会话</td></tr>
+        <tr><td><code>/branch [name]</code> 或 <code>claude --continue --fork-session</code></td><td>复制当前对话开一条新支线,原会话原封不动</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><span class="badge badge-official">官方</span>恢复的会话会带回:完整对话历史(含工具调用)、所用模型、agent 身份、权限模式(但 <code>plan</code> 和 <code>bypassPermissions</code> 永不恢复,后者必须启动时重新显式开启)。注意有些启动配置<em>不会</em>恢复:<code>--mcp-config</code>、<code>--settings</code>、<code>--plugin-dir</code>、<code>--add-dir</code> 等 flag 要在恢复时重新传;写在 <code>settings.json</code> 里的配置则每次启动自动重读,不受影响。</p>
+    <p><span class="badge badge-official">官方</span><code>/branch</code> 会打印两个 session ID(新支线和原会话),原会话留在选择器里随时可回。因为支线跑在同一个进程里,「本会话允许」的权限授权继续有效,进行中的后台子代理和后台 bash 也继续跑、输出进新支线;用 <code>--fork-session</code> 另开进程则要重新授权。</p>
+
+    <h3>长任务不丢上下文:三板斧</h3>
+    <p><span class="badge badge-site">本站观点</span>把本课工具串成一套工作法,对应三种典型状况:</p>
+    <ul>
+      <li><strong>偏航了</strong> → <code>/rewind</code> 选「Restore code and conversation」回到出错前那条 prompt,借助回填的原文改写要求重发;</li>
+      <li><strong>上下文吃紧但任务没完</strong>(D2 的老问题)→ 用「Summarize from here」定点压缩啰嗦的调试段落,保住开头的任务指令;或直接 <code>/compact [聚焦指示]</code>,先用 <code>/context</code> 看清都是什么在占空间;</li>
+      <li><strong>想并行试第二种方案</strong> → <code>/branch try-b</code>,失败了就 <code>/resume</code> 回主线,两边互不污染。</li>
+    </ul>
+    <p><span class="badge badge-official">官方</span>隔天恢复长会话时(Pro/Max 计划,闲置约一小时以上且超过 100,000 tokens),Claude Code 会先弹一个对话框:「Resume from summary」当场压缩成摘要再继续(之后每次请求便宜但细节有损)、「Resume full session as-is」原样载入(细节全保,每次请求按全量历史计费)、「Don't ask me again」以后不再问。这正是 D2 讲的成本-细节权衡在会话恢复场景的重演。</p>
+
+    <h2>当天能做完的实操</h2>
+    <p>找一个测试仓库(或 <code>mkdir cc-d6-lab &amp;&amp; cd cc-d6-lab &amp;&amp; git init</code>),全程约 25 分钟:</p>
+    <ol>
+      <li><strong>制造两个 checkpoint</strong>:启动 <code>claude</code>,第一条 prompt 让它创建 <code>hello.py</code> 打印固定文案;第二条让它改成从命令行参数读名字。预期:两轮修改都完成。</li>
+      <li><strong>打开 rewind 菜单</strong>:清空输入框后连按两次 <code>Esc</code>(或输入 <code>/rewind</code>)。预期:看到你发过的两条 prompt 列表。</li>
+      <li><strong>只回退代码</strong>:选中第二条 prompt,选「Restore code」。预期:<code>hello.py</code> 回到第一版,但对话记录原封不动——正好体会「两条轨分开退」。</li>
+      <li><strong>验证盲区</strong>:粘贴下面的 prompt,跑完后再 rewind 一次选「Restore code」。预期:<code>tracked.txt</code> 被撤销消失,<code>untracked.txt</code> 原地不动——bash 改动不入 checkpoint,眼见为实:</li>
+    </ol>
+    <pre class="prompt"><code>做一个 checkpoint 边界实验,两步分开执行:
+1. 用你的文件编辑工具(不要用 bash)创建 tracked.txt,内容写一行 "created by edit tool"。
+2. 用 bash 的 echo 命令创建 untracked.txt,内容写一行 "created by bash"。
+完成后分别告诉我这两个文件各是用什么方式创建的,不要做其他改动。</code></pre>
+    <ol start="5">
+      <li><strong>命名并恢复</strong>:执行 <code>/rename d6-lab</code>,退出 Claude Code,再运行 <code>claude --resume d6-lab</code>。预期:对话完整回来;再开一次 rewind 菜单,确认恢复后的会话依然能回退(checkpoint 随会话保存)。</li>
+      <li><strong>开一条支线</strong>:执行 <code>/branch try-b</code>。预期:打印两个 session ID;在支线里随便聊一句,再用 <code>/resume d6-lab</code> 回主线,确认主线没被污染。</li>
+    </ol>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说出:checkpoint 什么时候自动打点、保留多少个、随什么一起保存,以及四类 rewind 管不了的改动(bash、子代理、会话外、软/硬链接)。</li>
+      <li>能解释 rewind 菜单三种 Restore 和两种 Summarize 的区别,并说清 Summarize 为什么不动磁盘文件、它和 <code>/compact</code>、<code>/branch</code> 各自的适用场景。</li>
+      <li>实操 6 步全部跑通,第 4 步盲区实验的结果与预期一致。</li>
+      <li>自测题:Claude 在会话里先用 bash 跑了 <code>rm data.csv</code>,又用编辑工具改了 <code>main.py</code>;你 <code>/rewind</code> 选「Restore code」后,两个文件各是什么状态?(答案:<code>main.py</code> 被还原,<code>data.csv</code> 回不来——bash 改动不被追踪,只能靠 git 找回。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/checkpointing.md">code.claude.com/docs/en/checkpointing.md</a>(checkpoint 机制、rewind 菜单、限制与 git 分工)· 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sessions.md">code.claude.com/docs/en/sessions.md</a>(会话恢复、命名、/branch、上下文管理与转录存储)· 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-05.html">上一课 D5 · plan mode 与 explore→plan→code</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-07.html">下一课 D7 · Skills</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

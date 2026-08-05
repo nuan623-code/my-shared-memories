@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>哪些操作会让 prompt cache 失效 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 的 prompt cache 按请求前缀精确匹配命中:切模型、改 effort、动 MCP server、/compact 等操作会让下一轮全量重算。本页给出官方完整清单与避坑习惯。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/prompt-cache-invalidation.html">
+<meta property="og:title" content="哪些操作会让 prompt cache 失效 · Claude Code 学习站">
+<meta property="og:description" content="cache 按前缀精确匹配:切模型、改 effort、动 MCP server、/compact 都会让下一轮全量重算。官方清单与避坑习惯。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/prompt-cache-invalidation.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · 成本与上下文</span></p>
+  <h1>哪些操作会让 prompt cache 失效</h1>
+  <p>切了个模型,下一条回复突然又慢又贵?那是 prompt cache 被打穿了,这一轮在全量重算你的整段对话。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code 每一轮都把完整对话历史重发给 API,靠 prompt cache 才不用每次重新处理。知道哪些操作会打破缓存,就能避开那些「一次性变慢变贵」的坑。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      cache 按「请求前缀精确匹配」命中:凡是改动请求开头内容(系统提示、工具定义)或换了 cache key(模型、effort、fast mode)的操作,都会让下一轮全量重算。<span class="badge badge-official">官方</span>官方建议:模型和 effort 在会话开头定好,/compact 留到任务间隙,会话中改动越少命中率越高。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>先理解命中机制。</strong><span class="badge badge-official">官方</span>模型在请求之间没有记忆,Claude Code 每轮都重发全部上下文;API 按「前缀」精确匹配最近处理过的内容,正常轮次只有最新一问一答是新的,其余按缓存价(约标准输入价的 10%)重读。前缀任何一处变动,其后的内容<em>全部</em>重算——没有按文件、按片段的局部缓存。为此 Claude Code 把最少变动的内容排在最前:
+        <figure>
+          <svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="请求前缀分三层:系统提示、项目上下文、对话历史;前层一变,其后全部重算">
+            <rect class="svg-box" x="15" y="30" width="200" height="48" rx="10"/>
+            <text class="svg-ink" x="115" y="50" text-anchor="middle" font-size="14">系统提示</text>
+            <text class="svg-ink-soft" x="115" y="68" text-anchor="middle" font-size="12">核心指令 · 工具定义</text>
+            <rect class="svg-box" x="225" y="30" width="200" height="48" rx="10"/>
+            <text class="svg-ink" x="325" y="50" text-anchor="middle" font-size="14">项目上下文</text>
+            <text class="svg-ink-soft" x="325" y="68" text-anchor="middle" font-size="12">CLAUDE.md · 记忆 · 规则</text>
+            <rect class="svg-box-accent" x="435" y="30" width="270" height="48" rx="10"/>
+            <text class="svg-ink" x="570" y="50" text-anchor="middle" font-size="14">对话历史</text>
+            <text class="svg-ink-soft" x="570" y="68" text-anchor="middle" font-size="12">每轮在末尾追加新内容</text>
+            <text class="svg-ink-soft" x="115" y="100" text-anchor="middle" font-size="12">几乎不变</text>
+            <text class="svg-ink-soft" x="325" y="100" text-anchor="middle" font-size="12">会话开始时载入</text>
+            <text class="svg-ink-soft" x="570" y="100" text-anchor="middle" font-size="12">每轮都变(只重算这段)</text>
+            <path class="svg-line" d="M115 118 v30" stroke-width="1.5"/>
+            <line class="svg-line" x1="115" y1="148" x2="690" y2="148" stroke-width="1.5"/>
+            <polygon class="svg-arrow" points="690,143 700,148 690,153"/>
+            <text class="svg-ink" x="400" y="140" text-anchor="middle" font-size="13">前层一处变动(如切模型改了工具定义)= 其后内容全部重算</text>
+            <text class="svg-ink-soft" x="400" y="188" text-anchor="middle" font-size="12">匹配是精确的:改哪一层,缓存就从哪一层断掉</text>
+          </svg>
+          <figcaption>请求按变动频率分层排序;cache 从变动点断开,之后全部按未缓存价重算。</figcaption>
+        </figure>
+      </li>
+      <li><strong>记住 8 个会失效的操作。</strong><span class="badge badge-official">官方</span>官方文档给出的完整清单:
+        <ul>
+          <li><code>/model</code> 切模型:每个模型有独立 cache,内容一样也全量重算;<code>opusplan</code> 设置下每次进出 plan mode 都是一次模型切换。</li>
+          <li><code>/effort</code> 改推理力度:cache key 含 effort,会话中改会先弹确认框。</li>
+          <li>开 fast mode:请求头进入 cache key,一次性成本;之后关掉、限流回退都不再失效。</li>
+          <li>MCP server 连接/断开:仅当工具定义被加载进前缀时(tool search 被禁用、<code>alwaysLoad</code> 等场景);默认的 deferred 工具不受影响。详见 <a href="/claude-code/tips/too-many-mcp-servers.html">MCP 接多了更慢更贵</a>。</li>
+          <li>启用/禁用带 MCP server 的插件:同上;只含 skills/hooks/commands 的插件从不打破 cache。</li>
+          <li>deny 整个内置工具(如裸写 <code>Bash</code>):把该工具从系统提示里移除;<code>Bash(rm *)</code> 这类带范围的规则不影响。</li>
+          <li><code>/compact</code>:对话层换成摘要,必然失效;但趁 cache 还热时做,大头只是生成摘要,冷启动(休息超过 TTL 后)compact 最贵。</li>
+          <li>升级 Claude Code:新版本通常更新系统提示或工具定义,重启后第一轮重建 cache;升级后 <code>--resume</code> 一个长会话,第一轮可能是你发过最贵的请求。</li>
+        </ul>
+      </li>
+      <li><strong>分清「不失效」的操作,别白担心。</strong><span class="badge badge-official">官方</span>改仓库文件、会话中改 CLAUDE.md(注意:也<em>不生效</em>,要等 <code>/clear</code> 或重启才加载)、改 output style(同前)、切权限模式、调用 skill 和命令、<code>/recap</code>、<code>/rewind</code>、开 subagent——这些要么只在对话末尾追加内容,要么根本不动请求。其中 <code>/rewind</code> 回到的是已缓存的前缀,想放弃一条路时比 <code>/compact</code> 更省。</li>
+      <li><strong>核实自己的命中率。</strong><span class="badge badge-official">官方</span>API 每次响应带两个字段:<code>cache_read_input_tokens</code>(命中,约 10% 价)和 <code>cache_creation_input_tokens</code>(写入)。用 statusline 脚本读 <code>current_usage</code> 实时看:read 高 creation 低是健康状态;creation 每轮都高,说明前缀一直在变,对照上面的清单排查。</li>
+      <li><strong>注意 TTL,别把过期当失效。</strong><span class="badge badge-official">官方</span>缓存闲置会过期:订阅默认 1 小时,API key 和云厂商默认 5 分钟(可设 <code>ENABLE_PROMPT_CACHING_1H=1</code> 换 1 小时)。离开太久后第一条消息必然全量重算,这不是你操作出了错。机制细节可回看 <a href="/claude-code/course/day-02.html">D2 · 上下文窗口与 prompt caching</a>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>帮我检查这个会话的 prompt cache 健康度:
+1. 给我配置一个 statusline 脚本,显示 current_usage 里的
+   cache_read_input_tokens 和 cache_creation_input_tokens,
+   写入我的 Claude Code statusline 配置(先展示脚本内容让我确认);
+2. 解释这两个数怎么读:什么样算命中良好,什么样说明前缀在被反复破坏;
+3. 对照官方「会破坏 cache 的操作」清单(切模型、改 effort、开 fast mode、
+   MCP server 连断、deny 整个内置工具、/compact、升级后 resume),
+   给我一份「会话中途尽量别做」的操作备忘。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/prompt-caching.md" rel="noopener">code.claude.com/docs/en/prompt-caching.md</a>(缓存分层、失效/不失效清单、TTL、cache 指标),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-site">本站观点</span>「用 /rewind 替代 /compact 放弃错误路径更省」为官方 Tip 的转述与编排;statusline 排查步骤为本站整理。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 Claude Code 当前行为,官方文档水位 v2.1.222,需定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

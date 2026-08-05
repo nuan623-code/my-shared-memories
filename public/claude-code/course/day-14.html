@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D14 · Plugins 打包分发 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code plugin 能把 Skills、Hooks、MCP、Subagents 打包成一个可安装单元:本课讲目录结构与 plugin.json manifest、marketplace 发布与安装、版本与缓存机制、团队分发三条路,收官 14 天课程。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-14.html">
+<meta property="og:title" content="D14 · Plugins 打包分发 · Claude Code 学习站">
+<meta property="og:description" content="把 Skills、Hooks、MCP、Subagents 打包成 plugin,通过 marketplace 发布给团队与社区:目录结构、manifest、版本机制、分发场景一课讲清。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-14.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D14</p>
+  <h1>D14 · Plugins 打包分发</h1>
+  <p>把前面学的 Skills、Hooks、MCP、Subagents 装进一个可安装、可版本化的 plugin,通过 marketplace 分发给团队和社区——本课是 14 天课程的收官。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">前 13 课教你给<strong>自己</strong>的 Claude Code 加能力;这一课教你把这些能力打包成 plugin,让换一台机器、换一个项目、换一个同事都不用重抄配置。学完你就有了从「自己会用」到「整个团队都用上」的完整闭环。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p>回顾课表:<a href="/claude-code/course/day-07.html">D7 学了 Skills</a>、<a href="/claude-code/course/day-08.html">D8 学了 Hooks</a>、<a href="/claude-code/course/day-09.html">D9 学了 MCP</a>、<a href="/claude-code/course/day-10.html">D10 学了 Subagents</a>。这四种能力有个共同点:它们的配置都散落在你本机的 <code>.claude/</code> 目录或 <code>settings.json</code> 里。想分享给同事,只能靠手工复制文件——没有版本、没有更新机制、没有安装命令。</p>
+    <p><span class="badge badge-official">官方</span>Plugin 正是官方给出的打包答案:一个自包含目录(self-contained directory),把 skills、agents、hooks、MCP servers、LSP servers 等组件装在一起,配上 manifest 就能通过 marketplace 安装、更新、分发。<span class="badge badge-site">本站观点</span>把它放在最后一课,是因为 plugin 本身不引入新能力——它是前面所有能力的「集装箱」;先懂内容物,再学打包,顺序才对。<a href="/claude-code/course/day-13.html">D13 的 CI 场景</a>也在这里收口:官方提供了 seed 目录机制,让容器镜像在构建期预装好 plugin。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>一个盒子,装下前面学的所有能力</h3>
+    <p><span class="badge badge-official">官方</span>plugin 的物理形态就是一个目录:元数据放在 <code>.claude-plugin/plugin.json</code>(manifest),其余组件各按默认位置放在<strong>插件根目录</strong>下。官方文档特别警告:<code>.claude-plugin/</code> 里只放 <code>plugin.json</code>,把 <code>skills/</code>、<code>agents/</code>、<code>hooks/</code> 等目录塞进去是最常见的结构错误。</p>
+    <figure>
+      <svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="plugin 目录结构图:manifest 与各组件在插件根目录下的位置">
+        <text class="svg-ink" x="14" y="20" font-size="14">my-plugin/ —— 插件根目录</text>
+        <rect class="svg-box" x="10" y="30" width="660" height="360" rx="12"/>
+        <rect class="svg-box-accent" x="30" y="50" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="76" text-anchor="middle" font-size="13">.claude-plugin/plugin.json</text>
+        <text class="svg-ink-soft" x="180" y="96" text-anchor="middle" font-size="11.5">manifest:name / version / description</text>
+        <text class="svg-ink-soft" x="350" y="72" font-size="12">这个子目录里只放 manifest;</text>
+        <text class="svg-ink-soft" x="350" y="92" font-size="12">下面的组件全部放在插件根目录</text>
+        <rect class="svg-box" x="30" y="136" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="162" text-anchor="middle" font-size="13">skills/&lt;name&gt;/SKILL.md</text>
+        <text class="svg-ink-soft" x="180" y="182" text-anchor="middle" font-size="11.5">Skills · 对应 D7</text>
+        <rect class="svg-box" x="350" y="136" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="500" y="162" text-anchor="middle" font-size="13">hooks/hooks.json</text>
+        <text class="svg-ink-soft" x="500" y="182" text-anchor="middle" font-size="11.5">事件钩子 · 对应 D8</text>
+        <rect class="svg-box" x="30" y="216" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="242" text-anchor="middle" font-size="13">.mcp.json</text>
+        <text class="svg-ink-soft" x="180" y="262" text-anchor="middle" font-size="11.5">MCP servers · 对应 D9</text>
+        <rect class="svg-box" x="350" y="216" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="500" y="242" text-anchor="middle" font-size="13">agents/*.md</text>
+        <text class="svg-ink-soft" x="500" y="262" text-anchor="middle" font-size="11.5">Subagents · 对应 D10</text>
+        <rect class="svg-box" x="30" y="296" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="322" text-anchor="middle" font-size="13">.lsp.json · bin/</text>
+        <text class="svg-ink-soft" x="180" y="342" text-anchor="middle" font-size="11.5">LSP 代码智能 · 加入 PATH 的可执行文件</text>
+        <rect class="svg-box" x="350" y="296" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="500" y="322" text-anchor="middle" font-size="13">settings.json · monitors/ 等</text>
+        <text class="svg-ink-soft" x="500" y="342" text-anchor="middle" font-size="11.5">默认设置、后台监视、themes、workflows</text>
+      </svg>
+      <figcaption>plugin 内容物一览:manifest 独居 <code>.claude-plugin/</code>,组件都在根目录。前四个组件正是 D7–D10 学过的能力。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>manifest 本身是可选的:没有它时 Claude Code 按默认位置自动发现组件,插件名取目录名;写了 manifest 则只有 <code>name</code> 是必填字段。plugin 里的 skill 会带命名空间前缀,如插件 <code>my-plugin</code> 里的 <code>hello</code> 变成 <code>/my-plugin:hello</code>,避免多个插件重名冲突。</p>
+
+    <h3>独立配置还是 plugin?</h3>
+    <p><span class="badge badge-official">官方</span>文档给出了明确的选型标准:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>方式</th><th>Skill 名字</th><th>适合场景</th></tr></thead>
+      <tbody>
+        <tr><td>独立配置(<code>.claude/</code> 目录)</td><td><code>/hello</code></td><td>个人工作流、单项目定制、快速实验</td></tr>
+        <tr><td>Plugin(自包含目录 + manifest)</td><td><code>/my-plugin:hello</code></td><td>分享给团队/社区、跨项目复用、版本化发布、走 marketplace 分发</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>推荐的路径是:先在 <code>.claude/</code> 里快速迭代,成熟后再转成 plugin 分享。迁移基本就是把 <code>.claude/skills/</code>、<code>agents/</code> 拷进插件根目录,settings 里的 hooks 挪到 <code>hooks/hooks.json</code>(格式相同)。<span class="badge badge-site">本站观点</span>注意迁移后要删掉 <code>.claude/</code> 里的原件:同名 agent 会被项目级定义覆盖,plugin 版本反而不生效。五种扩展机制怎么选,可参考 Tip <a href="/claude-code/tips/skill-hook-mcp-subagent-plugin.html">Skill / Hook / MCP / Subagent / Plugin 怎么选</a>。</p>
+
+    <h3>类比:marketplace 是应用商店,plugin 是应用</h3>
+    <p><span class="badge badge-official">官方</span>文档自己用了这个类比:添加 marketplace 就像添加一个应用商店——只是注册了目录,可以浏览,还没装任何东西;之后再从中挑选安装单个 plugin。所以分发永远是两步:<code>/plugin marketplace add</code> 注册目录,<code>/plugin install 插件名@市场名</code> 安装。</p>
+    <p>marketplace 的实体是仓库根下的 <code>.claude-plugin/marketplace.json</code>,必填 <code>name</code>、<code>owner</code>、<code>plugins</code> 三个字段;<code>plugins</code> 数组里每个条目至少要有 <code>name</code> 和 <code>source</code>。<code>source</code> 支持五种:仓库内相对路径(<code>./plugins/xx</code>)、<code>github</code>(owner/repo)、<code>url</code>(任意 git 地址)、<code>git-subdir</code>(monorepo 子目录,稀疏克隆)、<code>npm</code>(npm 包)。<span class="badge badge-official">官方</span>要分清两层:<strong>marketplace source</strong> 是「目录清单本身放在哪」,<strong>plugin source</strong> 是「清单里每个插件从哪取」,两者可以指向不同仓库、独立锁定版本。</p>
+    <figure>
+      <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="plugin 分发链路:开发目录、marketplace、用户注册市场、安装到缓存">
+        <rect class="svg-box-accent" x="20" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="90" y="68" text-anchor="middle" font-size="13">开发目录</text>
+        <text class="svg-ink-soft" x="90" y="88" text-anchor="middle" font-size="10.5">--plugin-dir 测试</text>
+        <rect class="svg-box" x="195" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="265" y="68" text-anchor="middle" font-size="13">marketplace</text>
+        <text class="svg-ink-soft" x="265" y="88" text-anchor="middle" font-size="10.5">marketplace.json</text>
+        <rect class="svg-box" x="370" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="440" y="68" text-anchor="middle" font-size="13">用户注册市场</text>
+        <text class="svg-ink-soft" x="440" y="88" text-anchor="middle" font-size="10.5">marketplace add</text>
+        <rect class="svg-box" x="545" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="615" y="68" text-anchor="middle" font-size="13">安装到缓存</text>
+        <text class="svg-ink-soft" x="615" y="88" text-anchor="middle" font-size="10.5">复制进版本化缓存</text>
+        <line class="svg-line" x1="160" y1="72" x2="187" y2="72" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="187,67 197,72 187,77"/>
+        <line class="svg-line" x1="335" y1="72" x2="362" y2="72" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="362,67 372,72 362,77"/>
+        <line class="svg-line" x1="510" y1="72" x2="537" y2="72" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="537,67 547,72 537,77"/>
+        <text class="svg-ink-soft" x="177" y="130" text-anchor="middle" font-size="10.5">列入清单并 push</text>
+        <text class="svg-ink-soft" x="352" y="130" text-anchor="middle" font-size="10.5">分享 owner/repo</text>
+        <text class="svg-ink-soft" x="527" y="130" text-anchor="middle" font-size="10.5">/plugin install</text>
+        <text class="svg-ink-soft" x="350" y="170" text-anchor="middle" font-size="11.5">发新版:bump version(或不设 version 时推新 commit)→ 用户 /plugin update 拉取</text>
+      </svg>
+      <figcaption>从开发到用户机器的分发链路。安装不是原地引用,而是复制进 <code>~/.claude/plugins/cache</code>。</figcaption>
+    </figure>
+
+    <h3>版本与缓存:两个最容易踩的坑</h3>
+    <p><strong>误区一:「push 了新 commit,用户就能更新」。</strong><span class="badge badge-official">官方</span>版本按这个顺序解析:① <code>plugin.json</code> 的 <code>version</code> → ② marketplace 条目的 <code>version</code> → ③ 插件源的 git commit SHA。一旦你写了 <code>"version": "1.0.0"</code>,不 bump 这个字段,再多 commit 用户跑 <code>/plugin update</code> 也只会得到「已是最新版本」——版本字符串就是缓存键。官方建议:快速迭代的内部插件干脆不设 <code>version</code>,让每个 commit 都算新版本;稳定发布的公开插件才用显式语义化版本。也不要在 <code>plugin.json</code> 和 marketplace 条目里同时设:前者会静默胜出,过期的 manifest 版本会盖住你在清单里改的号。</p>
+    <p><strong>误区二:「插件可以引用仓库里其他目录的文件」。</strong><span class="badge badge-official">官方</span>从 marketplace 安装时,插件目录被<strong>复制</strong>进本地缓存 <code>~/.claude/plugins/cache</code>,不是原地使用。<code>../shared-utils</code> 这类越界路径指向的文件不会被复制,装完必然失效。引用插件自带文件要用 <code>${CLAUDE_PLUGIN_ROOT}</code> 变量(它指向安装目录,且每次更新都会变);要存跨版本、跨更新持久化的数据(如 <code>node_modules</code>、缓存),用 <code>${CLAUDE_PLUGIN_DATA}</code>。同一 marketplace 内确需共享文件,官方给的出路是符号链接。</p>
+
+    <h3>团队分发的三条路</h3>
+    <p><span class="badge badge-site">本站观点</span>按受众从小到大,分发方式可以这样排:</p>
+    <ol>
+      <li><strong>项目仓库自带(团队标配)。</strong><span class="badge badge-official">官方</span>在项目的 <code>.claude/settings.json</code> 里写 <code>extraKnownMarketplaces</code>(声明市场)加 <code>enabledPlugins</code>(声明默认启用哪些插件),组员信任该目录后会被提示安装。安装 scope 也印证了这套设计:<code>user</code>(个人全项目)、<code>project</code>(写进 <code>.claude/settings.json</code> 随仓库共享)、<code>local</code>(个人本项目)、<code>managed</code>(管理员管控,只读)。</li>
+      <li><strong>私有 marketplace 仓库(公司内部)。</strong><span class="badge badge-official">官方</span>支持从私有 git 仓库安装,git 权限就是访问控制;GitHub、GitLab、自建 git 服务都行。CI/容器场景用 <code>CLAUDE_CODE_PLUGIN_SEED_DIR</code> 在镜像构建期预置市场与插件缓存,运行时零克隆启动——正是 D13 无头模式的配套。</li>
+      <li><strong>公开发布(社区)。</strong><span class="badge badge-official">官方</span>维护两个公共市场:<code>claude-plugins-official</code> 由 Anthropic 策展、首次交互启动时自动注册、无申请通道;<code>claude-community</code> 接受第三方提交,经自动校验与安全筛查后收录,用户手动 <code>/plugin marketplace add anthropics/claude-plugins-community</code> 添加。提交入口是 claude.ai 或 Console 的表单,提交前先本地跑 <code>claude plugin validate ./your-plugin</code>。</li>
+    </ol>
+    <div class="callout"><span class="callout-label">安全提醒</span><span class="badge badge-official">官方</span>plugin 和 marketplace 是高信任组件,能以你的用户权限执行任意代码;只从可信来源安装。装前可用 <code>claude plugin details 插件名</code> 查看它的组件清单和预估 token 开销,组织可用 <code>strictKnownMarketplaces</code> 管控允许添加哪些市场。</div>
+
+    <h2>当天能做完的实操</h2>
+    <p>照官方 quickstart 走一遍「建插件 → 本地测试 → 建市场 → 安装」,约 30 分钟。</p>
+    <ol>
+      <li>建插件目录和 manifest。预期得到 <code>my-first-plugin/.claude-plugin/plugin.json</code>:
+<pre><code>mkdir -p my-first-plugin/.claude-plugin
+cat &gt; my-first-plugin/.claude-plugin/plugin.json &lt;&lt;'EOF'
+{
+  "name": "my-first-plugin",
+  "description": "A greeting plugin to learn the basics",
+  "version": "1.0.0"
+}
+EOF</code></pre></li>
+      <li>加一个 skill。创建 <code>my-first-plugin/skills/hello/SKILL.md</code>:
+<pre><code>---
+description: Greet the user with a friendly message
+disable-model-invocation: true
+---
+
+Greet the user warmly and ask how you can help them today.</code></pre></li>
+      <li>本地加载测试:<code>claude --plugin-dir ./my-first-plugin</code> 启动后输入 <code>/my-first-plugin:hello</code>。预期 Claude 回一句问候;<code>/help</code> 的 Custom commands 标签里能看到带命名空间的这个 skill。改动后跑 <code>/reload-plugins</code> 即可热加载,不用重启。</li>
+      <li>校验结构:<code>claude plugin validate ./my-first-plugin</code>。预期打印带对勾的 <code>Validation passed</code>;加 <code>--strict</code> 可把警告也当错误,适合放进 CI。</li>
+      <li>建一个本地 marketplace 并安装。先建目录清单:
+<pre><code>mkdir -p my-marketplace/.claude-plugin
+mv my-first-plugin my-marketplace/plugins/
+cat &gt; my-marketplace/.claude-plugin/marketplace.json &lt;&lt;'EOF'
+{
+  "name": "my-plugins",
+  "owner": { "name": "Your Name" },
+  "plugins": [
+    {
+      "name": "my-first-plugin",
+      "source": "./plugins/my-first-plugin",
+      "description": "A greeting plugin to learn the basics"
+    }
+  ]
+}
+EOF</code></pre>
+      然后在 Claude Code 里执行 <code>/plugin marketplace add ./my-marketplace</code>,再 <code>/plugin install my-first-plugin@my-plugins</code>,在弹出的详情页选一个 scope。预期安装摘要显示插件已激活,或提示 <code>Run /reload-plugins to activate.</code>——照做即可。想公开分发,把 <code>my-marketplace</code> push 到 GitHub,别人用 <code>/plugin marketplace add owner/repo</code> 就能添加。</li>
+      <li>把你自己的存量配置打包。用下面的 prompt 让 Claude Code 代劳:</li>
+    </ol>
+    <pre class="prompt"><code>把我这个项目 .claude/ 目录下的 skills、agents 和 settings 里的 hooks 迁移成一个名为 team-toolkit 的 Claude Code plugin:
+1. 建 team-toolkit/.claude-plugin/plugin.json,先不要写 version 字段(用 commit SHA 当版本,方便迭代);
+2. 把 .claude/skills/ 和 .claude/agents/ 拷到插件根目录,hooks 配置挪到 hooks/hooks.json,脚本路径改用 ${CLAUDE_PLUGIN_ROOT};
+3. 跑 claude plugin validate ./team-toolkit 确认通过,把警告也修掉;
+4. 列出迁移后我应该从 .claude/ 删除哪些原件以避免同名覆盖,先别直接删。</code></pre>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能说清独立配置(<code>.claude/</code>)与 plugin 的区别和取舍:命名空间(<code>/hello</code> vs <code>/plugin:hello</code>)、可分发性、版本化。</li>
+      <li>能画出 plugin 目录结构,并指出「组件目录放进 <code>.claude-plugin/</code>」这个最常见错误。</li>
+      <li>用 <code>--plugin-dir</code> 跑通了自己的第一个 plugin,<code>claude plugin validate</code> 通过,并从本地 marketplace 完成了一次安装。</li>
+      <li>能解释 <code>/plugin marketplace add</code> 与 <code>/plugin install</code> 两步各做了什么,以及 marketplace source 和 plugin source 的区别。</li>
+      <li>自测题:你在 <code>plugin.json</code> 里写了 <code>"version": "1.0.0"</code> 发布后,又 push 了三个修 bug 的 commit,用户跑 <code>/plugin update</code> 会看到什么?怎么修?(答:看到「已是最新版本」,因为版本字符串是缓存键、没变就不更新;要么每次发布 bump <code>version</code>,要么删掉该字段让 commit SHA 充当版本。)</li>
+    </ul>
+    <p>到这里 14 天课程完结。回看整条线:D1–D6 打底(循环、上下文、权限、记忆、计划、会话),D7–D10 四种扩展能力,D11–D13 并行与自动化,D14 打包分发。从「会用」到「用好」再到「让团队都用上」,闭环完成。</p>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/plugins.md" rel="noopener">Create plugins(plugins.md)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/plugins-reference.md" rel="noopener">Plugins reference(plugins-reference.md)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/plugin-marketplaces.md" rel="noopener">Create and distribute a plugin marketplace(plugin-marketplaces.md)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/discover-plugins.md" rel="noopener">Discover and install prebuilt plugins(discover-plugins.md)</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-13.html">上一课 D13 · Headless 与 CI</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

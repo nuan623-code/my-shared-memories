@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>长会话越用越笨 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 会话越长质量越降:上下文噪声稀释注意力、压缩丢细节。本页讲清降质机制、该开新会话的信号,以及用交接文档无损切换的做法。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/long-session-degradation.html">
+<meta property="og:title" content="长会话越用越笨 · Claude Code 学习站">
+<meta property="og:description" content="上下文越满性能越降:噪声稀释+压缩丢细节。什么信号该 /clear 重开,怎么写交接文档无损切换。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/long-session-degradation.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · 成本与上下文</span></p>
+  <h1>长会话越用越笨</h1>
+  <p>会话开得越久,Claude 越容易忘指令、犯低级错——这不是错觉,是上下文机制决定的必然结果。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">硬扛着不重开,是长会话里最贵的错误。这页讲清两个降质机制、四个该重开的信号,以及怎么交接才不丢上下文。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      <span class="badge badge-official">官方</span>官方明说:LLM 性能随 context 填满而降,接近满时 Claude 会开始「忘记」早期指令、犯更多错。降质来自两个机制:噪声稀释(不相关内容挤占注意力)和压缩丢细节(auto-compact 用摘要替换逐字历史)。同一问题纠正两次还不对,就写交接文档、<code>/clear</code> 重开——干净会话加更好的初始 prompt,几乎总是赢过带着一堆失败尝试的长会话。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>理解降质机制一:噪声稀释。</strong><span class="badge badge-official">官方</span>context window 装着整段会话——每条消息、每个读过的文件、每次命令输出,一次调试就能吃掉几万 token。官方 best practices 把它列为第一约束:上下文越满性能越降。把不相关任务混进同一会话(官方称之为 kitchen sink session)、反复纠错留下的失败尝试,都在稀释真正有效的信息,「重要规则淹没在噪声里」。</li>
+      <li><strong>理解降质机制二:压缩丢细节。</strong><span class="badge badge-official">官方</span>接近上限时 auto-compact 自动触发,把对话历史换成一份结构化摘要:保留请求意图、关键决定、改过的文件和重要代码片段,丢掉逐字的工具输出和中间推理。压缩后还有隐性损失:带 <code>paths:</code> 的规则和子目录 CLAUDE.md 要等再次读到匹配文件才回载;调用过的 skill 正文回载有每个 5,000、总计 25,000 token 的上限,超了先丢最旧的。摘要没写进去的细节,之后就真的不在 Claude 脑子里了。</li>
+      <li><strong>识别该重开的信号。</strong><span class="badge badge-site">本站观点</span>结合官方建议,出现任何一条就别硬扛:
+        <ul>
+          <li>同一个问题你已经纠正了两次还不对——官方明确:此时上下文已被失败方案污染,应 <code>/clear</code> 并把学到的东西写进新 prompt;</li>
+          <li>Claude 开始违反 CLAUDE.md 里明确写过的规则;</li>
+          <li>开始重复读已经读过的文件、重复问已经答过的问题;</li>
+          <li>auto-compact 已经触发过,而你正要开始一件全新的事。</li>
+        </ul>
+      </li>
+      <li><strong>交接后重开,而不是裸重开。</strong><span class="badge badge-official">官方</span>按任务大小选交接方式:
+        <ul>
+          <li><strong>小切换</strong>:<code>/clear</code> 前先 <code>/rename</code> 起名,之后随时 <code>/resume</code> 回来(见 <a href="/claude-code/course/day-06.html">D6 · checkpoint / rewind / 会话管理</a>);</li>
+          <li><strong>大任务</strong>:让 Claude 把状态写成文件(spec 或交接文档),新会话读文件接着干。官方的 interview→spec 工作流就是这个模式:spec 定稿后「开一个新会话执行,新会话拥有干净的、聚焦实现的上下文」;</li>
+          <li><strong>要连续性但想瘦身</strong>:<code>/compact</code> 加定向指令(如 <code>/compact focus on the API changes</code>)控制摘要保什么;或用 <code>/rewind</code> 菜单的 Summarize from here / up to here 只压一段、留一段;</li>
+          <li><strong>顺手小问题</strong>:用 <code>/btw</code> 问,答案不进对话历史,不长上下文。</li>
+        </ul>
+      </li>
+      <li><strong>附带收益:省钱。</strong>长会话不只变笨,还在按整段上下文计费——每条消息都背着全部历史。省额度的完整做法见 <a href="/claude-code/tips/where-quota-goes.html">这个月额度怎么烧完的</a>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>这个会话已经很长了,我要开新会话继续。请把当前工作状态写成一份
+交接文档存到 HANDOFF.md,包含:
+1. 任务目标与当前进度(已完成 / 未完成,逐条列出);
+2. 改过的文件清单,以及每处改动的原因;
+3. 尝试过但失败的方案和失败原因(让新会话不要重蹈覆辙);
+4. 下一步的具体计划,以及怎么验证做对了;
+5. 新会话需要知道的项目约定或坑。
+写完后,给我一条新会话的第一条消息:让它先读 HANDOFF.md 再开工。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" rel="noopener">code.claude.com/docs/en/best-practices.md</a>(性能随 context 填满而降、两次纠错即 /clear、kitchen sink 反模式、interview→spec 后开新会话),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/context-window.md" rel="noopener">code.claude.com/docs/en/context-window.md</a>(压缩保什么丢什么、skill/规则回载上限、/context 与 /autocompact),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sessions.md" rel="noopener">code.claude.com/docs/en/sessions.md</a>(/rename、/resume、/clear、/compact、/context 的会话内用法),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-site">本站观点</span>「该重开的四个信号」清单与 HANDOFF.md 交接模板为本站基于官方建议的编排。</li>
+      <li>最后核实:2026-08-05 · volatility:low(核心是「上下文管理与交接」方法论,基本不过期;压缩细节等版本相关处以官方文档为准)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLAUDE.md 写了它不听—多半是太长 · Claude Code 学习站</title>
+<meta name="description" content="CLAUDE.md 里的规则 Claude 不遵守?最常见的原因是文件太长:每轮都占上下文,规则被噪音稀释。本页讲怎么精简、什么该挪去 .claude/rules/ 或 skill、什么该改成 hook。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/claude-md-ignored-too-long.html">
+<meta property="og:title" content="CLAUDE.md 写了它不听—多半是太长 · Claude Code 学习站">
+<meta property="og:description" content="CLAUDE.md 每轮都占上下文,太长会被稀释。怎么精简、什么该挪去 rules/skill、什么该改成 hook。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/claude-md-ignored-too-long.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · 稳定与质量</span></p>
+  <h1>CLAUDE.md 写了它不听—多半是太长</h1>
+  <p>明明在 CLAUDE.md 里写了规则,Claude 还是我行我素——先别怀疑模型,先数一下你的文件有多少行。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">CLAUDE.md 在每个会话开始时整份载入上下文,它是“上下文”而不是“强制配置”。文件越长,单条规则在噪音里越容易被淹没——官方文档直接写明:臃肿的 CLAUDE.md 会导致 Claude 忽略你真正的指令。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      把 CLAUDE.md 砍到 200 行以内,只留“每个会话都用得上”的事实;局部规则挪到 <code>.claude/rules/</code> 做路径限定,多步流程挪成 skill,必须 100% 执行的动作改写成 hook。<span class="badge badge-official">官方</span>官方给出的判断标准:每一行都问“删掉它 Claude 会犯错吗?”不会就删。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>先确认文件真的加载了。</strong>会话里跑 <code>/context</code>,在 <strong>Memory files</strong> 列表里找你的 CLAUDE.md。<span class="badge badge-official">官方</span>不在列表里 Claude 就看不见——那是路径问题,不是长度问题。在列表里但不遵守,继续往下。</li>
+      <li><strong>逐行做“删除测试”。</strong><span class="badge badge-official">官方</span>官方建议单文件控制在 200 行以内,更长会消耗更多上下文并降低遵循度;并明确警告“如果 Claude 无视某条规则,多半是文件太长、规则淹没在噪音里”。该留和该删的典型:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>该留(Claude 猜不到的)</th><th>该删(Claude 自己能搞定的)</th></tr></thead>
+          <tbody>
+            <tr><td>猜不出来的构建/测试命令</td><td>读代码就能推断的一切</td></tr>
+            <tr><td>和默认值不同的代码风格</td><td>语言的标准惯例</td></tr>
+            <tr><td>仓库礼仪(分支命名、PR 规范)</td><td>详细 API 文档(放链接即可)</td></tr>
+            <tr><td>项目特有的架构决策、环境坑</td><td>逐文件的代码库描述、长篇教程</td></tr>
+            <tr><td>非显而易见的 gotcha</td><td>“写干净的代码”这类废话</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>把“只在局部生效”的规则挪去 <code>.claude/rules/</code>。</strong><span class="badge badge-official">官方</span>rules 目录里的 markdown 可用 YAML frontmatter 的 <code>paths</code> 字段限定文件范围(如 <code>src/api/**/*.ts</code>),只在 Claude 读到匹配文件时才载入上下文,不匹配就不占空间。没有 <code>paths</code> 的 rule 仍然每次都载入,注意别只是换个目录堆放。</li>
+      <li><strong>把“偶尔才用的多步流程”挪成 skill。</strong><span class="badge badge-official">官方</span>skills 按需加载:你主动调用或 Claude 判断相关时才进上下文,适合领域知识和可复用工作流。判断口径:CLAUDE.md 放“每个会话都成立的事实”,skill 放“某类任务才需要的流程”。</li>
+      <li><strong>把“必须每次都发生”的动作改成 hook。</strong><span class="badge badge-official">官方</span>CLAUDE.md 是建议性上下文,没有强制力;要求“提交前必须 lint”“禁改 migrations 目录”这类硬约束,写成 hook 才保证执行。官方修复建议原话方向:Claude 不需要提醒也能做对的指令,删掉或转成 hook。</li>
+      <li><strong>清理矛盾与偷懒的拆分。</strong><span class="badge badge-official">官方</span>两条规则互相冲突时 Claude 可能任选一条;另外 <code>@path/to/file</code> import 只是组织手段,被 import 的文件启动时照样全部载入,<em>不省任何上下文</em>。v2.1.206 起可跑 <code>/doctor</code>,它会对入库的 CLAUDE.md 提出裁剪建议:砍掉能从代码推导的目录结构、依赖清单,保留坑、理由和非默认约定。</li>
+      <li><strong>验证效果。</strong><span class="badge badge-site">本站观点</span>精简后观察几个会话:之前被无视的规则是否开始被遵守。官方也建议对个别关键规则加 “IMPORTANT” / “YOU MUST” 强调——但这是最后的调味料,不是长文件的解药。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>帮我精简 @CLAUDE.md,目标 200 行以内:
+1. 逐行审查,对每一行回答:“删掉它你会犯错吗?”不会就列入待删。
+2. 找出互相矛盾或重复的规则,给出保留哪条的建议。
+3. 把只和特定目录/文件类型相关的规则,改写成 .claude/rules/ 下带 paths
+   frontmatter 的 rule 文件;把多步操作流程改写成 .claude/skills/ 下的 skill。
+4. 把“必须每次强制执行”的动作(如提交前 lint)列出来,建议对应的 hook 配置。
+5. 输出:精简后的 CLAUDE.md 全文 + 迁移清单(哪条去了哪里、为什么)。
+先给我看方案,确认后再改文件。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/memory.md" target="_blank" rel="noopener">How Claude remembers your project(memory)</a>——200 行目标、rules 的 paths 限定、import 不省上下文、/doctor 裁剪、冲突规则任选,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Write an effective CLAUDE.md / The over-specified CLAUDE.md</a>——删除测试、去留对照表、“臃肿导致忽略指令”,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 rules/skill/hook 与 /doctor 等具体产品机制,会定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>这个月额度怎么烧完的 · Claude Code 学习站</title>
+<meta name="description" content="用 /usage 的归因 breakdown 找出 Claude Code 额度消耗大头:长会话满上下文、cache 过期重算、scheduled tasks、agent teammates、/compact,并给出对应的省额度习惯。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/where-quota-goes.html">
+<meta property="og:title" content="这个月额度怎么烧完的 · Claude Code 学习站">
+<meta property="og:description" content="用 /usage 归因找出额度大头:长会话、cache 过期、scheduled tasks、agent teammates、/compact,以及对应的省法。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/where-quota-goes.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · 成本与上下文</span></p>
+  <h1>这个月额度怎么烧完的</h1>
+  <p>明明没干多少活,plan 的用量条却见底了——别猜,先跑 /usage 看归因,大头通常不是你以为的那个。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">额度消耗和「你打了多少字」关系不大,和「每条消息背着多大的上下文、cache 有没有命中」关系极大。这页教你先定位、再止血。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      先跑 <code>/usage</code> 看归因 breakdown(按 skill/subagent/plugin/MCP server 的占比,以及 long context、cache miss 标记),再对照五个常见大头:长会话满上下文、cache 过期重算、scheduled tasks、agent teammates、/compact 本身。<span class="badge badge-site">本站观点</span>多数人的额度是被「一直不 /clear 的长会话」悄悄烧掉的。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>跑 <code>/usage</code>,先看归因再看总量。</strong><span class="badge badge-official">官方</span>顶部 Session 块是当前会话的 token 统计和本地估算金额(订阅用户这个金额不代表账单,看下面的 plan 用量条即可)。Pro/Max/Team/Enterprise 计划还有一份 breakdown:把最近用量按 skills、subagents、plugins、各 MCP server 拆成百分比,并对占最近用量 10% 以上的行为(如 long context、cache misses)单独标记、附省钱建议;按 <code>d</code>/<code>w</code> 切换最近 24 小时 / 7 天。注意这份数据来自本机会话历史,不含其他设备和 claude.ai 的用量。</li>
+      <li><strong>对照官方列出的「长会话烧钱」机制,找自己中了哪几条。</strong><span class="badge badge-official">官方</span>
+        <ul>
+          <li><strong>长上下文</strong>:每条消息都重发全部历史,开了一整天的会话里问一句话,也按整段对话计费(cache 命中按缓存价,但依然在耗)。</li>
+          <li><strong>cache miss</strong>:离开超过 cache 存活期(订阅 1 小时;API key、云厂商默认 5 分钟)后,第一条消息全量重算整段上下文。机制见 <a href="/claude-code/tips/prompt-cache-invalidation.html">哪些操作会让 prompt cache 失效</a>。</li>
+          <li><strong>scheduled tasks</strong>:定时任务在会话空闲时也按周期触发,每次都带着完整上下文。</li>
+          <li><strong>agent teammates</strong>:每个活跃 teammate 各占一个 context window,持续耗 token 直到退出;官方数据是 teammates 跑 plan mode 时 agent teams 约为普通会话 7 倍 token。</li>
+          <li><strong><code>/compact</code> 本身</strong>:压缩要先读完整段对话,大 context 的压缩就是一次大请求;想要干净重开时,<code>/clear</code> 不花钱。</li>
+        </ul>
+      </li>
+      <li><strong>改习惯止血,收益从高到低。</strong><span class="badge badge-official">官方</span>
+        <ul>
+          <li>任务间 <code>/clear</code>:切到不相关工作就清;先 <code>/rename</code> 起个名,之后 <code>/resume</code> 能找回来。</li>
+          <li>模型匹配任务:Sonnet 干日常,Opus 留给复杂架构决策;简单 subagent 任务在配置里指定 <code>model: haiku</code>。</li>
+          <li>长输出委托 subagent:跑测试、读日志、抓文档这类大输出放子上下文,只回摘要(见 <a href="/claude-code/course/day-10.html">D10 · Subagents</a>)。</li>
+          <li>MCP 只留在用的:<code>/mcp</code> 里关掉闲置 server;gh、aws、gcloud 这类 CLI 比 MCP 更省 context(见 <a href="/claude-code/tips/too-many-mcp-servers.html">MCP 接多了更慢更贵</a>)。</li>
+          <li>CLAUDE.md 控制在 200 行内,专项流程搬进 skills,按需加载。</li>
+          <li>简单任务降 effort(<code>/effort</code>)或调低 thinking 预算;thinking token 按输出计费,默认预算可达每请求数万 token。</li>
+        </ul>
+      </li>
+      <li><strong>团队和 API 用户,用组织级视角对账。</strong><span class="badge badge-official">官方</span>OpenTelemetry 导出 <code>claude_code.token.usage</code> 和 <code>claude_code.cost.usage</code>,可按用户、按模型进自己的监控栈,任何认证方式都可用;Console(API)用户以 platform.claude.com/usage 为准——本地 <code>/usage</code> 金额按标准列表价估算,不含折扣。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>帮我做一次 Claude Code 用量体检,目标是找出额度消耗大头并整改:
+1. 统计项目根 CLAUDE.md 和 ~/.claude/CLAUDE.md 的行数;超过 200 行时,
+   指出哪些段落应该搬进 skills 按需加载;
+2. 读取 .mcp.json 及各级 settings 里配置的 MCP server 清单,
+   结合本项目实际,标出建议在 /mcp 里关掉的闲置 server;
+3. 检查是否配置了 scheduled tasks 或 agent teams 相关设置,
+   评估它们的后台消耗;
+4. 提醒我自己跑 /usage 和 /context(用户命令,你代跑不了),
+   并告诉我分别重点看哪几个字段;
+5. 最后输出「立即做 / 本周做」两档的省额度清单。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/costs.md" rel="noopener">code.claude.com/docs/en/costs.md</a>(/usage 详解、长会话烧钱机制、Reduce token usage 全部策略、agent teams 7x),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/monitoring-usage.md" rel="noopener">code.claude.com/docs/en/monitoring-usage.md</a>(OTel 导出、token.usage 与 cost.usage 指标),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-site">本站观点</span>「大头通常是不 /clear 的长会话」为本站基于官方机制的判断;整改优先级排序为本站编排。</li>
+      <li>最后核实:2026-08-05 · volatility:high(/usage 界面与计费口径随版本变化,官方文档水位 v2.1.222,需定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

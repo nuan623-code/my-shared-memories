@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D12 · Agent teams 与 dynamic workflows · Claude Code 学习站</title>
+<meta name="description" content="Agent team 让多个完整会话互发消息、共享任务列表协作;dynamic workflow 用脚本确定性编排成百个 subagent。本课讲清两者机制、与 subagent 的区别、怎么启动,以及什么时候值得为编排花更多 token。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D12 · Agent teams 与 dynamic workflows · Claude Code 学习站">
+<meta property="og:description" content="多 agent 协作的两条路线:会互相沟通的 agent team,和用脚本确定性编排大规模 subagent 的 dynamic workflow。机制、选型与成本意识。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-12.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-12.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D12</p>
+  <h1>D12 · Agent teams 与 dynamic workflows</h1>
+  <p>当一个会话装不下要干的活:让多个完整会话组队互相沟通(agent teams),或把编排写成可重跑的脚本、一次驱动上百个 subagent(dynamic workflows)。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">本课把多 agent 协作的两条高阶路线讲清楚:agent team 是什么、和 subagent 差在哪、怎么启动;dynamic workflow 怎么用脚本确定性编排大规模 subagent;以及最重要的——什么时候值得上编排,什么时候单会话反而最省。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-10.html">D10 的 subagents</a> 解决了「在一个会话里派活」:worker 各有独立上下文,但只能把结果汇报给主 agent,互相之间不说话。<a href="/claude-code/course/day-11.html">D11 的 worktrees</a> 解决了「手动开多个并行会话」:物理隔离,但要你自己当协调人。这留下两个空白:一是 worker 之间无法讨论、无法互相挑战对方的结论;二是「先干什么再干什么」的编排逻辑只存在于 Claude 当时的上下文里,换个会话就没了,不可复现。</p>
+    <p><span class="badge badge-site">本站观点</span>D12 的两个机制正好补上这两个空白:agent teams 让多个完整会话共享任务列表、互发消息;workflows 把编排本身写成一段可读、可存、可重跑的脚本。学完本课,你手里就有了从「单会话」到「上百 agent」的完整工具谱系。<a href="/claude-code/course/day-13.html">D13(Headless 与 CI)</a>会用到这里的结论:workflows 在 <code>claude -p</code> 和 Agent SDK 里同样能跑,是自动化流水线的地基;保存下来的 workflow 还能打进 plugin 分发,这是 <a href="/claude-code/course/day-14.html">D14</a> 的内容。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>Agent team:一队会互相说话的完整会话</h3>
+    <p><span class="badge badge-official">官方</span>Agent team 是多个 Claude Code 实例协同工作:你的主会话充当 <strong>team lead</strong>,负责协调、分派任务、汇总结果;每个 <strong>teammate</strong> 都是一个完整独立的 Claude Code 会话,有自己的上下文窗口,并且可以直接给其他队友发消息——你也可以绕过 lead 直接找某个队友对话。一个团队由四个部件组成:team lead(协调)、teammates(干活)、共享任务列表(认领工作)、mailbox(agent 间通信,每个 agent 一个 JSON 收件箱文件)。</p>
+    <div class="callout"><span class="callout-label">实验性功能</span><span class="badge badge-official">官方</span>Agent teams 目前是实验特性,默认关闭。需在 settings.json 或环境变量里设置 <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code> 才会启用;官方明确列出了它在会话恢复(<code>/resume</code> 不恢复 in-process 队友)、任务状态同步、关闭速度等方面的已知限制。</div>
+<pre><code>{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}</code></pre>
+    <p><span class="badge badge-official">官方</span>启动不需要任何仪式:开启开关后,用自然语言描述任务和你想要的队友,Claude 会生成队友、填充共享任务列表并开始协调(v2.1.178 起不再需要先「建团队」的步骤,旧的 <code>TeamCreate</code>/<code>TeamDelete</code> 工具已移除)。Claude 判断任务适合并行时也可能主动提议组队,但都要你确认才会生成。几个值得记住的机制点:</p>
+    <ul>
+      <li><strong>任务列表</strong>:任务有 pending / in progress / completed 三种状态,可声明依赖;认领用文件锁防止两个队友抢同一个任务。lead 可以点名分派,队友也可以干完自取下一个。</li>
+      <li><strong>复用角色</strong>:生成队友时可以直接引用 <a href="/claude-code/course/day-10.html">D10 定义过的 subagent 类型</a>(如 security-reviewer),队友会遵守该定义的 <code>tools</code> 白名单和 <code>model</code>;定义正文会追加进队友的系统提示。</li>
+      <li><strong>权限</strong>:队友继承 lead 的权限设置,权限确认会冒泡到 lead 会话由你亲自批;一个队友不能替你授权,也不能把被拒的操作转手让另一个队友绕过检查。</li>
+      <li><strong>质量门</strong>:配合 <a href="/claude-code/course/day-08.html">D8 的 hooks</a>,<code>TeammateIdle</code> / <code>TaskCreated</code> / <code>TaskCompleted</code> 三个钩子以退出码 2 拦截,可以在队友想收工时把它打回去继续干。</li>
+      <li><strong>展示模式</strong>:默认 in-process(所有队友在同一终端,方向键选人、Enter 进对话);想一屏看到所有人可用 split panes(需 tmux 或 iTerm2),用 <code>teammateMode</code> 设置切换。</li>
+    </ul>
+
+    <h3>与 subagent 的区别:要不要互相讨论</h3>
+    <p><span class="badge badge-official">官方</span>两者都能并行干活,分野在于 worker 之间需不需要沟通:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th></th><th>Subagents(D10)</th><th>Agent teams(本课)</th></tr></thead>
+      <tbody>
+        <tr><td>上下文</td><td>独立上下文,结果返回给调用方</td><td>独立上下文,完全自主</td></tr>
+        <tr><td>通信</td><td>只向主 agent 汇报</td><td>队友之间直接互发消息</td></tr>
+        <tr><td>协调</td><td>主 agent 管理全部工作</td><td>共享任务列表,自行认领</td></tr>
+        <tr><td>适合</td><td>只关心结果的聚焦任务</td><td>需要讨论与协作的复杂工作</td></tr>
+        <tr><td>Token 成本</td><td>较低:结果压缩后回主上下文</td><td>较高:每个队友都是独立实例</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>官方给出的强场景:并行代码评审(安全 / 性能 / 测试覆盖各派一人)、竞争性假设排查(几个队友各持一个 bug 假设,互相辩论试图推翻对方,活下来的理论更可能是真正根因)、跨层协作(前端 / 后端 / 测试各占一摊)。反过来,顺序型任务、要改同一批文件、依赖链很长的工作,单会话或 subagents 更划算。</p>
+
+    <h3>Dynamic workflow:把编排从上下文挪进代码</h3>
+    <p><span class="badge badge-official">官方</span>Dynamic workflow 是一段编排 subagents 的 JavaScript 脚本:你描述任务,Claude 替你把脚本写出来,一个独立于会话的 runtime 在后台执行它。关键设计是<strong>中间结果存在脚本变量里,而不进 Claude 的上下文窗口</strong>——会话只收到最终答案。谁持有计划也变了:subagents、skills、agent teams 都是 Claude 逐轮决定下一步,workflow 则是脚本持有循环、分支和中间结果,因此同一套编排可以原样重跑。需要 Claude Code v2.1.154+,付费计划可用;Pro 用户在 <code>/config</code> 里打开 Dynamic workflows 一行。</p>
+    <p><span class="badge badge-official">官方</span>启动方式有三种:</p>
+    <ol>
+      <li><strong>在提示里要</strong>:写关键字 <code>ultracode</code>,或直接用自然语言说「用 workflow 做」,Claude 就为这个任务写脚本而不是逐轮干。</li>
+      <li><strong>让 Claude 自己决定</strong>:<code>/effort ultracode</code>(xhigh 推理 + 自动编排),之后每个实质任务 Claude 都会规划成 workflow,token 消耗显著增加,仅当前会话有效。</li>
+      <li><strong>跑现成命令</strong>:内置的 <code>/deep-research</code>(多角度搜索、交叉核验、产出带引用的报告),或你自己保存过的 workflow 命令。</li>
+    </ol>
+    <p><span class="badge badge-official">官方</span>保存下来的脚本长这样(<code>meta</code> 块 + 顶层 <code>await</code> 的脚本体):</p>
+<pre><code>export const meta = {
+  name: 'audit-routes',
+  description: 'Audit every route handler for missing auth checks',
+}
+
+const found = await agent('List every .ts file under src/routes/.', {
+  schema: { type: 'object', required: ['files'],
+    properties: { files: { type: 'array', items: { type: 'string' } } } },
+})
+
+const audits = await pipeline(found.files, file =&gt;
+  agent(`Audit ${file} for missing authentication checks.`, { label: file }),
+)
+
+return audits.filter(Boolean)</code></pre>
+    <p><span class="badge badge-official">官方</span><code>agent()</code> 起一个 subagent(可传 <code>schema</code> 拿结构化结果、<code>label</code> 给进度视图起名),<code>pipeline()</code> 对列表里每一项各跑一个 agent。被你中途停掉或撞上不可恢复 API 错误的 <code>agent()</code> 调用会解析成 <code>null</code>,<code>pipeline()</code> 会把 <code>null</code> 留在结果数组里,所以示例末尾用 <code>.filter(Boolean)</code> 清掉。文档示例只给出这两个原语;完整选项官方指向 Agent SDK 参考里的 Workflow tool 条目。运行进度在 <code>/workflows</code> 视图里按 phase(阶段)展示:每个阶段的 agent 数、token 总量、耗时,可以一路钻到单个 agent 的 prompt 和结果。</p>
+    <figure>
+      <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Workflow 流水线示意:发现阶段列出文件,扇出阶段每文件一个 agent 审计,验证阶段对抗复核,汇总阶段产出报告返回会话">
+        <text class="svg-ink-soft" x="80" y="24" text-anchor="middle" font-size="12">阶段 1 · 发现</text>
+        <text class="svg-ink-soft" x="260" y="24" text-anchor="middle" font-size="12">阶段 2 · 扇出</text>
+        <text class="svg-ink-soft" x="440" y="24" text-anchor="middle" font-size="12">阶段 3 · 验证</text>
+        <text class="svg-ink-soft" x="610" y="24" text-anchor="middle" font-size="12">阶段 4 · 汇总</text>
+
+        <rect class="svg-box" x="10" y="126" width="140" height="48" rx="10"/>
+        <text class="svg-ink" x="80" y="155" text-anchor="middle" font-size="13">列出目标文件</text>
+
+        <rect class="svg-box" x="190" y="40" width="140" height="44" rx="10"/>
+        <text class="svg-ink" x="260" y="67" text-anchor="middle" font-size="13">审计 file-1</text>
+        <rect class="svg-box" x="190" y="128" width="140" height="44" rx="10"/>
+        <text class="svg-ink" x="260" y="155" text-anchor="middle" font-size="13">审计 file-2</text>
+        <rect class="svg-box" x="190" y="216" width="140" height="44" rx="10"/>
+        <text class="svg-ink" x="260" y="243" text-anchor="middle" font-size="13">审计 file-N</text>
+
+        <rect class="svg-box" x="370" y="126" width="140" height="48" rx="10"/>
+        <text class="svg-ink" x="440" y="155" text-anchor="middle" font-size="13">对抗验证发现</text>
+
+        <rect class="svg-box-accent" x="550" y="126" width="120" height="48" rx="10"/>
+        <text class="svg-ink" x="610" y="155" text-anchor="middle" font-size="13">汇总报告</text>
+
+        <path class="svg-line" d="M150 150 H170 V62 H182" fill="none" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="182,57 192,62 182,67"/>
+        <line class="svg-line" x1="150" y1="150" x2="182" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="182,145 192,150 182,155"/>
+        <path class="svg-line" d="M150 150 H170 V238 H182" fill="none" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="182,233 192,238 182,243"/>
+
+        <path class="svg-line" d="M330 62 H350 V144" fill="none" stroke-width="1.5"/>
+        <line class="svg-line" x1="330" y1="150" x2="350" y2="150" stroke-width="1.5"/>
+        <path class="svg-line" d="M330 238 H350 V156" fill="none" stroke-width="1.5"/>
+        <line class="svg-line" x1="350" y1="150" x2="362" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="362,145 372,150 362,155"/>
+
+        <line class="svg-line" x1="510" y1="150" x2="542" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="542,145 552,150 542,155"/>
+
+        <text class="svg-ink-soft" x="80" y="290" text-anchor="middle" font-size="12">agent()</text>
+        <text class="svg-ink-soft" x="260" y="290" text-anchor="middle" font-size="12">pipeline() 每项一个</text>
+        <text class="svg-ink-soft" x="440" y="290" text-anchor="middle" font-size="12">中间结果在脚本变量</text>
+        <text class="svg-ink-soft" x="610" y="290" text-anchor="middle" font-size="12">只有它进会话</text>
+      </svg>
+      <figcaption>典型 workflow 流水线:发现 → 扇出 → 验证 → 汇总。中间各阶段的结果都留在脚本变量里,只有最终报告回到会话上下文。对抗验证这一步是 workflow 独有的可复用质量模式:让独立 agent 复核彼此的发现再上报。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>运行时的硬约束:最多 16 个并发 agent(CPU 核少的机器更少)、单次运行上限 1000 个 agent、运行中不接受用户输入(阶段之间要人签字就拆成多个 workflow)、脚本本身不能直接碰文件系统和 shell——读写和命令都由 agent 执行,脚本只负责协调。权限上,workflow 生成的 subagent 一律跑在 acceptEdits 模式并继承你的工具白名单,不在白名单里的 shell 命令、web 抓取仍会中途弹确认,长任务开跑前先把要用的命令加进白名单。停掉的运行可在同一会话内恢复:已完成的 agent 通常直接回放缓存结果——扇出成许多小 agent 的脚本,比一个长 agent 保留的进度多得多。</p>
+    <p><span class="badge badge-official">官方</span>跑出满意结果后,在 <code>/workflows</code> 里选中该次运行按 <code>s</code> 保存:存到项目的 <code>.claude/workflows/</code>(随仓库共享)或 <code>~/.claude/workflows/</code>(仅自己、全项目可用),之后它就是一条 <code>/&lt;name&gt;</code> 命令,还能通过 <code>args</code> 接收调用时传入的参数(脚本里以全局变量 <code>args</code> 读取)。要跨团队分发,放进 plugin 的 <code>workflows/</code> 目录,以 <code>/插件名:workflow名</code> 调用。</p>
+
+    <h3>四种机制怎么选:看谁持有计划</h3>
+    <p><span class="badge badge-official">官方</span>官方给了一张总对照表,核心轴是「谁决定下一步」和「中间结果放哪」:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th></th><th>Subagents</th><th>Skills</th><th>Agent teams</th><th>Workflows</th></tr></thead>
+      <tbody>
+        <tr><td>它是什么</td><td>Claude 派出的 worker</td><td>Claude 遵循的指令</td><td>lead 督导的平级会话</td><td>runtime 执行的脚本</td></tr>
+        <tr><td>谁定下一步</td><td>Claude,逐轮</td><td>Claude,按提示</td><td>lead agent,逐轮</td><td>脚本</td></tr>
+        <tr><td>中间结果在哪</td><td>Claude 上下文</td><td>Claude 上下文</td><td>共享任务列表</td><td>脚本变量</td></tr>
+        <tr><td>可复用的是</td><td>worker 定义</td><td>指令本身</td><td>团队定义</td><td>编排本身</td></tr>
+        <tr><td>规模</td><td>每轮几个</td><td>同 subagents</td><td>几个长期运行的平级</td><td>单次几十到几百个</td></tr>
+        <tr><td>被打断时</td><td>整轮重来</td><td>整轮重来</td><td>队友继续跑</td><td>同会话内可恢复</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-site">本站观点</span>一句话选型:只要结果、不要过程 → subagent;worker 之间要讨论、要互相挑战 → agent team;规模大、步骤确定、以后还要再跑 → workflow;要沉淀的是「方法」而不是「编排」→ skill(<a href="/claude-code/course/day-07.html">D7</a>)。</p>
+
+    <h3>成本意识:什么时候值得上编排</h3>
+    <p><span class="badge badge-official">官方</span>两种机制都比单会话贵得多,官方给了明确护栏。Agent team:token 消耗随队友数线性增长,3–5 个队友起步,每人 5–6 个任务最饱和;三个专注的队友常胜过五个散乱的;新手先从「不写代码」的调研、评审类任务开始;两个队友改同一个文件会互相覆盖,拆分时按文件划清边界。Workflow:先在小切片上试跑估算花费(一个目录而不是整个仓库);单次运行排到 25 个 agent 以上、或预计 token 超过 150 万时,任务面板会亮 <code>Large workflow</code> 警告(v2.1.203+,仅提示不拦截);<code>/config</code> 里的 size guideline 控制 Claude 写脚本时瞄准的 agent 规模,默认 <code>medium</code>(15 个以内,v2.1.219+);每个 agent 默认用会话当前模型,可让脚本给不吃算力的阶段路由更小的模型,或用 <code>CLAUDE_CODE_SUBAGENT_MODEL</code> 全局覆盖——大规模跑之前先看一眼 <code>/model</code>。</p>
+    <div class="callout"><span class="callout-label">实战引导</span><span class="badge badge-site">本站观点</span>「一次性改 200 个文件」正是 workflow 扇出的主场:发现 → 每文件一个 agent 隔离改 → 逐个验证 → 汇总。具体拆法和防翻车细节见 <a href="/claude-code/tips/bulk-edit-200-files.html">Tip B3:批量修改 200 个文件</a>。</div>
+
+    <h2>当天能做完的实操</h2>
+    <p>前置检查:<code>claude --version</code> 需 ≥ 2.1.154(今日最新为 2.1.222);Pro 计划先在 <code>/config</code> 打开 Dynamic workflows。以下 1–3 步约 30 分钟,第 4 步可选。</p>
+    <ol>
+      <li><strong>体验内置 workflow。</strong>在会话里跑 <code>/deep-research</code> 提一个你真想知道答案的问题,例如下面这条。预期:Claude Code 弹出是否允许 workflow 的确认,选 Yes 后运行转入后台,输入框下方任务面板出现一行进度摘要。
+<pre class="prompt"><code>/deep-research Node.js 的 permission model 从 v20 到 v22 有哪些变化?</code></pre></li>
+      <li><strong>钻进进度视图。</strong>跑 <code>/workflows</code>,方向键选中这次运行按 Enter。预期:看到按 phase 分组的视图,每个阶段有 agent 数、token 总量、耗时;继续 Enter 可钻到单个 agent,读到它的 prompt、最近的工具调用和结果。结束后一份带引用的报告落回会话,没通过交叉核验的结论已被过滤。</li>
+      <li><strong>写并保存你自己的 workflow。</strong>挑一个<em>小</em>目录(成本意识:先小切片),用自然语言要一个带对抗验证的审计 workflow。预期:审批提示列出计划的阶段,可选 View raw script(或 <code>Ctrl+G</code> 在编辑器打开)先读脚本再放行;跑完在 <code>/workflows</code> 里按 <code>s</code> 保存,Tab 切换项目 / 个人位置,之后它就是你的一条斜杠命令。
+<pre class="prompt"><code>用 workflow 审计 src/routes/ 下的每个路由文件是否缺少鉴权检查,
+每条发现在报告前先由独立 agent 做对抗验证,最后汇总成一份按严重度排序的清单。</code></pre></li>
+      <li><strong>(可选)拉起你的第一个 agent team。</strong>在 settings.json 的 <code>env</code> 里加 <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code>,重启会话后发下面的 prompt。预期:输入框下方的 agent 面板出现三个队友,方向键选人、Enter 进它的会话直接对话;干完后让 lead 汇总三份评审意见。注意:面板里出现 agent 不等于组了队(subagents 也在同一面板),如果 Claude 用了 subagents,明确再要一次 agent team。
+<pre class="prompt"><code>生成三个队友并行评审这个 PR:
+- 一个只看安全隐患
+- 一个只看性能影响
+- 一个只看测试覆盖
+让他们各自评审后向你汇报,你再汇总成一份意见。</code></pre></li>
+    </ol>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说清 subagent、agent team、workflow 三者在「谁决定下一步」和「中间结果放在哪」上的差别,并各举一个适用场景。</li>
+      <li>跑通过一次 <code>/deep-research</code>,并在 <code>/workflows</code> 视图里钻到过某个 agent 的 prompt 与结果。</li>
+      <li>用自然语言让 Claude 写过一个 workflow,读过它生成的脚本(认得 <code>meta</code> / <code>agent()</code> / <code>pipeline()</code> / <code>.filter(Boolean)</code> 各自在干什么),并保存成了自己的斜杠命令。</li>
+      <li>能说出两条成本护栏:Large workflow 警告的触发阈值,以及 size guideline 的默认档位。</li>
+      <li>自测题:要把 200 个组件文件从 styled-components 迁到 Tailwind,选哪种机制?为什么不是 agent team?(参考答案:选 workflow——文件互相独立、不需要 worker 之间讨论,<code>pipeline()</code> 扇出天然匹配,且编排可保存重跑、中断可恢复;agent team 的价值在队友互相沟通与挑战,这里用不上,只会白付协调开销和更高的 token 成本。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/agent-teams">Orchestrate teams of Claude Code sessions(agent-teams)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/workflows">Orchestrate subagents at scale with dynamic workflows(workflows)</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-11.html">上一课 D11 · Worktrees 与 agent view</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-13.html">下一课 D13 · Headless 与 CI</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

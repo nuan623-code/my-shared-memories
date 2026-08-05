@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D8 · Hooks · Claude Code 学习站</title>
+<meta name="description" content="Claude Code Hooks 详解:在 agentic loop 的固定节点确定性地执行你的 shell 命令——事件类型、settings.json 配置、退出码与 JSON 输出,以及格式化、拦截、完工校验三类典型用法。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D8 · Hooks · Claude Code 学习站">
+<meta property="og:description" content="hook 是挂在 agentic loop 固定节点上的确定性代码:事件类型、配置位置、退出码语义与典型用法,一课讲透。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-08.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-08.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D8</p>
+  <h1>D8 · Hooks</h1>
+  <p>把「希望 Claude 记得做」变成「一定会发生」:hook 是挂在 agentic loop 固定节点上的你自己的代码,本课讲清事件、配置、退出码和三类典型用法。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">前七课里,你影响 Claude 的手段全是「说给它听」:CLAUDE.md、plan、Skills。hook 换了一条路——不跟模型商量,直接在它的执行流程上插入确定性执行的 shell 命令。格式化、拦截敏感文件、完工前强制跑测试,都属于这一课。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p>这课直接踩在两块已有的地基上。<a href="/claude-code/course/day-03.html">D3(权限模式与沙箱)</a>讲的是静态门禁:一条工具调用「允许还是不允许」。hook 在同一条链路上给你第二种控制:在调用前后运行你的代码,能拦截、能改写、能反馈——而且一个返回 deny 的 PreToolUse hook 连 <code>bypassPermissions</code> 模式都拦得住,这是权限规则做不到的角度。<a href="/claude-code/course/day-07.html">D7(Skills)</a>留下的那条对比线在本课收口:Skill 是「教会模型怎么做」,遵不遵守终究由模型决定;hook 是「不管模型怎么想都会发生」。</p>
+    <p>往后看,hook 会反复出现:<a href="/claude-code/course/day-09.html">D9(MCP)</a>的工具同样能被 hook 匹配(<code>mcp__服务名__工具名</code>);<a href="/claude-code/course/day-13.html">D13(Headless 与 CI)</a>里 hook 是无人值守时唯一可靠的守门机制;<a href="/claude-code/course/day-14.html">D14(Plugins)</a>则把 hook 打包分发给整个团队。跳过这课,后面这三课都会缺一块。</p>
+    <div class="callout"><span class="callout-label">选型提示</span>「这个需求该用 Skill、hook、MCP 还是 Subagent?」——学完本课如果仍拿不准,去看选型专页 <a href="/claude-code/tips/skill-hook-mcp-subagent-plugin.html">Tip E1:五种扩展机制怎么选</a>。</div>
+
+    <h2>概念讲清楚</h2>
+    <p><span class="badge badge-official">官方</span>hook 是用户定义的 shell 命令(也可以是 HTTP 端点或 LLM prompt),Claude Code 在其生命周期的特定节点自动运行它们,给你<strong>确定性控制</strong>:某些动作一定会发生,而不是寄希望于模型「自觉想起来去做」。官方文档同时给出选型原则:能写成确定性规则的用 command hook;需要判断力的决定,可以用 <code>type: "prompt"</code>(单轮模型评估)或实验性的 <code>type: "agent"</code>(带工具的子代理校验)。</p>
+
+    <h3>一张表分清:提示、门禁、强制</h3>
+    <p><span class="badge badge-site">本站观点</span>把前几课的机制放在一起对照,hook 的位置就清楚了:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>机制</th><th>本质</th><th>谁来执行</th><th>模型能忽略吗</th></tr></thead>
+      <tbody>
+        <tr><td>CLAUDE.md / Skills(D4、D7)</td><td>写给模型看的指示</td><td>模型读了以后照做</td><td>能——它是提示,不是约束</td></tr>
+        <tr><td>权限规则(D3)</td><td>静态的 allow / ask / deny 门禁</td><td>Claude Code 在调用工具时查表</td><td>不能,但只能「放行或拦下」,不能附加动作</td></tr>
+        <tr><td>Hooks(本课)</td><td>挂在生命周期节点上的你的代码</td><td>Claude Code 无条件运行</td><td>不能——模型根本不参与,还能拦截、改写、反馈</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>hook 插在 agentic loop 的哪里</h3>
+    <p><span class="badge badge-official">官方</span>事件按三种节奏触发:每会话一次(SessionStart / SessionEnd)、每轮一次(UserPromptSubmit、Stop)、以及 agentic loop 里<strong>每一次工具调用</strong>都触发的 PreToolUse / PostToolUse。下图是主干路径:</p>
+    <figure>
+      <svg viewBox="0 0 720 422" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="hook 在 agentic loop 中的插入点:SessionStart、UserPromptSubmit 之后进入循环,每次工具调用前后触发 PreToolUse 与 PostToolUse,循环结束触发 Stop,会话终止触发 SessionEnd">
+        <rect class="svg-box-accent" x="10" y="14" width="132" height="40" rx="8"/>
+        <text class="svg-ink" x="76" y="39" text-anchor="middle" font-size="13">SessionStart</text>
+        <line class="svg-line" x1="142" y1="34" x2="184" y2="34" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,29 194,34 184,39"/>
+        <rect class="svg-box-accent" x="194" y="14" width="168" height="40" rx="8"/>
+        <text class="svg-ink" x="278" y="39" text-anchor="middle" font-size="13">UserPromptSubmit</text>
+        <line class="svg-line" x1="278" y1="54" x2="278" y2="90" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="273,90 278,100 283,90"/>
+
+        <rect class="svg-line" x="10" y="100" width="460" height="220" rx="14" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text class="svg-ink-soft" x="26" y="124" font-size="12">agentic loop(每次工具调用都经过)</text>
+
+        <rect class="svg-box" x="40" y="140" width="160" height="44" rx="8"/>
+        <text class="svg-ink" x="120" y="167" text-anchor="middle" font-size="13">模型决定调用工具</text>
+        <rect class="svg-box-accent" x="280" y="140" width="150" height="44" rx="8"/>
+        <text class="svg-ink" x="355" y="167" text-anchor="middle" font-size="13">PreToolUse</text>
+        <rect class="svg-box" x="280" y="250" width="150" height="44" rx="8"/>
+        <text class="svg-ink" x="355" y="277" text-anchor="middle" font-size="13">工具执行</text>
+        <rect class="svg-box-accent" x="40" y="250" width="160" height="44" rx="8"/>
+        <text class="svg-ink" x="120" y="277" text-anchor="middle" font-size="13">PostToolUse</text>
+
+        <line class="svg-line" x1="200" y1="162" x2="270" y2="162" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="270,157 280,162 270,167"/>
+        <line class="svg-line" x1="355" y1="184" x2="355" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="350,240 355,250 360,240"/>
+        <line class="svg-line" x1="280" y1="272" x2="210" y2="272" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="210,267 200,272 210,277"/>
+        <line class="svg-line" x1="120" y1="250" x2="120" y2="194" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="115,194 120,184 125,194"/>
+
+        <line class="svg-line" x1="430" y1="162" x2="490" y2="162" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <polygon class="svg-arrow" points="490,157 500,162 490,167"/>
+        <text class="svg-ink" x="506" y="152" font-size="12">exit 2 或 deny:</text>
+        <text class="svg-ink-soft" x="506" y="170" font-size="12">工具调用被拦截,</text>
+        <text class="svg-ink-soft" x="506" y="188" font-size="12">stderr 反馈给模型</text>
+
+        <line class="svg-line" x1="240" y1="320" x2="240" y2="346" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="235,346 240,356 245,346"/>
+        <text class="svg-ink-soft" x="254" y="342" font-size="12">没有新的工具调用,本轮回复完成</text>
+        <rect class="svg-box-accent" x="174" y="356" width="132" height="44" rx="8"/>
+        <text class="svg-ink" x="240" y="383" text-anchor="middle" font-size="13">Stop</text>
+        <path class="svg-line" d="M 174 378 H 60 V 330" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <polygon class="svg-arrow" points="55,330 60,320 65,330"/>
+        <text class="svg-ink-soft" x="16" y="412" font-size="12">Stop hook exit 2:打回去继续干活</text>
+
+        <line class="svg-line" x1="306" y1="378" x2="550" y2="378" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="550,373 560,378 550,383"/>
+        <text class="svg-ink-soft" x="430" y="370" text-anchor="middle" font-size="12">会话终止</text>
+        <rect class="svg-box-accent" x="560" y="356" width="130" height="44" rx="8"/>
+        <text class="svg-ink" x="625" y="383" text-anchor="middle" font-size="13">SessionEnd</text>
+      </svg>
+      <figcaption>实心强调框是 hook 事件(插入点),普通框是循环本体。PreToolUse 拦得住(工具还没跑),PostToolUse 拦不住(已经跑完,只能反馈),Stop 能把「想收工」的 Claude 打回去继续干活。</figcaption>
+    </figure>
+
+    <h3>常用事件清单</h3>
+    <p><span class="badge badge-official">官方</span>参考文档共列出 31 个事件,下面是最常用的一批;每个事件可配 <code>matcher</code> 过滤(工具事件按工具名匹配,如 <code>Bash</code>、<code>Edit|Write</code>、正则 <code>mcp__.*</code>;留空则每次都触发,匹配区分大小写):</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>事件</th><th>何时触发</th><th>典型用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>SessionStart</code></td><td>会话开始或恢复时(matcher 可区分 <code>startup</code>/<code>resume</code>/<code>compact</code> 等)</td><td>注入上下文,压缩后补回关键信息</td></tr>
+        <tr><td><code>UserPromptSubmit</code></td><td>你提交 prompt 后、Claude 处理前</td><td>校验或拦截 prompt,附加环境信息</td></tr>
+        <tr><td><code>PreToolUse</code></td><td>每次工具调用执行前,<strong>可拦截</strong></td><td>保护敏感文件,禁止危险命令</td></tr>
+        <tr><td><code>PermissionRequest</code></td><td>Claude Code 准备向你弹权限询问时</td><td>代替你自动批准特定请求</td></tr>
+        <tr><td><code>PostToolUse</code></td><td>每次工具调用成功后(已执行,不可撤销)</td><td>自动格式化,记录审计日志</td></tr>
+        <tr><td><code>Notification</code></td><td>Claude Code 发通知时(等你输入、等权限)</td><td>桌面通知,不用盯终端</td></tr>
+        <tr><td><code>Stop</code> / <code>SubagentStop</code></td><td>Claude(或子代理)结束本轮回复时,<strong>可打回</strong></td><td>完工校验:测试没过不许停</td></tr>
+        <tr><td><code>PreCompact</code> / <code>SessionEnd</code></td><td>上下文压缩前 / 会话终止时</td><td>备份转录、清理临时文件</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>配置写在哪里</h3>
+    <p><span class="badge badge-official">官方</span>hook 写在 settings 文件的 <code>hooks</code> 键下,三层嵌套:<strong>事件名 → matcher 分组 → 处理器数组</strong>。下面是官方的「编辑后自动跑 Prettier」示例,放进项目根的 <code>.claude/settings.json</code> 即生效:</p>
+    <pre><code>{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+    <p>放在哪个文件决定作用范围:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>位置</th><th>作用范围</th><th>可共享</th></tr></thead>
+      <tbody>
+        <tr><td><code>~/.claude/settings.json</code></td><td>你的所有项目</td><td>否,仅本机</td></tr>
+        <tr><td><code>.claude/settings.json</code></td><td>单个项目</td><td>是,可提交进仓库</td></tr>
+        <tr><td><code>.claude/settings.local.json</code></td><td>单个项目</td><td>否,默认被 gitignore</td></tr>
+        <tr><td>企业托管策略设置</td><td>整个组织</td><td>是,管理员控制</td></tr>
+        <tr><td>插件 <code>hooks/hooks.json</code></td><td>插件启用期间</td><td>是,随插件分发(D14)</td></tr>
+        <tr><td>Skill / agent 的 frontmatter</td><td>该组件激活期间</td><td>是,写在组件文件里</td></tr>
+      </tbody>
+    </table></div>
+    <p>会话内输入 <code>/hooks</code> 可以按事件浏览当前生效的全部 hook——注意这个菜单是<strong>只读</strong>的,增删改要直接编辑 settings JSON(或让 Claude 替你改)。想一键全关,在 settings 里设 <code>"disableAllHooks": true</code>(托管设置里的 hook 除外)。</p>
+
+    <h3>退出码与输出如何影响流程</h3>
+    <p><span class="badge badge-official">官方</span>事件触发时,Claude Code 把事件数据以 JSON 送进你脚本的 stdin(含 <code>session_id</code>、<code>cwd</code>、<code>hook_event_name</code>,工具事件还有 <code>tool_name</code>、<code>tool_input</code>);你的脚本用退出码回话:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>退出码</th><th>含义</th><th>效果</th></tr></thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>无异议</td><td>动作正常继续。对 PreToolUse 这<strong>不等于批准</strong>,正常权限流程照走;UserPromptSubmit 和 SessionStart 的 stdout 会注入 Claude 的上下文</td></tr>
+        <tr><td><code>2</code></td><td>阻塞</td><td>拦下动作,stderr 作为原因反馈给 Claude 让它调整。具体效果随事件而异:PreToolUse 拦截工具调用,Stop 阻止收工,PostToolUse 因为工具已执行只能反馈不能撤销</td></tr>
+        <tr><td>其他</td><td>非阻塞错误</td><td><strong>动作照常执行</strong>,transcript 里显示一条 hook error 通知</td></tr>
+      </tbody>
+    </table></div>
+    <p>需要比「拦 / 不拦」更细的控制时,exit 0 并向 stdout 打印一个 JSON 对象:PreToolUse 可返回 <code>permissionDecision</code> 为 <code>"allow"</code>(跳过权限询问)、<code>"deny"</code>(拦截并把 <code>permissionDecisionReason</code> 告诉 Claude)或 <code>"ask"</code>(转给用户确认);Stop / PostToolUse 用顶层 <code>{"decision": "block", "reason": "..."}</code>。两种方式二选一:<strong>exit 2 时 stdout 里的 JSON 会被忽略</strong>。</p>
+
+    <h3>三个高频误区</h3>
+    <ul>
+      <li><span class="badge badge-official">官方</span><strong>「exit 1 也算失败,应该会拦截吧」</strong>——不会。多数事件只有 exit 2 阻塞,exit 1 是非阻塞错误,动作照常执行。要执行策略,必须写 <code>exit 2</code>。</li>
+      <li><span class="badge badge-official">官方</span><strong>「hook 放行了就等于有权限」</strong>——方向搞反了。hook 的 deny 比权限模式更硬(<code>bypassPermissions</code> 下照样拦),但 hook 的 allow 压不过 settings 里的 deny 规则:hook 只能收紧,不能放宽,D3 的门禁始终在。</li>
+      <li><span class="badge badge-site">本站观点</span><strong>「Stop hook 会不会把 Claude 锁死在干活循环里」</strong>——官方留了保险:输入里有 <code>stop_hook_active</code> 字段供脚本自查,且连续阻塞 8 次无进展后 Claude Code 会强制结束本轮。写 Stop hook 第一行就该检查这个字段。</li>
+    </ul>
+
+    <h2>当天能做完的实操</h2>
+    <p>目标:30 分钟配好两个 hook——一个审计日志(PostToolUse),一个敏感文件拦截(PreToolUse)——并亲眼看到拦截发生。示例用 <code>jq</code> 解析 JSON,先确认 <code>jq --version</code> 有输出(macOS 用 <code>brew install jq</code>)。</p>
+    <ol>
+      <li>在一个测试项目里新建 <code>.claude/settings.json</code>,写入两个 hook:
+<pre><code>{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' &gt;&gt; ~/.claude/command-log.txt"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre></li>
+      <li>创建拦截脚本 <code>.claude/hooks/protect-files.sh</code>(内容照抄官方示例),并执行 <code>chmod +x .claude/hooks/protect-files.sh</code>:
+<pre><code>#!/bin/bash
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+PROTECTED_PATTERNS=(".env" "package-lock.json" ".git/")
+
+for pattern in "${PROTECTED_PATTERNS[@]}"; do
+  if [[ "$FILE_PATH" == *"$pattern"* ]]; then
+    echo "Blocked: $FILE_PATH matches protected pattern '$pattern'" &gt;&amp;2
+    exit 2
+  fi
+done
+
+exit 0</code></pre></li>
+      <li>启动 Claude Code,输入 <code>/hooks</code>。预期:PostToolUse 和 PreToolUse 下各出现 1 个 hook,能看到事件、matcher、来源文件和命令。</li>
+      <li>触发日志 hook:让 Claude 随便跑条命令(比如「列出当前目录文件」),然后 <code>cat ~/.claude/command-log.txt</code>。预期:文件里多了刚执行的命令——hook 成功时界面上不显示任何东西,看效果才是验证方式。</li>
+      <li>触发拦截 hook:先 <code>touch .env</code>,再让 Claude「给 .env 加一行注释」。预期:编辑在执行前被拦下,Claude 收到脚本 stderr 里的 Blocked 原因并向你解释它换了做法或放弃。</li>
+      <li>懒人路线:官方明确说可以让 Claude 替你写 hook。把下面这段直接粘给 Claude Code,让它自己配置、自己演示:</li>
+    </ol>
+    <pre class="prompt"><code>帮我在当前项目配置两个 hook,写进 .claude/settings.json:
+1. PostToolUse + matcher "Bash":用 jq 提取 .tool_input.command,追加到 ~/.claude/command-log.txt;
+2. PreToolUse + matcher "Edit|Write":调用 .claude/hooks/protect-files.sh,脚本检查文件路径是否命中 .env、package-lock.json、.git/,命中就向 stderr 输出原因并 exit 2 拦截,否则 exit 0。
+脚本要 chmod +x。配置完成后:先解释这份 JSON 的三层结构(事件 → matcher → 处理器),然后跑一条测试命令验证日志 hook,最后尝试编辑 .env 演示一次拦截。</code></pre>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记讲清 hook 与 Skill 的本质区别(确定性执行 vs 模型自觉),以及 hook 与 D3 权限规则的关系(deny 更硬、allow 不能越权)。</li>
+      <li>能为需求对号入座:自动格式化用哪个事件?保护敏感文件用哪个?「测试没过不许收工」用哪个?(PostToolUse / PreToolUse / Stop)</li>
+      <li>实操两个 hook 都验证过:命令日志有新行;<code>.env</code> 编辑被拦截且 Claude 收到了原因;<code>/hooks</code> 里能找到它们。</li>
+      <li>自测题:PreToolUse hook 脚本以 exit 1 退出,工具调用会被拦截吗?exit 0 呢?</li>
+    </ul>
+    <div class="callout"><span class="callout-label">自测题答案</span>都不会拦截。只有 exit 2(或 exit 0 + JSON 返回 <code>permissionDecision: "deny"</code>)才拦截;exit 1 是非阻塞错误,动作照常执行;exit 0 表示「无异议」,调用继续走正常权限流程——不等于批准。答不上来就回读「退出码与输出」一节。</div>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/hooks-guide.md">Automate actions with hooks(hooks-guide)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/hooks.md">Hooks reference(hooks)</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-07.html">上一课 D7 · Skills</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-09.html">下一课 D9 · MCP</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

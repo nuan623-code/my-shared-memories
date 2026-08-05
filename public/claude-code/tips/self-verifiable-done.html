@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>它总说做完了其实没做完—给它能自己跑的验证 · Claude Code 学习站</title>
+<meta name="description" content="Claude 说“已完成”但功能根本没通?根因是它没有能自己跑的验证手段。本页讲如何用测试、构建、lint、截图把验证交给 Claude 自己闭环,以及用 hook 强制把关。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/self-verifiable-done.html">
+<meta property="og:title" content="它总说做完了其实没做完—给它能自己跑的验证 · Claude Code 学习站">
+<meta property="og:description" content="让 Claude 拥有能自己跑的验证手段(测试/构建/lint/截图),而不是口头承诺;必要时用 hook 强制把关。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/self-verifiable-done.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · 稳定与质量</span></p>
+  <h1>它总说做完了其实没做完—给它能自己跑的验证</h1>
+  <p>Claude 汇报“已完成”,你一跑发现功能是坏的——问题不在它撒谎,在你没给它判断“完成”的客观标准。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude 会在工作“看起来完成”时停下。没有可运行的检查,它唯一的信号就是“看起来完成”,于是你成了人肉验证环——每个错误都要等你发现。把验证交给它自己跑,循环才能闭合。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      给 Claude 一个它能自己运行、能返回通过/失败信号的检查——测试、构建退出码、lint、对比脚本或截图——并要求它出示运行证据而不是口头汇报。<span class="badge badge-official">官方</span>官方 best practices 明确:没有检查时,“看起来完成”是它唯一的信号;有了检查,Claude 会自己做、自己跑、自己读结果、迭代到通过。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>写任务时就带上验证标准。</strong>不要只说“实现一个校验邮箱的函数”,而是给出具体用例并要求“实现后运行测试”。<span class="badge badge-official">官方</span>文档列出的检查形式包括:测试套件、构建退出码、linter、把输出和 fixture 做 diff 的脚本、浏览器截图对比设计稿。预期:Claude 实现后自动执行检查,失败就继续改。</li>
+      <li><strong>要求出示证据。</strong>让 Claude 贴出测试输出、它运行的命令和返回结果、或结果截图,而不是一句“完成了”。<span class="badge badge-official">官方</span>文档指出审阅证据比你自己重跑验证更快,而且适用于你不在场的会话。</li>
+      <li><strong>按需要选择把关强度。</strong>检查存在之后,再决定它多“硬”地拦住结束:<span class="badge badge-official">官方</span>
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>档位</th><th>做法</th><th>特点</th></tr></thead>
+          <tbody>
+            <tr><td>单次 prompt</td><td>在同一条消息里要求“跑检查并迭代”</td><td>零配置,任何任务今天就能用</td></tr>
+            <tr><td>整个会话</td><td>把检查设为 <code>/goal</code> 条件</td><td>每轮之后由独立评估器复查,不满足就继续干</td></tr>
+            <tr><td>确定性闸门</td><td>Stop hook 以脚本运行检查</td><td>检查不过就不许结束本轮;连续拦 8 次后 Claude Code 会强制放行</td></tr>
+            <tr><td>第二意见</td><td>验证 subagent 用全新上下文复核</td><td>干活的模型不给自己打分</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>hook 是强制的,CLAUDE.md 是劝告的。</strong><span class="badge badge-official">官方</span>hooks 在固定生命周期点执行脚本,与 CLAUDE.md 里“建议性”的指令不同,它保证动作一定发生。可以直接让 Claude 替你写,例如官方示例的 PostToolUse hook 在每次编辑后自动跑 Prettier:
+        <pre><code>{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write" }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+        注意 Stop hook 在 Claude 每次结束回复时都会触发,不只在“任务完成”时;写 hook 脚本时要检查输入里的 <code>stop_hook_active</code> 字段避免死循环,拦截上限可用 <code>CLAUDE_CODE_STOP_HOOK_BLOCK_CAP</code> 调整。<span class="badge badge-official">官方</span></li>
+      <li><strong>最后加一道独立复核。</strong>让一个没参与实现的 subagent 只看 diff 挑毛病,做法见本簇的<a href="/claude-code/tips/adversarial-review.html">对抗式 review</a>。<span class="badge badge-site">本站观点</span>“自己验证 + 别人复核”双保险,基本可以告别“说做完了其实没做完”。</li>
+    </ol>
+    <p><span class="badge badge-official">官方</span>官方把“信了但没验证”列为常见失败模式(trust-then-verify gap),给出的修复原则是:永远提供验证手段;无法验证的东西,就不要上线。</p>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>接下来这个任务,不接受口头的“已完成”,必须给出可验证的证据:
+1. 动手前先说明你打算用什么方式验证(测试 / 构建 / lint / 截图对比,按适用选)。
+2. 实现后自己运行验证命令(如 npm test、npm run build),把关键输出原样贴出来。
+3. 验证失败就继续修,重新验证,直到全部通过;不要用跳过测试、压制报错的方式“变绿”。
+4. 结束时汇报:跑了哪些命令、各自结果、哪些部分还没有被验证覆盖。</code></pre>
+    <p>想把验证固化成强制动作,可以再发一条:<span class="badge badge-official">官方</span>文档确认 Claude 可以替你写 hook。</p>
+    <pre class="prompt"><code>帮我写一个 hook:每次文件编辑后自动运行 eslint,输出有错误时把错误反馈给你修复。
+写进本项目 .claude/settings.json,写完解释每个字段的含义。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Give Claude a way to verify its work / Avoid common failure patterns</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/hooks-guide.md" target="_blank" rel="noopener">Automate actions with hooks(hooks-guide)</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 /goal、Stop hook、拦截上限等具体产品行为,会定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

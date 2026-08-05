@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D9 · MCP · Claude Code 学习站</title>
+<meta name="description" content="MCP 协议是什么,stdio/HTTP/SSE 三种接入方式,claude mcp 命令与三个 scope,认证,以及 MCP 工具的上下文成本。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D9 · MCP · Claude Code 学习站">
+<meta property="og:description" content="MCP 协议是什么,stdio/HTTP/SSE 三种接入方式,claude mcp 命令与三个 scope,认证,以及 MCP 工具的上下文成本。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-09.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-09.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D9</p>
+  <h1>D9 · MCP</h1>
+  <p>用 Model Context Protocol 给 Claude Code 接上外部工具:三种接入方式、claude mcp 命令、scope 与认证,以及这些工具要花多少上下文。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude 的一切行动都通过工具完成,但内置工具只覆盖「本机文件 + shell + 网页」。MCP 让你把 issue 跟踪器、数据库、浏览器、监控系统变成 Claude 能直接调用的工具。本课讲协议本身、接入与管理、以及代价。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-01.html">D1</a> 讲过:agentic loop 里模型每一步都在「从工具列表里挑一个工具来执行」。工具列表有多长,Claude 的行动半径就有多大。前两课的 <a href="/claude-code/course/day-07.html">Skills</a> 和 <a href="/claude-code/course/day-08.html">Hooks</a> 分别解决「知识注入」和「流程拦截」,但都没有给 Claude 增加新的行动能力——MCP 补的正是这一块:把外部系统包装成新工具,插进那张工具列表。</p>
+    <p>学完本课,<a href="/claude-code/course/day-10.html">D10 Subagents</a> 里给子代理分配工具、<a href="/claude-code/course/day-14.html">D14 Plugins</a> 里插件捆绑 MCP server 分发,才有讨论的基础。跳过这课,后面凡是出现 <code>mcp__...</code> 前缀的工具名你都会看不懂它从哪来。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>MCP 是什么</h3>
+    <p><span class="badge badge-official">官方</span>MCP(Model Context Protocol)是一个开源标准,专门规范「AI 应用如何接入外部工具」。工具由 <strong>MCP server</strong> 提供——server 可以是你本机跑的一个进程,也可以是云端托管的服务;Claude Code 作为 client 去连接它们,连上之后 server 提供的工具、资源(resources)、提示词(prompts)都可以在会话里用。</p>
+    <p><span class="badge badge-site">本站观点</span>类比:MCP 之于 AI 工具,相当于 USB-C 之于外设。Claude Code 只需要实现一个「插口」(协议),任何按协议实现的 server 插上就能用,不需要为每个服务写专门的集成。什么时候该接一个 server?官方给的判断标准很实用:<span class="badge badge-official">官方</span>当你发现自己反复把别的工具里的数据(issue 内容、监控面板数字、数据库查询结果)复制粘贴进对话时,就该把那个系统接成 server,让 Claude 直接读写。</p>
+
+    <h3>接入方式:stdio、HTTP、SSE(与 WebSocket)</h3>
+    <p><span class="badge badge-official">官方</span>server 按「跑在哪、怎么通信」分几种 transport:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>transport</th><th>跑在哪</th><th>怎么加</th><th>适用场景</th></tr></thead>
+      <tbody>
+        <tr><td><code>stdio</code></td><td>本机子进程,Claude Code 负责启动</td><td>默认 transport,<code>claude mcp add &lt;name&gt; -- &lt;命令&gt;</code></td><td>需要本地资源:浏览器、文件系统、数据库 socket</td></tr>
+        <tr><td><code>http</code></td><td>远程 URL,云服务托管</td><td><code>--transport http</code>,支持 OAuth 登录</td><td>远程服务的推荐方式(Notion、Sentry、GitHub 等)</td></tr>
+        <tr><td><code>sse</code></td><td>远程 URL</td><td><code>--transport sse</code></td><td><strong>已弃用</strong>,仅用于只提供 SSE 端点的旧服务</td></tr>
+        <tr><td><code>ws</code></td><td>远程 URL,持久双向连接</td><td>只能通过 <code>.mcp.json</code> 或 <code>add-json</code> 配置,不支持 OAuth</td><td>server 需要主动向 Claude 推送事件时</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>stdio 命令里的 <code>--</code> 分隔符很关键:它前面是 Claude Code 自己的选项(<code>--transport</code>、<code>--env</code>、<code>--scope</code>),后面整段原样作为 server 的启动命令。漏掉 <code>--</code>,server 自己的 flag 会被 Claude Code 误当成自己的选项解析。</p>
+
+    <figure>
+      <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="拓扑图:Claude Code 通过 MCP 协议连接 stdio、HTTP、SSE/WebSocket 三类 server">
+        <rect class="svg-box-accent" x="20" y="110" width="180" height="120" rx="10"/>
+        <text class="svg-ink" x="110" y="145" text-anchor="middle" font-size="15" font-weight="600">Claude Code</text>
+        <text class="svg-ink-soft" x="110" y="170" text-anchor="middle" font-size="12">agentic loop(client)</text>
+        <text class="svg-ink-soft" x="110" y="192" text-anchor="middle" font-size="12">工具列表:内置工具</text>
+        <text class="svg-ink-soft" x="110" y="212" text-anchor="middle" font-size="12">+ mcp__server__tool</text>
+
+        <rect class="svg-box" x="440" y="26" width="220" height="72" rx="10"/>
+        <text class="svg-ink" x="550" y="56" text-anchor="middle" font-size="14">stdio server</text>
+        <text class="svg-ink-soft" x="550" y="80" text-anchor="middle" font-size="12">本机子进程(command + args)</text>
+
+        <rect class="svg-box" x="440" y="134" width="220" height="72" rx="10"/>
+        <text class="svg-ink" x="550" y="164" text-anchor="middle" font-size="14">HTTP server</text>
+        <text class="svg-ink-soft" x="550" y="188" text-anchor="middle" font-size="12">远程 URL,支持 OAuth</text>
+
+        <rect class="svg-box" x="440" y="242" width="220" height="72" rx="10"/>
+        <text class="svg-ink" x="550" y="272" text-anchor="middle" font-size="14">SSE(弃用)/ WebSocket</text>
+        <text class="svg-ink-soft" x="550" y="296" text-anchor="middle" font-size="12">旧服务兼容 / 事件推送</text>
+
+        <line class="svg-line" x1="200" y1="140" x2="432" y2="62" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="431,57 441,62 433,68"/>
+        <line class="svg-line" x1="200" y1="170" x2="432" y2="170" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="432,165 442,170 432,175"/>
+        <line class="svg-line" x1="200" y1="200" x2="432" y2="278" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="433,272 441,278 431,283"/>
+
+        <text class="svg-ink-soft" x="316" y="152" text-anchor="middle" font-size="12">tools / resources / prompts</text>
+        <text class="svg-ink-soft" x="316" y="330" text-anchor="middle" font-size="12">连哪些 server 由 ~/.claude.json(local / user)与项目根 .mcp.json(project)决定</text>
+      </svg>
+      <figcaption>Claude Code 作为 MCP client,同时连接多个 server;每个 server 的工具以 <code>mcp__&lt;server&gt;__&lt;tool&gt;</code> 的名字进入工具列表。</figcaption>
+    </figure>
+
+    <h3>claude mcp:加、管、删</h3>
+    <p><span class="badge badge-official">官方</span>管理 server 的命令都在 <code>claude mcp</code> 下,在终端运行(不是在 claude 会话里);会话内用 <code>/mcp</code> 面板查看状态、认证、临时开关某个 server:</p>
+    <pre><code># 加远程 HTTP server
+claude mcp add --transport http notion https://mcp.notion.com/mcp
+
+# 加本机 stdio server(-- 后面是启动命令)
+claude mcp add playwright -- npx -y @playwright/mcp@latest
+
+# 带环境变量 / 带静态 token
+claude mcp add --env AIRTABLE_API_KEY=YOUR_KEY --transport stdio airtable -- npx -y airtable-mcp-server
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/ --header "Authorization: Bearer &lt;token&gt;"
+
+# 查、看、删
+claude mcp list          # 列出所有 server 和连接状态
+claude mcp get notion    # 看单个 server 的详情与 scope
+claude mcp remove notion</code></pre>
+    <p><span class="badge badge-official">官方</span><code>claude mcp add</code> 打印 <code>Added ...</code> 只代表配置写入成功,不代表能连上;要用 <code>claude mcp list</code> 看真实状态:<code>✔ Connected</code>、<code>! Needs authentication</code>、<code>✘ Failed to connect</code> 等。stdio server 第一次检查可能因 <code>npx</code> 还在下载而显示失败,稍等重试即可。</p>
+
+    <h3>scope:配置放在哪,给谁用</h3>
+    <p><span class="badge badge-official">官方</span>加 server 时用 <code>--scope</code> 决定配置的归属,共三档:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>scope</th><th>存在哪</th><th>生效范围</th><th>团队共享</th></tr></thead>
+      <tbody>
+        <tr><td><code>local</code>(默认)</td><td><code>~/.claude.json</code> 里当前项目的条目下</td><td>只有你,只在本项目</td><td>否</td></tr>
+        <tr><td><code>project</code></td><td>项目根的 <code>.mcp.json</code></td><td>本项目所有人</td><td>是,提交进版本库</td></tr>
+        <tr><td><code>user</code></td><td><code>~/.claude.json</code> 顶层 <code>mcpServers</code></td><td>只有你,所有项目</td><td>否</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>两条容易踩的规则:一,project scope 的 server 出于安全首次使用前会弹批准提示(克隆下来的仓库不能未经你同意就在你机器上启动进程),拒绝过想重来用 <code>claude mcp reset-project-choices</code>;二,同名 server 在多个 scope 都有定义时,按 local &gt; project &gt; user &gt; 插件 &gt; claude.ai connector 的优先级取<strong>整条</strong>定义,字段不跨 scope 合并。scope 加完即固定,想换 scope 只能 remove 后重加。</p>
+
+    <h3>认证:OAuth 与 token</h3>
+    <p><span class="badge badge-official">官方</span>很多云端 server(Sentry、Linear、Notion 等)走 OAuth 2.0:先 <code>claude mcp add</code> 加上,此时 <code>list</code> 显示 <code>! Needs authentication</code>;再在会话里运行 <code>/mcp</code> 选中该 server 选 Authenticate,浏览器完成登录;或者直接在终端跑 <code>claude mcp login &lt;name&gt;</code>(v2.1.186 起)。token 会被安全存储并自动刷新,<code>claude mcp logout &lt;name&gt;</code> 清除。用静态 token 认证的服务(如 GitHub 的 PAT)则在 add 时用 <code>--header "Authorization: Bearer &lt;token&gt;"</code> 传入。另外,你在 claude.ai 网页端添加并登录过的 connector,用同一订阅账号登录 Claude Code 时会自动出现在 <code>/mcp</code> 列表里。</p>
+
+    <h3>工具怎么进入工具列表,花多少上下文</h3>
+    <p><span class="badge badge-official">官方</span>server 连上后,它的每个工具以 <code>mcp__&lt;server&gt;__&lt;tool&gt;</code> 的名字进入 Claude 的工具列表(例如 <code>mcp__github__get_issue</code>),权限规则、hooks、subagent 的工具配置都用这个全名引用;Claude 首次调用某个新工具时会请求你授权。</p>
+    <p><span class="badge badge-official">官方</span>成本方面:每个已连接的 server 的工具名和 server instructions 会加载进<strong>每一个</strong>会话的上下文窗口。好消息是 tool search 默认开启——完整的工具定义被推迟(defer),Claude 需要时才通过搜索按需加载,所以多接几个 server 对上下文的冲击比早期小得多;此外单次 MCP 工具输出超过 10,000 tokens 会警告,默认上限 25,000 tokens(<code>MAX_MCP_OUTPUT_TOKENS</code> 可调)。<span class="badge badge-site">本站观点</span>但「影响小」不等于免费:工具名、instructions、以及每次真实调用的输出都持续占用 <a href="/claude-code/course/day-02.html">D2</a> 讲过的那个有限窗口。server 装了一堆却变慢变笨的诊断与治理,见 Tip <a href="/claude-code/tips/too-many-mcp-servers.html">「MCP server 装多了会怎样」</a>。</p>
+
+    <h2>当天能做完的实操</h2>
+    <p>用官方教程里那个免认证的文档搜索 server 走完「加 → 验 → 用 → 删」全流程,30 分钟内可完成:</p>
+    <ol>
+      <li>在终端(不要在 claude 会话里)注册 server:预期打印 <code>Added HTTP MCP server claude-code-docs ...</code> 和一行 <code>File modified:</code> 指明写入了哪个配置文件。</li>
+      <li>运行 <code>claude mcp list</code>:预期该 server 显示 <code>✔ Connected</code>。</li>
+      <li>运行 <code>claude</code> 进入会话,粘贴下面的 prompt。预期:首次调用弹出工具授权,批准后回答里的工具调用带着 <code>claude-code-docs</code> 的 server 名——这就是答案来自 MCP server 而非模型记忆的证据。</li>
+      <li>运行 <code>claude mcp get claude-code-docs</code>:预期看到它登记在 local scope。想让它在你所有项目可用,先 <code>remove</code> 再加 <code>--scope user</code> 重新添加。</li>
+      <li>清理(可选):<code>claude mcp remove claude-code-docs</code>,预期打印 <code>Removed ...</code> 确认。</li>
+    </ol>
+    <pre><code>claude mcp add --transport http claude-code-docs https://code.claude.com/docs/mcp
+claude mcp list
+claude
+# ……会话内实验后……
+claude mcp remove claude-code-docs</code></pre>
+    <pre class="prompt"><code>用 claude-code-docs 这个 MCP server 查一下 MCP_TIMEOUT 环境变量是干什么的,
+并告诉我你是通过哪个工具调用拿到答案的。</code></pre>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说清:MCP 是什么协议,server 和 client 分别指谁,server 能提供哪三类东西(tools / resources / prompts)。</li>
+      <li>能说出 stdio 和 HTTP 两种 transport 的本质区别(本机子进程 vs 远程 URL),以及 SSE 的现状(已弃用)。</li>
+      <li>能画出三个 scope 各自的存放文件和生效范围,并解释 project scope 为什么要弹批准提示。</li>
+      <li>实操五步全部跑通,且能指出会话输出里哪一处证明答案来自 MCP server。</li>
+      <li>自测题:同一个名字的 server 同时定义在你的 local scope 和仓库的 <code>.mcp.json</code> 里,你连到哪份配置?克隆仓库的同事呢?(参考答案:你连 local 那份——local 优先于 project,整条定义生效、字段不合并;同事机器上没有你的 <code>~/.claude.json</code> 条目,连 <code>.mcp.json</code> 那份,且首次使用前要先批准。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/mcp-quickstart.md">Connect to MCP servers(MCP quickstart)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/mcp.md">Connect Claude Code to tools via MCP(MCP 参考)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/permissions.md">Permissions(mcp__server__tool 命名与权限规则)</a>,抓取于 2026-08-05。</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-08.html">上一课 D8 · Hooks</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-10.html">下一课 D10 · Subagents</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后台跑+手机看进度 · Claude Code 学习站</title>
+<meta name="description" content="长任务放后台或云端跑,手机看进度、批权限、给反馈:电脑开着用 Remote Control,电脑合盖用 claude --cloud 云端会话。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="后台跑+手机看进度 · Claude Code 学习站">
+<meta property="og:description" content="电脑开着用 Remote Control,电脑合盖用 claude --cloud 云端会话:手机看进度、批权限、收推送。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/background-runs-mobile-monitoring.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/background-runs-mobile-monitoring.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / B · 并行与效率</p>
+  <h1>后台跑+手机看进度</h1>
+  <p>长任务不必守在终端前:放后台或云端继续跑,人离开工位后用手机看进度、批权限、给反馈。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">手机上的 Claude app 不跑代码,它只是会话的客户端。真正要选的是任务跑在哪:本机(Remote Control)还是 Anthropic 云端(cloud session)。判断标准只有一条——电脑关不关。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      <span class="badge badge-official">官方</span>电脑保持开机、任务需要本地文件/工具/MCP → Remote Control:<code>claude remote-control</code> 起会话,手机扫码接管,代码执行始终在本机。电脑要合盖走人、仓库在 GitHub → 云端会话:<code>claude --cloud "任务"</code> 丢上 Anthropic 托管基础设施,手机随时开 Claude app 的 Code 标签页看进度,回工位再 <code>claude --teleport</code> 拉回终端。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>装好手机端。</strong><span class="badge badge-official">官方</span>下载 iOS/Android 的 Claude app(终端里运行 <code>/mobile</code> 直接出下载二维码),用与 Claude Code 相同的 claude.ai 账号登录,入口在 app 导航的 <strong>Code</strong> 标签。两条路都要求 claude.ai 订阅登录,API key 不支持。</li>
+      <li><strong>本机路:起 Remote Control。</strong><span class="badge badge-official">官方</span>三种开法:<code>claude remote-control</code>(server 模式,专门等远程连接)、<code>claude --remote-control</code>(正常交互会话同时可远程)、已在会话里则运行 <code>/remote-control</code> 带着当前对话历史接上。server 模式按空格显示二维码,手机一扫直接进。预期看到:终端出现 session URL,手机 Code 列表里该会话带绿点。</li>
+      <li><strong>手机上能干什么。</strong><span class="badge badge-official">官方</span>看对话和 subagent/workflow 的实时进度、发消息接着指挥、传图片(自动下载到本机作为 <code>@</code> 文件引用)、回答权限确认;终端和手机可交替输入,多端同步。笔记本睡眠或断网,恢复后会话自动重连。</li>
+      <li><strong>打开推送。</strong><span class="badge badge-official">官方</span>终端 <code>/config</code> 里开两个开关:<strong>Push when Claude decides</strong>(长任务完成、需要你决策时主动推)和 <strong>Push when actions required</strong>(权限确认、提问时推);也可以直接在 prompt 里写「notify me when the tests finish」。</li>
+      <li><strong>本机路的红线。</strong><span class="badge badge-official">官方</span>本地 <code>claude</code> 进程必须活着——关终端会话就没了;在远程服务器上跑,记得套 <code>tmux</code>/<code>screen</code> 再断 SSH;机器醒着但断网超过约 10 分钟,会话超时退出。</li>
+      <li><strong>云端路:电脑要关就用 <code>--cloud</code>。</strong><span class="badge badge-official">官方</span><code>claude --cloud "Fix the flaky test in auth.spec.ts"</code> 从当前仓库的 GitHub remote 当前分支开一个云端会话(有本地未推送的 commit 先 push);每条 <code>--cloud</code> 是独立会话,连发几条就是并行跑。CLI 里 <code>/tasks</code> 看进度;手机上打开对应会话可以直接提问、纠偏,甚至从手机发起新任务(Code 标签选 repo 和分支)。首次使用先按官方 web quickstart 连好 GitHub。</li>
+      <li><strong>回到工位收工。</strong><span class="badge badge-official">官方</span><code>claude --teleport</code> 打开会话选择器,把云端会话连同它的分支拉回本地终端继续改;要求本地 git 状态干净、同一 claude.ai 账号、同一仓库的 checkout。云端会话还能顺手开 auto-fix:在手机上对它说「watch this PR and fix any CI failures or review comments」,CI 挂了或有 review 评论会自动跟进。</li>
+      <li><strong>注意额度。</strong><span class="badge badge-official">官方</span>云端会话与你其它 Claude 用量共享速率限制,并行越多消耗越快;云端 VM 本身不另收费。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>这个任务预计要跑很久:&lt;任务描述&gt;。
+我已经用 /remote-control 连上手机,接下来会离开电脑。请:
+1. 把任务拆成清晰的阶段,每完成一个阶段输出一行状态摘要,
+   方便我在手机上扫一眼就知道进展;
+2. 任务完成或需要我做决定时通知我
+   (notify me when the task finishes or needs my decision);
+3. 需要权限确认的操作直接发起,我会在手机上批;
+   长时间等不到我的批准就先跳过该步骤,继续能做的部分,最后汇总列出跳过了什么。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/remote-control.md">Continue local sessions from any device with Remote Control</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/mobile.md">Claude Code on mobile</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/claude-code-on-the-web.md">Use Claude Code on the web</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(Remote Control 与 Claude Code on the web 均为 research preview,入口与限制随版本变化)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

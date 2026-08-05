@@ -44,7 +44,7 @@ description: 每日更新 Claude Code 学习站（推进一课 + 2 条 Tip + 复
 
 ## 第四步:更新板块二「实战 Tip」
 
-1. 从 `backlog` 里挑 **2 条**写(`starred: true` 优先;如果第二步的增量正好命中某条 backlog,优先写那条),分别发布到 `tips/<slug>.html`
+1. 从 `backlog` 里挑 **2 条**写(`starred: true` 优先;如果第二步的增量正好命中某条 backlog,优先写那条),分别发布到 `tips/<slug>.html`。**backlog 为空时跳过本小步**,当天只做复核(下面第 2 步)和新选题补充(第 3 步)——不要为了凑数硬写。
    - 严格用固定模板(见 `tips/template.html`):问题原句 → 一句话结论 → 做法步骤 → 可抄的 prompt → 来源与最后核实日期
    - `verbatim: true` 的条目是用户原话,标题保持原话不要改写
    - slug 用短英文 kebab-case,自己起,起了就不改

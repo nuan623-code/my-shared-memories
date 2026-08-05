@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>改坏了怎么回退（checkpoint 不是 git） · Claude Code 学习站</title>
+<meta name="description" content="Claude 把代码改坏了怎么办?/rewind 能回退什么、回不了什么(bash 改动、subagent 编辑、外部修改都不追踪),以及 checkpoint 和 git 的正确分工。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/rollback-checkpoint-vs-git.html">
+<meta property="og:title" content="改坏了怎么回退（checkpoint 不是 git） · Claude Code 学习站">
+<meta property="og:description" content="checkpoint/rewind 能回退什么、不能回退什么、和 git 的分工。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/rollback-checkpoint-vs-git.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · 稳定与质量</span></p>
+  <h1>改坏了怎么回退（checkpoint 不是 git）</h1>
+  <p>Claude 一顿操作把项目改坏了——先搞清哪些改动 /rewind 能救、哪些只有 git 能救,再动手回退。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code 在你每次发 prompt 前自动给代码状态拍快照(checkpoint),随时可以 <code>/rewind</code> 回去。但它只追踪 Claude 用<strong>文件编辑工具</strong>做的修改——bash 命令、subagent、你自己在编辑器里的改动都不在保护范围内。把它当 git 用,迟早吃亏。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      改坏了先 <code>/rewind</code>(或连按两次 <code>Esc</code>)回退到出事前的 checkpoint;但 checkpoint 只是“会话级撤销”,bash 改动、subagent 编辑、外部修改它都回不了——那些要靠 git。<span class="badge badge-official">官方</span>官方定位原话方向:checkpoint 是 local undo,git 是 permanent history,前者补充后者、不替代后者。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>打开回退菜单。</strong>运行 <code>/rewind</code>,或在输入框为空时连按两次 <code>Esc</code>。<span class="badge badge-official">官方</span>菜单列出本会话你发过的每条 prompt——每条 prompt 都自动建了一个 checkpoint,会话内保留最近 100 个 checkpoint 的文件快照,而且 checkpoint 随会话保存,恢复会话后照样能 rewind(会话默认 30 天后清理,可用 <code>cleanupPeriodDays</code> 调整)。</li>
+      <li><strong>选回退点和回退内容。</strong><span class="badge badge-official">官方</span>选中某条 prompt 后有三种恢复:<strong>代码+对话都回退</strong>、<strong>只回退对话</strong>(代码保持现状)、<strong>只回退代码</strong>(对话保留,适合“思路对了但改错了”)。另有两个 Summarize 选项用于压缩上下文,不动磁盘文件。预期:回退代码后,Claude 编辑过的文件恢复到该 checkpoint 时的内容。</li>
+      <li><strong>核对哪些改动其实没被回退。</strong>这是本 Tip 的关键——<span class="badge badge-official">官方</span>checkpoint 明确不追踪:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>改动来源</th><th>/rewind 能回退?</th><th>怎么办</th></tr></thead>
+          <tbody>
+            <tr><td>Claude 的文件编辑工具(Edit/Write)</td><td>能</td><td>放心用 rewind</td></tr>
+            <tr><td>bash 命令(<code>rm</code>/<code>mv</code>/<code>cp</code>、脚本、代码生成器)</td><td>不能</td><td>git 或手工恢复</td></tr>
+            <tr><td>subagent 的编辑(含后台 <code>/code-review --fix</code>)</td><td>不能(前台 fork 例外)</td><td>用 git 回退</td></tr>
+            <tr><td>你在编辑器里的手改、其他并发会话</td><td>不追踪</td><td>用 git</td></tr>
+            <tr><td>符号链接/硬链接指向的文件</td><td>跳过并警告</td><td>手工或让 Claude 反向编辑</td></tr>
+          </tbody>
+        </table></div>
+        回退代码时如果出现 “Restored the code, but skipped N files” 警告,说明有链接类路径被跳过,可先 <code>/debug</code> 开日志再回退,日志会点名每个被跳过的路径。<span class="badge badge-official">官方</span></li>
+      <li><strong>建立分工习惯。</strong><span class="badge badge-site">本站观点</span>实践口径:开工前保证工作区干净(git 有底),实验性大改放心让 Claude 冲,失败就 rewind 换思路;阶段性成果及时 commit。这样 rewind 管“分钟级试错”,git 管“小时级里程碑”,两层保险互不抢戏。checkpoint 机制的完整讲解见 <a href="/claude-code/course/day-06.html">D6 · checkpoint 与会话管理课</a>;想从源头少改坏,配套读<a href="/claude-code/tips/self-verifiable-done.html">给它能自己跑的验证</a>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>刚才的修改把项目改坏了,先停下,不要继续改。帮我评估回退方案:
+1. 列出这个会话里你用文件编辑工具改过的所有文件(这些我可以用 /rewind 恢复)。
+2. 列出你通过 bash 命令产生的文件改动(新建/删除/移动/脚本改写,这些 /rewind
+   恢复不了),并给出用 git 恢复它们的具体命令(git status / git checkout / git clean)。
+3. 告诉我推荐的恢复顺序,以及恢复后如何验证项目回到了可用状态。
+只分析,先不要执行任何恢复命令。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/checkpointing.md" target="_blank" rel="noopener">Checkpointing</a>——自动快照、100 个 checkpoint、rewind 菜单五选项、四类不追踪的改动、local undo vs permanent history,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 checkpoint 行为细节与版本,会定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

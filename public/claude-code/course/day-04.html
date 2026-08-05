@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D4 · CLAUDE.md 与 rules · Claude Code 学习站</title>
+<meta name="description" content="讲清 CLAUDE.md 的四个层级与加载规则、该写什么不该写什么,以及 .claude/rules/ 如何把指令拆成多文件并按路径按需生效。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-04.html">
+<meta property="og:title" content="D4 · CLAUDE.md 与 rules · Claude Code 学习站">
+<meta property="og:description" content="CLAUDE.md 的层级与加载规则、该写什么不该写什么,以及 .claude/rules/ 的按路径生效机制。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-04.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D4</p>
+  <h1>D4 · CLAUDE.md 与 rules</h1>
+  <p>CLAUDE.md 是每个会话都随身携带的持久指令。这一课讲清它的层级与加载规则、该写什么不该写什么,以及怎么用 .claude/rules/ 把指令按路径拆分。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">一句话版本:CLAUDE.md 常驻上下文,所以「短而具体」远比「大而全」有效;只对部分文件生效的约定,拆进带 <code>paths:</code> 的 rules 文件,按需载入。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-01.html">D1</a> 里我们看到,Claude Code 的每一轮 agentic loop 都从同一个上下文出发,而 CLAUDE.md 是这个上下文里「每个会话都在场」的固定部分——会话启动时载入,之后每一轮都带着它。<a href="/claude-code/course/day-02.html">D2</a> 又算过账:常驻上下文的每一行都在持续消耗 token。把这两件事连起来,就得到本课的核心问题:这份「永远在场」的文件,该放在哪、写什么、怎么在变长之后拆分。</p>
+    <p>本课也为后面铺路:<a href="/claude-code/course/day-07.html">D7 的 Skills</a> 是「按需载入」的另一半——CLAUDE.md 和不带 <code>paths:</code> 的规则常驻上下文,Skills 只在被调用时载入,分清这两类是搭配置体系的基础。而 <a href="/claude-code/course/day-08.html">D8 的 Hooks</a> 解决 CLAUDE.md 管不住的事:CLAUDE.md 是建议,Hooks 才是强制。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>CLAUDE.md 是什么:你写的持久指令</h3>
+    <p><span class="badge badge-official">官方</span>每个 Claude Code 会话都从空白上下文开始,跨会话携带知识的机制有两套:CLAUDE.md(你写的指令)和 auto memory(Claude 自己记的笔记)。两者都在每个会话开始时载入。本课聚焦前者;auto memory 只需先知道三点:默认开启、存在 <code>~/.claude/projects/&lt;project&gt;/memory/</code>、每次会话只载入其索引 MEMORY.md 的前 200 行或 25KB。</p>
+    <p><span class="badge badge-official">官方</span>关键定位:这两套记忆都是「上下文」,不是「强制配置」。Claude 会读并尽力遵循,但没有硬约束——想无论如何拦下某个动作,要用 PreToolUse hook(D8 展开)。指令写得越具体、越简洁,遵循得越稳定。</p>
+
+    <h3>四个层级,一个拼接顺序</h3>
+    <p><span class="badge badge-official">官方</span>CLAUDE.md 可以放在四种位置,作用域从宽到窄。载入时按「从宽到窄」的顺序拼接进上下文,所以项目指令出现在用户指令之后;官方对全局 CLAUDE.md 的说明也写明:两者同时在场,指令冲突时项目级优先。</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>层级</th><th>位置</th><th>给谁用</th><th>是否入库</th></tr></thead>
+      <tbody>
+        <tr><td>组织策略</td><td>macOS <code>/Library/Application Support/ClaudeCode/CLAUDE.md</code>(Linux/WSL 与 Windows 另有对应路径)</td><td>全组织,由 IT 统一下发,个人无法排除</td><td>由 IT 管理</td></tr>
+        <tr><td>用户级</td><td><code>~/.claude/CLAUDE.md</code></td><td>你自己,所有项目</td><td>否</td></tr>
+        <tr><td>项目级</td><td><code>./CLAUDE.md</code> 或 <code>./.claude/CLAUDE.md</code></td><td>团队,随源码共享</td><td>是,进 git</td></tr>
+        <tr><td>本地项目</td><td><code>./CLAUDE.local.md</code></td><td>你自己,仅本项目</td><td>否,加进 <code>.gitignore</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>加载规则:向上全载,向下按需</h3>
+    <p><span class="badge badge-official">官方</span>启动时,Claude Code 从当前工作目录一路向上走到文件系统根,沿途每一层目录的 CLAUDE.md 和 CLAUDE.local.md 全部载入。所有文件是<strong>拼接</strong>进上下文,不互相覆盖:目录树上层的在前、越接近工作目录的越靠后;同一目录内 CLAUDE.local.md 排在 CLAUDE.md 之后。子目录方向则相反:工作目录之下的 CLAUDE.md 不在启动时载入,等 Claude 实际读到那个目录里的文件时才按需带入。</p>
+    <figure>
+      <svg viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CLAUDE.md 层级加载图:左侧为启动时按序拼接的组织策略、用户级、上层目录、项目根与本地文件,右侧为按需载入的子目录 CLAUDE.md 与带 paths 的规则">
+        <text class="svg-ink" x="24" y="30" font-size="14" font-weight="600">会话启动时载入(按此顺序拼接)</text>
+        <rect class="svg-box" x="24" y="46" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="72" font-size="13">组织策略 managed CLAUDE.md</text>
+        <line class="svg-line" x1="189" y1="88" x2="189" y2="99" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,99 194,99 189,106"/>
+        <rect class="svg-box" x="24" y="106" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="132" font-size="13">用户级 ~/.claude/CLAUDE.md 与 rules/</text>
+        <line class="svg-line" x1="189" y1="148" x2="189" y2="159" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,159 194,159 189,166"/>
+        <rect class="svg-box" x="24" y="166" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="192" font-size="13">上层目录 CLAUDE.md(monorepo 祖先)</text>
+        <line class="svg-line" x1="189" y1="208" x2="189" y2="219" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,219 194,219 189,226"/>
+        <rect class="svg-box-accent" x="24" y="226" width="330" height="56" rx="9"/>
+        <text class="svg-ink" x="40" y="248" font-size="13">项目根 CLAUDE.md / .claude/CLAUDE.md</text>
+        <text class="svg-ink-soft" x="40" y="270" font-size="12">+ .claude/rules/ 里不带 paths: 的规则</text>
+        <line class="svg-line" x1="189" y1="282" x2="189" y2="293" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,293 194,293 189,300"/>
+        <rect class="svg-box" x="24" y="300" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="326" font-size="13">CLAUDE.local.md(个人,不入库)</text>
+        <text class="svg-ink-soft" x="24" y="366" font-size="12">越靠下作用域越具体,拼接时越靠后被读到</text>
+        <line class="svg-line" x1="380" y1="24" x2="380" y2="342" stroke-width="1" stroke-dasharray="4 4"/>
+        <text class="svg-ink" x="402" y="30" font-size="14" font-weight="600">按需载入(不占启动上下文)</text>
+        <rect class="svg-box" x="402" y="46" width="254" height="58" rx="9"/>
+        <text class="svg-ink" x="418" y="70" font-size="13">子目录里的 CLAUDE.md</text>
+        <text class="svg-ink-soft" x="418" y="90" font-size="12">Claude 读到该目录文件时载入</text>
+        <rect class="svg-box" x="402" y="124" width="254" height="58" rx="9"/>
+        <text class="svg-ink" x="418" y="148" font-size="13">带 paths: 的 rules 文件</text>
+        <text class="svg-ink-soft" x="418" y="168" font-size="12">读到匹配 glob 的文件时载入</text>
+        <text class="svg-ink-soft" x="402" y="214" font-size="12">触发后才进入上下文,</text>
+        <text class="svg-ink-soft" x="402" y="232" font-size="12">适合只对部分文件生效的约定</text>
+      </svg>
+      <figcaption>CLAUDE.md 层级加载图:左列在会话启动时全部拼接进上下文,右列只在触发时载入。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>几条容易错过的细节:CLAUDE.md 里的块级 HTML 注释(<code>&lt;!-- … --&gt;</code>)在注入上下文前会被剥离,可以拿来写给人看的维护备注,不花 token;文件里可以用 <code>@path/to/import</code> 语法引入其他文件,被引入的文件在启动时一并展开载入(相对路径相对于所在文件,最多递归 4 层,写在反引号里则不触发);项目文件里指向工作目录之外的 import,首次会弹确认框。另外 Claude Code 只读 CLAUDE.md、不读 AGENTS.md——已有 AGENTS.md 的仓库,官方建议在 CLAUDE.md 里写一行 <code>@AGENTS.md</code> 引入,或直接建符号链接。</p>
+
+    <h3>该写什么,不该写什么</h3>
+    <p><span class="badge badge-official">官方</span>判断标准就一句:对每一行问「删掉它,Claude 会因此犯错吗?」不会就删。官方给出的取舍对照:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>该写</th><th>不该写</th></tr></thead>
+      <tbody>
+        <tr><td>Claude 猜不出来的构建/测试/部署命令</td><td>读代码就能推断的内容(目录结构、依赖清单)</td></tr>
+        <tr><td>与默认不同的代码风格规则</td><td>语言通用惯例(Claude 本来就会)</td></tr>
+        <tr><td>测试跑法与首选 test runner</td><td>详细 API 文档(放链接即可)</td></tr>
+        <tr><td>分支命名、PR 约定等仓库礼仪</td><td>频繁变化的信息</td></tr>
+        <tr><td>项目特有的架构决策</td><td>长篇解释和教程</td></tr>
+        <tr><td>环境怪癖(必需的环境变量)</td><td>逐文件的代码库描述</td></tr>
+        <tr><td>常见坑与非直觉行为</td><td>「写干净代码」这类不可验证的空话</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>体量目标:单个 CLAUDE.md 控制在 200 行以内。超长文件仍会整份载入,但会挤占上下文并降低遵循度。写法上三条原则:<strong>具体可验证</strong>(「用 2 空格缩进」优于「格式要规范」)、<strong>结构化</strong>(标题加列表,别写成大段落)、<strong>无冲突</strong>(两条规则打架时,Claude 可能任选一条执行)。拆分时注意:<code>@import</code> 只解决组织问题,被引入的文件启动时照样载入,不省上下文;真正省上下文的是下面的 path-scoped rules。</p>
+
+    <h3>rules:把指令拆成多文件,按路径生效</h3>
+    <p><span class="badge badge-official">官方</span>项目大了以后,把指令拆进 <code>.claude/rules/</code> 目录:每个 <code>.md</code> 文件讲一个主题(如 <code>testing.md</code>、<code>api-design.md</code>),子目录也会被递归发现。不带 <code>paths:</code> frontmatter 的规则在启动时载入,优先级与 <code>.claude/CLAUDE.md</code> 相同;带 <code>paths:</code> 的规则只在 Claude 读到匹配 glob 的文件时才载入:</p>
+    <pre><code>---
+paths:
+  - "src/api/**/*.ts"
+---
+
+# API Development Rules
+
+- All API endpoints must include input validation
+- Use the standard error response format</code></pre>
+    <p><span class="badge badge-official">官方</span>glob 支持多模式与花括号展开(如 <code>src/**/*.{ts,tsx}</code>)。个人通用的约定可以放 <code>~/.claude/rules/</code>,对所有项目生效,且先于项目规则载入(项目规则优先);<code>.claude/rules/</code> 还支持符号链接,方便多个仓库共享同一套规则。monorepo 里如果上层目录混进了别的团队的 CLAUDE.md,可用 <code>claudeMdExcludes</code> 设置按路径排除(组织策略层的除外)。注意:rules 和 CLAUDE.md 同一性质,都是 Claude「读到的建议」,不是强制配置。</p>
+
+    <h3>常见误区:「写了不听」</h3>
+    <p><span class="badge badge-official">官方</span>误区:以为 CLAUDE.md 是配置文件,写进去就必然生效。实际上它以用户消息的形式排在系统提示词之后进入上下文,Claude 会读、会尽力遵循,但没有强制力。官方给出的排查顺序:先跑 <code>/context</code> 看 <strong>Memory files</strong> 列表确认文件真的载入了(不在列表里,Claude 根本看不见);再检查文件位置是否在会被加载的层级;然后把指令改具体;最后排查多个文件之间的指令冲突。</p>
+    <p><span class="badge badge-site">本站观点</span>实践里「写了不听」最常见的原因是文件太长:重要规则被淹没在噪音里——官方最佳实践原文即警告「臃肿的 CLAUDE.md 会让 Claude 忽略你真正的指令」。<code>/doctor</code> 能对入库的 CLAUDE.md 提出裁剪建议(需 v2.1.206+)。完整的排查与瘦身步骤,见 Tip:<a href="/claude-code/tips/claude-md-ignored-too-long.html">CLAUDE.md 写了不听,多半是太长</a>。另外记住分工:凡是「必须在某个时点发生」的动作(比如每次 commit 前跑 lint),别写在 CLAUDE.md 里祈祷,写成 Hook(D8)。</p>
+
+    <h2>当天能做完的实操</h2>
+    <ol>
+      <li>项目还没有 CLAUDE.md 的,在会话里跑 <code>/init</code>。预期:Claude 分析代码库后生成一份含构建命令、测试方式与项目约定的 CLAUDE.md;若已存在,则是提出改进建议而非覆盖。已有 CLAUDE.md 的直接进下一步。</li>
+      <li>跑 <code>/context</code>,在 <strong>Memory files</strong> 列表里确认你的 CLAUDE.md(以及 CLAUDE.local.md、rules)确实载入了。预期:能看到文件清单;某个文件不在,说明位置放错了层级。</li>
+      <li>用下面的 prompt 让 Claude 审计你的 CLAUDE.md,对照上面的取舍表瘦身:</li>
+    </ol>
+    <pre class="prompt"><code>请审计本项目的 CLAUDE.md(如有 .claude/rules/ 一并审):
+1. 列出 Claude 读代码就能自己推断的内容(目录结构、依赖清单、架构综述),建议删除;
+2. 列出含糊到无法验证执行的指令(如「保持代码整洁」),各给一条具体、可验证的改写;
+3. 列出互相矛盾或重复的指令;
+4. 只对部分目录或文件类型生效的指令,建议移入 .claude/rules/ 并给出 paths: 的 glob。
+先输出审计报告,待我确认后再修改文件。</code></pre>
+    <ol start="4">
+      <li>亲手建一条 path-scoped rule:<code>mkdir -p .claude/rules</code>,新建 <code>.claude/rules/testing.md</code>,内容参照下面(glob 按你的项目改)。然后开新会话,先跑 <code>/context</code> 确认它<strong>不在</strong>启动载入清单里(带 paths 的规则按需载入),再让 Claude 读一个匹配的测试文件并复述当前生效的测试约定。预期:规则内容在读到匹配文件后才出现在 Claude 的表述里。
+      <pre><code>---
+paths:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+---
+
+# Testing Rules
+- 测试命名用「should [预期结果] when [条件]」
+- mock 外部依赖,不 mock 内部模块</code></pre></li>
+      <li>(可选)跑 <code>/memory</code> 浏览各层记忆文件的位置,顺便打开 auto memory 目录,看看 Claude 已经为这个项目自己记了什么。</li>
+    </ol>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看图讲出 CLAUDE.md 的四个层级与拼接顺序,并说清哪些在启动时载入、哪些按需载入。</li>
+      <li>能说出至少三类「不该写进 CLAUDE.md」的内容,并用 D2 的上下文成本解释为什么。</li>
+      <li>项目里有一份 200 行以内、通过第 3 步审计的 CLAUDE.md,外加至少一条带 <code>paths:</code> 的规则文件且验证过其按需载入。</li>
+      <li>自测题:monorepo 根目录和你负责的子包里各有一份 CLAUDE.md,你在子包目录启动 Claude Code,哪些会载入、顺序如何?(答案:两份都在启动时载入,根目录的在前、子包的在后;子包之下更深子目录里的 CLAUDE.md 则要等 Claude 读到该目录的文件时才按需载入。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/memory.md">code.claude.com/docs/en/memory.md</a>(CLAUDE.md 层级、加载顺序、imports、rules、auto memory、排查)· 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/claude-directory.md">code.claude.com/docs/en/claude-directory.md</a>(.claude 目录全览、rules 与 CLAUDE.md 的定位对比)· 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md">code.claude.com/docs/en/best-practices.md</a>(该写/不该写对照表、「删掉会犯错吗」标准、过长警告)· 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-03.html">上一课 D3 · 权限模式与沙箱</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-05.html">下一课 D5 · plan mode 与 explore→plan→code</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

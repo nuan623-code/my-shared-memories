@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D2 · 上下文窗口与 prompt caching · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 每轮都会重发完整上下文:本课讲清上下文窗口的三层结构与上限、自动压缩(compaction)何时发生、prompt cache 的前缀命中与失效条件,以及这一切如何决定速度和费用。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D2 · 上下文窗口与 prompt caching · Claude Code 学习站">
+<meta property="og:description" content="上下文窗口的三层结构、自动压缩何时发生、prompt cache 的前缀命中与失效条件,以及它们如何决定速度和费用。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-02.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-02.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D2</p>
+  <h1>D2 · 上下文窗口与 prompt caching</h1>
+  <p>搞懂上下文窗口怎么构成、装满时发生什么,以及 prompt caching 为什么决定了你每一轮交互的速度和费用。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">每发一条消息,Claude Code 都会把整个会话从头到尾重发一遍。本课讲清这件事为什么可行:窗口的三层结构、接近上限时的自动压缩(compaction),以及让「重发」变便宜的前缀缓存机制——最后落到你随时能自查的 <code>/context</code> 和 <code>/usage</code>。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-01.html">D1</a> 讲了 agentic loop,以及用 <code>/context</code> 能看到上下文里都装了什么。D2 接着回答三个问题:这个窗口有多大、装满了会发生什么、为什么每轮都重发全部内容却不至于又慢又贵。答案分别对应本课的三个机制:窗口上限、compaction 和 prompt caching。</p>
+    <p>这课是后面几课的地基:<a href="/claude-code/course/day-06.html">D6 会话管理</a>里 <code>/clear</code>、<code>/compact</code>、<code>/rewind</code> 的取舍,全部建立在「什么会打掉缓存、什么能活过压缩」之上;实战 Tip D 簇(<a href="/claude-code/tips/prompt-cache-invalidation.html">缓存失效</a>、<a href="/claude-code/tips/where-quota-goes.html">额度去哪了</a>、<a href="/claude-code/tips/long-session-degradation.html">长会话变笨</a>)是本课机制的问题式速查。跳过这课,你会在「为什么切个模型突然变慢了」「为什么改了 CLAUDE.md 没反应」这类问题上反复踩坑。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>三层结构,每轮全量重发</h3>
+    <p><span class="badge badge-official">官方</span>模型在两次请求之间不记得任何东西。所以你每发一条消息,Claude Code 都发起一次全新的 API 请求,重发完整上下文:系统提示、项目上下文、之前的每一条消息和工具结果,再加上你的新消息。新内容永远追加在末尾,因此每次请求的绝大部分和上一次是一模一样的。为了配合缓存,Claude Code 把请求内容按「变化频率」排序,越少变的越靠前:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>层</th><th>内容</th><th>什么时候变</th></tr></thead>
+      <tbody>
+        <tr><td class="d">系统提示层</td><td>核心指令、工具定义、output style</td><td>加载的工具集变化,或升级 Claude Code</td></tr>
+        <tr><td class="d">项目上下文层</td><td>CLAUDE.md、auto memory、无 <code>paths</code> 的 rules</td><td>会话开始,或 <code>/clear</code>、<code>/compact</code> 之后</td></tr>
+        <tr><td class="d">对话层</td><td>你的消息、Claude 的回复、工具结果</td><td>每一轮</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <figure>
+      <svg viewBox="0 0 680 332" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="上下文窗口分层图:系统提示层、项目上下文层、不断增长的对话层,下方是自动压缩触发区和上下文上限">
+        <rect class="svg-box" x="30" y="16" width="400" height="54" rx="8"/>
+        <text class="svg-ink" x="46" y="38" font-size="14" font-weight="600">系统提示层</text>
+        <text class="svg-ink-soft" x="46" y="57" font-size="12">核心指令 · 内置工具定义 · output style</text>
+        <rect class="svg-box" x="30" y="76" width="400" height="54" rx="8"/>
+        <text class="svg-ink" x="46" y="98" font-size="14" font-weight="600">项目上下文层</text>
+        <text class="svg-ink-soft" x="46" y="117" font-size="12">CLAUDE.md · auto memory · 无 paths 的 rules</text>
+        <rect class="svg-box-accent" x="30" y="136" width="400" height="104" rx="8"/>
+        <text class="svg-ink" x="46" y="160" font-size="14" font-weight="600">对话层(每轮增长)</text>
+        <text class="svg-ink-soft" x="46" y="179" font-size="12">你的消息 · Claude 的回复 · 工具结果</text>
+        <text class="svg-ink-soft" x="46" y="198" font-size="12">(文件读取的内容通常占大头)</text>
+        <line class="svg-line" x1="400" y1="152" x2="400" y2="218" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="395,218 405,218 400,228"/>
+        <line class="svg-line" x1="430" y1="43" x2="442" y2="43" stroke-width="1.5"/>
+        <text class="svg-ink-soft" x="448" y="38" font-size="12">几乎不变:升级 Claude Code</text>
+        <text class="svg-ink-soft" x="448" y="54" font-size="12">或工具集变化时才变</text>
+        <line class="svg-line" x1="430" y1="103" x2="442" y2="103" stroke-width="1.5"/>
+        <text class="svg-ink-soft" x="448" y="98" font-size="12">会话开始时读入;/clear、</text>
+        <text class="svg-ink-soft" x="448" y="114" font-size="12">/compact 后从磁盘重新加载</text>
+        <line class="svg-line" x1="430" y1="188" x2="442" y2="188" stroke-width="1.5"/>
+        <text class="svg-ink-soft" x="448" y="183" font-size="12">每一轮都在增长,是占用</text>
+        <text class="svg-ink-soft" x="448" y="199" font-size="12">与费用的主要来源</text>
+        <line class="svg-line" x1="30" y1="262" x2="430" y2="262" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text class="svg-ink-soft" x="230" y="284" font-size="12" text-anchor="middle">接近上限 → 自动压缩(auto-compact)触发区</text>
+        <line class="svg-line" x1="30" y1="302" x2="430" y2="302" stroke-width="2.5"/>
+        <text class="svg-ink" x="230" y="324" font-size="12" text-anchor="middle">上下文上限(常见 200K token,部分模型可达 1M)</text>
+      </svg>
+      <figcaption>一次 API 请求里的上下文,自上而下就是请求里的先后顺序:越少变的内容越靠前,这是缓存能命中的前提。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>关于上限:官方交互演示以 200K token 为示意上限;Fable 5、Sonnet 5、Opus 4.6 及之后的模型和 Sonnet 4.6 支持 1M token 窗口(按套餐提供,一般需选 <code>[1m]</code> 模型变体,Sonnet 5 则直接以 1M 运行)。用 <code>/context</code> 随时查看当前会话各类内容的真实占用。</p>
+
+    <h3>自动压缩:什么时候发生,什么能活下来</h3>
+    <p><span class="badge badge-official">官方</span>窗口装满不会终结会话:接近上限时 Claude Code 自动做 compaction——用一份结构化摘要替换掉整段对话历史。你也可以主动出手:<code>/compact 聚焦某话题</code> 手动压缩并指定保留重点;<code>/autocompact 500k</code>(或启动参数 <code>--autocompact</code>、环境变量 <code>CLAUDE_CODE_AUTO_COMPACT_WINDOW</code>)把触发线提前,可设 100K 到 1M。没有另行设置时,默认到模型上限才压;云端会话和部分以 200K 窗口运行的模型会提前触发。</p>
+    <p><span class="badge badge-official">官方</span>压缩后各类内容的命运不同:系统提示与 output style 不变(它们不在消息历史里);项目根 CLAUDE.md、无 <code>paths</code> 的 rules 和 auto memory 从磁盘重新注入;带 <code>paths:</code> 的 rules 和子目录 CLAUDE.md 会丢失,直到 Claude 再次读到匹配文件;已调用的 skill 正文重新注入,但单个截断到 5,000 token、总计 25,000,最旧的先丢。<span class="badge badge-site">本站观点</span>所以「必须永远在场」的规则应放项目根 CLAUDE.md(<a href="/claude-code/course/day-04.html">D4</a> 展开),别放路径规则里。</p>
+
+    <h3>prompt caching:按前缀精确匹配</h3>
+    <p><span class="badge badge-official">官方</span>API 把每次请求的开头部分(前缀)与最近处理过的内容做精确匹配:命中的部分直接复用,按缓存读取价计费——约为标准输入价的 10%;只有末尾新增的部分按全价处理。匹配是逐字精确的,前缀里任何一处变化,其后的所有内容都要重算;不存在按文件或按片段的缓存。此外,模型和 effort 等级各有独立缓存(它们是缓存 key 的一部分),切换任何一个都等于从零重建。</p>
+    <figure>
+      <svg viewBox="0 0 680 292" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="缓存前缀命中与失效示意:前三轮前缀命中缓存只处理新增,第四轮前缀变化导致整段全价重算">
+        <rect class="svg-box-accent" x="100" y="8" width="14" height="14" rx="3"/>
+        <text class="svg-ink-soft" x="121" y="20" font-size="12">全价处理</text>
+        <rect class="svg-box" x="210" y="8" width="14" height="14" rx="3"/>
+        <text class="svg-ink-soft" x="231" y="20" font-size="12">从缓存读取(约为标准输入价 10%)</text>
+        <text class="svg-ink" x="88" y="62" font-size="13" text-anchor="end">第 1 轮</text>
+        <rect class="svg-box-accent" x="100" y="42" width="180" height="32" rx="6"/>
+        <text class="svg-ink" x="190" y="62" font-size="12" text-anchor="middle">全部首次处理并写入缓存</text>
+        <text class="svg-ink" x="88" y="114" font-size="13" text-anchor="end">第 2 轮</text>
+        <rect class="svg-box" x="100" y="94" width="180" height="32" rx="6"/>
+        <text class="svg-ink" x="190" y="114" font-size="12" text-anchor="middle">前缀命中,从缓存读</text>
+        <rect class="svg-box-accent" x="280" y="94" width="70" height="32" rx="6"/>
+        <text class="svg-ink" x="315" y="114" font-size="12" text-anchor="middle">新增</text>
+        <text class="svg-ink-soft" x="364" y="114" font-size="12">只有尾部按全价处理</text>
+        <text class="svg-ink" x="88" y="166" font-size="13" text-anchor="end">第 3 轮</text>
+        <rect class="svg-box" x="100" y="146" width="250" height="32" rx="6"/>
+        <text class="svg-ink" x="225" y="166" font-size="12" text-anchor="middle">前缀命中,从缓存读</text>
+        <rect class="svg-box-accent" x="350" y="146" width="70" height="32" rx="6"/>
+        <text class="svg-ink" x="385" y="166" font-size="12" text-anchor="middle">新增</text>
+        <text class="svg-ink-soft" x="434" y="166" font-size="12">会话越长,缓存省得越多</text>
+        <text class="svg-ink-soft" x="100" y="200" font-size="12">第 4 轮前:系统提示层变了(如升级、工具集变化)或切换了模型</text>
+        <text class="svg-ink" x="88" y="230" font-size="13" text-anchor="end">第 4 轮</text>
+        <rect class="svg-box-accent" x="100" y="210" width="320" height="32" rx="6"/>
+        <text class="svg-ink" x="260" y="230" font-size="12" text-anchor="middle">前缀不再匹配 → 整段全价重算</text>
+        <text class="svg-ink-soft" x="434" y="230" font-size="12">一次性变慢、变贵</text>
+        <text class="svg-ink-soft" x="340" y="272" font-size="12" text-anchor="middle">缓存按前缀精确匹配:靠前任何一处变化,其后全部重算</text>
+      </svg>
+      <figcaption>正常轮次里,前一轮的整个请求就是这一轮的前缀,只有最新一问一答是新内容;前缀一变,缓存全部作废。</figcaption>
+    </figure>
+    <p><span class="badge badge-site">本站观点</span>换个讲法:把会话想成一摞不能抽页的稿纸,阅卷人读过的页数会记住,每次只续读新页;但只要中间某页改了一个字,他就得从那页开始把后面全部重读一遍——这就是「前缀」的含义,也解释了为什么改动越靠前代价越大。</p>
+    <p><span class="badge badge-official">官方</span>缓存有有效期(TTL):每次命中都会重置计时,持续干活就一直是热的。订阅用户自动使用一小时 TTL(超限改用 usage credits 时降为五分钟);API key 或云厂商默认五分钟,可用 <code>ENABLE_PROMPT_CACHING_1H=1</code> 开启一小时。缓存在 Claude Code 里的作用域约等于「一台机器 + 一个目录」,同一仓库的不同 worktree 目录各建各的缓存。</p>
+
+    <h3>什么会打掉缓存,什么不会</h3>
+    <p><span class="badge badge-official">官方</span>失效动作的共性是「改了前缀或缓存 key」,保住缓存的共性是「只往对话末尾追加」:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>动作</th><th>缓存</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="d"><code>/model</code> 切模型</td><td>全部失效</td><td>每个模型独立缓存;<code>opusplan</code> 进出 plan mode 也算切模型</td></tr>
+        <tr><td class="d"><code>/effort</code> 调力度</td><td>全部失效</td><td>缓存按 effort 分 key,会话中改会弹确认</td></tr>
+        <tr><td class="d">开启 fast mode</td><td>全部失效</td><td>一次性成本,越早开越便宜;关掉再开不再触发</td></tr>
+        <tr><td class="d">MCP server 连接/断开</td><td>看情况</td><td>工具定义被延迟加载(默认)则保住;载入前缀则失效(<a href="/claude-code/course/day-09.html">D9</a>)</td></tr>
+        <tr><td class="d">deny 整个内置工具</td><td>全部失效</td><td>仅裸工具名(如 <code>Bash</code>);<code>Bash(rm *)</code> 这类范围规则不影响</td></tr>
+        <tr><td class="d"><code>/compact</code></td><td>对话层失效</td><td>系统提示层复用;CLAUDE.md 没改过则项目层仍命中</td></tr>
+        <tr><td class="d">升级 Claude Code</td><td>全部失效</td><td>升级后 resume 长会话,第一轮可能是最贵的一次请求</td></tr>
+        <tr><td class="d">编辑仓库文件</td><td>保住</td><td>只追加一条 <code>&lt;system-reminder&gt;</code>,不回改历史</td></tr>
+        <tr><td class="d">会话中改 CLAUDE.md</td><td>保住</td><td>但改动也不生效,要等 <code>/clear</code>、<code>/compact</code> 或重启</td></tr>
+        <tr><td class="d">切权限模式、调 skill、<code>/recap</code></td><td>保住</td><td>都是往对话末尾追加内容</td></tr>
+        <tr><td class="d"><code>/rewind</code></td><td>保住</td><td>截断回一个已缓存的前缀,比 compaction 便宜</td></tr>
+        <tr><td class="d">派生 subagent</td><td>保住</td><td>子代理自建缓存,父会话前缀不动(<a href="/claude-code/course/day-10.html">D10</a>)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>误区澄清</h3>
+    <ul>
+      <li><strong>「改了 CLAUDE.md 马上生效」</strong>——实际它在会话开始时读一次、存在内存里,会话中的编辑既不打缓存、也不生效。判断方法:<code>/clear</code>、<code>/compact</code> 或重启后再观察。<span class="badge badge-official">官方</span></li>
+      <li><strong>「切模型 / 切 effort 是免费的」</strong>——内容一个字没变也要整段重算,下一轮明显变慢变贵。判断方法:切换后看 <code>/usage</code> 里 cache write 是否突增。<span class="badge badge-official">官方</span></li>
+      <li><strong>「缓存是按文件缓存的」</strong>——只有前缀整体匹配这一种机制,没有按文件、按片段的缓存;文件内容只在被读取时进入对话层。<span class="badge badge-official">官方</span></li>
+    </ul>
+
+    <h3>机制怎么落到速度和账单上</h3>
+    <p><span class="badge badge-official">官方</span>三条最常见的「费用怎么来的」都能用本课机制解释:其一,长会话里问一句「这个函数叫什么」,消耗远大于这一句本身——因为每轮都携带全部历史,整卷按缓存价重读;其二,离开超过 TTL 后回来,第一条消息缓存全失,整卷按全价重算,所以「休息后的第一轮」明显慢;其三,<code>/compact</code> 本身要把待摘要的整段对话读一遍,趁缓存还热时做便宜得多,而想彻底换任务时 <code>/clear</code> 一分钱不花。<code>/usage</code> 会在 cache miss、长上下文等行为占近期用量 10% 以上时给出提示。</p>
+    <div class="callout"><span class="callout-label">官方建议</span>会话开头就定好模型和 effort,<code>/compact</code> 留到任务间隙的自然断点再用——会话中途改得越少,缓存命中率越高。<span class="badge badge-official">官方</span></div>
+
+    <h2>当天能做完的实操</h2>
+    <ol>
+      <li>启动 <code>claude</code>,先不干活,直接运行 <code>/context</code>。预期:对话层几乎为零,但系统提示、工具定义、CLAUDE.md、memory 已经占了不少——这就是 D1 说的「你还没说话,窗口已经不空了」。</li>
+      <li>把下面的 prompt 原样发给 Claude,让它读一个大文件,然后再运行 <code>/context</code>。预期:对话层(Messages)明显变大,涨幅主要来自文件内容。</li>
+      <li>运行 <code>/usage</code>,找到按模型分列的那一行。预期:cache read 远大于 input——说明大部分上下文在按约 1 折的缓存价重读。</li>
+      <li>故意打一次缓存:<code>/model</code> 换一个模型,随便问一句「继续」,再看 <code>/usage</code>。预期:cache write 突增,因为整段会话在新模型下重写了缓存。(这一步真实消耗额度,在小会话里做。)</li>
+      <li>运行 <code>/compact 只保留与刚才那个文件相关的结论</code>。预期:出现 Conversation compacted 提示;再看 <code>/context</code>,对话层缩回一小段摘要。</li>
+    </ol>
+    <pre class="prompt"><code>帮我做一个上下文实验:
+1. 挑本项目里较大的一个源码文件读一遍(自己挑,不用问我);
+2. 用两三句话总结它;
+3. 估计这次读取大约往上下文里增加了多少内容。
+之后我会用 /context 和 /usage 核对,请把总结控制在五行以内。</code></pre>
+    <p>过程中会反复用到的命令:</p>
+    <pre><code>/context    # 当前上下文各类内容的占用
+/usage      # 本会话 token 用量与 cache read / cache write
+/model      # 切换模型(本课用它演示缓存失效)
+/compact 只保留与 X 相关的结论   # 带焦点的手动压缩</code></pre>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说出上下文的三层结构,以及每层分别在什么时候变化。</li>
+      <li>能各举出三个「会打掉缓存」和「不会打掉缓存」的动作,并用「前缀 / 缓存 key」解释原因。</li>
+      <li>能解释为什么会话中修改项目根 CLAUDE.md 不生效、什么时候才生效。</li>
+      <li>实操跑通:能在 <code>/usage</code> 里指认 cache read 与 cache write,并解释 <code>/model</code> 之后 cache write 为什么突增。</li>
+      <li>自测题:一个开了一整天的会话里,你只问了一句「这个函数叫什么」,为什么消耗远大于这句话本身?(参考答案:每轮请求都携带全部历史,整卷按缓存价重读;若离开时间超过缓存 TTL,还会整卷按全价重算。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/context-window.md" rel="noopener">code.claude.com/docs/en/context-window.md</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/prompt-caching.md" rel="noopener">code.claude.com/docs/en/prompt-caching.md</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/costs.md" rel="noopener">code.claude.com/docs/en/costs.md</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-01.html">上一课 D1 · agentic loop 与 Claude 能读到什么</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-03.html">下一课 D3 · 权限模式与沙箱</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D11 · Worktrees 与 agent view · Claude Code 学习站</title>
+<meta name="description" content="git worktree 让每个 Claude Code 会话在独立工作副本里改文件、互不打架;agent view 一屏总览所有后台会话。本课讲机制、开与清理、以及两者如何配合。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-11.html">
+<meta property="og:title" content="D11 · Worktrees 与 agent view · Claude Code 学习站">
+<meta property="og:description" content="git worktree 给每个会话一份独立工作副本,并行改文件互不打架;agent view 一屏管理所有后台会话。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-11.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D11</p>
+  <h1>D11 · Worktrees 与 agent view</h1>
+  <p>并行的另一维度:用 git worktree 把每个会话隔离在独立工作副本里改文件,再用 agent view 一屏看住所有后台会话。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">D10 的 subagents 解决「工作怎么拆」,今天解决「文件怎么不打架」:worktree 给每个并行会话一份独立的文件副本,agent view 则是这些会话的总控台——谁在跑、谁在等你、谁完工了,一眼看清。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-10.html">D10</a> 讲了 subagents:把一个任务拆给多个 agent 并行推进,那是「工作的并行」。但只要它们都在同一个工作目录里写文件,并行就有天花板——两个会话同时改同一个文件,后写的覆盖先写的。本课补上另一个维度,「文件的并行」:<span class="badge badge-official">官方</span>官方文档明确把几种并行方式分了工——worktree 负责隔离文件改动,subagents 和 agent teams 负责组织工作本身,两者可以叠加使用。</p>
+    <p>这课也是 <a href="/claude-code/course/day-12.html">D12 agent teams</a> 的地基:多个会话协同的前提是各有各的地盘。而当后台会话多起来,你需要一个面板看住它们——这就是本课第二个主角 agent view。学完想直接上手多会话并行的完整套路,可接着读 <a href="/claude-code/tips/worktrees-parallel-sessions.html">Tip B2:用 worktrees 跑并行会话</a>,以及 <a href="/claude-code/tips/multi-session-vs-multi-agent.html">Tip B1:多会话还是多 agent</a>。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>git worktree:一个仓库,多张工作台</h3>
+    <p><span class="badge badge-official">官方</span>git worktree 是一个<strong>独立的工作目录</strong>:有自己的文件和自己的分支,但和主 checkout 共享同一份仓库历史和远程。每个 Claude Code 会话跑在自己的 worktree 里,一个会话的编辑就永远碰不到另一个会话的文件——一边开发新功能,另一边同时修 bug。</p>
+    <p><span class="badge badge-site">本站观点</span>类比:仓库的 <code>.git</code> 是图书馆的馆藏,主 checkout 是你常坐的那张阅览桌。worktree 就是多摆几张桌子,每张桌子摊开不同分支的文件——桌面互不干扰,但书都借自同一个馆藏,还书(commit)也都归回同一个馆藏。</p>
+    <figure>
+      <svg viewBox="0 0 700 336" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="主 checkout 与两个 worktree 各自独立、共享同一个 .git 的关系图">
+        <text class="svg-ink-soft" x="120" y="40" text-anchor="middle" font-size="11">claude(终端 1)</text>
+        <text class="svg-ink-soft" x="350" y="40" text-anchor="middle" font-size="11">claude --worktree feature-auth</text>
+        <text class="svg-ink-soft" x="580" y="40" text-anchor="middle" font-size="11">claude --worktree bugfix</text>
+        <rect class="svg-box" x="15" y="52" width="210" height="96" rx="10"/>
+        <text class="svg-ink" x="120" y="82" text-anchor="middle" font-size="13">主 checkout</text>
+        <text class="svg-ink-soft" x="120" y="106" text-anchor="middle" font-size="11">分支:main</text>
+        <text class="svg-ink-soft" x="120" y="126" text-anchor="middle" font-size="10">目录:仓库根</text>
+        <rect class="svg-box-accent" x="245" y="52" width="210" height="96" rx="10"/>
+        <text class="svg-ink" x="350" y="82" text-anchor="middle" font-size="13">worktree feature-auth</text>
+        <text class="svg-ink-soft" x="350" y="106" text-anchor="middle" font-size="10">分支:worktree-feature-auth</text>
+        <text class="svg-ink-soft" x="350" y="126" text-anchor="middle" font-size="10">.claude/worktrees/feature-auth/</text>
+        <rect class="svg-box-accent" x="475" y="52" width="210" height="96" rx="10"/>
+        <text class="svg-ink" x="580" y="82" text-anchor="middle" font-size="13">worktree bugfix</text>
+        <text class="svg-ink-soft" x="580" y="106" text-anchor="middle" font-size="10">分支:worktree-bugfix</text>
+        <text class="svg-ink-soft" x="580" y="126" text-anchor="middle" font-size="10">.claude/worktrees/bugfix/</text>
+        <text class="svg-ink-soft" x="350" y="180" text-anchor="middle" font-size="12">文件与分支:各自独立,改动互不可见</text>
+        <line class="svg-line" x1="120" y1="148" x2="205" y2="244" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="200,240 209,248 198,250"/>
+        <line class="svg-line" x1="350" y1="196" x2="350" y2="244" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="345,238 350,248 355,238"/>
+        <line class="svg-line" x1="580" y1="148" x2="495" y2="244" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="502,250 491,248 500,240"/>
+        <rect class="svg-box" x="130" y="248" width="440" height="52" rx="10"/>
+        <text class="svg-ink" x="350" y="280" text-anchor="middle" font-size="13">共享的 .git(提交历史 · 分支 · 远程 origin)</text>
+        <text class="svg-ink-soft" x="350" y="326" text-anchor="middle" font-size="11">worktree 里的 commit 写进同一个 .git,主 checkout 立即可见</text>
+      </svg>
+      <figcaption>三个并行会话:文件各改各的,历史却全体共享——这是 worktree 隔离与合并都简单的原因。</figcaption>
+    </figure>
+
+    <h3>误区:worktree 不是 clone</h3>
+    <p><span class="badge badge-site">本站观点</span>常见误解是「worktree 就是再 clone 一份」。区别在共享什么:clone 出来的是另一个完整仓库,历史独立,要靠 push/pull 来回同步;worktree 只复制工作文件,<span class="badge badge-official">官方</span>它里面的 git 命令直接写入主仓库共享的 <code>.git</code> 目录,所以在 worktree 里 commit,主 checkout 立刻能看到那个分支——合并回主分支就是一次本地 merge 或一个 PR,不存在「跨仓库搬运」。除了 <code>.git</code>,worktree 还和主 checkout 共享项目级 plugins 和已保存的权限批准(「Yes, don't ask again」写回主 checkout 的 <code>.claude/settings.local.json</code>,全仓库生效)。</p>
+
+    <h3>用 --worktree 开一个隔离会话</h3>
+    <p><span class="badge badge-official">官方</span>带 <code>--worktree</code>(缩写 <code>-w</code>)和一个名字启动,Claude Code 就创建 worktree 并直接在里面开会话。默认位置在仓库根的 <code>.claude/worktrees/&lt;name&gt;/</code>,新分支名为 <code>worktree-&lt;name&gt;</code>;省略名字会自动起一个(如 <code>bright-running-fox</code>)。在另一个终端换个名字再跑一次,就有了第二个互不干扰的会话。</p>
+    <pre><code>claude --worktree feature-auth   # 终端 1
+claude --worktree bugfix         # 终端 2,与终端 1 完全隔离</code></pre>
+    <p><span class="badge badge-official">官方</span>几个常用配套:把 <code>.claude/worktrees/</code> 加进 <code>.gitignore</code>,免得 worktree 内容在主 checkout 里显示成未跟踪文件;worktree 是全新 checkout,<code>.env</code> 这类被 gitignore 的文件默认不在里面,在项目根加一个 <code>.worktreeinclude</code> 文件(gitignore 语法)可让它们被自动复制进每个新 worktree;新 worktree 默认从仓库默认分支(通常 main)切出,把设置 <code>worktree.baseRef</code> 改成 <code>"head"</code> 则从你当前 HEAD 切出、带上未推送的工作;<code>claude --worktree "#1234"</code> 直接从某个 PR 切出。会话中途也可以口头让 Claude「work in a worktree」,它会用 <code>EnterWorktree</code> 工具建一个。桌面版 app 里每个新会话天然就在自己的 worktree 中。</p>
+
+    <h3>清理与合并</h3>
+    <p><span class="badge badge-official">官方</span>退出交互式 worktree 会话时,Claude 会检查里面有没有「删掉就丢」的东西(改动、未跟踪文件、新 commit):</p>
+    <ul>
+      <li><strong>干净 + 未命名会话</strong>:自动删除 worktree 和分支;命名过的会话会先问你,方便留着以后回来。</li>
+      <li><strong>有工作</strong>:询问保留还是删除。保留则目录和分支都在,之后可回来继续;删除则连工作一起删。</li>
+      <li><strong><code>-p</code> 非交互跑的</strong>:没有退出询问,不会清理,自己用 <code>git worktree remove</code> 删。</li>
+    </ul>
+    <p><span class="badge badge-site">本站观点</span>「合并」没有专门命令,因为不需要:工作都在 <code>worktree-&lt;name&gt;</code> 分支上,且历史共享,回主 checkout 直接 <code>git merge worktree-&lt;name&gt;</code>,或推分支走 PR,和平时合并任何分支一样。</p>
+    <p><span class="badge badge-official">官方</span>subagent 也能各领一个 worktree:对 Claude 说「use worktrees for your agents」,或在自定义 subagent 的 frontmatter 里写 <code>isolation: worktree</code> 固定下来(承接 <a href="/claude-code/course/day-10.html">D10</a>)。subagent 的临时 worktree 用完没改动就自动删;有改动的留在盘上,由一个周期清扫按 <code>cleanupPeriodDays</code> 设置回收——清扫会跳过仍有工作的,也永远不碰你用 <code>--worktree</code> 亲手开的。</p>
+
+    <h3>agent view:所有后台会话,一屏总览</h3>
+    <p><span class="badge badge-official">官方</span>agent view 用 <code>claude agents</code> 打开,是所有后台会话的一块屏幕:什么在跑、什么在等你输入、什么已完成。每一行是一个完整的 Claude Code 会话,由一个独立的 supervisor 进程托管,不需要终端挂着也持续运行。会话按状态分组,「Ready for review」(已开 PR)和「Needs input」排最上面;行首图标的颜色与动画表示状态:动画=在干活,黄=等你输入,绿=完成,红=失败。行内的一句话摘要由 Haiku 级模型生成,会话开了 PR 时行尾还会出现按状态着色的 <code>#1234</code> 标签。注意它目前是 research preview,需要 Claude Code v2.1.139 以上,界面和快捷键可能变化。</p>
+    <p><span class="badge badge-official">官方</span>核心操作一圈:在底部输入框敲一句任务按 <code>Enter</code> 就派发一个新后台会话(每敲一句都是新会话,可以连发几个并行);选中某行按 <code>Space</code> 打开 peek 面板看它最近的输出或正在问的问题,直接打字回复;按 <code>Enter</code> 或 <code>→</code> attach 进入完整对话,空输入框按 <code>←</code> detach 回列表;<code>Esc</code> 退出 agent view,会话照常在跑。已有的前台会话用 <code>/bg</code>(或空输入框按 <code>←</code>)丢进后台;shell 里 <code>claude --bg "任务"</code> 直接派发,配 <code>claude attach / logs / stop / rm &lt;id&gt;</code> 从命令行管理。两个限制:每个后台会话都独立消耗订阅额度,并行十个就十倍速烧;会话跑在本机,休眠可存活,关机即停。</p>
+
+    <h3>两者怎么扣在一起</h3>
+    <p><span class="badge badge-official">官方</span>agent view 的文件隔离正是靠 worktree:每个后台会话从你的工作目录启动,但<strong>动手改文件之前</strong>会自动移进 <code>.claude/worktrees/</code> 下自己的 worktree——并行会话读同一份 checkout,写各写各的。已经身在某个 worktree 里、或目录根本不是 git 仓库(且没配 <code>WorktreeCreate</code> hook)时跳过;想彻底关掉,把项目设置里的 <code>worktree.bgIsolation</code> 设为 <code>"none"</code>。后台会话在 worktree 里改完代码,收尾时会主动保全工作:不问自 commit,仓库有远程就推分支,任务需要时开 draft PR;但绝不 push 到 main/master、不 force-push、不 merge,而且 CLAUDE.md 或任务里你自己的 git 约定优先。在 agent view 里按两次 <code>Ctrl+X</code> 删除会话会<strong>连它的 worktree 一起删</strong>(未提交的改动也没了),不过有未推送 commit 的 worktree 永远不会被删。</p>
+    <figure>
+      <svg viewBox="0 0 700 192" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="agent view 后台会话的生命周期:派发、托管、进 worktree、完工保全">
+        <rect class="svg-box-accent" x="10" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="87" y="70" text-anchor="middle" font-size="12.5">派发任务</text>
+        <text class="svg-ink-soft" x="87" y="90" text-anchor="middle" font-size="10.5">agent view 输入框</text>
+        <text class="svg-ink-soft" x="87" y="106" text-anchor="middle" font-size="10.5">或 claude --bg</text>
+        <rect class="svg-box" x="185" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="262" y="70" text-anchor="middle" font-size="12.5">后台会话</text>
+        <text class="svg-ink-soft" x="262" y="90" text-anchor="middle" font-size="10.5">supervisor 托管</text>
+        <text class="svg-ink-soft" x="262" y="106" text-anchor="middle" font-size="10.5">不占终端也在跑</text>
+        <rect class="svg-box" x="360" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="437" y="70" text-anchor="middle" font-size="12.5">改文件前先隔离</text>
+        <text class="svg-ink-soft" x="437" y="90" text-anchor="middle" font-size="10.5">自动移入自己的</text>
+        <text class="svg-ink-soft" x="437" y="106" text-anchor="middle" font-size="10.5">.claude/worktrees/</text>
+        <rect class="svg-box" x="535" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="612" y="70" text-anchor="middle" font-size="12.5">完工保全工作</text>
+        <text class="svg-ink-soft" x="612" y="90" text-anchor="middle" font-size="10.5">commit + push 分支</text>
+        <text class="svg-ink-soft" x="612" y="106" text-anchor="middle" font-size="10.5">需要时开 draft PR</text>
+        <line class="svg-line" x1="165" y1="82" x2="177" y2="82" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="175,77 185,82 175,87"/>
+        <line class="svg-line" x1="340" y1="82" x2="352" y2="82" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="350,77 360,82 350,87"/>
+        <line class="svg-line" x1="515" y1="82" x2="527" y2="82" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="525,77 535,82 525,87"/>
+        <text class="svg-ink-soft" x="350" y="150" text-anchor="middle" font-size="12">行状态:Working → Needs input(等你答)→ Completed / Failed</text>
+        <text class="svg-ink-soft" x="350" y="176" text-anchor="middle" font-size="12">任意时刻:Space 预览 · Enter 进入 · ← 回列表;删除行会连 worktree 一起删</text>
+      </svg>
+      <figcaption>后台会话的一生:派发后由 supervisor 托管,改文件前先进 worktree,收尾时 commit / push / draft PR 保全工作。</figcaption>
+    </figure>
+
+    <h2>当天能做完的实操</h2>
+    <p>需要一个 git 仓库项目。全程约 25 分钟。</p>
+    <ol>
+      <li>跑 <code>claude --version</code> 确认版本(agent view 需要 v2.1.139+;本站写作时最新为 2.1.222)。如果这个项目还没跑过 Claude,先在项目根跑一次 <code>claude</code> 接受 workspace trust,否则 <code>--worktree</code> 会报错退出。</li>
+      <li>把 <code>.claude/worktrees/</code> 加进项目 <code>.gitignore</code>。预期:后面开的 worktree 不会污染主 checkout 的 <code>git status</code>。</li>
+      <li>跑 <code>claude --worktree demo</code>。预期:会话在 <code>.claude/worktrees/demo/</code> 里启动,分支是 <code>worktree-demo</code>。</li>
+      <li>把下面的 prompt 原样粘贴给它,让它自证隔离:</li>
+    </ol>
+    <pre class="prompt"><code>你现在应该在一个 git worktree 里。请依次:
+1. 运行 pwd 和 git branch --show-current,告诉我当前目录和分支;
+2. 在 README.md 末尾加一行「worktree 隔离测试」,commit 到当前分支,不要 push;
+3. 运行 git worktree list,用一句话解释输出里主 checkout 和当前 worktree 的关系。</code></pre>
+    <ol start="5">
+      <li>另开一个终端,在<strong>主 checkout</strong> 跑 <code>git status</code> 和 <code>git worktree list</code>。预期:主 checkout 干净、README 没变,但 <code>git worktree list</code> 列出两行——隔离与共享同时得到验证。</li>
+      <li>退出 worktree 会话。预期:因为里面有新 commit,Claude 询问保留还是删除;选保留。然后在主 checkout 合并并清理:<code>git merge worktree-demo</code>,再 <code>git worktree remove .claude/worktrees/demo</code>。</li>
+      <li>体验 agent view:跑 <code>claude agents</code>,在底部输入框敲一个小任务(如「总结这个仓库的目录结构」)按 <code>Enter</code>。预期:出现一行,图标动画表示 Working;按 <code>Space</code> peek 它的进展,按 <code>Enter</code> attach 进完整对话,空输入框按 <code>←</code> 回列表。完成后按两次 <code>Ctrl+X</code> 删掉这行(记住:它的 worktree 会一起删)。</li>
+    </ol>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说清 worktree 和 clone 的区别:哪些是隔离的(文件、分支、目录),哪些是共享的(<code>.git</code> 历史、远程、plugins、权限批准)。</li>
+      <li>实操跑通:<code>--worktree</code> 会话里 commit 后,主 checkout 立即能 merge 该分支;退出时见到了清理询问。</li>
+      <li>能说出后台会话什么时候自动进 worktree、什么时候跳过,以及 agent view 里删除会话对 worktree 意味着什么。</li>
+      <li>自测题:你用 <code>claude -p --worktree ci-run</code> 跑了个一次性任务,结束后这个 worktree 还在吗?怎么清掉?(答案:在——非交互运行没有退出清理,需自己 <code>git worktree remove</code>。)</li>
+    </ul>
+
+    <div class="callout"><span class="callout-label">下一步</span>D12 讲 agent teams 与 dynamic workflows:会话之间不只各干各的,还要互相发消息、协同分工——文件隔离(本课)加上任务编排(D10、D12),才是完整的并行拼图。</div>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/worktrees.md" rel="noopener">Run parallel sessions with worktrees</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/agent-view.md" rel="noopener">Manage multiple agents with agent view</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-10.html">上一课 D10 · Subagents</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-12.html">下一课 D12 · Agent teams 与 dynamic workflows</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

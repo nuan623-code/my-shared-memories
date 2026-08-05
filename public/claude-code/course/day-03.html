@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D3 · 权限模式与沙箱 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 的六种权限模式与切换方法、allow/ask/deny 权限规则的写法与优先级、/sandbox 沙箱的 OS 级隔离,以及安全与效率的取舍原则。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D3 · 权限模式与沙箱 · Claude Code 学习站">
+<meta property="og:description" content="六种权限模式、allow/ask/deny 规则怎么写、沙箱的 OS 级隔离,以及安全与效率的取舍。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-03.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-03.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D3</p>
+  <h1>D3 · 权限模式与沙箱</h1>
+  <p>agentic loop 里每一次「行动」都要过授权这道闸门。本课讲清权限模式、allow/ask/deny 规则和沙箱各自管什么、怎么配合。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">权限模式决定「多久问你一次」,权限规则决定「哪些操作预先放行或封死」,沙箱决定「命令跑起来之后能碰到什么」。三层各司其职,搭配得当,才能既少被打断又不裸奔。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-01.html">D1</a> 里我们拆过 agentic loop:收集上下文 → 行动 → 验证,循环推进。其中「行动」这一环——编辑文件、跑 shell 命令、发网络请求——每一步都要先过 Claude Code 的授权闸门。不搞清楚它,你要么被弹窗打断到烦躁,要么图省事一路放行、把安全交给运气。</p>
+    <p>本课也是后面几课的地基:<a href="/claude-code/course/day-05.html">D5</a> 要讲的 plan mode 本身就是一种权限模式;<a href="/claude-code/course/day-13.html">D13</a> 的 Headless 与 CI 场景依赖 <code>dontAsk</code> 这类「永不等待输入」的模式。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>权限模式:决定多久问你一次</h3>
+    <p><span class="badge badge-official">官方</span>当 Claude 想编辑文件、运行 shell 命令或发起网络请求时,它会暂停并请你批准;权限模式控制这个暂停出现的频率。官方共提供六种模式,每种在「便利」与「监督」之间做不同取舍:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>模式</th><th>免询问能跑什么</th><th>适合场景</th></tr></thead>
+      <tbody>
+        <tr><td><code>default</code>(界面里叫 Manual)</td><td>只有读取类操作</td><td>上手阶段、敏感工作</td></tr>
+        <tr><td><code>acceptEdits</code></td><td>读取、文件编辑,以及 <code>mkdir</code>、<code>touch</code>、<code>mv</code>、<code>cp</code> 等常见文件系统命令</td><td>自己会 review diff 的日常迭代</td></tr>
+        <tr><td><code>plan</code></td><td>读取;auto mode 可用时,还有 classifier 批准的命令</td><td>改代码前先摸清代码库</td></tr>
+        <tr><td><code>auto</code></td><td>几乎全部,由后台 classifier 逐个安全审查</td><td>长任务、减少询问疲劳</td></tr>
+        <tr><td><code>dontAsk</code></td><td>只有预先 allow 过的工具,其余直接拒绝</td><td>锁死的 CI 与脚本</td></tr>
+        <tr><td><code>bypassPermissions</code></td><td>全部</td><td>只用于隔离的容器 / VM</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><span class="badge badge-official">官方</span>几个细节:<code>default</code> 在界面里显示为 <strong>Manual</strong>,配置值仍写 <code>default</code>(v2.1.200 起 CLI 也接受 <code>manual</code> 别名);<code>acceptEdits</code> 的自动批准只覆盖工作目录和 <code>additionalDirectories</code> 内的路径;对受保护路径(<code>.git</code>、<code>.claude</code>、<code>~/.zshrc</code> 等)的写入,除 <code>bypassPermissions</code> 外任何模式都不自动批准。auto mode 需账号满足条件才会出现,其 classifier 会拦截超出请求范围、指向陌生基础设施、或疑似被恶意内容带偏的动作;<code>bypassPermissions</code> 则没有任何后台检查,不防 prompt injection,只应在容器、VM 等隔离环境使用。</p>
+
+    <h3>怎么切换模式</h3>
+    <p><span class="badge badge-official">官方</span>模式通过这些控制切换,在聊天里「让 Claude 自己改」是无效的:</p>
+    <ul>
+      <li><strong>会话中</strong>:按 <code>Shift+Tab</code> 循环 <code>default</code> → <code>acceptEdits</code> → <code>plan</code>,状态栏显示当前模式徽章(如 <code>accept edits on</code>)。auto 满足条件时加入循环;<code>bypassPermissions</code> 只有启动时用 <code>--dangerously-skip-permissions</code> 等 flag 启用后才进循环;<code>dontAsk</code> 从不进循环,只能启动时指定。</li>
+      <li><strong>启动时</strong>:传 flag,例如 <code>claude --permission-mode plan</code>,配 <code>-p</code> 的非交互运行同样适用。</li>
+      <li><strong>持久默认</strong>:在 settings 文件里设 <code>permissions.defaultMode</code>:</li>
+    </ul>
+    <pre><code>{
+  "permissions": {
+    "defaultMode": "acceptEdits"
+  }
+}</code></pre>
+
+    <h3>权限规则:allow / ask / deny 写在哪、怎么写</h3>
+    <p><span class="badge badge-official">官方</span>模式定的是基线,规则叠在模式之上做细粒度控制:<strong>allow</strong> 免询问放行,<strong>ask</strong> 每次强制询问,<strong>deny</strong> 直接禁止。用 <code>/permissions</code> 可以查看全部规则以及每条来自哪个 settings 文件。规则可以写在五级来源里,优先级从高到低:managed 托管设置 → 命令行参数 → <code>.claude/settings.local.json</code>(个人本地)→ <code>.claude/settings.json</code>(项目共享,可提交进 git)→ <code>~/.claude/settings.json</code>(用户全局)。任何一级 deny 了某工具,其它级都无法再放行。</p>
+    <p><span class="badge badge-official">官方</span>规则格式是 <code>Tool</code> 或 <code>Tool(specifier)</code>。Bash 规则支持 <code>*</code> 通配符,一个 <code>*</code> 能跨空格匹配多个参数;文件规则用 gitignore 语法;WebFetch 用 <code>domain:</code> 前缀;MCP 工具用 <code>mcp__服务器__工具</code>。一个典型的项目配置:</p>
+    <pre><code>{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git commit *)",
+      "WebFetch(domain:github.com)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Bash(curl *)"
+    ]
+  }
+}</code></pre>
+    <p><span class="badge badge-official">官方</span>评估顺序是固定的:<strong>deny → ask → allow</strong>,第一个命中的规则决定结果,规则写得多具体都不改变这个顺序。所以宽的 <code>Bash(aws *)</code> deny 会盖过窄的 <code>Bash(aws s3 ls)</code> allow——deny 规则上打不了「例外的洞」。三类规则都没命中时,才落到当前权限模式的默认行为。另有一个内置只读命令集(<code>ls</code>、<code>cat</code>、<code>grep</code>、<code>pwd</code> 及 <code>git</code> 的只读形式等)在任何模式下都免询问。</p>
+    <figure>
+      <svg viewBox="0 0 640 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="权限决策流程:工具调用依次匹配 deny、ask、allow 规则,都未命中则按当前权限模式决定">
+        <rect class="svg-box-accent" x="20" y="10" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="36" text-anchor="middle" font-size="14">工具调用</text>
+        <line class="svg-line" x1="95" y1="52" x2="95" y2="76" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,76 100,76 95,84"/>
+        <rect class="svg-box" x="20" y="84" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="110" text-anchor="middle" font-size="14">命中 deny 规则?</text>
+        <line class="svg-line" x1="170" y1="105" x2="404" y2="105" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="404,100 412,105 404,110"/>
+        <text class="svg-ink-soft" x="184" y="99" font-size="12">是</text>
+        <rect class="svg-box" x="416" y="84" width="200" height="42" rx="10"/>
+        <text class="svg-ink" x="516" y="110" text-anchor="middle" font-size="14">拦下,不执行</text>
+        <line class="svg-line" x1="95" y1="126" x2="95" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,150 100,150 95,158"/>
+        <text class="svg-ink-soft" x="106" y="142" font-size="12">否</text>
+        <rect class="svg-box" x="20" y="158" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="184" text-anchor="middle" font-size="14">命中 ask 规则?</text>
+        <line class="svg-line" x1="170" y1="179" x2="404" y2="179" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="404,174 412,179 404,184"/>
+        <text class="svg-ink-soft" x="184" y="173" font-size="12">是</text>
+        <rect class="svg-box" x="416" y="158" width="200" height="42" rx="10"/>
+        <text class="svg-ink" x="516" y="184" text-anchor="middle" font-size="14">弹出询问,等你批准</text>
+        <line class="svg-line" x1="95" y1="200" x2="95" y2="224" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,224 100,224 95,232"/>
+        <text class="svg-ink-soft" x="106" y="216" font-size="12">否</text>
+        <rect class="svg-box" x="20" y="232" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="258" text-anchor="middle" font-size="14">命中 allow 规则?</text>
+        <line class="svg-line" x1="170" y1="253" x2="404" y2="253" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="404,248 412,253 404,258"/>
+        <text class="svg-ink-soft" x="184" y="247" font-size="12">是</text>
+        <rect class="svg-box" x="416" y="232" width="200" height="42" rx="10"/>
+        <text class="svg-ink" x="516" y="258" text-anchor="middle" font-size="14">免询问直接运行</text>
+        <line class="svg-line" x1="95" y1="274" x2="95" y2="298" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,298 100,298 95,306"/>
+        <text class="svg-ink-soft" x="106" y="290" font-size="12">否</text>
+        <rect class="svg-box" x="20" y="306" width="400" height="42" rx="10"/>
+        <text class="svg-ink" x="220" y="332" text-anchor="middle" font-size="14">都没命中:按当前权限模式决定</text>
+        <text class="svg-ink-soft" x="530" y="332" text-anchor="middle" font-size="12">例如 default 会询问</text>
+      </svg>
+      <figcaption>权限决策流程:deny → ask → allow 依次匹配,第一个命中生效;全部未命中才由权限模式的基线接手。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>在权限弹窗里选「Yes, don't ask again」,Bash 批准会永久存进仓库根的 <code>.claude/settings.local.json</code>,对该仓库未来会话生效(文件编辑的批准只活到会话结束)。另外,权限规则由 Claude Code 强制执行,不靠模型自觉——CLAUDE.md 里写「不要 git push」只影响 Claude <em>想不想</em>,不改变<em>能不能</em>,这条边界 <a href="/claude-code/course/day-04.html">D4</a> 还会用到。</p>
+
+    <h3>沙箱:OS 级的硬边界</h3>
+    <p><span class="badge badge-official">官方</span>沙箱是内置在 Claude Code 里的操作系统级隔离:macOS 用系统自带的 Seatbelt,Linux 和 WSL2 用 bubblewrap(需要安装 <code>bubblewrap</code> 和 <code>socat</code> 两个包),原生 Windows 不支持。在会话里运行 <code>/sandbox</code> 打开面板即可启用,选择的模式保存到项目的 <code>.claude/settings.local.json</code>;想全局启用则在 <code>~/.claude/settings.json</code> 里设 <code>sandbox.enabled: true</code>。</p>
+    <p><span class="badge badge-official">官方</span>沙箱有两层默认边界,由 OS 对 Bash 命令及其所有子进程强制执行:</p>
+    <ul>
+      <li><strong>文件系统</strong>:默认只能写工作目录和会话临时目录;读取默认几乎全盘可读——注意 <code>~/.ssh</code>、<code>~/.aws/credentials</code> 等凭据默认仍读得到,要挡需配 <code>sandbox.credentials</code> 或 <code>denyRead</code>。</li>
+      <li><strong>网络</strong>:走沙箱外的代理,默认零预允许域名;命令第一次要连新域名时弹批准,同意后本会话内记住(v2.1.191 起),也可用 <code>allowedDomains</code> 预先放行。</li>
+    </ul>
+    <p><span class="badge badge-official">官方</span>沙箱自身有两种审批模式:<strong>auto-allow</strong>(能进沙箱的命令免询问直接跑)和 <strong>regular permissions</strong>(照常走权限流程),两者隔离边界完全相同,差别只在是否自动批准。即便 auto-allow,deny 规则、内容级 ask 规则(如 <code>Bash(git push *)</code>)、指向 <code>/</code> 或 home 的 <code>rm</code> 仍会拦。命令因沙箱限制失败时,Claude 可能带 <code>dangerouslyDisableSandbox</code> 参数在沙箱外重试并走常规权限流程;设 <code>allowUnsandboxedCommands: false</code> 可关掉这个逃生舱。</p>
+    <p><span class="badge badge-official">官方</span>划重点:沙箱只覆盖 Bash 命令及其子进程。Read、Edit、WebFetch 走权限系统,MCP 服务器和 hooks 是宿主机上不受约束的独立进程。要把整个进程都关进边界,官方还提供 sandbox runtime(无需 Docker)、dev container、自建容器、VM,以及 Anthropic 托管 VM 的 Claude Code on the web,隔离强度与搭建成本递增。</p>
+
+    <h3>权限和沙箱是什么关系</h3>
+    <p><span class="badge badge-official">官方</span>两者是互补的两道闸门,拦的东西不同:权限在命令<strong>运行前</strong>评估,依据是命令字符串(auto mode 下再加一层 classifier 判断);沙箱在命令<strong>运行时</strong>由操作系统在进程上强制,哪怕被放行的命令「名不副实」,或 Claude 被文件里的恶意内容 prompt injection 带偏,OS 边界依然拦得住。</p>
+    <figure>
+      <svg viewBox="0 0 660 175" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="两道闸门:权限规则在运行前判断,沙箱在运行时由 OS 强制">
+        <rect class="svg-box-accent" x="10" y="51" width="150" height="48" rx="10"/>
+        <text class="svg-ink" x="85" y="80" text-anchor="middle" font-size="14">一条 Bash 命令</text>
+        <line class="svg-line" x1="160" y1="75" x2="212" y2="75" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="212,70 220,75 212,80"/>
+        <rect class="svg-box" x="220" y="30" width="180" height="90" rx="10"/>
+        <text class="svg-ink" x="310" y="60" text-anchor="middle" font-size="14">第一道:权限规则</text>
+        <text class="svg-ink-soft" x="310" y="82" text-anchor="middle" font-size="12">运行前,看命令字符串</text>
+        <text class="svg-ink-soft" x="310" y="100" text-anchor="middle" font-size="12">deny → ask → allow</text>
+        <line class="svg-line" x1="400" y1="75" x2="452" y2="75" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="452,70 460,75 452,80"/>
+        <rect class="svg-box" x="460" y="30" width="180" height="90" rx="10"/>
+        <text class="svg-ink" x="550" y="60" text-anchor="middle" font-size="14">第二道:沙箱</text>
+        <text class="svg-ink-soft" x="550" y="82" text-anchor="middle" font-size="12">运行时,OS 强制</text>
+        <text class="svg-ink-soft" x="550" y="100" text-anchor="middle" font-size="12">文件与网络边界</text>
+        <text class="svg-ink-soft" x="330" y="160" text-anchor="middle" font-size="12">权限拦「能不能跑」,沙箱拦「跑起来能碰什么」;沙箱只覆盖 Bash 及其子进程</text>
+      </svg>
+      <figcaption>defense-in-depth:第一道闸被绕过或判断失误时,第二道 OS 边界仍然生效。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>两层配置还会合并:<code>sandbox.filesystem</code> 与 Read/Edit deny 规则合并成最终文件边界,WebFetch 域名规则与 <code>allowedDomains</code>/<code>deniedDomains</code> 合并成网络边界。开沙箱且 <code>autoAllowBashIfSandboxed</code> 保持默认 <code>true</code> 时,沙箱化命令即使有裸 <code>Bash</code> ask 规则也免询问——沙箱边界替代了那次整工具级询问。</p>
+
+    <h3>安全与效率怎么取舍</h3>
+    <p><span class="badge badge-site">本站观点</span>取舍的核心原则只有一句:<strong>每放松一层「询问」,就要有另一层「硬边界」顶上</strong>。询问是最后的人肉防线,拿掉它之前,先确认 classifier、沙箱或容器至少有一个在场。按场景对照:</p>
+    <ul>
+      <li><strong>陌生仓库、敏感操作</strong>:Manual 或 plan 模式,逐条过目,慢就是快。</li>
+      <li><strong>日常迭代、事后 review diff</strong>:<code>acceptEdits</code> + 沙箱 auto-allow。文件编辑和工作目录内的命令都不打断,出圈的操作(新域名、<code>git push</code>、受保护路径)照样询问。</li>
+      <li><strong>长时间无人值守</strong>:auto mode(classifier 逐动作兜底),或在容器 / VM 里跑 <code>bypassPermissions</code>——官方明确后者没有任何检查兜底,隔离环境不是建议而是前提。</li>
+      <li><strong>CI 流水线</strong>:<code>dontAsk</code> + <code>permissions.allow</code> 白名单,永不等待输入,名单之外一律拒绝。</li>
+    </ul>
+    <p><span class="badge badge-site">本站观点</span>常见误区:把「开沙箱」当成一种权限模式。它不是——模式决定<em>是否询问</em>,沙箱决定<em>能碰什么</em>,两者独立开关、可任意组合。想系统性减少询问而不牺牲安全,配方见 Tip <a href="/claude-code/tips/permissions-uninterrupted.html">《怎么让权限少打断我》</a>。</p>
+
+    <h2>当天能做完的实操</h2>
+    <p>以下步骤在自己任意一个 git 项目里做,30 分钟内能跑完:</p>
+    <ol>
+      <li><strong>认识模式循环</strong>:启动 <code>claude</code>,连按 <code>Shift+Tab</code>。预期:状态栏在 Manual → <code>accept edits on</code> → <code>plan mode on</code> 之间循环;账号满足条件时还会出现 <code>auto mode on</code>。</li>
+      <li><strong>查看现有规则</strong>:输入 <code>/permissions</code>。预期:看到 Allow / Ask / Deny 三类规则列表,以及每条规则来自哪个 settings 文件。</li>
+      <li><strong>写两条规则</strong>:在项目根新建或编辑 <code>.claude/settings.json</code>,放入上文「权限规则」小节的 JSON(可按自己项目替换命令)。预期:重启会话后首次会弹 workspace trust 对话框列出这些 allow 规则,接受后 <code>npm run build</code> 类命令直接放行,<code>git push --dry-run</code> 命中 ask 规则强制弹窗。</li>
+      <li><strong>体验「不再询问」</strong>:让 Claude 跑一条无害但不在只读集的命令(如 <code>npm --version</code>),在弹窗里选「Yes, don't ask again」。预期:<code>.claude/settings.local.json</code> 里多出一条对应 allow 规则,未来会话直接放行。</li>
+      <li><strong>开沙箱</strong>:运行 <code>/sandbox</code>,在 Mode 页选 auto-allow(macOS 开箱即用;Linux/WSL2 若面板只显示 Dependencies 页,先 <code>sudo apt-get install bubblewrap socat</code> 再重启)。预期:Claude 在工作目录内跑写文件的命令不再弹询问;访问一个从没允许过的域名,会弹出域名批准。</li>
+      <li><strong>整体验证</strong>:把下面的 prompt 原样贴给 Claude Code:</li>
+    </ol>
+    <pre class="prompt"><code>帮我验证当前会话的权限配置,依次执行:
+1. 运行 ls 和 git status(内置只读命令,应该不询问);
+2. 运行 npm run build(如果我配了 allow 规则,应该直接放行);
+3. 尝试 git push --dry-run(应该命中 ask 或 deny 规则,被询问或拦下)。
+做完后逐条告诉我:每条命令分别走了哪条路径——
+内置只读集、allow 规则、ask 规则,还是模式默认询问。</code></pre>
+    <p>预期:三条命令的授权表现各不相同,Claude 的复盘能和你在 <code>/permissions</code> 里看到的规则一一对上。</p>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看文档说出六种权限模式的名字,以及每种「免询问能跑什么」。</li>
+      <li>能解释 deny → ask → allow 的评估顺序,并说清为什么宽 deny 不能被窄 allow 打洞。</li>
+      <li>能用一句话讲清权限与沙箱的分工:权限在运行前决定能不能跑,沙箱在运行时用 OS 限制能碰什么,且沙箱只覆盖 Bash 及其子进程。</li>
+      <li>实操跑通:<code>/permissions</code> 里能看到自己写的规则;沙箱 auto-allow 下工作目录内命令免询问、新域名会弹批准。</li>
+      <li>自测题:同时存在 allow 规则 <code>Bash(aws s3 ls)</code> 和 deny 规则 <code>Bash(aws *)</code>,Claude 跑 <code>aws s3 ls</code> 会怎样?(答案:被拒绝——deny 先于 allow 评估,且规则具体程度不改变顺序。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/permission-modes" rel="noopener">Choose a permission mode</a>(抓取于 2026-08-05)</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/permissions" rel="noopener">Configure permissions</a>(抓取于 2026-08-05)</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sandboxing" rel="noopener">Configure the sandboxed Bash tool</a>(抓取于 2026-08-05)</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sandbox-environments" rel="noopener">Choose a sandbox environment</a>(抓取于 2026-08-05)</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-02.html">上一课 D2 · 上下文窗口与 prompt caching</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-04.html">下一课 D4 · CLAUDE.md 与 rules</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

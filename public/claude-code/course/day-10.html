@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D10 · Subagents · Claude Code 学习站</title>
+<meta name="description" content="Subagent 是主会话派出的独立上下文分身:内置 Explore/Plan/general-purpose,自定义 .claude/agents/*.md,何时用、边界在哪、后台运行怎么管。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-10.html">
+<meta property="og:title" content="D10 · Subagents · Claude Code 学习站">
+<meta property="og:description" content="Subagent 是主会话派出的独立上下文分身:内置类型、自定义 .claude/agents/*.md、使用时机与边界、后台运行。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-10.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D10</p>
+  <h1>D10 · Subagents</h1>
+  <p>Subagent 是主会话派出去干活的「分身」:在自己的独立上下文窗口里搜索、跑测试、读日志,最后只交回一份报告。本课讲内置类型、自定义写法、使用时机与边界。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">一句话版本:凡是「过程输出很吵、结论只要一段」的活,都该丢给 subagent 去做——它在独立上下文里消化搜索结果、测试日志、文件内容,主会话只为最终摘要付上下文成本。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-02.html">D2</a> 讲过:上下文窗口是最稀缺的资源,塞满无关内容,模型质量就往下掉。Subagent 是 Claude Code 对此的内置解法——把「探索」和「实现」分开,探索的噪音留在分身的窗口里。<span class="badge badge-site">本站观点</span>其实你早用过它:<a href="/claude-code/course/day-05.html">D5</a> 的 plan mode 里,Claude 做代码库调研时委派的就是内置 Plan subagent。</p>
+    <p>往后看,这课是并行工作流的地基:<a href="/claude-code/course/day-11.html">D11</a> 的 worktree 给每个 subagent 一份隔离的代码副本,<a href="/claude-code/course/day-12.html">D12</a> 的 agent teams 把「单会话内委派」升级成「多会话协同」。分不清「多开几个会话」和「一个会话派多个 subagent」,学完本课看对比 Tip:<a href="/claude-code/tips/multi-session-vs-multi-agent.html">多会话 vs 多 agent 怎么选</a>。</p>
+
+    <h2>概念讲清楚</h2>
+    <p><span class="badge badge-official">官方</span>Subagent 是处理特定任务的专门 AI 助手:运行在<strong>自己的上下文窗口</strong>里,有自己的系统提示、工具集和权限。任务匹配某个 subagent 的 description 时,Claude 把活委派出去,subagent 独立完成后交回结果。它解决的核心问题:侧线任务会用搜索结果、日志、文件内容淹没主对话,而这些内容你之后根本不会再引用。</p>
+
+    <h3>一个类比:借调的同事</h3>
+    <p><span class="badge badge-site">本站观点</span>把 subagent 想成借调来的同事:你写一段任务说明交给他(委派消息),他自己翻档案、跑实验、记满一本草稿(他的上下文),最后只交回一页备忘录。你的笔记本只多了这一页,他的草稿本你从头到尾不用见。多借几个人,各自埋头干活,<strong>互相看不见彼此的草稿</strong>,汇总是你(主会话)的事。</p>
+    <figure>
+      <svg viewBox="0 0 680 336" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="主会话向三个 subagent 扇出任务,各自在独立上下文中工作,只回一份报告">
+        <rect class="svg-box-accent" x="14" y="118" width="150" height="96" rx="10"/>
+        <text class="svg-ink" x="89" y="158" text-anchor="middle" font-size="14">主会话</text>
+        <text class="svg-ink-soft" x="89" y="180" text-anchor="middle" font-size="12">上下文窗口</text>
+
+        <rect class="svg-box" x="402" y="16" width="264" height="72" rx="10"/>
+        <text class="svg-ink" x="534" y="46" text-anchor="middle" font-size="13">Subagent A · 独立上下文</text>
+        <text class="svg-ink-soft" x="534" y="68" text-anchor="middle" font-size="11">搜索结果与中间输出留在这里</text>
+        <rect class="svg-box" x="402" y="116" width="264" height="72" rx="10"/>
+        <text class="svg-ink" x="534" y="146" text-anchor="middle" font-size="13">Subagent B · 独立上下文</text>
+        <text class="svg-ink-soft" x="534" y="168" text-anchor="middle" font-size="11">测试日志留在这里</text>
+        <rect class="svg-box" x="402" y="216" width="264" height="72" rx="10"/>
+        <text class="svg-ink" x="534" y="246" text-anchor="middle" font-size="13">Subagent C · 独立上下文</text>
+        <text class="svg-ink-soft" x="534" y="268" text-anchor="middle" font-size="11">读过的文件内容留在这里</text>
+
+        <line class="svg-line" x1="164" y1="146" x2="392" y2="42" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,37 402,42 392,47"/>
+        <line class="svg-line" x1="164" y1="146" x2="392" y2="142" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,137 402,142 392,147"/>
+        <line class="svg-line" x1="164" y1="146" x2="392" y2="242" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,237 402,242 392,247"/>
+        <text class="svg-ink-soft" x="268" y="76" text-anchor="middle" font-size="12">委派任务</text>
+
+        <line class="svg-line" x1="402" y1="70" x2="174" y2="176" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <polygon class="svg-arrow" points="174,171 164,176 174,181"/>
+        <line class="svg-line" x1="402" y1="170" x2="174" y2="188" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <polygon class="svg-arrow" points="174,183 164,188 174,193"/>
+        <line class="svg-line" x1="402" y1="270" x2="174" y2="200" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <polygon class="svg-arrow" points="174,195 164,200 174,205"/>
+        <text class="svg-ink-soft" x="268" y="256" text-anchor="middle" font-size="12">各回一份报告</text>
+
+        <text class="svg-ink-soft" x="340" y="326" text-anchor="middle" font-size="12">实线 = 委派任务的一段 prompt;虚线 = 返回的一份摘要;三个分身互相看不见彼此</text>
+      </svg>
+      <figcaption>扇出/汇聚:主会话把任务派给多个 subagent,各自在独立上下文里工作,只有摘要回流。</figcaption>
+    </figure>
+
+    <h3>内置 subagent</h3>
+    <p><span class="badge badge-official">官方</span>Claude Code 自带几个内置 subagent,Claude 会在合适时机自动委派:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>类型</th><th>模型</th><th>工具</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>Explore</td><td>继承主会话(Claude API 上封顶 Opus)</td><td>只读,禁 Write/Edit</td><td>文件发现、代码搜索、理解代码库</td></tr>
+        <tr><td>Plan</td><td>继承主会话</td><td>只读,禁 Write/Edit</td><td>plan mode 中的代码库调研</td></tr>
+        <tr><td>general-purpose</td><td>继承主会话</td><td>subagent 可用的全部工具</td><td>既要探索又要动手的复杂多步任务</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>两个特殊点:Explore 和 Plan 为了快和省,<strong>不加载 CLAUDE.md 和父会话的 git 状态</strong>;其余内置与自定义 subagent 都加载。某条规则(如「忽略 vendor/ 目录」)必须传达给它们时,写进委派 prompt 里。另有几个自动触发的辅助 agent(claude、statusline-setup、claude-code-guide),一般不用直接管。</p>
+
+    <h3>自定义:.claude/agents/*.md</h3>
+    <p><span class="badge badge-official">官方</span>自定义 subagent 就是一个带 YAML frontmatter 的 Markdown 文件:frontmatter 是配置,正文是它的系统提示。subagent 收到的只有这份系统提示加基本环境信息,<strong>不是完整的 Claude Code 系统提示</strong>。最小可用的例子:</p>
+    <pre><code>---
+name: code-reviewer
+description: Reviews code for quality and best practices
+tools: Read, Glob, Grep
+model: sonnet
+---
+
+You are a code reviewer. When invoked, analyze the code and provide
+specific, actionable feedback on quality, security, and best practices.</code></pre>
+    <p><span class="badge badge-official">官方</span>只有 <code>name</code> 和 <code>description</code> 是必填,description 决定 Claude 什么时候委派给它——写清楚,想让它被主动使用可以加「use proactively」。常用可选字段:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>字段</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td><code>tools</code> / <code>disallowedTools</code></td><td>工具白名单 / 黑名单;不写 tools 则继承全部可用工具</td></tr>
+        <tr><td><code>model</code></td><td><code>sonnet</code> / <code>opus</code> / <code>haiku</code> / <code>fable</code> / 完整模型 ID / <code>inherit</code>(默认);探索任务路由到便宜模型靠它</td></tr>
+        <tr><td><code>permissionMode</code></td><td>权限模式:<code>plan</code>(只读)、<code>acceptEdits</code>、<code>bypassPermissions</code>(慎用)等</td></tr>
+        <tr><td><code>skills</code></td><td>启动时把指定 Skill 完整内容预载进上下文(承接 <a href="/claude-code/course/day-07.html">D7</a>)</td></tr>
+        <tr><td><code>mcpServers</code></td><td>单独配 MCP server;内联定义不进主会话,省工具描述的上下文(承接 <a href="/claude-code/course/day-09.html">D9</a>)</td></tr>
+        <tr><td><code>hooks</code></td><td>只在该 subagent 活动期间生效的 hook(承接 <a href="/claude-code/course/day-08.html">D8</a>)</td></tr>
+        <tr><td><code>memory</code></td><td>跨会话持久记忆,scope:<code>user</code> / <code>project</code> / <code>local</code></td></tr>
+        <tr><td><code>background</code></td><td><code>true</code> 则总在后台跑;不设由 Claude 决定</td></tr>
+        <tr><td><code>isolation</code></td><td><code>worktree</code>:在临时 git worktree 里干活,不碰你的检出(预告 <a href="/claude-code/course/day-11.html">D11</a>)</td></tr>
+        <tr><td><code>maxTurns</code></td><td>最大轮数</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>文件放哪决定谁能用,同名时高优先级生效,从高到低:管理策略(managed settings)&gt; <code>--agents</code> CLI 参数(仅当次会话)&gt; 项目 <code>.claude/agents/</code>(建议进版本库,团队共用)&gt; 用户 <code>~/.claude/agents/</code>(自己所有项目可用)&gt; 插件的 <code>agents/</code> 目录。自 v2.1.198 起 <code>/agents</code> 不再打开创建向导,直接让 Claude 写文件或自己编辑即可;改动几秒内自动生效,唯独「某个 scope 的第一个 agent 文件」需重启会话才被发现。</p>
+
+    <h3>什么时候用,什么时候别用</h3>
+    <p><span class="badge badge-official">官方</span>用 subagent 的三个信号:任务会产生主上下文用不上的大量输出(跑测试、抓文档、扫日志);想强制收窄工具或权限(只读审查员);工作自成一体、一份摘要就能交差。反之留在主会话:需要频繁来回迭代;多阶段共享大量上下文;快速小改动;在意延迟——subagent 从零启动,要花时间重新收集上下文。</p>
+    <p><span class="badge badge-official">官方</span>两个最常用的模式:<strong>隔离高噪音操作</strong>(「用 subagent 跑测试,只汇报失败用例」)和<strong>并行探索</strong>(互不依赖的调研方向各派一个,同时跑,Claude 汇总)。官方同时提醒:很多个 subagent 各自交回冗长报告,同样会吃掉可观的主会话上下文——需要持续大规模并行时,该考虑 <a href="/claude-code/course/day-12.html">D12</a> 的 agent teams。</p>
+
+    <h3>边界:不共享上下文,只回一份报告</h3>
+    <p><span class="badge badge-official">官方</span>每个 subagent 都从<strong>全新的隔离上下文</strong>启动:看不到你的对话历史、已调用的 skill、Claude 已读过的文件。它拿到的是——自己的系统提示、Claude 写的委派消息、CLAUDE.md 全层级(Explore/Plan 除外)、父会话开始时的 git 状态快照、预载的 skill。干完活,回到主会话的只有<strong>一份最终报告</strong>,中间过程全留在它自己的 transcript 里。</p>
+    <p><span class="badge badge-official">官方</span>由此推出几条边界:并行的 subagent 之间<strong>不共享上下文、不互相通信</strong>,B 想用 A 的发现,只能由主会话把 A 报告里的相关内容写进给 B 的委派消息;subagent 完成后可让 Claude 继续同一实例(保留全部历史「resume」),但 Explore 和 Plan 一次性、不能续;subagent 也能再派 subagent,默认主会话之下最多嵌套三层,单会话总量上限 200、同时运行上限 20(均可用环境变量调整)。反向特例是 fork(<code>/subtask</code> 命令):继承主会话完整对话历史再去干侧线任务,牺牲输入隔离换「不用重新交代背景」,输出仍只回一份结果。</p>
+
+    <h3>后台运行</h3>
+    <p><span class="badge badge-official">官方</span>自 v2.1.198 起,subagent <strong>默认在后台运行</strong>,你可以继续在主会话干别的;只有 Claude 立刻需要结果时才用前台(阻塞式)。后台 subagent 碰到需授权的操作,权限提示浮到主会话里、注明是哪个 subagent 在申请;批准放行,按 Esc 只拒绝这一次调用。你也能主动控制:让 Claude「在后台跑」,对运行中的任务按 <strong>Ctrl+B</strong> 转后台;<code>/tasks</code> 列出所有后台项,可查看、接管或停止。两个代价:后台 subagent 的内置工具集比前台小(MCP 工具全保留);结果以完成通知的形式在之后的轮次到达——提前问进度,Claude 只会说「还在跑」。</p>
+
+    <h2>当天能做完的实操</h2>
+    <p>整套约 30 分钟,在任意一个有测试或有一定规模代码的项目里做。</p>
+    <ol>
+      <li><strong>体验隔离。</strong>先跑 <code>/context</code> 记下当前用量(D1 学过),再把下面的 prompt 交给 Claude Code。预期:出现一行 subagent 委派记录(agent 名 + 简短任务描述),完整测试输出不进主对话,回来的只有失败摘要;再跑 <code>/context</code>,增量远小于测试输出体量。</li>
+    </ol>
+    <pre class="prompt"><code>用一个 subagent 跑完整测试套件,只把失败的用例和对应错误信息汇报回来,
+不要把完整测试输出带回主会话。</code></pre>
+    <ol start="2">
+      <li><strong>创建自定义 subagent。</strong>用下面的 prompt 让 Claude 写文件。预期:<code>.claude/agents/code-reviewer.md</code> 出现,frontmatter 含 name、description、tools、model,正文是审查员系统提示。若这是本项目第一次建 <code>.claude/agents/</code> 目录,重启会话让它被发现。</li>
+    </ol>
+    <pre class="prompt"><code>在 .claude/agents/ 里创建一个 code-reviewer subagent:只读(Read、Grep、Glob),
+用 sonnet 模型,职责是审查最近的代码变更,按「必须修 / 建议修 / 可改进」三档
+输出问题清单,每条附当前代码和改进写法。description 里写明改完代码后主动使用。</code></pre>
+    <ol start="3">
+      <li><strong>显式调用。</strong>说「用 code-reviewer subagent 审查我最近的改动」,或输入 <code>@</code> 从补全列表里选中它(@-mention 保证这次一定由它执行)。预期:出现 <code>code-reviewer (…)</code> 委派行,几分钟后收到三档问题清单。</li>
+      <li><strong>并行扇出。</strong>交给 Claude:「用三个并行的 subagent 分别调研本项目的认证、数据库、API 模块,各自总结职责与关键文件后汇总」。预期:三个 subagent 同时在后台跑,<code>/tasks</code> 里能看到各自状态,完成后 Claude 给出汇总——正是本课图里的扇出/汇聚。</li>
+    </ol>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说清:subagent 启动时上下文里有什么(自己的系统提示、委派消息、CLAUDE.md、git 快照、预载 skill),结束时回来的是什么(一份报告)。</li>
+      <li>能说出 Explore / Plan / general-purpose 的分工,以及 Explore 和 Plan 的两个特殊点:只读;不加载 CLAUDE.md 与 git 状态。</li>
+      <li>项目里有一个自己写的 <code>.claude/agents/*.md</code>,且成功委派执行过一次。</li>
+      <li>自测题:三个 subagent 并行调研,B 能直接引用 A 的发现吗?怎样才能让 B 用上 A 的结论?(答案:不能,subagent 之间不共享上下文;A 的报告先回主会话,由 Claude 把相关内容写进给 B 的委派消息;需要 worker 间直接通信则是 <a href="/claude-code/course/day-12.html">D12</a> agent teams 的领域。)</li>
+    </ul>
+    <div class="callout"><span class="callout-label">下一步</span>subagent 都在你的同一份代码检出上干活(除非 <code>isolation: worktree</code>)。<a href="/claude-code/course/day-11.html">D11</a> 讲 worktree 如何给并行工作各配一份隔离副本;拿不准「再开一个会话」还是「派一个 subagent」时,看 <a href="/claude-code/tips/multi-session-vs-multi-agent.html">多会话 vs 多 agent 怎么选</a>。</div>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sub-agents.md">Create custom subagents</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/agents.md">Run agents in parallel</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-09.html">上一课 D9 · MCP</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-11.html">下一课 D11 · Worktrees 与 agent view</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

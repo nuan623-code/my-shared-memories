@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>从零做 iOS app 到提审 · Claude Code 学习站</title>
+<meta name="description" content="一个人用 Claude Code 从点子到 App Store 提审的完整路线:立项访谈定 spec、搭骨架、iOS 模拟器闭环验证、fastlane 发布准备、TestFlight 到提审,每个阶段 Claude 怎么用。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="从零做 iOS app 到提审 · Claude Code 学习站">
+<meta property="og:description" content="立项定 spec → 搭骨架 → 模拟器闭环迭代 → fastlane 发布准备 → TestFlight → 提审,Claude Code 在每个阶段怎么用。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/ios-app-zero-to-appstore.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/ios-app-zero-to-appstore.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">簇 F · 端到端场景</span></p>
+  <h1>从零做 iOS app 到提审</h1>
+  <p>一个人、一台 Mac、一个点子,用 Claude Code 走完从立项到 App Store 提审的全程:阶段怎么分、每个阶段 Claude 干什么、模拟器怎么闭环验证。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">开发期的关键是让 Claude 能自己验证自己(iOS Simulator pane 让它自己点、自己看);发布期的关键是把和 Apple 打交道的杂活交给 fastlane。前者是官方能力,后者是社区成熟实践。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      把项目切成六段:立项定 spec → 搭骨架 → 功能迭代(模拟器闭环)→ 发布准备(fastlane)→ TestFlight → 提审。开发期用 Claude Code Desktop 的 iOS Simulator pane 让 Claude 装 app、点按、读屏自检(官方能力,公测中);发布期社区普遍用 fastlane 把签名、截图、元数据、上传自动化,并让它成为唯一写 App Store Connect 的通道(第三方实践)。阶段划分本身是本站的编排。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>立项定 spec:</strong>先别写代码。<span class="badge badge-official">官方</span>best practices 建议大功能先让 Claude 用 AskUserQuestion 工具访谈你——技术实现、UI/UX、边界情况、取舍——聊透后写成 SPEC.md,再开一个干净的新会话去实现。做法详见 <a href="/claude-code/tips/interview-to-spec.html">访谈出 spec</a>。预期产出:一份写明验收标准的 SPEC.md。</li>
+      <li><strong>搭骨架:</strong>Xcode 建好空项目后,跑 <code>/init</code> 生成 CLAUDE.md,把构建/测试命令、目标机型、代码风格写进去。<span class="badge badge-site">本站观点</span>iOS 项目尤其要把「怎么 build、怎么跑测试」写清,后面每一轮迭代 Claude 都靠它自检。</li>
+      <li><strong>功能迭代 + 模拟器闭环:</strong>在 Claude Code Desktop(macOS)里开发,对 Claude 说「build the app and run it in the simulator to check the onboarding flow」这类任务时,iOS Simulator pane 会自动打开:Claude 安装 app、自己点按、读屏幕验证改动,你在旁边看,也可以自己上手点。<span class="badge badge-official">官方</span>要求:Claude Desktop v1.24012.0+、装了 iOS 平台的 Xcode 26.x(暂不支持 Xcode 27);公测中,Pro/Max/Team 可用,Enterprise 不可用;仅本地会话。每台模拟器首次使用需授权,截图会发送给 Anthropic——别在测试设备上登真实账号。想指定机型就直接说,如「run it on the iPhone SE simulator」。每完成一个功能,让 Claude 对照 SPEC.md 在模拟器里走一遍流程并贴截图证据(见下方 prompt),这就是<a href="/claude-code/tips/self-verifiable-done.html">可自我验证的完成</a>闭环;更多细节见 <a href="/claude-code/tips/ios-simulator-verify.html">iOS 模拟器验证</a>。</li>
+      <li><strong>发布准备(fastlane):</strong><span class="badge badge-third">第三方</span>fastlane 是社区标准的 iOS 发布自动化工具,把 archive、签名、截图、元数据上传、提审做成可重复的「lane」。社区有现成的 Claude Code skill(greenstevester/fastlane-skill),装上后用自然语言「Set up Fastlane for my iOS app」即可让 Claude 读你的 Xcode 项目生成配置。<span class="badge badge-third">第三方</span>一线经验(theyawns.com 的 BaseballScorer 系列):让 fastlane 成为唯一向 App Store Connect 写入的通道,App Store 文案放在 repo 里当唯一事实源,不要在网页后台手改——两个事实源必然打架。</li>
+      <li><strong>TestFlight:</strong><span class="badge badge-third">第三方</span>同一来源的 beta lane 实践:bump build → archive → 上传 TestFlight → 成功后才打 git tag(把「上传失败别烧掉版本号」做进控制流,而不是靠人记)。真机测试注意:<span class="badge badge-official">官方</span>Claude 只能驱动模拟器,不能控制物理 iPhone/iPad——真机上自己跑,把看到的问题截图发回给 Claude 修。</li>
+      <li><strong>提审:</strong><span class="badge badge-site">本站观点</span>让 Claude 起草 App Store 描述、隐私说明、审核备注(reviewer notes),存进 repo 走 fastlane 提交;提审材料是给 Apple 审核员看的,发出前自己通读一遍。被拒了把拒信原文贴给 Claude 分析整改。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <p>功能迭代期,每合入一个功能就跑一次这个验证闭环(在 Claude Code Desktop 本地会话中):</p>
+    <pre class="prompt"><code>把刚才的改动在 iOS 模拟器里完整验证一遍:
+1. build app 并在模拟器里启动,有编译错误先修复再继续;
+2. 从冷启动开始走一遍「新用户首次打开 → 完成核心操作」的主流程,每个关键界面截图;
+3. 对照 SPEC.md 的验收标准逐条检查,列出不符合项,修复后重新走流程;
+4. 全部通过后,贴出关键截图和你运行过的命令作为证据,不要只说「已完成」。</code></pre>
+    <p>进入发布期,可以这样开场(需已安装 fastlane 相关 skill 或让 Claude 现学):</p>
+    <pre class="prompt"><code>帮我给这个 iOS 项目配置 fastlane:
+1. 读取 Xcode 项目,生成 Fastfile,建一条 beta lane:检查在 main 分支且工作区干净 →
+   bump build number → archive → 上传 TestFlight → 上传成功后才 commit、打 tag、push;
+2. App Store 元数据(描述、What's New、关键词)放在 repo 的 docs/ 目录作为唯一事实源,
+   由 fastlane 负责同步,任何时候不要让我去网页后台手改;
+3. 跑一次 dry run,把会执行的步骤和需要我手动提供的凭据/权限列成清单。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/desktop-ios-simulator.md" rel="noopener">Test iOS apps in the simulator</a>(版本要求、授权、限制),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" rel="noopener">Best practices for Claude Code</a>(访谈出 spec、验证闭环、/init),抓取于 2026-08-05。</li>
+      <li><span class="badge badge-third">第三方</span><a href="https://github.com/greenstevester/fastlane-skill" rel="noopener">fastlane-skill(GitHub)</a>:社区的 Claude Code fastlane skill,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-third">第三方</span><a href="https://theyawns.com/2026/07/03/claude-code-custom-skills-fastlane-for-ios-releases/" rel="noopener">Claude Code Custom Skills &amp; fastlane for iOS Releases(Nodes and Edges,2026-07)</a>:单人 18 天上架 App Store 的发布流程复盘,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(iOS Simulator pane 处于公测,版本与套餐要求会变;fastlane 为第三方工具)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

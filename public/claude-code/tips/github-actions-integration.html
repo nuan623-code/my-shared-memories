@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>接进 GitHub Actions · Claude Code 学习站</title>
+<meta name="description" content="用 /install-github-app 一条命令把 Claude Code 接进 GitHub Actions:安装配置、@claude 提及与 PR review 等典型工作流、密钥与权限最佳实践。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="接进 GitHub Actions · Claude Code 学习站">
+<meta property="og:description" content="官方 GitHub Actions 的安装配置、@claude 提及与 PR review 工作流、密钥与权限要点。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/github-actions-integration.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/github-actions-integration.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">簇 F · 端到端场景</span></p>
+  <h1>接进 GitHub Actions</h1>
+  <p>把 Claude Code 装进仓库的 CI:在 issue 或 PR 里 @claude 一句话,它就能分析代码、实现功能、修 bug、开 PR。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">官方 GitHub Actions 集成的核心是 <code>anthropics/claude-code-action@v1</code> 这一个 action:装好 GitHub App、配好 API key secret,它会自动判断是「响应 @claude 提及」还是「按 prompt 直接执行」。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      在 Claude Code 终端里跑 <code>/install-github-app</code>,交互式装完 GitHub App、workflow 文件和 <code>ANTHROPIC_API_KEY</code> secret 即接入完成;之后在 issue/PR 评论里 <code>@claude</code> 即可触发。<span class="badge badge-official">官方</span>整套安装是官方文档写明的快捷路径,前提是你是仓库 admin 且直连 Claude API。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>确认前提:</strong><span class="badge badge-official">官方</span>安装 GitHub App 和添加 secrets 需要仓库 admin 权限;<code>/install-github-app</code> 快捷方式只对直连 Claude API 的用户可用,走 Amazon Bedrock / Google Cloud 的企业环境要按官方文档手动配 OIDC 与 IAM。</li>
+      <li><strong>快速安装:</strong>在 Claude Code 终端运行 <code>/install-github-app</code>,按引导安装 Claude GitHub App(要求 Contents、Issues、Pull requests 三项读写权限)、选择 workflow、写入 API key secret。<span class="badge badge-official">官方</span>v2.1.187 起可以先只装 App 选「Skip for now」,以后再跑一次补配 workflow。</li>
+      <li><strong>手动安装(备选):</strong>装 <a href="https://github.com/apps/claude" rel="noopener">github.com/apps/claude</a> → 在仓库 Settings 里加 secret <code>ANTHROPIC_API_KEY</code> → 把官方 <code>examples/claude.yml</code> 拷进 <code>.github/workflows/</code>。<span class="badge badge-official">官方</span>最小 workflow 长这样:
+<pre><code>name: Claude Code
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}</code></pre></li>
+      <li><strong>验证:</strong>在任意 issue 或 PR 评论里发 <code>@claude 解释一下这个 issue 该怎么修</code>。<span class="badge badge-official">官方</span>注意是 <code>@claude</code> 不是 <code>/claude</code>;action 会根据配置自动检测运行模式——有 <code>prompt</code> 参数就直接执行(自动化模式),没有就响应提及(交互模式)。</li>
+      <li><strong>典型工作流:</strong><span class="badge badge-official">官方</span>三个官方场景:① @claude 提及(上面的基础 workflow);② PR 自动 review——用 <code>pull_request: types: [opened, synchronize]</code> 触发,<code>prompt</code> 里调用 code-review 插件的 skill(通过 <code>plugin_marketplaces</code> + <code>plugins</code> 输入安装),不 @ 也会在每个 PR 上跑;③ 定时任务——<code>schedule: cron</code> 触发加一段 <code>prompt</code>,比如每天 9 点汇总昨日 commit 与 open issues(定时选型对比见 <a href="/claude-code/tips/scheduled-tasks.html">定时任务</a>)。CLI 参数统一从 <code>claude_args</code> 传,如 <code>--max-turns 10</code>、<code>--model</code>、<code>--allowedTools</code>。</li>
+      <li><strong>密钥与权限:</strong><span class="badge badge-official">官方</span>API key 绝不硬编码进 workflow,永远走 GitHub Secrets(<code>${{ secrets.ANTHROPIC_API_KEY }}</code>);action 权限收敛到最小;merge 前人工 review Claude 的产出。成本两头算:GitHub Actions 分钟数 + API token 消耗,用 <code>--max-turns</code>、workflow 超时和并发控制兜底。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <p>让 Claude Code 帮你写 review workflow(粘贴进本地会话):</p>
+    <pre class="prompt"><code>给这个仓库加一个 Claude Code GitHub Actions workflow,文件放 .github/workflows/claude.yml:
+- 用 anthropics/claude-code-action@v1;
+- 触发条件:issue_comment 和 pull_request_review_comment 的 created 事件,响应 @claude 提及;
+- API key 从 secrets.ANTHROPIC_API_KEY 读取,workflow 里不允许出现任何明文密钥;
+- 在 claude_args 里加 --max-turns 10 防止失控消耗。
+写完后逐段解释作用,并列出我还需要在 GitHub 网页上手动完成的步骤
+(装 Claude GitHub App、添加 secret),最后教我发一条测试评论验证。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/github-actions.md" rel="noopener">Claude Code GitHub Actions</a>(安装、workflow 示例、claude_args、安全与成本),抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(action 版本、参数名、安装流程随版本演进,beta → v1 已发生过一次破坏性变更)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

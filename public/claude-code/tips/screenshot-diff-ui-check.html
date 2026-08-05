@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>截图对比让它自判 UI · Claude Code 学习站</title>
+<meta name="description" content="给 Claude 目标设计图,让它自己截当前实现的图、对比找差距、逐项修复再验证——官方 best practices 认可的 UI 视觉迭代闭环,浏览器用 Claude in Chrome,原生 app 用 computer use。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/screenshot-diff-ui-check.html">
+<meta property="og:title" content="截图对比让它自判 UI · Claude Code 学习站">
+<meta property="og:description" content="目标设计图 + 自己截图 + 自己对比 = UI 迭代不用你当裁判。官方认可的视觉验证闭环怎么搭。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/screenshot-diff-ui-check.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">C · 设计与素材</span></p>
+  <h1>截图对比让它自判 UI</h1>
+  <p>「改得好不好看」不该由你每轮刷新页面当裁判——给它设计稿,让它自己截图、自己对比、自己改到像为止。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">UI 任务最耗人的地方是验证:每改一轮你都要亲眼看一次。官方 best practices 的解法是把「看」也交给 Claude——截图就是一种它能自己跑的检查,和测试、构建退出码同级。这一页讲怎么把这个循环搭起来。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      把目标设计图贴进对话,要求 Claude 实现后「截当前效果的图、和设计稿对比、列出差异并修复」,循环到差异清零。<span class="badge badge-official">官方</span>这是官方 best practices 原文给出的 pattern:「[paste screenshot] implement this design. take a screenshot of the result and compare it to the original. list differences and fix them」;截图通道浏览器用 Claude in Chrome,原生 app 用 computer use。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>准备目标图。</strong>Figma 导出、竞品截图、甚至手绘线框都行,直接复制粘贴或拖拽进 prompt。<span class="badge badge-official">官方</span>文档确认图片可以 copy/paste 或 drag &amp; drop 进对话。预期:Claude 回复里能准确描述图上的布局说明它读到了。</li>
+      <li><strong>打通「它自己截图」的通道。</strong>按目标平台选:<span class="badge badge-official">官方</span>
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>目标</th><th>通道</th><th>前提</th></tr></thead>
+          <tbody>
+            <tr><td>Web 页面</td><td><code>claude --chrome</code> 连 Claude in Chrome 扩展</td><td>扩展 ≥1.0.36;Pro/Max/Team/Enterprise 直连账号,<code>/login</code> 登录(API key 认证下不可用)</td></tr>
+            <tr><td>macOS 原生 app</td><td><code>/mcp</code> 里启用 <code>computer-use</code></td><td>macOS research preview;Pro/Max;需授予 Accessibility 与 Screen Recording 权限</td></tr>
+            <tr><td>iOS app</td><td>桌面版 iOS Simulator pane / CLI 走 computer use</td><td>见 <a href="/claude-code/tips/ios-simulator-verify.html">iOS 模拟器里跑起来才算做完</a></td></tr>
+          </tbody>
+        </table></div>
+        用 <code>/chrome</code> 检查连接状态(要看到 Status: Enabled、Extension: Installed)。官方能力列表明确包含这个场景:按 Figma 稿建 UI,然后开浏览器验证是否一致。</li>
+      <li><strong>发「实现→截图→对比→修复」循环 prompt。</strong>见下方可抄版本。预期:Claude 每轮贴出一份具体的差异清单(如「主按钮圆角偏小」「卡片间距 16px 应为 24px」),修完再截再比,而不是一句「已按设计稿实现」。<span class="badge badge-site">本站观点</span>差异清单是这个方法的灵魂——强制它逐项写出来,才能防止「看起来差不多」蒙混过关。</li>
+      <li><strong>要求证据留档。</strong><span class="badge badge-official">官方</span>让它把最终截图存盘(「take a screenshot and save it to disk」,需 v2.1.211+),或把整个交互流程录成 GIF;审证据比你自己重跑验证快,也适用于你不在场的会话。注意 computer use 的截图会自动降采样(如 3456×2234 降到约 1372×887),界面文字太小时应调大 app 内字号而不是改屏幕分辨率。</li>
+      <li><strong>想挂机跑,就把对比设成硬性关卡。</strong><span class="badge badge-official">官方</span>best practices 给了升级路径:同一条 prompt 里要求循环是最轻的;更硬的是把「截图与设计稿无重大差异」设为 <code>/goal</code> 条件(每轮由独立评估器复查),或用 Stop hook 跑对比脚本拦住结束。通用做法见 <a href="/claude-code/tips/self-verifiable-done.html">给它能自己跑的验证</a>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>[把目标设计图粘贴在这里]
+按这张设计稿实现页面,并用截图对比闭环验证:
+1. 先列出你从设计稿读到的关键规格:布局结构、配色、字号层级、间距、圆角,和我确认。
+2. 实现后打开 localhost:3000 的对应页面,截一张当前效果的图。
+3. 把截图和设计稿逐项对比,输出差异清单(位置 + 现状 + 应为),不许写「基本一致」。
+4. 逐项修复,再截图再对比,直到没有可见差异;每轮都把差异清单贴出来。
+5. 结束时把最终截图存到 screenshots/ 目录,汇报共迭代几轮、还遗留哪些说明不了的差异。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Give Claude a way to verify its work(视觉验证 pattern、/goal、Stop hook、证据)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/chrome.md" target="_blank" rel="noopener">Use Claude Code with Chrome(--chrome、前提条件、截图存盘、录 GIF)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/computer-use.md" target="_blank" rel="noopener">Computer use from the CLI(原生 app 截图、权限、自动降采样)</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 --chrome、computer-use、save_to_disk 等具体功能与版本门槛,会定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

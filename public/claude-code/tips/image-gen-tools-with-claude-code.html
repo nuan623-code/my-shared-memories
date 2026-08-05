@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>如何使用其他生图工具跟 Claude Code 一起开发 app · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 本身不生成图片,但可以用 MCP 接入 Recraft、fal.ai 等生图服务:生成 app 素材、落盘到项目、写进代码,一个会话闭环。本页给出接入命令与工作流。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/image-gen-tools-with-claude-code.html">
+<meta property="og:title" content="如何使用其他生图工具跟 Claude Code 一起开发 app · Claude Code 学习站">
+<meta property="og:description" content="用 MCP 把 Recraft、fal.ai 等生图服务接进 Claude Code:一条命令接入,素材生成、落盘、写进代码在同一会话完成。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/image-gen-tools-with-claude-code.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">C · 设计与素材</span></p>
+  <h1>如何使用其他生图工具跟 Claude Code 一起开发 app</h1>
+  <p>做 app 总要图标、插画、占位图,Claude 模型自己不出图——把生图服务接成 MCP 工具,素材就能在开发会话里现生现用。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">思路只有一个:让生图能力变成 Claude Code 能直接调用的工具,而不是你手动去别的网站生成再拖回来。MCP 是官方通道(机制详解见课程 <a href="/claude-code/course/day-09.html">D9 · MCP</a>),生图服务是第三方——本页把两边接起来。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      用 <code>claude mcp add</code> 把生图服务接进 Claude Code:有官方远程 MCP 的(如 Recraft)一条命令加 HTTP server,只有 API 的(如 fal.ai)用社区 stdio server 或干脆让 Claude 写脚本调 API。接入后「生成素材 → 存进项目 → 写进代码 → 看效果」在同一个会话闭环。<span class="badge badge-site">本站观点</span>
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>选接入路线。</strong>三条路按省心程度排序:<span class="badge badge-site">本站观点</span>
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>路线</th><th>适用</th><th>接入方式</th></tr></thead>
+          <tbody>
+            <tr><td>服务商官方远程 MCP</td><td>Recraft 等自己提供 MCP 端点的服务</td><td><code>claude mcp add --transport http</code>,OAuth 授权,无需管 API key</td></tr>
+            <tr><td>社区 stdio MCP</td><td>fal.ai 等有社区封装的服务</td><td><code>claude mcp add --transport stdio</code> + <code>--env</code> 传 API key</td></tr>
+            <tr><td>无 MCP,直接调 API</td><td>任何有 HTTP API 的生图服务</td><td>让 Claude 写个脚本(curl / SDK)放进 scripts/,以后复用</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>接入远程 MCP(以 Recraft 为例)。</strong><span class="badge badge-third">第三方</span>Recraft 官方文档给出远程 server 地址 <code>https://mcp.recraft.ai/mcp</code>(streamable HTTP,OAuth 2.0,首次连接会跳转 Recraft 授权),接入命令就是它文档里写的:
+        <pre><code>claude mcp add --transport http recraft https://mcp.recraft.ai/mcp</code></pre>
+        <span class="badge badge-official">官方</span>命令语法与 Claude Code 官方 MCP 文档一致;添加成功会打印 <code>Added ...</code>,再用 <code>claude mcp list</code> 确认状态为 <code>✔ Connected</code>(<code>! Needs authentication</code> 表示还没走完授权)。</li>
+      <li><strong>接入社区 stdio MCP(以 fal.ai 为例)。</strong><span class="badge badge-third">第三方</span>fal.ai 有多个社区 MCP server,如 <code>fal-image-video-mcp</code>(支持 Imagen 4、FLUX、Recraft V3、Stable Diffusion 3.5 等模型,生成结果自动存到本地,默认 Downloads,可用 <code>DOWNLOAD_PATH</code> 改)和 <code>fal-mcp-server</code>(图/视频/音频)。按官方 stdio 语法接入,API key 走 <code>--env</code>:
+        <pre><code>claude mcp add --env FAL_KEY=你的fal密钥 --transport stdio fal-image -- npx -y fal-image-video-mcp</code></pre>
+        <span class="badge badge-site">本站观点</span>社区 server 质量参差,先在 <code>/mcp</code> 里看它暴露的工具列表再决定用不用;涉及 API key 的都要注意计费。</li>
+      <li><strong>在开发任务里用起来。</strong>接入后直接在需求里说清素材要求和落盘位置,让 Claude 生成后立刻接线到代码(见下方 prompt)。预期:素材文件出现在你指定目录,代码里的引用同步改好。<span class="badge badge-site">本站观点</span>要求它把每张图的生成参数(模型、prompt、尺寸)记进一个清单文件,日后重生成或换风格不用考古。</li>
+      <li><strong>管理与省上下文。</strong><span class="badge badge-official">官方</span>想全队共享,用 <code>--scope project</code> 写进 <code>.mcp.json</code> 提交进仓库;个人所有项目可用则 <code>--scope user</code>。生图 server 不是每个会话都需要,长期挂着会占上下文,不用时禁用(为什么、怎么禁见 <a href="/claude-code/tips/too-many-mcp-servers.html">MCP server 装多了的代价</a>)。另外若在受限网络环境(如云端沙箱)跑,记得放行生图服务的图片下载域名,否则生成成功但拉不回文件。<span class="badge badge-site">本站观点</span></li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>用已接入的生图 MCP 工具给本项目生成一批 UI 素材:
+1. 先读 src/ 下的界面代码,列出目前缺素材的位置(空状态插画、onboarding 配图、默认头像等),和我确认清单。
+2. 每张图先和我对一句风格描述(扁平/描边/配色),确认后再生成;统一尺寸规范,能用 SVG/矢量就不用位图。
+3. 生成的文件存到 assets/generated/ 下,文件名用 内容-尺寸 命名;同时在 assets/generated/manifest.md 里记录每张图的生成模型、完整 prompt 和尺寸,方便日后重生成。
+4. 把代码里的引用改成新素材,跑一遍构建确认没有断链。
+5. 最后汇报:生成了哪些图、花了多少次调用、哪些位置还缺素材。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/mcp.md" target="_blank" rel="noopener">Connect Claude Code to tools via MCP(claude mcp add 语法、scope、健康状态)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-third">第三方</span><a href="https://www.recraft.ai/docs/mcp-reference/remote-server" target="_blank" rel="noopener">Recraft 官方文档 — MCP remote server(端点、OAuth、Claude Code 接入命令)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-third">第三方</span><a href="https://github.com/RamboRogers/fal-image-video-mcp" target="_blank" rel="noopener">fal-image-video-mcp(社区 fal.ai MCP server:模型列表、FAL_KEY、本地落盘)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-third">第三方</span><a href="https://github.com/raveenb/fal-mcp-server" target="_blank" rel="noopener">fal-mcp-server(另一个社区 fal.ai MCP server,图/视频/音频)</a>,检索于 2026-08-05。</li>
+      <li>说明:DALL·E / gpt-image 等 OpenAI 生图也有社区 MCP 封装,但本站未逐一核实,未列出;走「让 Claude 写脚本直接调 API」路线同样可用。</li>
+      <li>最后核实:2026-08-05 · volatility:high(第三方 server 的包名、模型列表、端点都可能变,接入前以各自文档为准)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

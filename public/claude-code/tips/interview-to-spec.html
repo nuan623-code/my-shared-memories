@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大需求先让它面试你产出 SPEC.md · Claude Code 学习站</title>
+<meta name="description" content="大需求直接开写容易做错方向。先让 Claude 用 AskUserQuestion 面试你、把需求和验收标准写成 SPEC.md,确认后开新会话分阶段实现——官方推荐的大特性工作流。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/interview-to-spec.html">
+<meta property="og:title" content="大需求先让它面试你产出 SPEC.md · Claude Code 学习站">
+<meta property="og:description" content="大需求先让 Claude 提问澄清、产出带验收标准的 SPEC.md,确认后再分阶段实现。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/interview-to-spec.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · 稳定与质量</span></p>
+  <h1>大需求先让它面试你产出 SPEC.md</h1>
+  <p>一句“帮我做个 XX 系统”就放 Claude 开跑,做完往往不是你要的——大需求要先反向提问,把需求钉死在纸上。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">你脑子里的需求有一堆没说出口的决策点:技术选型、边界情况、什么不做。与其等 Claude 猜错再返工,不如让它先“面试”你,把答案沉淀成一份带验收标准的 SPEC.md,确认后再动手。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      大特性先发一条极简 prompt,让 Claude 用 AskUserQuestion 工具连环提问澄清需求,把完整规格写进 SPEC.md;你确认后<strong>开一个全新会话</strong>拿着 spec 实现。<span class="badge badge-official">官方</span>这是 best practices 的原生工作流:新会话上下文干净、只专注实现,而且你手里留有一份可对照验收的书面 spec。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>发起面试。</strong>用下方 prompt(官方模板的中文版)替换掉方括号里的一句话描述。预期:Claude 开始用选择题/追问的方式问你技术实现、UI/UX、边界情况、风险与取舍——<span class="badge badge-official">官方</span>文档强调它会问到你“还没想到”的部分,这正是价值所在。</li>
+      <li><strong>认真答,别糊弄。</strong><span class="badge badge-site">本站观点</span>面试环节你多花十分钟,实现环节少返工几小时。拿不准的问题就答“由你推荐并说明理由”,让决策显式化。</li>
+      <li><strong>审 SPEC.md。</strong>面试覆盖完后 Claude 写出 SPEC.md。<span class="badge badge-official">官方</span>好 spec 的标准:自足(点名涉及的文件与接口)、写明什么不做(out of scope)、以一个端到端的验证步骤收尾,证明特性真的能跑。官方原话方向:把 spec 磨精确,比盯着实现过程更划算。</li>
+      <li><strong>确认后开新会话实现。</strong><span class="badge badge-official">官方</span>spec 定稿后另起一个会话执行:干净的上下文完全聚焦实现。<span class="badge badge-site">本站观点</span>实现 prompt 直接引用 <code>@SPEC.md</code>,并要求按 spec 里的阶段逐段交付、每段跑完验收标准再进下一段。</li>
+      <li><strong>复杂改动配合 plan mode。</strong><span class="badge badge-official">官方</span>实现阶段可用 plan mode(<code>Shift+Tab</code> 切换,状态栏显示 plan mode on,或 <code>claude --permission-mode plan</code> 启动)先出实现计划、<code>Ctrl+G</code> 在编辑器里直接改计划,批准后才动代码。explore→plan→code 的完整节奏见 <a href="/claude-code/course/day-05.html">D5 · plan mode 课</a>。</li>
+      <li><strong>收尾对照 spec 验收。</strong><span class="badge badge-site">本站观点</span>让一个没参与实现的 subagent 拿 SPEC.md 对照 diff 挑差距(做法见<a href="/claude-code/tips/adversarial-review.html">对抗式 review</a>),验证手段本身怎么设计见<a href="/claude-code/tips/self-verifiable-done.html">给它能自己跑的验证</a>。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>我想做[一句话描述需求]。请用 AskUserQuestion 工具详细“面试”我:
+问技术实现、UI/UX、边界情况、隐患和取舍;不要问显而易见的问题,
+专挖我可能没考虑到的难点。一直问到全部覆盖为止,然后把完整规格写入 SPEC.md,
+必须包含:涉及的文件与接口、明确不做的范围(out of scope)、
+分阶段的实现计划,以及每个阶段可执行的验收标准(跑什么命令、看到什么才算通过),
+最后是一个端到端验证步骤。写完先给我确认,确认前不要改任何代码。</code></pre>
+    <p>spec 确认后,在<strong>新会话</strong>里发:</p>
+    <pre class="prompt"><code>按 @SPEC.md 实现第一阶段。完成后运行该阶段的验收标准并贴出结果,
+全部通过再停下来等我确认,不要自行开始下一阶段。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Let Claude interview you / Explore first, then plan, then code</a>——面试 prompt 模板、SPEC.md、新会话执行、好 spec 标准,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/common-workflows.md" target="_blank" rel="noopener">Common workflows — Plan before editing</a>——plan mode 的进入方式与审批流,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:low(方法论为主,仅 AskUserQuestion、plan mode 等名称绑定产品)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D13 · Headless 与 CI · Claude Code 学习站</title>
+<meta name="description" content="Claude Code headless 模式详解:claude -p 非交互运行、三种输出格式与退出码、无人值守的权限收口,以及用官方 GitHub Action 接进 CI 的鉴权与成本控制。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D13 · Headless 与 CI · Claude Code 学习站">
+<meta property="og:description" content="claude -p 非交互运行、输出格式与退出码、无人值守的权限收口,以及官方 GitHub Action 的接入方式与成本控制。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-13.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-13.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D13</p>
+  <h1>D13 · Headless 与 CI</h1>
+  <p>把 Claude Code 从「你盯着的终端会话」变成「流水线里的一条命令」:claude -p 无头运行、结构化输出、无人值守的权限收口,以及官方 GitHub Action 的接法。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">前十二课里 Claude Code 都有一个人坐在终端前拍板;本课把人撤掉。你会学到 headless 模式(<code>claude -p</code>)的输入输出契约——prompt 进、文本或 JSON 出、退出码定成败——以及没人按「允许」时权限怎么办,最后用官方 GitHub Action 把它接进 PR 流程。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p>本课是前面几课的「无人值守版」总装:<a href="/claude-code/course/day-03.html">D3 权限模式</a>里你学过交互式的允许/拒绝,而 CI 里没有人回答提示,答案只能预先写进 <code>--allowedTools</code> 或权限模式;<a href="/claude-code/course/day-08.html">D8 Hooks</a> 里的「机器裁判」思路在 CI 中同样成立——无头运行时,hooks 是少数还能强制拦截动作的机制。<span class="badge badge-site">本站观点</span></p>
+    <p>往后看,<a href="/claude-code/course/day-14.html">D14 Plugins</a> 讲打包分发,而 headless 正是分发后的主要消费场景之一:官方 action 支持在 CI 里装插件、跑插件里的 skill。学完本课再去读实战 Tip <a href="/claude-code/tips/github-actions-integration.html">F3 · GitHub Actions 集成</a>和 <a href="/claude-code/tips/scheduled-tasks.html">F4 · 定时任务</a>,就是从「懂机制」到「照着抄」的一步。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>headless:一条命令的输入输出契约</h3>
+    <p><span class="badge badge-official">官方</span>给任何 <code>claude</code> 命令加上 <code>-p</code>(即 <code>--print</code>)就进入非交互模式:执行完 prompt、打印结果、退出,所有 CLI flag 都可以和 <code>-p</code> 组合。它读 stdin,所以能像普通 Unix 工具一样接管道(piped stdin 自 v2.1.128 起上限 10MB):</p>
+<pre><code># 问答式:结果打到 stdout
+claude -p "What does the auth module do?"
+
+# 管道式:构建日志进,解释出
+cat build-error.txt | claude -p 'concisely explain the root cause of this build error' &gt; output.txt</code></pre>
+    <p><span class="badge badge-official">官方</span>成败用退出码表达:成功退出码 0,运行失败非 0,脚本可以直接对退出状态做分支;被 SIGTERM 终止时中止当前轮次、跑完 SessionEnd hooks 后以 143 退出。<span class="badge badge-official">官方</span>CI 里推荐加 <code>--bare</code>:跳过 hooks、skills、插件、MCP、auto memory 和 CLAUDE.md 的自动发现,保证每台机器结果一致、启动更快;官方说明它将来会成为 <code>-p</code> 的默认行为。注意 bare 模式不读 OAuth 凭据和系统钥匙串,必须通过环境变量 <code>ANTHROPIC_API_KEY</code>(或 settings 里的 apiKeyHelper)鉴权。</p>
+
+    <h3>三种输出格式:给人看 vs 给程序看</h3>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>--output-format</th><th>输出</th><th>适用</th></tr></thead>
+      <tbody>
+        <tr><td><code>text</code>(默认)</td><td>纯文本回答</td><td>人看、简单管道</td></tr>
+        <tr><td><code>json</code></td><td>单个 JSON:<code>result</code>、<code>session_id</code>、<code>total_cost_usd</code> 及分模型成本</td><td>脚本解析、逐次记账</td></tr>
+        <tr><td><code>stream-json</code></td><td>逐行 JSON 事件流(配 <code>--verbose --include-partial-messages</code> 可拿到 token 级增量)</td><td>实时进度、自建 UI</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>要输出符合固定 schema 的结构化结果,用 <code>--output-format json</code> 加 <code>--json-schema</code>,结果落在 <code>structured_output</code> 字段里,配 jq 就能直接取值;schema 非法时报错退出(v2.1.205 起)。<span class="badge badge-official">官方</span>stream-json 流的第一个事件 <code>system/init</code> 带有 <code>mcp_server_errors</code>、<code>plugin_errors</code> 等字段——CI 可以对「非空错误数组」直接判失败,抓住那种服务器没加载成功但进程仍正常退出的静默故障。</p>
+
+    <h3>无人值守时,权限怎么办</h3>
+    <p>这是 <a href="/claude-code/course/day-03.html">D3</a> 问题的 CI 解法。交互式会话里权限提示由人回答;headless 里没人在,官方给了三层收口:<span class="badge badge-official">官方</span></p>
+    <ul>
+      <li><strong>逐条放行:</strong><code>--allowedTools "Bash(git diff *),Read,Edit"</code>,用权限规则语法精确到命令前缀。注意 <code>*</code> 前那个空格:<code>Bash(git diff *)</code> 只放行 git diff 开头的命令,写成 <code>git diff*</code> 会连 <code>git diff-index</code> 一起放行。</li>
+      <li><strong>整体基线:</strong><code>--permission-mode dontAsk</code> 拒绝一切不在 allow 规则或只读命令集内的动作,适合锁死的 CI;<code>--permission-mode acceptEdits</code> 免提示写文件并自动放行 mkdir、touch、mv、cp 等常见文件系统命令,其余 shell 命令仍需 allow 规则,否则运行中止。</li>
+      <li><strong>止损上限:</strong><code>--max-turns</code> 限制轮次(CLI 默认无上限,达到即报错退出)、<code>--max-budget-usd</code> 限制单次美元花费(subagent 的花费也计入,上限强制行为需 v2.1.217+)。</li>
+    </ul>
+    <div class="callout"><span class="callout-label">误区澄清</span>「CI 没人看,干脆 <code>--dangerously-skip-permissions</code> 全放开」——省事但等于把仓库和 runner 的全部权限交给模型输出,一旦 prompt 被 PR 内容注入就没有任何闸门。CI 里更稳的组合是:精确的 allowedTools + dontAsk/acceptEdits 基线 + max-turns/预算上限,再用 D8 的 hooks 做硬拦截。<span class="badge badge-site">本站观点</span></div>
+
+    <h3>接进 GitHub Actions</h3>
+    <p><span class="badge badge-official">官方</span>官方提供 GitHub Action <code>anthropics/claude-code-action@v1</code>(底层就是 Agent SDK / headless 能力)。它会自动检测运行模式:配置了事件触发但没写 prompt,就响应评论里的 <code>@claude</code> 提及(交互模式);写了 <code>prompt</code> 输入,就直接执行(自动化模式)。任何 CLI 参数都能通过 <code>claude_args</code> 透传,比如 <code>--max-turns</code>(action 场景默认 10)、<code>--model</code>、<code>--allowedTools</code>。</p>
+    <figure>
+      <svg viewBox="0 0 680 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="流程图:PR 或定时事件触发 GitHub Actions,runner 里的官方 action 以 headless 方式运行 Claude,产出 PR 评论、提交或 JSON 结果">
+        <rect class="svg-box" x="40" y="12" width="170" height="40" rx="10"/>
+        <text class="svg-ink" x="125" y="37" text-anchor="middle" font-size="13">@claude 评论提及</text>
+        <rect class="svg-box" x="255" y="12" width="170" height="40" rx="10"/>
+        <text class="svg-ink" x="340" y="37" text-anchor="middle" font-size="13">pull_request 事件</text>
+        <rect class="svg-box" x="470" y="12" width="170" height="40" rx="10"/>
+        <text class="svg-ink" x="555" y="37" text-anchor="middle" font-size="13">schedule(cron)</text>
+        <line class="svg-line" x1="125" y1="52" x2="125" y2="84" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="120,84 125,94 130,84"/>
+        <line class="svg-line" x1="340" y1="52" x2="340" y2="84" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="335,84 340,94 345,84"/>
+        <line class="svg-line" x1="555" y1="52" x2="555" y2="84" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="550,84 555,94 560,84"/>
+        <rect class="svg-box" x="30" y="94" width="620" height="116" rx="12"/>
+        <text class="svg-ink-soft" x="48" y="116" font-size="12">GitHub Actions runner(CI)</text>
+        <rect class="svg-box" x="60" y="128" width="240" height="48" rx="10"/>
+        <text class="svg-ink" x="180" y="157" text-anchor="middle" font-size="13">claude-code-action@v1</text>
+        <rect class="svg-box-accent" x="380" y="128" width="240" height="48" rx="10"/>
+        <text class="svg-ink" x="500" y="157" text-anchor="middle" font-size="13">headless 运行 claude -p</text>
+        <line class="svg-line" x1="300" y1="152" x2="372" y2="152" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="372,147 382,152 372,157"/>
+        <text class="svg-ink-soft" x="340" y="200" text-anchor="middle" font-size="12">鉴权:secrets.ANTHROPIC_API_KEY 注入,权限由 claude_args 收口</text>
+        <line class="svg-line" x1="125" y1="210" x2="125" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="120,240 125,250 130,240"/>
+        <line class="svg-line" x1="340" y1="210" x2="340" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="335,240 340,250 345,240"/>
+        <line class="svg-line" x1="555" y1="210" x2="555" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="550,240 555,250 560,240"/>
+        <rect class="svg-box" x="40" y="250" width="170" height="44" rx="10"/>
+        <text class="svg-ink" x="125" y="277" text-anchor="middle" font-size="13">PR 评论 / 代码审查</text>
+        <rect class="svg-box" x="255" y="250" width="170" height="44" rx="10"/>
+        <text class="svg-ink" x="340" y="277" text-anchor="middle" font-size="13">新提交 / 新 PR</text>
+        <rect class="svg-box" x="470" y="250" width="170" height="44" rx="10"/>
+        <text class="svg-ink" x="555" y="277" text-anchor="middle" font-size="13">JSON 结果与退出码</text>
+      </svg>
+      <figcaption>三类触发事件进入同一个 runner:官方 action 以 headless 方式运行 Claude,产出评论、提交或供后续步骤消费的 JSON。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span><strong>鉴权:</strong>最快路径是在 Claude Code 终端里跑 <code>/install-github-app</code>(需仓库 admin,GitHub App 要求 Contents/Issues/Pull requests 的读写权限,快捷方式仅限直连 Claude API 的用户);手动路径是装 App、把 API key 存进仓库 secret <code>ANTHROPIC_API_KEY</code>、从官方示例拷 workflow。订阅用户可用 <code>claude setup-token</code> 生成长效 OAuth token 给 CI 使用。企业环境可走 Amazon Bedrock / Google Cloud,用 OIDC 免存静态密钥,action 侧开 <code>use_bedrock</code> 或 <code>use_vertex</code>。<strong>永远不要把 key 写进 workflow 文件。</strong></p>
+    <p><span class="badge badge-official">官方</span><strong>成本:</strong>CI 里花的是两笔钱——GitHub Actions 分钟数 + API token。官方给的控法:用具体明确的 @claude 指令减少无效调用、<code>--max-turns</code> 防止无限迭代、workflow 级 timeout 防失控任务、GitHub concurrency 控制并发数。配合 <code>--output-format json</code> 里的 <code>total_cost_usd</code>,可以逐次记账。</p>
+
+    <h2>当天能做完的实操</h2>
+    <p>前三步只需要本机装好 Claude Code,约 15 分钟;第四步需要一个你有 admin 权限的 GitHub 仓库。</p>
+    <ol>
+      <li><strong>跑一次最小 headless 调用并看退出码。</strong>在任意项目目录执行下面第一条命令,预期看到一个 JSON,里面有 <code>result</code>(回答文本)、<code>session_id</code>、<code>total_cost_usd</code>;紧接着 <code>echo $?</code> 应输出 <code>0</code>。</li>
+      <li><strong>把它当 Unix 工具用。</strong>跑第二条管道命令,预期 Claude 只输出 diff 里的拼写问题(没有多余寒暄)——这就是「Claude 作为 linter」的雏形,不给 Bash 权限也能读到 diff,因为内容是从管道进来的。</li>
+      <li><strong>体验权限收口。</strong>第三条命令用 <code>acceptEdits</code> 基线跑一个会改文件的任务,预期不弹任何确认;然后把 <code>--permission-mode acceptEdits</code> 去掉重跑,预期任务因为没人批准写文件而无法完成——这就是 CI 里必须预先声明权限的原因。</li>
+    </ol>
+    <pre class="prompt"><code># 1. 最小 headless 调用 + 退出码
+claude -p "用一句话总结这个项目是做什么的" --output-format json
+echo $?
+
+# 2. 管道:diff 进,拼写检查出
+git diff main | claude -p "你是拼写检查器。对 diff 中每个拼写错误,输出一行 文件:行号,下一行写问题。没有其它输出。"
+
+# 3. 权限收口:先带基线跑,再去掉基线对比
+claude -p "把 README.md 里的错别字修掉" --permission-mode acceptEdits --max-turns 5</code></pre>
+    <ol start="4">
+      <li><strong>接进 GitHub Actions。</strong>在有 admin 权限的仓库目录里进入交互式 Claude Code,运行 <code>/install-github-app</code>,按引导装 App、加 secret、生成 workflow;完成后在任一 issue 或 PR 评论里发 <code>@claude 这个仓库的测试覆盖薄弱点在哪?</code>,预期几分钟内 Claude 以评论回复。没有合适仓库的话,今天先把下面这个最小 workflow 读懂,明天再装:</li>
+    </ol>
+<pre><code>name: Claude Code
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 10"</code></pre>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能向别人解释 <code>claude -p</code> 的输入输出契约:prompt/stdin 进,text/json/stream-json 出,退出码 0 或非 0 定成败。</li>
+      <li>能说出 json 与 stream-json 各适合什么场景,以及 <code>--json-schema</code> 的结果落在哪个字段。</li>
+      <li>实操 1–3 全部跑通,并能解释第 3 步去掉权限基线后行为为什么变了。</li>
+      <li>能说出 CI 鉴权的三条路:<code>ANTHROPIC_API_KEY</code> secret、订阅用户的 <code>claude setup-token</code>、Bedrock/Vertex 的 OIDC。</li>
+      <li>自测题:CI 里要无人值守地让 Claude 修 lint 并提交,既不想弹任何提示、又不想全放开权限,该怎么配?(要点:<code>--allowedTools</code> 精确放行 git/lint 命令 + <code>acceptEdits</code> 或 <code>dontAsk</code> 基线 + <code>--max-turns</code>/<code>--max-budget-usd</code> 止损;而不是 <code>--dangerously-skip-permissions</code>。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/headless.md">Run Claude Code programmatically(headless)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/github-actions.md">Claude Code GitHub Actions</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/cli-reference.md">CLI reference</a>(-p、--output-format、--json-schema、--max-budget-usd、setup-token 等),抓取于 2026-08-05。</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-12.html">上一课 D12 · Agent teams 与 dynamic workflows</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-14.html">下一课 D14 · Plugins 打包分发</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

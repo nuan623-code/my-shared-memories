@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D7 · Skills · Claude Code 学习站</title>
+<meta name="description" content="Claude Code Skills 系统课:SKILL.md 结构与 frontmatter、触发描述怎么写才会被命中、用户级/项目级/插件级存放位置、按需加载与 CLAUDE.md 常驻的对比,以及一个 30 分钟做完的最小可用 skill 实操。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D7 · Skills · Claude Code 学习站">
+<meta property="og:description" content="SKILL.md 结构、触发描述怎么写、放哪、按需加载 vs CLAUDE.md 常驻,附最小可用 skill 实操。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-07.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-07.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D7</p>
+  <h1>D7 · Skills</h1>
+  <p>把反复粘贴的流程和参考资料沉淀成 SKILL.md,让 Claude 按需加载:学会写结构、写描述、选位置,并做出第一个能自动触发的 skill。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">一个 skill 就是一个带说明书的文件夹:说明书(description)常驻上下文供 Claude「认路」,正文只在被调用时加载。本课基于 2026-08-05 抓取的官方文档(Claude Code 2.1.222 水位)。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><a href="/claude-code/course/day-04.html">D4</a> 讲过 CLAUDE.md:全文常驻,每一轮请求都占着上下文,所以只放「永远要遵守」的短规则。但真实工作里还有另一类内容——部署清单、API 风格指南、调试手册——不是每轮都要,但要用时得完整。这正是 Skills 的位置:<span class="badge badge-official">官方</span>官方文档明确建议,当你反复往对话里粘贴同一套指令,或 CLAUDE.md 里某一节已经从「事实」长成「流程」,就该把它抽成 skill;skill 的正文只在用到时加载,长篇参考资料闲置时几乎不占上下文。</p>
+    <p>本课也是后半程的地基:<a href="/claude-code/course/day-08.html">D8 Hooks</a> 会和 skill 对比「确定性执行 vs 模型理解执行」;<a href="/claude-code/course/day-10.html">D10 Subagents</a> 会用到本课提到的 <code>context: fork</code>;<a href="/claude-code/course/day-14.html">D14 Plugins</a> 讲的打包分发,装的主要货物就是 skill。跳过这课,后面三课都会缺一块拼图。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>SKILL.md:frontmatter + 正文</h3>
+    <p><span class="badge badge-official">官方</span>每个 skill 是一个目录,入口文件固定叫 <code>SKILL.md</code>,分两部分:<code>---</code> 包起来的 YAML frontmatter 告诉 Claude「什么时候用我」,后面的 markdown 正文是被调用时 Claude 执行的指令。目录名就是你输入的命令名(<code>.claude/skills/deploy-staging/</code> → <code>/deploy-staging</code>)。所有 frontmatter 字段都可选,官方只推荐必写 <code>description</code>:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>常用字段</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td><code>description</code></td><td>skill 做什么、什么时候用。Claude 靠它决定是否自动加载;省略时用正文第一段代替</td></tr>
+        <tr><td><code>when_to_use</code></td><td>补充触发场景(触发短语、示例请求),追加在 description 之后;两者合计在列表里截断于 1,536 字符</td></tr>
+        <tr><td><code>disable-model-invocation</code></td><td>设 <code>true</code> 后只有你能触发(适合 deploy、commit 这类有副作用的动作)</td></tr>
+        <tr><td><code>user-invocable</code></td><td>设 <code>false</code> 后从 <code>/</code> 菜单隐藏,只有 Claude 能用(适合纯背景知识)</td></tr>
+        <tr><td><code>allowed-tools</code></td><td>调用该 skill 的那一轮里免审批可用的工具;你发下一条消息时授权即清除</td></tr>
+        <tr><td><code>context: fork</code> + <code>agent</code></td><td>在隔离的 subagent 里跑这个 skill(详见 <a href="/claude-code/course/day-10.html">D10</a>)</td></tr>
+        <tr><td><code>paths</code></td><td>glob 模式,只在操作匹配文件时才自动激活</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>正文里可以用 <code>$ARGUMENTS</code> / <code>$0</code> 接收参数,用 <code>${CLAUDE_SKILL_DIR}</code> 引用 skill 自带的脚本;还有一种「动态上下文注入」:<code>!`命令`</code> 会在 Claude 看到内容之前先执行,输出直接替换占位符——所以 Claude 拿到的是真实数据,不是命令本身。官方建议 SKILL.md 保持在 500 行以内,细节资料拆成目录里的附属文件,让 Claude 需要时再读。</p>
+
+    <h3>触发:description 是唯一的「广告位」</h3>
+    <p><span class="badge badge-official">官方</span>会话开始时,所有可被模型调用的 skill 只有名字和 description 进入上下文;Claude 拿你的请求和这些描述做匹配,命中才加载全文。你也可以直接输入 <code>/skill-name</code> 跳过匹配强制加载。这意味着:<strong>描述写得好不好,直接决定 skill 会不会被想起来</strong>。</p>
+    <figure>
+      <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="skill 触发流程:用户输入经描述匹配后加载 SKILL.md 全文并执行;未命中则只有描述留在上下文;/skill-name 可跳过匹配直接加载">
+        <rect class="svg-box-accent" x="12" y="36" width="128" height="48" rx="10"/>
+        <text class="svg-ink" x="76" y="65" text-anchor="middle" font-size="13">你输入一条消息</text>
+        <line class="svg-line" x1="140" y1="60" x2="180" y2="60" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="178,55 188,60 178,65"/>
+        <rect class="svg-box" x="190" y="36" width="116" height="48" rx="10"/>
+        <text class="svg-ink" x="248" y="65" text-anchor="middle" font-size="13">描述匹配</text>
+        <text class="svg-ink-soft" x="331" y="30" text-anchor="middle" font-size="12">命中</text>
+        <line class="svg-line" x1="306" y1="60" x2="344" y2="60" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="344,55 354,60 344,65"/>
+        <rect class="svg-box" x="356" y="36" width="180" height="48" rx="10"/>
+        <text class="svg-ink" x="446" y="65" text-anchor="middle" font-size="13">加载 SKILL.md 全文</text>
+        <line class="svg-line" x1="536" y1="60" x2="572" y2="60" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="570,55 580,60 570,65"/>
+        <rect class="svg-box" x="582" y="36" width="126" height="48" rx="10"/>
+        <text class="svg-ink" x="645" y="65" text-anchor="middle" font-size="13">按指令执行</text>
+        <line class="svg-line" x1="248" y1="84" x2="248" y2="138" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="243,136 248,146 253,136"/>
+        <text class="svg-ink-soft" x="230" y="166" text-anchor="middle" font-size="12">未命中:只保留描述,不加载全文</text>
+        <rect class="svg-box" x="356" y="178" width="180" height="46" rx="10"/>
+        <text class="svg-ink" x="446" y="206" text-anchor="middle" font-size="13">/skill-name 直接调用</text>
+        <line class="svg-line" x1="446" y1="178" x2="446" y2="98" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="441,100 446,90 451,100"/>
+        <text class="svg-ink-soft" x="454" y="142" font-size="12">跳过匹配,直接加载</text>
+      </svg>
+      <figcaption>skill 的两条触发路径:Claude 按描述匹配自动加载,或你用 /skill-name 手动加载。</figcaption>
+    </figure>
+    <p>描述怎么写才容易命中?官方排错指南给的方向:<span class="badge badge-official">官方</span>描述里要包含用户会自然说出的关键词,把最核心的使用场景写在最前面(超长会被截断);skill 不触发时,先确认它出现在「What skills are available?」的回答里,再换个更贴近描述的问法,或直接 <code>/skill-name</code> 调用。<span class="badge badge-site">本站观点</span>如果你平时用中文和 Claude Code 对话,就把中文触发词也写进 description——匹配是按语义做的,但把你真实会说的话原样放进去,命中率最稳。</p>
+    <p>一个隐蔽的坑:<span class="badge badge-official">官方</span>frontmatter 的 YAML 写坏时,Claude Code 会带着「空元数据」加载正文——<code>/skill-name</code> 手动调用照常能用,但 Claude 没有 description 可匹配,自动触发彻底失效。用 <code>--debug</code> 启动能看到解析报错。所以「手动能跑、从不自动触发」十有八九是描述缺关键词或 YAML 坏了。</p>
+
+    <h3>放哪:三级位置与重名规则</h3>
+    <p><span class="badge badge-official">官方</span>skill 放在哪,决定谁能用:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>级别</th><th>路径</th><th>生效范围</th></tr></thead>
+      <tbody>
+        <tr><td>个人级</td><td><code>~/.claude/skills/&lt;skill-name&gt;/SKILL.md</code></td><td>你的所有项目</td></tr>
+        <tr><td>项目级</td><td><code>.claude/skills/&lt;skill-name&gt;/SKILL.md</code></td><td>仅当前项目(可随仓库提交共享给团队)</td></tr>
+        <tr><td>插件级</td><td><code>&lt;plugin&gt;/skills/&lt;skill-name&gt;/SKILL.md</code></td><td>启用了该插件的地方</td></tr>
+        <tr><td>企业级</td><td>managed settings 下发</td><td>组织内所有用户</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>重名时按级别覆盖:企业级 &gt; 个人级 &gt; 项目级,且任何一级的同名 skill 会覆盖内置的 bundled skill(比如项目里放一个 <code>code-review</code> 就替换掉自带的 <code>/code-review</code>)。插件 skill 用 <code>plugin-name:skill-name</code> 命名空间,天然不冲突。skill 目录是被实时监听的:改动 SKILL.md 当场生效,不用重启会话(新建顶层 skills 目录除外)。这套「项目级随仓库提交、插件级打包分发」的路径,就是 <a href="/claude-code/course/day-14.html">D14 Plugins</a> 的入口。</p>
+
+    <h3>对比 CLAUDE.md:常驻 vs 按需(承接 D4)</h3>
+    <figure>
+      <svg viewBox="0 0 700 215" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="上下文加载对比:CLAUDE.md 全文常驻每次请求;skill 只有名字和描述常驻,全文在被调用时才加载">
+        <text class="svg-ink-soft" x="160" y="16" text-anchor="middle" font-size="12">会话开始</text>
+        <text class="svg-ink-soft" x="430" y="16" text-anchor="middle" font-size="12">你或 Claude 调用 skill</text>
+        <line class="svg-line" x1="160" y1="24" x2="160" y2="215" stroke-width="1" stroke-dasharray="4 4"/>
+        <line class="svg-line" x1="430" y1="24" x2="430" y2="215" stroke-width="1" stroke-dasharray="4 4"/>
+        <text class="svg-ink" x="12" y="81" font-size="13">CLAUDE.md</text>
+        <rect class="svg-box-accent" x="160" y="58" width="510" height="38" rx="8"/>
+        <text class="svg-ink" x="415" y="82" text-anchor="middle" font-size="13">全文常驻:每次请求都计入上下文</text>
+        <text class="svg-ink" x="12" y="151" font-size="13">Skill</text>
+        <rect class="svg-box" x="160" y="128" width="250" height="38" rx="8"/>
+        <text class="svg-ink" x="285" y="152" text-anchor="middle" font-size="13">只有名字+描述(很轻)</text>
+        <rect class="svg-box-accent" x="430" y="128" width="240" height="38" rx="8"/>
+        <text class="svg-ink" x="550" y="152" text-anchor="middle" font-size="13">调用时才加载全文</text>
+      </svg>
+      <figcaption>同样一份内容,放 CLAUDE.md 是每轮固定开销,做成 skill 则闲时只花一条描述的钱。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>官方给的分工原则:「每个会话都必须知道」的短规则(构建命令、编码约定、never-do 规则)放 CLAUDE.md,并保持在 200 行以内;偶尔才需要的参考材料和可触发的工作流做成 skill。两个细节值得记住:一是 skill 全文一旦被调用,会作为一条消息留在会话里直到结束,所以正文也要克制,别当垃圾场;二是给 skill 设 <code>disable-model-invocation: true</code> 后连描述都不进上下文,对只手动触发的 skill 是零闲置成本。<span class="badge badge-site">本站观点</span>判断口诀:内容是「事实和规矩」进 CLAUDE.md,是「流程和资料」进 skill;CLAUDE.md 里哪一节开始出现第 1、2、3 步了,就是它该搬家的信号。</p>
+
+    <h3>slash command 就是 skill</h3>
+    <p><span class="badge badge-official">官方</span>自定义命令已并入 skill 体系:<code>.claude/commands/deploy.md</code> 和 <code>.claude/skills/deploy/SKILL.md</code> 都会创建 <code>/deploy</code>,行为一致;旧的 commands 文件继续有效。skill 是超集,多出三样:整目录附属文件、控制「谁能调用」的 frontmatter、以及被 Claude 按描述自动加载的能力。内置的 bundled skills(<code>/code-review</code>、<code>/debug</code>、<code>/loop</code> 等)也是同一套机制。默认你和 Claude 都能调用任何 skill;两个开关把它变成「只许你」(<code>disable-model-invocation: true</code>,适合 deploy 这种你要掌握时机的动作)或「只许 Claude」(<code>user-invocable: false</code>,适合没有动作意义的背景知识)。</p>
+
+    <div class="callout"><span class="callout-label">选型延伸</span>skill、hook、MCP、subagent、plugin 五件套怎么选,本站有专门一篇对照:<a href="/claude-code/tips/skill-hook-mcp-subagent-plugin.html">Tip E1 · skill / hook / MCP / subagent / plugin 怎么选</a>。本课先记住一句:「要 Claude 理解着做」用 skill,「必须每次不走样」用 hook(<a href="/claude-code/course/day-08.html">D8</a> 展开)。</div>
+
+    <h2>当天能做完的实操</h2>
+    <p>目标:做一个「总结未提交改动」的最小 skill,验证自动触发、手动调用、按需加载三件事。全程约 20 分钟,需要一个 git 项目。</p>
+    <ol>
+      <li>创建 skill 目录(个人级,所有项目可用):
+        <pre><code>mkdir -p ~/.claude/skills/summarize-changes</code></pre>
+        预期:目录创建成功。注意:如果 <code>~/.claude/skills/</code> 是本次新建的,而 Claude Code 会话已开着,先重启会话让它监听新目录;之后再改文件就都是当场生效了。</li>
+      <li>把下面内容存为 <code>~/.claude/skills/summarize-changes/SKILL.md</code>(结构来自官方入门示例,描述做了中文化以贴合你的真实问法):
+        <pre><code>---
+name: summarize-changes
+description: 总结当前未提交的 git 改动并标出风险点。当用户问「我改了什么」「帮我看看这次改动」、想要 commit message 或让你 review diff 时使用。Summarizes uncommitted changes and flags anything risky.
+---
+
+## 当前改动
+
+!`git diff HEAD`
+
+## 指令
+
+用两三条要点总结上面的改动,然后列出你注意到的风险,
+例如缺少错误处理、写死的值、需要同步更新的测试。
+如果 diff 为空,直接说没有未提交的改动。</code></pre>
+        其中 <code>!`git diff HEAD`</code> 是动态上下文注入:skill 被调用时先跑这条命令,把真实 diff 塞进指令再交给 Claude。</li>
+      <li>在任一 git 项目里随手改一个文件,启动 <code>claude</code>,先测自动触发——用贴近描述的自然问法:
+        <pre class="prompt"><code>我刚才改了哪些东西?帮我总结一下这次改动,并指出有没有风险。</code></pre>
+        预期:界面显示 skill 被加载,Claude 给出基于真实 diff 的两三条总结加风险清单——而不是靠猜。</li>
+      <li>再测手动调用:输入 <code>/summarize-changes</code>。预期:跳过描述匹配,直接得到同样结构的输出。</li>
+      <li>验证按需加载:问 Claude「What skills are available?」确认 skill 已注册;再回想 D1 学过的 <code>/context</code>,Skills 一行显示的只是描述列表的开销——全文是刚才被调用后才进的上下文。</li>
+      <li>进阶一步:在 frontmatter 里加一行 <code>disable-model-invocation: true</code>,保存(不用重启),再问一遍第 3 步的问题。预期:不再自动触发(描述已从上下文移除),但 <code>/summarize-changes</code> 依然能用。体会完删掉这行恢复。</li>
+    </ol>
+    <p>最后,把这套能力用到真实工作上——让 Claude Code 帮你把一个常用流程沉淀成项目级 skill:</p>
+    <pre class="prompt"><code>帮我把「发布前检查」流程沉淀成一个项目级 skill:
+- 创建 .claude/skills/release-check/SKILL.md
+- description 写清触发场景,包含我平时会说的关键词(发布、上线、release)
+- 正文列出检查步骤,每步可验证
+- 设 disable-model-invocation: true,只允许我手动 /release-check 触发
+写完后展示文件内容,并逐个解释 frontmatter 字段的作用。</code></pre>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说清 SKILL.md 的两段结构,以及 description 在「会话开始时」和「触发时」分别扮演什么角色。</li>
+      <li>能画出(或口述)本课第一张图:自动匹配和 <code>/skill-name</code> 两条触发路径的区别。</li>
+      <li>能解释同一份内容放 CLAUDE.md 和做成 skill 的上下文成本差异,并说出各自适合装什么。</li>
+      <li>实操 6 步全部跑通:自动触发、手动调用、<code>disable-model-invocation</code> 的效果都亲眼见过。</li>
+      <li>自测题:一个 skill 用 <code>/name</code> 能正常跑,但 Claude 从不自动使用它。说出两个最可能的原因和对应修法。(提示:一个在 description 的内容上,一个在 frontmatter 的语法或开关上。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/skills.md" rel="noopener">code.claude.com/docs/en/skills.md</a>(Skills 完整参考:SKILL.md 结构、frontmatter、存放位置、触发与排错)· 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/features-overview.md" rel="noopener">code.claude.com/docs/en/features-overview.md</a>(扩展全景:Skills 与 CLAUDE.md / hooks / MCP / subagents 的定位与上下文成本对比)· 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/day-06.html">上一课 D6 · checkpoint / rewind / 会话管理</a> · <a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-08.html">下一课 D8 · Hooks</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

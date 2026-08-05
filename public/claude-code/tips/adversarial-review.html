@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>对抗式 review · Claude Code 学习站</title>
+<meta name="description" content="让一个不知道实现过程的会话或 subagent 只看 diff 专挑毛病:/code-review 的用法、自写对抗式 review prompt 的要点,以及怎么避免 reviewer 为找茬而找茬。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/adversarial-review.html">
+<meta property="og:title" content="对抗式 review · Claude Code 学习站">
+<meta property="og:description" content="让另一个不知道实现过程的会话/subagent 专挑毛病,/code-review 的用法。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/adversarial-review.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · 稳定与质量</span></p>
+  <h1>对抗式 review</h1>
+  <p>写代码的 Claude 会偏袒自己刚写的代码——让一个不知道实现过程的“陌生人”只看 diff 挑毛病,问题才藏不住。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">subagent 天生适合当这个“陌生人”:每个 subagent 从全新、隔离的上下文启动,看不到你的对话历史,自然也不知道实现时的心路历程,只能就代码论代码。Claude 无人值守干得越久,这道独立检查就越重要。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      在把任务算作“完成”之前,跑一次对抗式 review:要么直接运行自带的 <code>/code-review</code>(在全新 subagent 里审当前 diff 找 bug),要么自写 prompt 让 subagent 拿着你的计划对照 diff 报差距。<span class="badge badge-official">官方</span>官方原理:reviewer 在新上下文里只看到 diff 和你给的标准,看不到产生这段代码的推理过程,所以能就事论事地评判结果。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>查正确性用 <code>/code-review</code>。</strong>在工作会话里直接运行。<span class="badge badge-official">官方</span>它默认审“当前分支领先 upstream 的提交 + 未提交改动”,也可指定目标:文件路径、PR 号、分支名或 <code>main...my-feature</code> 这样的 ref 区间。review 以后台 subagent 运行、有自己的上下文窗口,不占你的对话;结果完成后回到会话里。可加 <code>--fix</code> 直接把发现应用到工作区,或 <code>--comment</code> 把发现发成 PR 行内评论。</li>
+      <li><strong>调置信度。</strong><span class="badge badge-official">官方</span>给 <code>/code-review</code> 传 effort 档位:low/medium 只报最有把握的发现、误报少;high 到 max 撒网更宽、可能夹带不确定的发现。不传就用会话当前档位。</li>
+      <li><strong>查“是否符合计划”要自写 prompt。</strong><span class="badge badge-official">官方</span><code>/code-review</code> 只管找 bug;想对照 SPEC/计划验收,官方给的公式是三要素:<em>点名要审的工作、点名对照的计划、定义什么算一个 finding</em>。因为 reviewer 是 subagent,差距会直接回到实现会话,Claude 能当场修复再复审,不用你在窗口间搬运。</li>
+      <li><strong>更强隔离:开第二个会话。</strong><span class="badge badge-official">官方</span>官方的 Writer/Reviewer 模式:会话 A 实现,会话 B(全新上下文)审查,把 B 的反馈贴回 A 修复。理由同样是“新上下文不会偏袒刚写出的代码”。<span class="badge badge-site">本站观点</span>subagent 版胜在闭环自动,双会话版胜在你能亲手把关 reviewer 看什么,重要改动值得用后者。</li>
+      <li><strong>别被 reviewer 带节奏。</strong><span class="badge badge-official">官方</span>官方明确警告:被要求找茬的 reviewer 几乎总会报点什么,哪怕工作本身没问题;每条都追会走向过度工程(多余抽象层、防御式代码、测不可能发生的用例)。要在 prompt 里限定“只报影响正确性或明确需求的差距”,其余当可选建议。</li>
+      <li><strong>注意 <code>--fix</code> 与回退的交互。</strong><span class="badge badge-official">官方</span>后台 review 的 <code>--fix</code> 编辑发生在你会话的 checkpoint 之外,<code>/rewind</code> 撤不掉,要用 git 回退——细节见<a href="/claude-code/tips/rollback-checkpoint-vs-git.html">改坏了怎么回退</a>。另:GitHub 侧还有托管版 Code Review(research preview,Team/Enterprise 订阅),在 PR 上评论 <code>@claude review</code> 触发,多 agent 审整个 PR 并按严重级别发行内评论,和本地 <code>/code-review</code> 是两套东西。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <p>对照计划的对抗式 review(官方公式的中文版,按需替换对象):</p>
+    <pre class="prompt"><code>用一个 subagent 对当前 diff 做对抗式 review,对照 @SPEC.md:
+不要向它转述任何实现过程,让它只看 diff 和以下标准。检查:
+1. SPEC.md 里的每条需求是否都已实现;
+2. 列出的边界情况是否都有对应测试;
+3. 是否改动了任务范围之外的东西。
+只报告影响正确性或明确需求的差距(gaps),不要风格偏好。
+结果回来后,把发现按“必须修 / 可选”分类,先给我看清单再动手修。</code></pre>
+    <p>纯找 bug 直接跑:</p>
+    <pre class="prompt"><code>/code-review</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Add an adversarial review step / Run multiple Claude sessions</a>——fresh context 原理、review prompt 三要素、过度工程警告、Writer/Reviewer 模式,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/code-review.md" target="_blank" rel="noopener">Code Review</a>——/code-review 的目标与 --fix/--comment 参数、effort 档位、后台 subagent 运行方式、GitHub 托管版,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sub-agents.md" target="_blank" rel="noopener">Create custom subagents</a>——subagent 全新隔离上下文、看不到对话历史、code-reviewer 示例,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(绑定 /code-review 参数与 subagent 行为,会定期复核)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

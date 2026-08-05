@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>要改200个文件怎么办 · Claude Code 学习站</title>
+<meta name="description" content="大规模机械改动的三步策略:先小样本定模式,再选脚本一次跑完或 workflow/subagent 扇出,最后抽查加全量校验收尾。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="要改200个文件怎么办 · Claude Code 学习站">
+<meta property="og:description" content="大规模改动三步走:小样本定模式 → 脚本或 agent 扇出 → 抽查加全量校验;什么时候该用脚本而不是 LLM。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/bulk-edit-200-files.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/bulk-edit-200-files.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / B · 并行与效率</p>
+  <h1>要改200个文件怎么办</h1>
+  <p>改 import 路径、迁移组件库、换 API 名——一次改动铺到几百个文件,丢给一个会话逐个磨既慢又容易漏。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">大规模改动的关键不是「让 AI 更快地改」,而是先把改法固化成模式,再选对执行器:确定性的交给脚本,需要判断的才扇出给 agent,最后用抽查和全量校验兜底。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      <span class="badge badge-site">本站观点</span>三步走:① 先在 3–5 个代表性文件上把改法定成明确模式并人工确认;② 纯机械的文本/AST 变换让 Claude 写成脚本一次跑完(快、零 token、可重跑),每个文件需要单独判断的才用 workflow/subagent 扇出并行改;③ 改完随机抽查 diff,再跑类型检查/测试做全量校验,不过就继续修到过。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>小样本定模式。</strong>挑 3–5 个有代表性的文件(普通的、边界的、最复杂的各来一个)让 Claude 先改,人工确认改法。<span class="badge badge-official">官方</span>workflows 文档在成本一节同样建议:大任务先跑一个小切片——「one directory instead of the whole repo」——再决定是否铺开。</li>
+      <li><strong>判断脚本还是 LLM。</strong><span class="badge badge-site">本站观点</span>标准是「改法能不能写成规则」:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>改动性质</th><th>执行器</th><th>例子</th></tr></thead>
+          <tbody>
+            <tr><td>确定性变换:同一规则套所有文件</td><td>让 Claude 写脚本/codemod,一次跑完</td><td>改 import 路径、重命名函数、批量替换配置键</td></tr>
+            <tr><td>逐文件判断:规则写不全,要理解上下文</td><td>workflow / subagent 扇出,每文件一个 agent</td><td>styled-components 迁移 Tailwind、给每个路由补鉴权</td></tr>
+          </tbody>
+        </table></div>
+        脚本的好处是结果可 diff、可 review、错了改脚本重跑;200 个文件对 LLM 是 200 次机会出不一致,对脚本只是一次循环。</li>
+      <li><strong>走 agent 扇出时,首选 dynamic workflow。</strong><span class="badge badge-official">官方</span>在 prompt 里说「use a workflow」或加关键词 <code>ultracode</code>,Claude 会把编排写成脚本在后台跑,中间结果留在脚本变量里不挤占对话上下文;官方给的迁移例句就是「migrate every component under src/components/ from styled-components to Tailwind, working on each file in its own isolated copy」。<code>/workflows</code> 查看每个阶段的 agent 数、token 数,可暂停、可恢复。限制:最多 16 个 agent 并发、单次 1000 个;超过 25 个 agent 或预计 150 万 token 会出「Large workflow」提醒。需要 v2.1.154+ 的付费计划。</li>
+      <li><strong>要产出可审的 PR,用 <code>/batch</code>。</strong><span class="badge badge-official">官方</span><code>/batch</code> 是内置 skill:把一个大改动拆成 5–30 个 worktree 隔离的 subagent,每个各开一个 pull request,天然按 PR 粒度做 review。worktree 隔离的原理见 <a href="/claude-code/tips/worktrees-parallel-sessions.html">worktree 让多会话不打架</a>。</li>
+      <li><strong>要进 CI 或彻底脚本化,用 headless。</strong><span class="badge badge-official">官方</span><code>claude -p "&lt;指令&gt;" --allowedTools "Read,Edit"</code> 非交互跑一条任务,退出码可供脚本分支,<code>--output-format json</code> 拿结构化结果;加 <code>--bare</code> 跳过 hooks/plugins 加载,适合在循环里逐文件调用。详见 <a href="/claude-code/course/day-13.html">D13 · Headless 与 CI</a>。</li>
+      <li><strong>抽查 + 全量校验收尾。</strong><span class="badge badge-site">本站观点</span>随机抽 5–10 个文件人工看 diff,确认模式没有走样;然后跑一遍全量校验。<span class="badge badge-official">官方</span>workflow 有现成的收尾模式:「run npx tsc --noEmit and keep fixing the reported errors until the type check passes」,以及对每个发现做对抗性复核(adversarially verify each finding)再上报。</li>
+      <li><strong>成本提醒。</strong><span class="badge badge-official">官方</span>一次 workflow 扇出几十个 agent,token 消耗显著高于单对话,计入套餐用量;这也是第 2 步先考虑脚本的另一个理由。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>我要把这个改动铺到整个仓库(约 200 个文件):&lt;改动描述&gt;。
+分三步,每步之间停下来等我确认:
+
+1. 先找出所有需要改的文件并报数量,然后挑 3 个有代表性的
+   (最普通的、最复杂的、最边界的)改给我看,等我确认改法;
+2. 确认后判断执行方式:如果改动是确定性的文本/AST 变换,
+   写一个可重复执行的脚本一次跑完,脚本本身先给我看;
+   如果每个文件需要单独判断,就 use a workflow 扇出,
+   每个文件在隔离副本里改;
+3. 全部改完后:随机抽 5 个文件展示 diff,
+   然后跑 &lt;类型检查/测试命令&gt;,不通过就继续修,直到通过为止,
+   最后报告总改动文件数和校验结果。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/workflows.md">Orchestrate subagents at scale with dynamic workflows</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/sub-agents.md">Create custom subagents</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/headless.md">Run Claude Code programmatically</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/agents.md">Run agents in parallel</a>(<code>/batch</code> 说明),抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(workflow 的触发词、agent 上限、size guideline 均随版本调整)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

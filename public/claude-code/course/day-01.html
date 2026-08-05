@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D1 · agentic loop 与 Claude 能读到什么（/context） · Claude Code 学习站</title>
+<meta name="description" content="第一课:搞懂 Claude Code 的工作循环(收集上下文→行动→验证),以及每一轮它到底能读到什么、读不到什么,用 /context 亲眼看窗口构成。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/claude-code/course/day-01.html">
+<meta property="og:title" content="D1 · agentic loop 与 Claude 能读到什么（/context）">
+<meta property="og:description" content="搞懂 Claude Code 的工作循环与上下文窗口:它每轮读到什么、读不到什么,/context 怎么看。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/course/day-01.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/" aria-current="page">系统课程</a>
+    <a href="/claude-code/tips/">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/course/">系统课程</a> / D1</p>
+  <h1>D1 · agentic loop 与 Claude 能读到什么（/context）</h1>
+  <p>刚装好 Claude Code 的第一课:先建立两个心智模型——它干活的循环方式,和它每一轮到底「看得见什么、看不见什么」。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本课目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">本课不讲任何配置技巧,只回答两个问题:Claude Code 是怎么把一个任务做完的(agentic loop);它在做的过程中能读到什么、读不到什么(上下文窗口)。最后用 <code>/context</code> 命令把第二个问题变成你亲眼能看到的东西。</p>
+
+    <h2>为什么这天学这个</h2>
+    <p><span class="badge badge-site">本站观点</span>新手对 Claude Code 最常见的两类挫败——「它怎么不知道我仓库里有这个文件」和「它怎么忘了我上个会话说过的话」——根源都不是模型不行,而是不了解它<strong>能读到什么</strong>。这件事一旦想明白,后面所有课都是顺理成章的:</p>
+    <ul>
+      <li><a href="/claude-code/course/day-02.html">D2 上下文窗口与 prompt caching</a> 展开讲今天那张「窗口分层图」里各部分的成本;</li>
+      <li><a href="/claude-code/course/day-03.html">D3 权限模式与沙箱</a> 管的是循环里「行动」那一步能不能自动执行;</li>
+      <li><a href="/claude-code/course/day-04.html">D4 CLAUDE.md 与 rules</a> 解决的正是「每个会话都要重新交代一遍」的问题。</li>
+    </ul>
+    <p>所以第一天,我们只打地基。</p>
+
+    <h2>概念讲清楚</h2>
+
+    <h3>一轮循环:收集上下文 → 行动 → 验证</h3>
+    <p><span class="badge badge-official">官方</span>你给 Claude 一个任务后,它按三个阶段工作:<strong>收集上下文</strong>(gather context)、<strong>采取行动</strong>(take action)、<strong>验证结果</strong>(verify results)。三个阶段不是固定流水线,而是相互交织:Claude 全程通过调用工具推进——搜文件理解代码、编辑文件做修改、跑测试检查自己的工作。每次工具调用返回的信息都会喂回循环,决定下一步做什么,如此串起几十个动作并沿途自我纠偏,直到任务完成。</p>
+    <p><span class="badge badge-official">官方</span>你也在这个循环里:任何时刻按 <code>Esc</code> 可以立即停下 Claude;或者直接输入一句补充并回车,它会在当前动作结束后读到,并据此调整下一步。</p>
+    <figure>
+      <svg viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="agentic loop 循环图:你的 prompt 进入收集上下文、采取行动、验证结果的循环,未完成则带着新信息再来一轮,完成则退出;全程可打断">
+        <rect class="svg-box" x="498" y="16" width="112" height="40" rx="10"/>
+        <text class="svg-ink" x="554" y="41" text-anchor="middle" font-size="14">任务完成</text>
+        <rect class="svg-box-accent" x="10" y="100" width="104" height="46" rx="10"/>
+        <text class="svg-ink" x="62" y="128" text-anchor="middle" font-size="14">你的 prompt</text>
+        <rect class="svg-box" x="162" y="100" width="128" height="46" rx="10"/>
+        <text class="svg-ink" x="226" y="128" text-anchor="middle" font-size="14">收集上下文</text>
+        <rect class="svg-box" x="338" y="100" width="112" height="46" rx="10"/>
+        <text class="svg-ink" x="394" y="128" text-anchor="middle" font-size="14">采取行动</text>
+        <rect class="svg-box" x="498" y="100" width="112" height="46" rx="10"/>
+        <text class="svg-ink" x="554" y="128" text-anchor="middle" font-size="14">验证结果</text>
+        <line class="svg-line" x1="114" y1="123" x2="154" y2="123" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="154,118 164,123 154,128"/>
+        <line class="svg-line" x1="290" y1="123" x2="330" y2="123" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="330,118 340,123 330,128"/>
+        <line class="svg-line" x1="450" y1="123" x2="490" y2="123" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="490,118 500,123 490,128"/>
+        <line class="svg-line" x1="554" y1="100" x2="554" y2="64" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="549,66 554,56 559,66"/>
+        <text class="svg-ink-soft" x="572" y="84" font-size="12">完成</text>
+        <path class="svg-line" d="M554 146 V190 H226 V156" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="221,158 226,148 231,158"/>
+        <text class="svg-ink-soft" x="390" y="208" text-anchor="middle" font-size="12">未完成:带着新信息再来一轮</text>
+        <text class="svg-ink-soft" x="340" y="242" text-anchor="middle" font-size="12">三阶段相互交织;你随时可按 Esc 打断,或直接输入补充信息</text>
+      </svg>
+      <figcaption>agentic loop:每次工具调用的结果都会喂回循环,决定下一步;循环重复直到任务完成。</figcaption>
+    </figure>
+    <p><span class="badge badge-official">官方</span>循环由两个部件驱动:<strong>模型</strong>负责推理,<strong>工具</strong>负责行动。没有工具,Claude 只能输出文字;有了工具,它才能读代码、改文件、跑命令。Claude Code 本身是包在模型外面的「agentic harness(智能体外壳)」——提供工具、上下文管理和执行环境。内置工具大致五类:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>类别</th><th>Claude 能做什么</th></tr></thead>
+      <tbody>
+        <tr><td>文件操作</td><td>读文件、编辑代码、新建文件、重命名与重组</td></tr>
+        <tr><td>搜索</td><td>按模式找文件、用正则搜内容、探索代码库</td></tr>
+        <tr><td>执行</td><td>跑 shell 命令、起服务、跑测试、用 git</td></tr>
+        <tr><td>网络</td><td>搜网页、抓文档、查报错信息</td></tr>
+        <tr><td>代码智能</td><td>编辑后看到类型错误、跳转定义、查引用(需安装 code intelligence 插件)</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">官方</span>官方给的例子:你说「fix the failing tests」,Claude 可能会:跑测试看哪些失败 → 读报错输出 → 搜相关源文件 → 读文件理解代码 → 编辑修复 → 再跑测试验证。这就是循环在动。</p>
+
+    <h3>换个讲法:一位只看得见桌面的结对工程师</h3>
+    <p><span class="badge badge-site">本站观点</span>把 Claude 想成一位水平很高、但<strong>只看得见桌面上摊开的材料</strong>的结对工程师。桌面就是「上下文窗口」。它没有把你的仓库背下来;想看哪个文件,得伸手去拿(调用工具),拿回来的内容摆上桌面,才算「看见」。桌面大小有限、摆满了要清理(这是 <a href="/claude-code/course/day-02.html">D2</a> 的主题)。理解了「桌面」,你就理解了这门课的一大半:后面学的 CLAUDE.md、skill、subagent,本质上都是在回答「什么东西该常驻桌面、什么东西该用时再拿」。</p>
+
+    <h3>每轮能读到什么、读不到什么</h3>
+    <p><span class="badge badge-official">官方</span>在你运行 <code>claude</code> 的目录里,它<strong>能访问</strong>:该目录及子目录的项目文件(其他位置需你授权)、你的终端能跑的任何命令、git 状态(当前分支、未提交改动、近期提交)、CLAUDE.md、auto memory(自动记忆,MEMORY.md 的前 200 行或 25KB 会在每个会话开始时载入),以及你配置的扩展(MCP、skills、subagents 等)。</p>
+    <p><span class="badge badge-official">官方</span>而每次请求真正<strong>装进上下文窗口</strong>的是:系统指令、CLAUDE.md、auto memory、已加载的 skills、对话历史、读过的文件内容和命令输出。</p>
+    <figure>
+      <svg viewBox="0 0 680 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="上下文窗口分层图:窗口内有系统提示、CLAUDE.md 与 auto memory、skill 描述与 MCP 工具名、对话历史、工具结果;窗口外的仓库其余文件和上个会话历史需要时才通过工具读入">
+        <text class="svg-ink" x="200" y="24" text-anchor="middle" font-size="14">一次请求装进上下文窗口的内容</text>
+        <rect class="svg-box" x="20" y="36" width="360" height="290" rx="12"/>
+        <rect class="svg-box" x="32" y="48" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="77" font-size="13">系统提示与内置工具定义</text>
+        <text class="svg-ink-soft" x="356" y="77" text-anchor="end" font-size="11">开局装入</text>
+        <rect class="svg-box" x="32" y="102" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="131" font-size="13">CLAUDE.md 与 auto memory</text>
+        <text class="svg-ink-soft" x="356" y="131" text-anchor="end" font-size="11">开局装入</text>
+        <rect class="svg-box" x="32" y="156" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="185" font-size="13">Skill 描述、MCP 工具名</text>
+        <text class="svg-ink-soft" x="356" y="185" text-anchor="end" font-size="11">开局装入</text>
+        <rect class="svg-box-accent" x="32" y="210" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="239" font-size="13">对话历史:你和 Claude 的消息</text>
+        <text class="svg-ink-soft" x="356" y="239" text-anchor="end" font-size="11">持续增长</text>
+        <rect class="svg-box-accent" x="32" y="264" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="293" font-size="13">工具结果:读过的文件、命令输出</text>
+        <text class="svg-ink-soft" x="356" y="293" text-anchor="end" font-size="11">持续增长</text>
+        <rect class="svg-box" x="428" y="48" width="232" height="170" rx="12" stroke-dasharray="6 4"/>
+        <text class="svg-ink" x="544" y="76" text-anchor="middle" font-size="13">上下文窗口之外</text>
+        <text class="svg-ink-soft" x="448" y="104" font-size="12">仓库里没被读过的文件</text>
+        <text class="svg-ink-soft" x="448" y="128" font-size="12">上一个会话的全部对话</text>
+        <text class="svg-ink-soft" x="448" y="152" font-size="12">你没有提供的需求背景</text>
+        <text class="svg-ink-soft" x="544" y="190" text-anchor="middle" font-size="11">不会自动装入窗口</text>
+        <path class="svg-line" d="M428 200 H396 V288 H382" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="382,283 372,288 382,293"/>
+        <text class="svg-ink-soft" x="520" y="250" text-anchor="middle" font-size="11">需要时才通过搜索、读取等工具读入</text>
+        <text class="svg-ink-soft" x="340" y="344" text-anchor="middle" font-size="12">用 /context 随时查看这些部分各占了多少</text>
+      </svg>
+      <figcaption>上下文窗口分层:上面三层会话开始就装入,下面两层随对话增长;窗口之外的东西要靠工具按需读入。</figcaption>
+    </figure>
+    <p>两个最常见的误区,现在就澄清:</p>
+    <ul>
+      <li><span class="badge badge-site">本站观点</span><strong>误区一:「Claude 已经把整个仓库读进去了。」</strong>实际上「能访问」不等于「已读入」——它按需搜索、按需读取,只有读过的内容才进窗口。判断方法:问它一个它没读过的文件里的细节,你会看到它先调用搜索或读取工具,而不是直接回答。</li>
+      <li><span class="badge badge-official">官方</span><strong>误区二:「上个会话说过的话它还记得。」</strong>官方文档写明:会话相互独立,每个新会话从全新的空白上下文开始,不带以前的对话历史。要跨会话保留信息,靠 auto memory 或你写在 CLAUDE.md 里的持久指令(<a href="/claude-code/course/day-04.html">D4</a> 详讲)。</li>
+    </ul>
+    <p><span class="badge badge-official">官方</span>窗口会随工作被填满。Claude Code 接近上限时会自动压缩:先清掉较早的工具输出,不够再对整段对话做摘要——你的请求和关键代码会保留,但对话早期的详细指令可能丢失。所以官方的建议是:持久规则写进 CLAUDE.md,别依赖对话历史。细节留到 <a href="/claude-code/course/day-02.html">D2</a>。</p>
+
+    <h3>用 /context 看窗口构成</h3>
+    <p><span class="badge badge-official">官方</span><code>/context</code> 把当前上下文用量画成一张彩色格子图,并给出优化建议:哪些工具吃上下文、memory 是否膨胀、容量预警。当对话超出窗口上限时,输出还会标明超了多少、用哪个命令释放空间(此警告需 Claude Code v2.1.216 及以上;本站核实时最新版为 2.1.222)。在全屏模式下,<code>/context</code> 会折叠逐项明细以保住格子图,传 <code>all</code>(即 <code>/context all</code>)可展开。</p>
+    <p><span class="badge badge-official">官方</span>顺带认识两个邻居命令:对话太长时,<code>/compact</code> 把对话摘要压缩以释放空间;<code>/clear</code> 则直接开一个空白上下文的新对话。另外,MCP 工具的完整定义默认延迟加载、用到才载入,空闲时只有工具名占上下文,<code>/mcp</code> 可以查看每个 server 的 token 开销——现在不用深究,知道 <code>/context</code> 里看到的数字都有出处即可。</p>
+
+    <h2>当天能做完的实操</h2>
+    <p>假设你已装好并登录 Claude Code。全程约 30 分钟,不会改动你的任何文件。</p>
+    <ol>
+      <li><strong>进入一个你熟悉的项目目录,运行 <code>claude</code>。</strong>预期:进入交互界面,出现输入框。</li>
+      <li><strong>立刻输入 <code>/context</code>。</strong>预期:一张彩色格子图加分项列表,此时占用主要是系统提示、系统工具等「开局装入」的部分,对话消息几乎为零。记下大致数字,这是你的基线。</li>
+      <li><strong>发第一个任务,观察「收集上下文」阶段:</strong>
+        <pre class="prompt"><code>用三句话概括这个项目是做什么的,并列出你为了回答这个问题实际读了哪些文件。</code></pre>
+        预期:界面上能看到 Claude 调用搜索、读取工具的过程,它只挑了少数几个文件读——亲眼验证它<strong>不是</strong>开局就读完整个仓库。</li>
+      <li><strong>再跑一个完整循环(收集 → 行动 → 验证都能看到):</strong>
+        <pre class="prompt"><code>在这个仓库里挑一个最简单的、可自动验证的检查(比如测试或 lint),
+跑一遍并告诉我结果。如果失败,只解释原因,不要修改任何文件。</code></pre>
+        预期:Claude 先找到检查命令(收集),请求你确认后执行(行动;为什么要确认是 <a href="/claude-code/course/day-03.html">D3</a> 的内容),然后读输出并汇报(验证)。</li>
+      <li><strong>体验打断与引导。</strong>趁它执行时直接输入一句「顺便说明你下一步打算做什么」并回车。预期:当前动作结束后它会读到你的话并调整回应;想立刻叫停就按 <code>Esc</code>。</li>
+      <li><strong>再输入 <code>/context</code>,与第 2 步对比。</strong>预期:对话消息部分明显变大,增量主要来自工具结果(读过的文件、命令输出)。你刚刚亲眼看到了「桌面是怎么摆满的」。</li>
+    </ol>
+
+    <h2>验收标准</h2>
+    <ul>
+      <li>能不看笔记说出 agentic loop 的三个阶段,并解释为什么说它们「相互交织」而不是固定流水线(提示:每次工具结果都会改变下一步)。</li>
+      <li>能列出上下文窗口里至少 5 类内容,并说出两样<strong>不会</strong>自动进窗口的东西。</li>
+      <li>实操中跑过两次 <code>/context</code>,能解释两次数字的差异主要来自哪一层。</li>
+      <li>自测题:新开一个会话,Claude 还记得你上个会话里定的约定吗?为什么?想让它每次都记得,该把约定放到哪里?(参考答案:不记得——会话相互独立,新会话从空白上下文开始;该放进 CLAUDE.md,<a href="/claude-code/course/day-04.html">D4</a> 详讲。)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <div class="sources">
+    <h4>来源清单</h4>
+    <ol>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/how-claude-code-works.md">How Claude Code works</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/features-overview.md">Extend Claude Code(features overview)</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/claude-directory.md">Explore the .claude directory</a> · 抓取于 2026-08-05</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/commands.md">Commands reference(/context、/compact、/clear、/mcp 等条目)</a> · 抓取于 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/claude-code/course/">返回课程总览</a> · <a href="/claude-code/course/day-02.html">下一课 D2 · 上下文窗口与 prompt caching</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

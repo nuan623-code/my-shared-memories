@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出问题先跑这三个 · Claude Code 学习站</title>
+<meta name="description" content="Claude Code 排障三板斧:/doctor 自动体检、/context 看什么真的载入了、/mcp 查外部服务器状态,各解决哪类问题与后续对症命令。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="出问题先跑这三个 · Claude Code 学习站">
+<meta property="og:description" content="Claude Code 排障三板斧:/doctor 自动体检、/context 看什么真的载入了、/mcp 查外部服务器状态。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/first-three-debug-commands.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/first-three-debug-commands.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · 配置与选型</span></p>
+  <h1>出问题先跑这三个</h1>
+  <p>CLAUDE.md 不生效、hook 不触发、MCP 没工具……别猜,先跑三条诊断命令,让 Claude Code 自己告诉你哪一环断了。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">配置类问题的原因几乎总是三种之一:文件<strong>没载入</strong>、从<strong>别的位置</strong>载入了、或被<strong>另一层配置覆盖</strong>了。排障三板斧就是把这三种可能逐一排掉。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      按顺序跑:<code>/doctor</code>(自动体检安装与配置,提出修复)→ <code>/context</code>(看 CLAUDE.md、skills、MCP 工具到底载入了没)→ <code>/mcp</code>(查外部服务器连接与审批状态)。Claude Code 起不来时,改在终端跑 <code>claude doctor</code>;怀疑是某个插件/hook/MCP 拖慢或搞坏了会话,用 <code>claude --safe-mode</code> 裸跑对照。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>第一板斧:<code>/doctor</code>,不知道哪坏了就先跑它。</strong><span class="badge badge-official">官方</span>它做一次安装与配置体检:安装健康度、无效的 settings 文件、没用上的扩展、同目录重名的 subagent、以及 CLAUDE.md 里 Claude 本可自己推断的冗余内容(trim 检查需 v2.1.206+,当前最新版 2.1.222 已满足),发现问题会提出修复、经你确认才应用。如果 <code>claude</code> 根本起不动,在终端跑 <code>claude doctor</code>,不开会话打印只读诊断。顺手记录版本:<code>claude --version</code> 或会话内 <code>/status</code>——很多修复是版本门槛问题。</li>
+      <li><strong>第二板斧:<code>/context</code>,确认「它到底载入了没」。</strong><span class="badge badge-official">官方</span>它把当前会话占据上下文窗口的东西按类列出:系统提示、内置/MCP 工具、自定义 subagent 及其来源、memory 文件、skills、对话消息。你的 CLAUDE.md 不在 Memory files 列表里?那 Claude 根本看不见它——去查文件位置(子目录 CLAUDE.md 只在 Claude 读到那个目录的文件时才按需载入,不在启动时)。列表里有但 Claude 不照做?那是写法问题:指令太模糊、两个文件互相矛盾、或文件太长稀释了注意力,参见 <a href="/claude-code/tips/claude-md-ignored-too-long.html">CLAUDE.md 写太长被无视</a>。</li>
+      <li><strong>第三板斧:<code>/mcp</code>,查外部服务器。</strong><span class="badge badge-official">官方</span>它列出每个已配置服务器的连接状态和项目审批状态。三个常见坑:项目级 <code>.mcp.json</code> 的服务器需要一次性审批,弹窗被关掉就一直禁用,在 <code>/mcp</code> 里补批;服务器启动失败常因 <code>command</code>/<code>args</code> 里写了相对路径(相对启动目录解析);显示已连接但 0 个工具,先选 Reconnect,还不行就 <code>claude --debug mcp</code> 看服务器的 stderr。</li>
+      <li><strong>按症状接续:对症命令表。</strong><span class="badge badge-official">官方</span>三板斧定位到大类后,用专项命令深挖:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>症状/疑点</th><th>跑什么</th><th>它告诉你</th></tr></thead>
+          <tbody>
+            <tr><td>hook 没触发</td><td><code>/hooks</code>,再 <code>claude --debug hooks</code></td><td>注册了哪些 hook;不在列表=没被读到(hooks 必须写在 settings.json 的 <code>"hooks"</code> 键下,没有独立 hooks 文件),在列表但不触发多半是 matcher 写错(区分大小写,多工具用 <code>"Edit|Write"</code>)</td></tr>
+            <tr><td>某条设置不生效</td><td><code>/status</code> + <code>/permissions</code></td><td>哪些设置来源在生效;常见坑:同键被 <code>settings.local.json</code> 覆盖,或配置误写进 <code>~/.claude.json</code>(应写 <code>~/.claude/settings.json</code>,是两个不同文件)</td></tr>
+            <tr><td>记忆/指令问题</td><td><code>/memory</code> + <code>/skills</code></td><td>各作用域 memory 文件位置;skill 不出现常因文件放成 <code>.claude/skills/name.md</code>(应为 <code>name/SKILL.md</code> 目录结构)</td></tr>
+            <tr><td>怀疑扩展搞鬼(卡顿/行为异常)</td><td><code>claude --safe-mode</code></td><td>禁用全部自定义(CLAUDE.md/skills/plugins/hooks/MCP)裸跑;问题消失=某个扩展是元凶,再用上面的专项命令定位</td></tr>
+            <tr><td>怀疑用户级配置本身坏了</td><td><code>CLAUDE_CONFIG_DIR=/tmp/claude-clean claude</code></td><td>指向空配置目录完全绕开 <code>~/.claude</code>;问题还在=原因在配置之外</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>还没头绪,把问题交给 Claude。</strong><span class="badge badge-official">官方</span>会话内 <code>/debug [问题描述]</code> 会开启本会话的 debug 日志并让 Claude 结合日志与设置路径自行诊断;性能类问题(高 CPU/内存、卡死)另见官方 troubleshooting 页,常用解法是 <code>/compact</code> 缩上下文和重启会话(<code>claude --resume</code> 不丢对话)。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>我的 Claude Code 配置好像没生效。症状:&lt;填写,例如「CLAUDE.md 里的规则被无视」/
+「PostToolUse hook 没触发」/「MCP 服务器连上了但没有工具」&gt;。
+
+请按官方排障顺序帮我诊断:
+1. 先让我跑 /doctor 和 /context,我把输出贴给你;
+2. 根据输出判断属于哪种情况:文件没载入、从别的位置载入、还是被其他
+   作用域覆盖(managed &gt; local &gt; project &gt; user);
+3. 如果载入正常但行为不对,检查是不是指令写法问题(模糊/冲突/过长);
+4. 涉及 hooks 或 MCP 时,再让我补跑 /hooks 或 /mcp;
+5. 最后给出具体修复步骤,并注明每一步预期看到什么。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/debug-your-config.md" rel="noopener">debug-your-config(/context、/doctor、/hooks、/mcp 用法与常见原因对照表)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/troubleshooting.md" rel="noopener">troubleshooting(症状分流表/性能问题/safe-mode)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/skills.md" rel="noopener">skills(claude --version 与 /status 查版本)</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(命令清单与 /doctor 能力随版本演进,版本水位 2.1.222)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

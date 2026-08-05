@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>权限：从每步点同意到不打断 · Claude Code 学习站</title>
+<meta name="description" content="从默认逐步授权到 allowlist、acceptEdits、auto mode 的渐进放权路径,以及哪些权限永远不该放行的安全底线。">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="权限：从每步点同意到不打断 · Claude Code 学习站">
+<meta property="og:description" content="从默认逐步授权到 allowlist、acceptEdits、auto mode 的渐进放权路径,以及哪些权限永远不该放行。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/claude-code/tips/permissions-uninterrupted.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/claude-code/tips/permissions-uninterrupted.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/claude-code/">Claude Code 学习站</a>
+  <nav class="topnav">
+    <a href="/claude-code/course/">系统课程</a>
+    <a href="/claude-code/tips/" aria-current="page">实战 Tip</a>
+    <a href="/claude-code/changelog.html">更新日志</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/claude-code/">学习站</a> / <a href="/claude-code/tips/">实战 Tip</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · 配置与选型</span></p>
+  <h1>权限：从每步点同意到不打断</h1>
+  <p>每个命令都要点一次「同意」很快就烦了——但一步跳到全放行又危险。这条 Tip 给出官方支持的渐进放权路径和不能碰的底线。</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">本页目录</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code 的权限体系分两层:权限模式(mode)定基调,allow/ask/deny 规则做细粒度覆盖。放权的正确姿势是沿着这两层逐级往上走,而不是直接开 <code>bypassPermissions</code>。</p>
+
+    <h2>一句话结论</h2>
+    <div class="callout">
+      <span class="callout-label">结论</span>
+      渐进走四步:先在默认模式里用「Yes, don't ask again」攒 allowlist → 切 <code>acceptEdits</code> 免编辑确认 → 升 auto mode 让分类器做背景安全审查;同时用 <code>ask</code> 规则给 <code>git push</code> 留人工检查点、用 <code>deny</code> 规则挡敏感文件。<code>bypassPermissions</code> 只在隔离的容器/VM 里用,永远别在本机日常开。
+    </div>
+
+    <h2>做法步骤</h2>
+    <ol>
+      <li><strong>从默认模式开始,让批准自动沉淀成规则。</strong><span class="badge badge-official">官方</span>默认模式(界面里叫 Manual)只有读取免确认,Bash 命令首次使用要批准。批准时选「Yes, don't ask again」,Bash 规则会永久存进仓库根部的 <code>.claude/settings.local.json</code>,整个仓库(含子目录和 worktree)的后续会话都生效;批准复合命令(如 <code>git status &amp;&amp; npm test</code>)时会按子命令拆开保存。文件编辑的批准只持续到会话结束,不落盘。用一两天,常用命令就攒出一份真实的 allowlist。</li>
+      <li><strong>用 <code>/permissions</code> 整理规则。</strong><span class="badge badge-official">官方</span><code>/permissions</code> 列出所有 allow/ask/deny 规则和来源文件。求值顺序固定为 deny → ask → allow,先匹配先赢,具体度不影响顺序(所以宽 deny 会压过窄 allow)。手写规则注意通配符语义:<code>Bash(npm run *)</code> 匹配 <code>npm run</code> 开头的命令;<code>Bash(ls *)</code> 里的空格是词边界,匹配 <code>ls -la</code> 但不匹配 <code>lsof</code>。想团队共享就把规则挪进 <code>.claude/settings.json</code> 提交。</li>
+      <li><strong>切 <code>acceptEdits</code>,改用事后审。</strong><span class="badge badge-official">官方</span>会话内按 <code>Shift+Tab</code> 循环切换模式。<code>acceptEdits</code> 自动接受工作目录内的文件编辑和常见文件系统命令(<code>mkdir</code>、<code>touch</code>、<code>mv</code>、<code>cp</code>、<code>sed</code> 等),其余 Bash 命令照常询问。适合「改完我用 <code>git diff</code> 统一看」的工作流。想固定为默认,在 <code>~/.claude/settings.json</code> 写 <code>"permissions": {"defaultMode": "acceptEdits"}</code>。</li>
+      <li><strong>升 auto mode:不打断但有兜底。</strong><span class="badge badge-official">官方</span>auto mode 下一切自动执行,由一个独立分类器模型在后台审查每个动作,默认拦截 <code>curl | bash</code>、force push、生产部署、把密钥送出仓库等高危操作;你在对话里说的边界(如「先别 push」)也会被当作拦截信号。注意两点:进入 auto mode 时,<code>Bash(*)</code> 这类授予任意代码执行的宽 allow 规则会被暂时吊销(窄规则如 <code>Bash(npm test)</code> 保留);explicit ask 规则仍然强制弹确认。auto mode 需要账号满足模型等条件,不满足时 <code>Shift+Tab</code> 循环里不会出现它。各模式免确认范围对比:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>模式</th><th>免确认范围</th><th>适合</th></tr></thead>
+          <tbody>
+            <tr><td><code>default</code>(Manual)</td><td>只有读取</td><td>刚上手、敏感工作</td></tr>
+            <tr><td><code>acceptEdits</code></td><td>读取 + 文件编辑 + 常见文件系统命令</td><td>边改边用 diff 审</td></tr>
+            <tr><td><code>plan</code></td><td>读取(auto 可用时,分类器批准的命令也放行)</td><td>动手前先探索</td></tr>
+            <tr><td><code>auto</code></td><td>一切,但有分类器背景审查</td><td>长任务、减少确认疲劳</td></tr>
+            <tr><td><code>dontAsk</code></td><td>只有预批准的工具,其余自动拒绝</td><td>CI、锁死的脚本环境</td></tr>
+            <tr><td><code>bypassPermissions</code></td><td>一切,无审查</td><td>只用于隔离容器/VM</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>守住安全底线——哪些别放行。</strong><span class="badge badge-official">官方</span>官方明确的几条:<code>bypassPermissions</code> 只在隔离环境用(它连 <code>.git</code>、<code>.claude</code> 等保护路径的写入都放行,root/sudo 下会拒绝启动);想在不打断的同时保留人工检查点,给推送类动作加 ask 规则,官方配方是 <code>"ask": ["Bash(git push *)", "Bash(gh pr create *)"]</code>,它在 auto mode 里也强制弹确认;敏感文件加 deny,如 <code>Read(.env)</code>、<code>Read(~/.ssh/**)</code>。<span class="badge badge-site">本站观点</span>另外两条实践建议:别 allow 任何「下载并执行」类命令(<code>curl | bash</code>);记住 Bash 前缀规则匹配的是命令字符串——<code>Bash(rm *)</code> 的 deny 挡不住 <code>/bin/rm</code> 或 <code>find -delete</code>,需要硬保证时用 PreToolUse hook 或沙箱(参见 <a href="/claude-code/course/day-03.html">D3 权限模式与沙箱</a>)。还要记住:权限由 Claude Code 强制执行,CLAUDE.md 里写的「不要做 X」只是引导,不是边界。</li>
+    </ol>
+
+    <h2>可直接抄的 prompt</h2>
+    <pre class="prompt"><code>帮我把这个项目的权限配置从「每步确认」升级为「少打断但有底线」:
+
+1. 读 .claude/settings.local.json 里已沉淀的 allow 规则,挑出适合团队共享的
+   构建/测试/lint 类命令,整理进 .claude/settings.json 的 permissions.allow;
+2. 在 permissions.ask 加上 "Bash(git push *)" 和 "Bash(gh pr create *)",
+   给推送和开 PR 保留人工检查点;
+3. 在 permissions.deny 加上读取 .env、secrets 目录和 ~/.ssh 的规则;
+4. 不要 allow 任何删除类、下载执行类(curl|bash)或改系统配置的命令;
+5. 写完逐条解释每条规则的作用,并告诉我 deny → ask → allow 的求值顺序
+   会怎么影响这份配置。</code></pre>
+
+    <h2>来源与最后核实日期</h2>
+    <ul>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/permissions.md" rel="noopener">permissions(规则语法/求值顺序/保存位置/managed settings)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/permission-modes.md" rel="noopener">permission-modes(六种模式/切换方式/auto mode 拦截清单/保护路径)</a>,抓取于 2026-08-05。</li>
+      <li><span class="badge badge-official">官方</span><a href="https://code.claude.com/docs/en/auto-mode-config.md" rel="noopener">auto-mode-config(人工检查点配方/受信基础设施)</a>,抓取于 2026-08-05。</li>
+      <li>最后核实:2026-08-05 · volatility:high(auto mode 的可用条件与拦截规则随版本快速演进,版本水位 2.1.222)。</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">最后更新:2026-08-05</p>
+  <p class="foot-nav"><a href="/claude-code/tips/">返回 Tip 索引</a> · <a href="/claude-code/">学习站首页</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>
