@@ -47,6 +47,7 @@ export const categories: Category[] = [
       { id: "engineering", label: "AI 工程", labelEn: "AI engineering" },
       { id: "briefing", label: "每日简报", labelEn: "Daily briefing" },
       { id: "daily", label: "深度学习", labelEn: "Daily deep dive" },
+      { id: "claude-code", label: "Claude Code", labelEn: "Claude Code" },
       { id: "notes", label: "学习笔记", labelEn: "Study notes" },
       { id: "cv", label: "计算机视觉", labelEn: "Computer vision" },
       { id: "experiment", label: "实验", labelEn: "Experiments" },

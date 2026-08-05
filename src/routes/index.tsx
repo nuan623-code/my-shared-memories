@@ -66,6 +66,14 @@ const TOOLS: {
     tags: ["Markdown", "公众号", "排版"],
   },
   {
+    title: "Claude Code 学习站",
+    titleEn: "Claude Code learning hub",
+    href: "/claude-code/",
+    desc: "每日更新:14 课系统课程从零建立体系,实战 Tip 按问题检索、单页自足。基于官方文档增量写成。",
+    descEn: "Updated daily: a 14-day systematic course plus searchable, self-contained tips, all grounded in the official docs.",
+    tags: ["Claude Code", "教程", "每日更新"],
+  },
+  {
     title: "AI 每日简报",
     titleEn: "AI daily briefing",
     href: "/ai-briefing/",

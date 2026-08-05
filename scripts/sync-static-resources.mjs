@@ -35,6 +35,9 @@ const SCAN = [
   // 英文版每日内容:与中文版共享 i18n_key(= 目录+日期),供 hreflang 互指与语言切换
   { dir: "en/ai-daily", prefix: "en-ai-daily-", category: "ai", subcategory: "daily", tags: ["AI deep dive"], preferTitleTag: true, lang: "en", keyPrefix: "ai-daily" },
   { dir: "en/ai-briefing", prefix: "en-ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI briefing"], preferTitleTag: true, lang: "en", keyPrefix: "ai-briefing" },
+  // Claude Code 学习站(2026-08-05):课程与 tip 单页入库;index/template 由通用规则+manifest skip 排除
+  { dir: "claude-code/course", prefix: "claude-code-course-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true },
+  { dir: "claude-code/tips", prefix: "claude-code-tips-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true },
   { dir: "", prefix: "", category: "ai", subcategory: null, tags: ["AI"] }, // public/ 根
 ];
 
@@ -95,6 +98,7 @@ function cleanTitle(t) {
   return t
     .replace(/\s*[·|—–-]?\s*\d{4}-\d{2}-\d{2}\s*$/, "")
     .replace(/\s*[·|—–-]?\s*深度学习(文档)?\s*$/, "")
+    .replace(/\s*[·|—–-]?\s*Claude Code 学习站\s*$/, "")
     .trim() || null;
 }
 
