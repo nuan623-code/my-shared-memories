@@ -126,16 +126,20 @@ export function HomePage() {
   // 它们已有各自的归档页与工具卡入口;分区只展示最新 6 张,全量交给资源库页(?cat= 直达)。
   const HOME_HIDDEN_SUBS = ["briefing", "daily", "claude-code"];
   const HOME_CARDS_PER_SECTION = 6;
+  // total = 分类真实总数(hero 统计卡/分区计数/「查看全部」都用它,与资源库口径一致);
+  // items = 首页预览用的精选(剔除每日自动内容)
   const catSections = useMemo(
     () =>
       categories
-        .map((c) => ({
-          ...c,
-          items: resources.filter(
-            (r) => r.category === c.id && !HOME_HIDDEN_SUBS.includes(r.subcategory ?? ""),
-          ),
-        }))
-        .filter((s) => s.items.length > 0),
+        .map((c) => {
+          const all = resources.filter((r) => r.category === c.id);
+          return {
+            ...c,
+            total: all.length,
+            items: all.filter((r) => !HOME_HIDDEN_SUBS.includes(r.subcategory ?? "")),
+          };
+        })
+        .filter((s) => s.total > 0),
     [resources],
   );
 
@@ -239,7 +243,7 @@ export function HomePage() {
                   </div>
                   <div>
                     <div className="text-lg font-semibold leading-none text-foreground">
-                      {c.items.length}
+                      {c.total}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">{catLabel(c, locale)}</div>
                   </div>
@@ -485,7 +489,7 @@ export function HomePage() {
                 <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
                   {catLabel(s, locale)}
                   <span className="ml-2 align-middle text-sm font-normal text-muted-foreground">
-                    {s.items.length} {t("home.count")}
+                    {s.total} {t("home.count")}
                   </span>
                 </h2>
               </div>
@@ -567,14 +571,14 @@ export function HomePage() {
             </div>
             </div>
             ))}
-            {s.items.length > HOME_CARDS_PER_SECTION && (
+            {s.total > HOME_CARDS_PER_SECTION && (
               <div className="mt-8 text-center">
                 <Link
                   to="/resources"
                   search={{ cat: s.id }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-4 py-2 text-sm font-medium text-primary transition hover:border-primary/50 hover:shadow-sm"
                 >
-                  {t("home.viewAll")} {s.items.length} {t("home.count")}
+                  {t("home.viewAll")} {s.total} {t("home.count")}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
