@@ -1,7 +1,16 @@
 # PROGRESS — Claude Code 学习站
 
-> 记录时间:2026-08-05。本文件按用户要求,在全量回归完成后写下当前状态、回归结果与待办。
+> 记录时间:2026-08-05(英文版补录于同日晚)。本文件按用户要求,在全量回归完成后写下当前状态、回归结果与待办。
 > 板块运维说明见 [CLAUDE-CODE-SITE.md](CLAUDE-CODE-SITE.md),仓库总维护指南见 [AGENTS.md](AGENTS.md)。
+
+## 〇、英文版补录(2026-08-05 晚,commit `b6c7035` + `214229e`)
+
+- 应用户指出「怎么没有英文版」(原 spec 即为中英双语站),当日补齐 **`public/en/claude-code/` 全量英文镜像 43 页**(14 课 + 25 Tip + 4 索引/日志页),线上 https://mingyuyang.com/en/claude-code/ 全部 200。
+- 由 11 个翻译代理完成(10 首发 + 1 补翻:D1–D4 代理网络中断后 day-01 已落盘,D2–D4 由补派代理完成);统一遵循 EN-BRIEF 固定译法(badge = Official/Third-party/Our take,Tip 四段 = One-line answer/Steps/Copy-paste prompt/Sources & last verified)。
+- 基建:中文 43 页注入 hreflang 三连 + 「EN」切换,英文页反向互指;`site.js` 按 `<html lang>` 切界面文案;sync 脚本 `keyFromBase` 生成 i18n_key 做中英资料库配对(存量中文行 SQL 回填);主站 TOOLS 卡支持 `hrefEn`。
+- 回归:中英 41 内容页/侧一一对应 PASS;双树内部链接 PASS;en 结构检查 PASS(仅索引页 HTML 维护注释含中文,有意保留);en 搜索实测(cache 命中 2 条、链接指向 /en/、英文无命中提示);线上 43 页全量 200(5 页首测 404 为边缘缓存延迟,约 20 秒后自愈)。
+- 已知修正:首批 en 行入库标题带「· Claude Code Learning Hub」尾缀,cleanTitle 已修 + SQL 订正存量(`2026-08-05-claude-code-en-titles.sql`)。
+- **每日任务已改为中英同步**:新写/修订页面两个语言都发,四个索引页两边都更新(见 daily.md 第零步);中英对称已加入第六步验证。
 
 ## 一、当前状态
 
