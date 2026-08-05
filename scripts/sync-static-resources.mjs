@@ -102,6 +102,7 @@ function cleanTitle(t) {
     .replace(/\s*[·|—–-]?\s*\d{4}-\d{2}-\d{2}\s*$/, "")
     .replace(/\s*[·|—–-]?\s*深度学习(文档)?\s*$/, "")
     .replace(/\s*[·|—–-]?\s*Claude Code 学习站\s*$/, "")
+    .replace(/\s*[·|—–-]?\s*Claude Code Learning Hub\s*$/, "")
     .trim() || null;
 }
 
