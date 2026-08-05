@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { fetchResources, RESOURCE_TYPE_LABELS, type ResourceType } from "@/lib/resources";
@@ -13,6 +13,10 @@ export const allResourcesQO = queryOptions({
 });
 
 export const Route = createFileRoute("/resources")({
+  // ?cat=ai 直达某分类(首页各分区「查看全部」用),非法值当 all 处理
+  validateSearch: (s: Record<string, unknown>): { cat?: string } => ({
+    cat: typeof s.cat === "string" ? s.cat : undefined,
+  }),
   // SSR 预取:没有 loader 时列表在客户端才渲染,服务端 HTML 正文只有一百多字符,
   // 而 AI 爬虫与部分搜索爬虫不执行 JS —— 等于整个列表对它们不可见。
   loader: ({ context }) => context.queryClient.ensureQueryData(allResourcesQO),
@@ -71,8 +75,12 @@ export function ResourcesPage() {
   const t = useT();
   const locale = useLocale();
   const { data: resources = [], isLoading, error, refetch } = useQuery(allResourcesQO);
+  // strict:false 以便 /en/resources 薄封装路由复用本组件时也能读到 ?cat=
+  const urlSearch = useSearch({ strict: false }) as { cat?: string };
   const [type, setType] = useState<ResourceType | "all">("all");
-  const [cat, setCat] = useState<string>("all");
+  const [cat, setCat] = useState<string>(
+    urlSearch.cat && categories.some((c) => c.id === urlSearch.cat) ? urlSearch.cat : "all",
+  );
   const [tag, setTag] = useState<string | null>(null);
 
   const allTags = useMemo(() => {

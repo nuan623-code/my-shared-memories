@@ -121,11 +121,20 @@ export function HomePage() {
   const locale = useLocale();
   const lp = (path: string) => localizedPath(path, locale);
   const { data: resources } = useSuspenseQuery(resourcesQO);
-  // 分类分区(按 lib/data 的 categories 顺序,空分类不显示)
+  // 分类分区(按 lib/data 的 categories 顺序,空分类不显示)。
+  // 2026-08-05 整理:每日自动内容(简报/深度/Claude Code,100+ 篇且每天增长)不进首页分区——
+  // 它们已有各自的归档页与工具卡入口;分区只展示最新 6 张,全量交给资源库页(?cat= 直达)。
+  const HOME_HIDDEN_SUBS = ["briefing", "daily", "claude-code"];
+  const HOME_CARDS_PER_SECTION = 6;
   const catSections = useMemo(
     () =>
       categories
-        .map((c) => ({ ...c, items: resources.filter((r) => r.category === c.id) }))
+        .map((c) => ({
+          ...c,
+          items: resources.filter(
+            (r) => r.category === c.id && !HOME_HIDDEN_SUBS.includes(r.subcategory ?? ""),
+          ),
+        }))
         .filter((s) => s.items.length > 0),
     [resources],
   );
@@ -457,21 +466,9 @@ export function HomePage() {
       {/* 分类分区:按 lib/data 的 categories 顺序上下排(AI 学习在上、公众号文章在下),
           空分类不显示;卡片纯文字、不放封面图 */}
       {catSections.map((s) => {
-        // AI 分区按子分类再分组(智能体/大模型/AI 工程…),其余分区保持整块网格;
-        // 不认识的 subcategory 归入「其他」,空组不显示
-        const groups =
-          s.id === "ai"
-            ? [...s.subcategories, { id: "__other", label: t("home.other") }]
-                .map((sub) => ({
-                  ...sub,
-                  items: s.items.filter((r) =>
-                    sub.id === "__other"
-                      ? !s.subcategories.some((x) => x.id === r.subcategory)
-                      : r.subcategory === sub.id,
-                  ),
-                }))
-                .filter((g) => g.items.length > 0)
-            : [{ id: "__all", label: "", items: s.items }];
+        // 2026-08-05 整理:原「AI 分区按子分类展开全部卡片」在 180+ 篇后失控,
+        // 现统一为:每分区只平铺最新 HOME_CARDS_PER_SECTION 张,其余走「查看全部」进资源库
+        const groups = [{ id: "__all", label: "", items: s.items.slice(0, HOME_CARDS_PER_SECTION) }];
         return (
         <section
           key={s.id}
@@ -494,6 +491,7 @@ export function HomePage() {
               </div>
               <Link
                 to="/resources"
+                search={{ cat: s.id }}
                 className="hidden items-center gap-1 text-xs font-medium text-primary hover:underline sm:inline-flex"
               >
                 {t("home.enterLibrary")}
@@ -569,6 +567,18 @@ export function HomePage() {
             </div>
             </div>
             ))}
+            {s.items.length > HOME_CARDS_PER_SECTION && (
+              <div className="mt-8 text-center">
+                <Link
+                  to="/resources"
+                  search={{ cat: s.id }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-4 py-2 text-sm font-medium text-primary transition hover:border-primary/50 hover:shadow-sm"
+                >
+                  {t("home.viewAll")} {s.items.length} {t("home.count")}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
           </div>
         </section>
         );
