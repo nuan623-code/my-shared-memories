@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Which actions invalidate the prompt cache? · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code's prompt cache hits on an exact request-prefix match: switching models, changing effort, MCP server changes, and /compact all force a full recompute next turn. The official list plus habits that avoid the traps.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/prompt-cache-invalidation.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/prompt-cache-invalidation.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/prompt-cache-invalidation.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/prompt-cache-invalidation.html">
+<meta property="og:title" content="Which actions invalidate the prompt cache? · Claude Code Learning Hub">
+<meta property="og:description" content="The cache matches an exact prefix: model switches, effort changes, MCP server changes, and /compact all force a full recompute. The official list plus habits that avoid it.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/prompt-cache-invalidation.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/prompt-cache-invalidation.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · Cost & context</span></p>
+  <h1>Which actions invalidate the prompt cache?</h1>
+  <p>Switched models, and the next reply is suddenly slow and expensive? You punched through the prompt cache — that turn is recomputing your entire conversation from scratch.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code resends the full conversation history to the API every turn; prompt caching is the only reason it isn't reprocessed each time. Know which actions break the cache and you can steer around the "suddenly slower and pricier" traps.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Bottom line</span>
+      The cache hits on an exact request-prefix match: any action that edits content at the start of the request (system prompt, tool definitions) or changes the cache key (model, effort, fast mode) forces a full recompute next turn. <span class="badge badge-official">Official</span>Official advice: settle on model and effort at the start of the session, save /compact for breaks between tasks — the fewer mid-session changes, the higher your hit rate.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Understand how hits work first.</strong><span class="badge badge-official">Official</span>Models keep no memory between requests; Claude Code resends the entire context every turn. The API matches the request "prefix" exactly against recently processed content: in a normal turn only the latest question and answer are new, and everything else is re-read at the cached rate (about 10% of the standard input price). Change anything in the prefix and <em>everything</em> after it is recomputed — there is no per-file or per-fragment partial caching. That's why Claude Code puts the least-changing content first:
+        <figure>
+          <svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The request prefix has three layers: system prompt, project context, conversation history; change an earlier layer and everything after it is recomputed">
+            <rect class="svg-box" x="15" y="30" width="200" height="48" rx="10"/>
+            <text class="svg-ink" x="115" y="50" text-anchor="middle" font-size="14">System prompt</text>
+            <text class="svg-ink-soft" x="115" y="68" text-anchor="middle" font-size="12">Core instructions · tool definitions</text>
+            <rect class="svg-box" x="225" y="30" width="200" height="48" rx="10"/>
+            <text class="svg-ink" x="325" y="50" text-anchor="middle" font-size="14">Project context</text>
+            <text class="svg-ink-soft" x="325" y="68" text-anchor="middle" font-size="12">CLAUDE.md · memory · rules</text>
+            <rect class="svg-box-accent" x="435" y="30" width="270" height="48" rx="10"/>
+            <text class="svg-ink" x="570" y="50" text-anchor="middle" font-size="14">Conversation history</text>
+            <text class="svg-ink-soft" x="570" y="68" text-anchor="middle" font-size="12">New content appended each turn</text>
+            <text class="svg-ink-soft" x="115" y="100" text-anchor="middle" font-size="12">Almost never changes</text>
+            <text class="svg-ink-soft" x="325" y="100" text-anchor="middle" font-size="12">Loaded at session start</text>
+            <text class="svg-ink-soft" x="570" y="100" text-anchor="middle" font-size="12">Changes every turn (only this is recomputed)</text>
+            <path class="svg-line" d="M115 118 v30" stroke-width="1.5"/>
+            <line class="svg-line" x1="115" y1="148" x2="690" y2="148" stroke-width="1.5"/>
+            <polygon class="svg-arrow" points="690,143 700,148 690,153"/>
+            <text class="svg-ink" x="400" y="140" text-anchor="middle" font-size="13">One change in an earlier layer (e.g. a model switch alters tool definitions) = everything after it recomputed</text>
+            <text class="svg-ink-soft" x="400" y="188" text-anchor="middle" font-size="12">Matching is exact: whichever layer you change is where the cache breaks</text>
+          </svg>
+          <figcaption>The request is layered by how often each part changes; the cache breaks at the point of change, and everything after it is recomputed at the uncached rate.</figcaption>
+        </figure>
+      </li>
+      <li><strong>Memorize the 8 actions that invalidate it.</strong><span class="badge badge-official">Official</span>The complete list from the official docs:
+        <ul>
+          <li><code>/model</code> switches: each model has its own cache — identical content is still fully recomputed; under the <code>opusplan</code> setting, every entry into and exit from plan mode counts as a model switch.</li>
+          <li><code>/effort</code> changes: the cache key includes effort, so changing it mid-session pops a confirmation dialog first.</li>
+          <li>Turning on fast mode: the request header enters the cache key — a one-time cost; turning it off later, or rate-limit fallback, no longer invalidates.</li>
+          <li>MCP server connects/disconnects: only when tool definitions are loaded into the prefix (tool search disabled, <code>alwaysLoad</code>, and similar scenarios); the default deferred tools are unaffected. Details in <a href="/en/claude-code/tips/too-many-mcp-servers.html">Why too many MCP servers slow you down and cost more</a>.</li>
+          <li>Enabling/disabling a plugin that ships an MCP server: same as above; plugins containing only skills/hooks/commands never break the cache.</li>
+          <li>Denying an entire built-in tool (e.g. a bare <code>Bash</code>): removes that tool from the system prompt; scoped rules like <code>Bash(rm *)</code> have no effect.</li>
+          <li><code>/compact</code>: swaps the conversation layer for a summary, so it always invalidates; but done while the cache is still warm, the main cost is just generating the summary — a cold compact (after idling past the TTL) is the most expensive kind.</li>
+          <li>Upgrading Claude Code: new versions usually update the system prompt or tool definitions, so the first turn after restarting rebuilds the cache; <code>--resume</code> a long session right after an upgrade and that first turn may be the most expensive request you've ever sent.</li>
+        </ul>
+      </li>
+      <li><strong>Know which actions do NOT invalidate — stop worrying about them.</strong><span class="badge badge-official">Official</span>Editing repo files; editing CLAUDE.md mid-session (note: it doesn't <em>take effect</em> either — it only loads after <code>/clear</code> or a restart); changing output style (same caveat); switching permission modes; invoking skills and commands; <code>/recap</code>; <code>/rewind</code>; spawning subagents — these either only append to the end of the conversation or don't touch the request at all. Of these, <code>/rewind</code> returns to an already-cached prefix, which makes it cheaper than <code>/compact</code> when you want to abandon a dead-end path.</li>
+      <li><strong>Verify your own hit rate.</strong><span class="badge badge-official">Official</span>Every API response carries two fields: <code>cache_read_input_tokens</code> (hits, at roughly 10% of the price) and <code>cache_creation_input_tokens</code> (writes). Use a statusline script that reads <code>current_usage</code> to watch it live: high read with low creation is healthy; creation high every turn means the prefix keeps changing — work through the list above.</li>
+      <li><strong>Mind the TTL — don't mistake expiry for invalidation.</strong><span class="badge badge-official">Official</span>Idle caches expire: subscriptions default to 1 hour, API keys and cloud providers default to 5 minutes (set <code>ENABLE_PROMPT_CACHING_1H=1</code> to get 1 hour). After a long break, the first message always recomputes in full — that's not a mistake you made. For the mechanics, revisit <a href="/en/claude-code/course/day-02.html">D2 · Context window & prompt caching</a>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Check the prompt cache health of this session for me:
+1. Set up a statusline script that shows cache_read_input_tokens and
+   cache_creation_input_tokens from current_usage, and write it into my
+   Claude Code statusline config (show me the script first for approval);
+2. Explain how to read those two numbers: what a healthy hit rate looks
+   like, and what indicates the prefix keeps getting broken;
+3. Against the official list of cache-breaking actions (model switch,
+   effort change, enabling fast mode, MCP server connect/disconnect,
+   denying a whole built-in tool, /compact, resume after an upgrade),
+   give me an "avoid doing these mid-session" cheat sheet.</code></pre>
+
+    <h2>Sources & last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/prompt-caching.md" rel="noopener">code.claude.com/docs/en/prompt-caching.md</a> (cache layering, invalidates/doesn't-invalidate lists, TTL, cache metrics), fetched 2026-08-05.</li>
+      <li><span class="badge badge-site">Our take</span>"Use /rewind instead of /compact to abandon a wrong path — it's cheaper" is a paraphrase and arrangement of an official tip; the statusline troubleshooting steps are our own arrangement.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (tied to current Claude Code behavior; official docs at v2.1.222, needs periodic re-checking).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D2 · The context window &amp; prompt caching · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code resends the full context every turn. This lesson covers the context window's three-layer structure and limits, when auto-compaction happens, prompt cache prefix hits and invalidation, and how it all determines speed and cost.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D2 · The context window &amp; prompt caching · Claude Code Learning Hub">
+<meta property="og:description" content="The context window's three layers, when auto-compaction kicks in, prompt cache prefix hits and invalidation, and how they determine speed and cost.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-02.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-02.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-02.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-02.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-02.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-02.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D2</p>
+  <h1>D2 · The context window &amp; prompt caching</h1>
+  <p>Understand how the context window is built, what happens when it fills up, and why prompt caching decides the speed and cost of every single turn.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">Every message you send makes Claude Code resend the entire conversation from the very beginning. This lesson explains why that works: the window's three-layer structure, the auto-compaction that kicks in near the limit, and the prefix caching that makes "resending" cheap — ending with <code>/context</code> and <code>/usage</code>, which you can check for yourself at any time.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p><a href="/en/claude-code/course/day-01.html">D1</a> covered the agentic loop, and how <code>/context</code> shows what the context contains. D2 answers the next three questions: how big is this window, what happens when it fills up, and why resending everything every turn doesn't end up slow and expensive. The answers map to this lesson's three mechanisms: the window limit, compaction, and prompt caching.</p>
+    <p>This lesson is the foundation for several that follow: the trade-offs between <code>/clear</code>, <code>/compact</code>, and <code>/rewind</code> in <a href="/en/claude-code/course/day-06.html">D6 session management</a> all rest on "what breaks the cache and what survives compaction"; the cluster-D tips (<a href="/en/claude-code/tips/prompt-cache-invalidation.html">cache invalidation</a>, <a href="/en/claude-code/tips/where-quota-goes.html">where the quota goes</a>, <a href="/en/claude-code/tips/long-session-degradation.html">long-session degradation</a>) are question-shaped quick references to this lesson's mechanisms. Skip it and you will keep tripping over questions like "why did switching models suddenly make things slow" and "why did editing CLAUDE.md do nothing".</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>Three layers, fully resent every turn</h3>
+    <p><span class="badge badge-official">Official</span>The model remembers nothing between two requests. So every message you send makes Claude Code issue a brand-new API request that resends the complete context: the system prompt, project context, every previous message and tool result, plus your new message. New content is always appended at the end, so the vast majority of each request is identical to the one before. To play well with the cache, Claude Code orders the request by how often things change, least-changing first:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>Layer</th><th>Contents</th><th>When it changes</th></tr></thead>
+      <tbody>
+        <tr><td class="d">System prompt layer</td><td>Core instructions, tool definitions, output style</td><td>When the loaded toolset changes, or you upgrade Claude Code</td></tr>
+        <tr><td class="d">Project context layer</td><td>CLAUDE.md, auto memory, rules without <code>paths</code></td><td>At session start, or after <code>/clear</code> or <code>/compact</code></td></tr>
+        <tr><td class="d">Conversation layer</td><td>Your messages, Claude's replies, tool results</td><td>Every turn</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <figure>
+      <svg viewBox="0 0 680 332" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context window layer diagram: the system prompt layer, the project context layer, and the ever-growing conversation layer, with the auto-compact trigger zone and the context limit below">
+        <rect class="svg-box" x="30" y="16" width="400" height="54" rx="8"/>
+        <text class="svg-ink" x="46" y="38" font-size="14" font-weight="600">System prompt layer</text>
+        <text class="svg-ink-soft" x="46" y="57" font-size="12">Core instructions · built-in tool definitions · output style</text>
+        <rect class="svg-box" x="30" y="76" width="400" height="54" rx="8"/>
+        <text class="svg-ink" x="46" y="98" font-size="14" font-weight="600">Project context layer</text>
+        <text class="svg-ink-soft" x="46" y="117" font-size="12">CLAUDE.md · auto memory · rules without paths</text>
+        <rect class="svg-box-accent" x="30" y="136" width="400" height="104" rx="8"/>
+        <text class="svg-ink" x="46" y="160" font-size="14" font-weight="600">Conversation layer (grows every turn)</text>
+        <text class="svg-ink-soft" x="46" y="179" font-size="12">Your messages · Claude's replies · tool results</text>
+        <text class="svg-ink-soft" x="46" y="198" font-size="12">(file contents that were read usually dominate)</text>
+        <line class="svg-line" x1="400" y1="152" x2="400" y2="218" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="395,218 405,218 400,228"/>
+        <line class="svg-line" x1="430" y1="43" x2="442" y2="43" stroke-width="1.5"/>
+        <text class="svg-ink-soft" x="448" y="38" font-size="12">Rarely changes: only on upgrade</text>
+        <text class="svg-ink-soft" x="448" y="54" font-size="12">or when the toolset changes</text>
+        <line class="svg-line" x1="430" y1="103" x2="442" y2="103" stroke-width="1.5"/>
+        <text class="svg-ink-soft" x="448" y="98" font-size="12">Read at session start; reloaded</text>
+        <text class="svg-ink-soft" x="448" y="114" font-size="12">from disk after /clear, /compact</text>
+        <line class="svg-line" x1="430" y1="188" x2="442" y2="188" stroke-width="1.5"/>
+        <text class="svg-ink-soft" x="448" y="183" font-size="12">Grows every turn — the main</text>
+        <text class="svg-ink-soft" x="448" y="199" font-size="12">source of usage and cost</text>
+        <line class="svg-line" x1="30" y1="262" x2="430" y2="262" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text class="svg-ink-soft" x="230" y="284" font-size="12" text-anchor="middle">Near the limit → auto-compact trigger zone</text>
+        <line class="svg-line" x1="30" y1="302" x2="430" y2="302" stroke-width="2.5"/>
+        <text class="svg-ink" x="230" y="324" font-size="12" text-anchor="middle">Context limit (commonly 200K tokens; up to 1M on some models)</text>
+      </svg>
+      <figcaption>The context of one API request, top to bottom in request order: the less often something changes, the earlier it sits — the precondition for cache hits.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>About the limit: the official interactive demo uses 200K tokens as its illustrative ceiling; Fable 5, Sonnet 5, Opus 4.6 and later models, plus Sonnet 4.6, support a 1M-token window (availability depends on your plan; you generally select the <code>[1m]</code> model variant, while Sonnet 5 simply runs at 1M). Run <code>/context</code> anytime to see what your current session actually uses, item by item.</p>
+
+    <h3>Auto-compaction: when it happens and what survives</h3>
+    <p><span class="badge badge-official">Official</span>Filling the window does not end the session: as it nears the limit, Claude Code automatically performs compaction — replacing the whole conversation history with a structured summary. You can also act first: <code>/compact focus on this topic</code> compacts manually and tells it what to keep; <code>/autocompact 500k</code> (or the <code>--autocompact</code> startup flag, or the <code>CLAUDE_CODE_AUTO_COMPACT_WINDOW</code> environment variable) moves the trigger threshold earlier, settable from 100K to 1M. With nothing configured, the default is to compact only at the model's limit; cloud sessions and some models running with a 200K window trigger earlier.</p>
+    <p><span class="badge badge-official">Official</span>After compaction, different content meets different fates: the system prompt and output style are untouched (they are not part of the message history); the project-root CLAUDE.md, rules without <code>paths</code>, and auto memory are re-injected from disk; rules with <code>paths:</code> and subdirectory CLAUDE.md files are lost until Claude reads a matching file again; the bodies of skills already invoked are re-injected, but truncated to 5,000 tokens each and 25,000 in total, oldest dropped first. <span class="badge badge-site">Our take</span>So rules that must always be present belong in the project-root CLAUDE.md (<a href="/en/claude-code/course/day-04.html">D4</a> expands on this), not in path-scoped rules.</p>
+
+    <h3>Prompt caching: exact prefix matching</h3>
+    <p><span class="badge badge-official">Official</span>The API compares the beginning of each request (the prefix) against recently processed content with an exact match: the matched part is reused directly and billed at the cache-read rate — roughly 10% of the standard input price; only the newly appended tail is processed at full price. Matching is exact, character for character: change anything in the prefix and everything after it must be recomputed; there is no per-file or per-fragment caching. On top of that, each model and each effort level has its own cache (they are part of the cache key), so switching either means rebuilding from scratch.</p>
+    <figure>
+      <svg viewBox="0 0 680 292" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cache prefix hit and invalidation diagram: for the first three turns the prefix hits the cache and only the new tail is processed; on turn four a prefix change forces a full-price reprocess of everything">
+        <rect class="svg-box-accent" x="100" y="8" width="14" height="14" rx="3"/>
+        <text class="svg-ink-soft" x="121" y="20" font-size="12">Full price</text>
+        <rect class="svg-box" x="210" y="8" width="14" height="14" rx="3"/>
+        <text class="svg-ink-soft" x="231" y="20" font-size="12">Read from cache (about 10% of standard input price)</text>
+        <text class="svg-ink" x="88" y="62" font-size="13" text-anchor="end">Turn 1</text>
+        <rect class="svg-box-accent" x="100" y="42" width="180" height="32" rx="6"/>
+        <text class="svg-ink" x="190" y="62" font-size="12" text-anchor="middle">All processed once, cached</text>
+        <text class="svg-ink" x="88" y="114" font-size="13" text-anchor="end">Turn 2</text>
+        <rect class="svg-box" x="100" y="94" width="180" height="32" rx="6"/>
+        <text class="svg-ink" x="190" y="114" font-size="12" text-anchor="middle">Prefix hit, read from cache</text>
+        <rect class="svg-box-accent" x="280" y="94" width="70" height="32" rx="6"/>
+        <text class="svg-ink" x="315" y="114" font-size="12" text-anchor="middle">New</text>
+        <text class="svg-ink-soft" x="364" y="114" font-size="12">Only the tail at full price</text>
+        <text class="svg-ink" x="88" y="166" font-size="13" text-anchor="end">Turn 3</text>
+        <rect class="svg-box" x="100" y="146" width="250" height="32" rx="6"/>
+        <text class="svg-ink" x="225" y="166" font-size="12" text-anchor="middle">Prefix hit, read from cache</text>
+        <rect class="svg-box-accent" x="350" y="146" width="70" height="32" rx="6"/>
+        <text class="svg-ink" x="385" y="166" font-size="12" text-anchor="middle">New</text>
+        <text class="svg-ink-soft" x="434" y="166" font-size="12">Longer session, bigger savings</text>
+        <text class="svg-ink-soft" x="100" y="200" font-size="12">Before turn 4: the system prompt layer changed (upgrade, toolset change) or the model switched</text>
+        <text class="svg-ink" x="88" y="230" font-size="13" text-anchor="end">Turn 4</text>
+        <rect class="svg-box-accent" x="100" y="210" width="320" height="32" rx="6"/>
+        <text class="svg-ink" x="260" y="230" font-size="12" text-anchor="middle">Prefix mismatch → everything at full price</text>
+        <text class="svg-ink-soft" x="434" y="230" font-size="12">One-off slow, costly turn</text>
+        <text class="svg-ink-soft" x="340" y="272" font-size="12" text-anchor="middle">The cache matches an exact prefix: change anything early and everything after it is recomputed</text>
+      </svg>
+      <figcaption>In a normal turn, the previous request as a whole is this turn's prefix and only the latest exchange is new; once the prefix changes, the entire cache is void.</figcaption>
+    </figure>
+    <p><span class="badge badge-site">Our take</span>Another way to put it: think of the session as a stack of pages you can never pull a sheet out of. The grader remembers how far they have read and each time only reads the new pages; but change a single character on a middle page and they must reread everything from that page onward — that is what "prefix" means, and why a change costs more the earlier it sits.</p>
+    <p><span class="badge badge-official">Official</span>The cache has a lifetime (TTL): every hit resets the timer, so continuous work keeps it warm. Subscribers automatically get a one-hour TTL (dropping to five minutes when past the limit and running on usage credits); API keys and cloud providers default to five minutes, and <code>ENABLE_PROMPT_CACHING_1H=1</code> enables one hour. In Claude Code the cache's scope is roughly "one machine + one directory": different worktree directories of the same repo each build their own cache.</p>
+
+    <h3>What breaks the cache, and what doesn't</h3>
+    <p><span class="badge badge-official">Official</span>What the invalidating actions have in common is changing the prefix or the cache key; what the safe actions have in common is only appending to the end of the conversation:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>Action</th><th>Cache</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="d"><code>/model</code> to switch models</td><td>Fully invalidated</td><td>Each model has its own cache; <code>opusplan</code> entering or leaving plan mode also counts as a model switch</td></tr>
+        <tr><td class="d"><code>/effort</code> to change effort</td><td>Fully invalidated</td><td>The cache is keyed per effort level; changing it mid-session prompts a confirmation</td></tr>
+        <tr><td class="d">Turning on fast mode</td><td>Fully invalidated</td><td>A one-time cost — the earlier you enable it, the cheaper; toggling it off and on again doesn't re-trigger</td></tr>
+        <tr><td class="d">MCP server connect / disconnect</td><td>Depends</td><td>Kept if tool definitions are lazy-loaded (the default); invalidated if they were loaded into the prefix (<a href="/en/claude-code/course/day-09.html">D9</a>)</td></tr>
+        <tr><td class="d">Denying an entire built-in tool</td><td>Fully invalidated</td><td>Bare tool names only (e.g. <code>Bash</code>); scoped rules like <code>Bash(rm *)</code> have no effect</td></tr>
+        <tr><td class="d"><code>/compact</code></td><td>Conversation layer invalidated</td><td>The system prompt layer is reused; the project layer still hits if CLAUDE.md hasn't changed</td></tr>
+        <tr><td class="d">Upgrading Claude Code</td><td>Fully invalidated</td><td>Resuming a long session after an upgrade can make the first turn your single most expensive request</td></tr>
+        <tr><td class="d">Editing repo files</td><td>Kept</td><td>Only appends a <code>&lt;system-reminder&gt;</code>; history is never rewritten</td></tr>
+        <tr><td class="d">Editing CLAUDE.md mid-session</td><td>Kept</td><td>But the edit doesn't take effect either — wait for <code>/clear</code>, <code>/compact</code>, or a restart</td></tr>
+        <tr><td class="d">Switching permission modes, invoking skills, <code>/recap</code></td><td>Kept</td><td>All of these append to the end of the conversation</td></tr>
+        <tr><td class="d"><code>/rewind</code></td><td>Kept</td><td>Truncates back to an already-cached prefix — cheaper than compaction</td></tr>
+        <tr><td class="d">Spawning a subagent</td><td>Kept</td><td>The subagent builds its own cache; the parent session's prefix is untouched (<a href="/en/claude-code/course/day-10.html">D10</a>)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Misconceptions, cleared up</h3>
+    <ul>
+      <li><strong>"Editing CLAUDE.md takes effect immediately"</strong> — in reality it is read once at session start and held in memory; mid-session edits neither break the cache nor take effect. How to check: observe only after <code>/clear</code>, <code>/compact</code>, or a restart. <span class="badge badge-official">Official</span></li>
+      <li><strong>"Switching models or effort is free"</strong> — even with not a single character of content changed, the entire request must be recomputed, and the next turn is noticeably slower and pricier. How to check: after switching, see whether cache write spikes in <code>/usage</code>. <span class="badge badge-official">Official</span></li>
+      <li><strong>"The cache works per file"</strong> — whole-prefix matching is the only mechanism; there is no per-file or per-fragment cache, and file contents only enter the conversation layer when they are read. <span class="badge badge-official">Official</span></li>
+    </ul>
+
+    <h3>How the mechanics land on speed and your bill</h3>
+    <p><span class="badge badge-official">Official</span>The three most common "where did that cost come from" cases all follow from this lesson's mechanics. One: asking a single "what is this function called" in a long session costs far more than the question itself — every turn carries the full history, and the whole scroll is reread at the cache rate. Two: come back after longer than the TTL and the first message misses the cache entirely, reprocessing everything at full price — which is why the first turn after a break feels noticeably slow. Three: <code>/compact</code> itself has to read the entire stretch of conversation it summarizes, so running it while the cache is still warm is much cheaper — and when you genuinely switch tasks, <code>/clear</code> costs nothing at all. <code>/usage</code> flags behaviors like cache misses and long context when they account for more than about 10% of recent usage.</p>
+    <div class="callout"><span class="callout-label">Official advice</span>Settle on your model and effort at the start of the session, and save <code>/compact</code> for natural breakpoints between tasks — the less you change mid-session, the higher your cache hit rate. <span class="badge badge-official">Official</span></div>
+
+    <h2>Hands-on: doable today</h2>
+    <ol>
+      <li>Start <code>claude</code>, do nothing yet, and run <code>/context</code>. Expected: the conversation layer is near zero, but the system prompt, tool definitions, CLAUDE.md, and memory already take a fair share — D1's "the window isn't empty before you even speak".</li>
+      <li>Send the prompt below verbatim so Claude reads one large file, then run <code>/context</code> again. Expected: the conversation layer (Messages) grows noticeably, mostly from the file's contents.</li>
+      <li>Run <code>/usage</code> and find the per-model breakdown. Expected: cache read far exceeds input — meaning most of the context is being reread at roughly one-tenth the price.</li>
+      <li>Deliberately break the cache once: switch models with <code>/model</code>, send a throwaway "continue", then check <code>/usage</code> again. Expected: cache write spikes, because the whole session was rewritten into the new model's cache. (This step consumes real quota — do it in a small session.)</li>
+      <li>Run <code>/compact keep only the conclusions about that file</code>. Expected: a "Conversation compacted" notice; <code>/context</code> then shows the conversation layer shrunk to a short summary.</li>
+    </ol>
+    <pre class="prompt"><code>Run a context experiment for me:
+1. Pick one of the larger source files in this project and read it (your choice - don't ask me);
+2. Summarize it in two or three sentences;
+3. Estimate roughly how much this read added to the context.
+I'll verify with /context and /usage afterwards - keep the summary under five lines.</code></pre>
+    <p>Commands you will use repeatedly along the way:</p>
+    <pre><code>/context    # what each kind of content takes up right now
+/usage      # this session's token usage, cache read / cache write
+/model      # switch models (used here to demo cache invalidation)
+/compact keep only the conclusions about X   # focused manual compaction</code></pre>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>You can name the three layers of the context without notes, and say when each one changes.</li>
+      <li>You can list three actions that break the cache and three that don't, and explain each in terms of the prefix / cache key.</li>
+      <li>You can explain why editing the project-root CLAUDE.md mid-session has no effect, and when it does take effect.</li>
+      <li>Hands-on complete: you can point to cache read and cache write in <code>/usage</code>, and explain why cache write spikes right after <code>/model</code>.</li>
+      <li>Self-test: in a session that has been open all day, you ask only "what is this function called" — why does it cost far more than the question itself? (Answer: every request carries the full history, reread at the cache rate; and if you were away longer than the cache TTL, the whole thing is reprocessed at full price.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/context-window.md" rel="noopener">code.claude.com/docs/en/context-window.md</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/prompt-caching.md" rel="noopener">code.claude.com/docs/en/prompt-caching.md</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/costs.md" rel="noopener">code.claude.com/docs/en/costs.md</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-01.html">Previous: D1 · The agentic loop and what Claude can actually read</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-03.html">Next: D3 · Permission modes &amp; sandboxing</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

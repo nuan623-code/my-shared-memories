@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What to do when a change touches 200 files · Claude Code Learning Hub</title>
+<meta name="description" content="A three-step strategy for large mechanical changes: lock the pattern on a small sample, then run a script once or fan out with workflows/subagents, and finish with spot checks plus full validation.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="What to do when a change touches 200 files · Claude Code Learning Hub">
+<meta property="og:description" content="Large-scale changes in three steps: lock the pattern on a small sample → script or agent fan-out → spot checks plus full validation; when to use a script instead of an LLM.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/bulk-edit-200-files.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/bulk-edit-200-files.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/bulk-edit-200-files.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/bulk-edit-200-files.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/bulk-edit-200-files.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/bulk-edit-200-files.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / B · Parallelism &amp; throughput</p>
+  <h1>What to do when a change touches 200 files</h1>
+  <p>Changing import paths, migrating a component library, renaming an API — one change spread across hundreds of files. Grinding through them one by one in a single session is slow and misses things.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The key to a large-scale change isn't "make the AI edit faster" — it's locking the change into a pattern first, then picking the right executor: deterministic transforms go to a script, judgment calls fan out to agents, and spot checks plus full validation catch whatever slips through.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      <span class="badge badge-site">Our take</span>Three steps: ① lock the change into an explicit pattern on 3–5 representative files and confirm it by hand; ② for purely mechanical text/AST transforms, have Claude write a script and run it once (fast, zero tokens, rerunnable) — only fan out with a workflow/subagents when each file needs individual judgment; ③ when done, spot-check random diffs, then run type checks/tests as full validation, and keep fixing until they pass.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Lock the pattern on a small sample.</strong>Pick 3–5 representative files (one ordinary, one edge case, one worst case) and have Claude change those first; confirm the approach by hand.<span class="badge badge-official">Official</span>The workflows docs give the same advice in the cost section: run a small slice of a big task first — "one directory instead of the whole repo" — before deciding to roll it out.</li>
+      <li><strong>Decide: script or LLM.</strong><span class="badge badge-site">Our take</span>The criterion is "can the change be written as a rule":
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Nature of the change</th><th>Executor</th><th>Examples</th></tr></thead>
+          <tbody>
+            <tr><td>Deterministic transform: one rule applies to every file</td><td>Have Claude write a script/codemod and run it once</td><td>Changing import paths, renaming a function, bulk-replacing config keys</td></tr>
+            <tr><td>Per-file judgment: rules can't cover everything, context matters</td><td>Fan out with a workflow / subagents, one agent per file</td><td>Migrating styled-components to Tailwind, adding auth checks to every route</td></tr>
+          </tbody>
+        </table></div>
+        A script's advantage is that the result is diffable and reviewable, and if it's wrong you fix the script and rerun; 200 files are 200 chances for an LLM to be inconsistent, but just one loop for a script.</li>
+      <li><strong>When you do fan out to agents, prefer a dynamic workflow.</strong><span class="badge badge-official">Official</span>Say "use a workflow" in your prompt, or add the keyword <code>ultracode</code>, and Claude writes the orchestration as a script that runs in the background, keeping intermediate results in script variables instead of crowding the conversation context; the migration example in the docs is exactly "migrate every component under src/components/ from styled-components to Tailwind, working on each file in its own isolated copy". <code>/workflows</code> shows agent and token counts per stage, and workflows can be paused and resumed. Limits: at most 16 agents concurrently, 1000 per run; beyond 25 agents or a projected 1.5M tokens you get a "Large workflow" warning. Requires v2.1.154+ on a paid plan.</li>
+      <li><strong>For reviewable PRs, use <code>/batch</code>.</strong><span class="badge badge-official">Official</span><code>/batch</code> is a built-in skill: it splits one large change into 5–30 worktree-isolated subagents, each opening its own pull request, so review naturally happens at PR granularity. How worktree isolation works: <a href="/en/claude-code/tips/worktrees-parallel-sessions.html">Worktrees: keep parallel sessions out of each other's way</a>.</li>
+      <li><strong>For CI or full scripting, go headless.</strong><span class="badge badge-official">Official</span><code>claude -p "&lt;instruction&gt;" --allowedTools "Read,Edit"</code> runs one task non-interactively; the exit code can drive script branching, <code>--output-format json</code> returns structured results, and adding <code>--bare</code> skips loading hooks/plugins — a good fit for per-file calls inside a loop. Details in <a href="/en/claude-code/course/day-13.html">D13 · Headless &amp; CI</a>.</li>
+      <li><strong>Finish with spot checks plus full validation.</strong><span class="badge badge-site">Our take</span>Randomly sample 5–10 files and read the diffs by hand to confirm the pattern didn't drift; then run full validation.<span class="badge badge-official">Official</span>Workflows have a ready-made closing pattern for this: "run npx tsc --noEmit and keep fixing the reported errors until the type check passes", plus adversarially verifying each finding before reporting it.</li>
+      <li><strong>Cost note.</strong><span class="badge badge-official">Official</span>A workflow fanning out dozens of agents consumes noticeably more tokens than a single conversation, and it counts toward your plan usage — one more reason step 2 reaches for a script first.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>I need to roll this change out across the whole repo (about 200 files):
+&lt;change description&gt;.
+Work in three steps, pausing for my confirmation between each:
+
+1. First find every file that needs the change and report the count, then
+   pick 3 representative ones (the most ordinary, the most complex, the
+   most edge-case) and change those for me to review. Wait for me to
+   confirm the approach;
+2. Once confirmed, decide how to execute: if the change is a
+   deterministic text/AST transform, write a repeatable script and run it
+   once — show me the script first; if each file needs individual
+   judgment, use a workflow to fan out, changing each file in an isolated
+   copy;
+3. When everything is done: show diffs for 5 randomly chosen files, then
+   run &lt;type check/test command&gt; and keep fixing until it passes.
+   Finally report the total number of files changed and the validation
+   results.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/workflows.md">Orchestrate subagents at scale with dynamic workflows</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sub-agents.md">Create custom subagents</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/headless.md">Run Claude Code programmatically</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/agents.md">Run agents in parallel</a> (<code>/batch</code> docs), fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (the workflow trigger keywords, agent limits, and size guidelines all shift between versions).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

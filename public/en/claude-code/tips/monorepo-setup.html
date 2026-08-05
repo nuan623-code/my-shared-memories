@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code in a large monorepo · Claude Code Learning Hub</title>
+<meta name="description" content="Keep Claude scoped to relevant code in a huge repo: layered CLAUDE.md files, launch-directory scoping, claudeMdExcludes, Read deny rules, and search/context strategy.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Claude Code in a large monorepo · Claude Code Learning Hub">
+<meta property="og:description" content="Keep Claude scoped to relevant code in a huge repo: layered CLAUDE.md files, launch-directory scoping, claudeMdExcludes, Read deny rules, and search/context strategy.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/monorepo-setup.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/monorepo-setup.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/monorepo-setup.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/monorepo-setup.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/monorepo-setup.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/monorepo-setup.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · Configuration &amp; choosing tools</span></p>
+  <h1>Claude Code in a large monorepo</h1>
+  <p>A million lines and dozens of packages — Claude's context fills up fast with unrelated code and other teams' conventions. The fix is to scope what it sees.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Large-repo configuration boils down to one sentence: <strong>let Claude see only the part relevant to the current task</strong>. There are four kinds of levers — layered CLAUDE.md files, choosing scope by launch directory, deny rules that block irrelevant reads, and exploration in isolated context. They stack on top of each other; they don't replace each other.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Keep the root CLAUDE.md to repo-wide layout and shared conventions (under 200 lines); give each package its own CLAUDE.md (subdirectory files load on demand and don't consume startup context); launch Claude from the package directory for single-package tasks to shrink the scope; then use <code>claudeMdExcludes</code> to exclude other teams' files and <code>Read</code> deny rules to block dist/build/vendored code.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Layer your CLAUDE.md files: root for the global picture, packages for local detail.</strong><span class="badge badge-official">Official</span>At startup Claude Code loads the CLAUDE.md of the working directory and all ancestor directories; subdirectory CLAUDE.md files are not loaded at startup, but on demand when Claude reads a file in that directory with the Read tool. So the right division of labor is: the root CLAUDE.md covers repo structure and global coding/commit conventions; <code>packages/api/CLAUDE.md</code> covers that package's test commands, directory layout, and local rules. Commit all of them so the whole team inherits them. Target under 200 lines per file — beyond that, move reference material into a skill or <code>.claude/rules/</code> (rules can use a <code>paths:</code> frontmatter to load only when matching files are involved; see <a href="/en/claude-code/course/day-04.html">D4 CLAUDE.md &amp; rules</a>).</li>
+      <li><strong>Pick your scope with the launch directory.</strong><span class="badge badge-official">Official</span>Where you run <code>claude</code> from determines file access and which CLAUDE.md files load: for cross-package tasks launch from the repo root (it can read all files, loads only the root CLAUDE.md up front, subdirectory ones arrive on demand); for single-package tasks launch from <code>packages/api/</code> (only that package's + its ancestors' CLAUDE.md load, and other packages never enter context at all). Note that <code>.claude/settings.json</code> project settings load only from the launch directory — unlike CLAUDE.md they are not inherited from parent directories. If you launch from a subdirectory and then need to change files across packages, use <code>--add-dir ../shared</code> or configure <code>additionalDirectories</code> in settings.</li>
+      <li><strong>Exclude the irrelevant: two switches.</strong><span class="badge badge-official">Official</span>First, <code>claudeMdExcludes</code> (put it in <code>.claude/settings.local.json</code> to keep it personal) skips other teams' CLAUDE.md files by glob, e.g. <code>"**/packages/web/**"</code>; CLAUDE.md files delivered by managed policy cannot be excluded. Second, content search respects <code>.gitignore</code> by default, so ignored <code>node_modules/</code> and <code>dist/</code> never show up in search results; but for <em>committed</em> generated code and vendored dependencies, add <code>Read</code> deny rules such as <code>"Read(./**/dist/**)"</code>, <code>"Read(./**/*.generated.*)"</code>, <code>"Read(./vendor/**)"</code> — Claude won't even open them.</li>
+      <li><strong>Search and context strategy.</strong><span class="badge badge-official">Official</span>Two moves against "reading dozens of files to find one symbol": install the code intelligence plugin for your language (<code>/plugin install typescript-lsp@claude-plugins-official</code>) so Claude jumps to definitions and finds references through the language server instead of scanning text; and hand broad exploration to a subagent, which reads files in its own context and brings only conclusions back to the main session (<a href="/en/claude-code/course/day-10.html">D10 Subagents</a>). Before a big cross-package change, plan first and have Claude write the plan to a markdown file — long sessions compact their context, but a plan on disk doesn't get lost.</li>
+      <li><strong>Optional extras.</strong><span class="badge badge-official">Official</span>When developing in isolated worktrees, <code>worktree.sparsePaths</code> makes new worktrees check out only the listed directories (remember to include <code>.claude</code>), and <code>symlinkDirectories</code> links <code>node_modules</code> back to the main checkout; each package can also carry its own <code>.claude/skills/</code>, so the API package's testing playbook loads only during API tasks. Once configured, run <code>/context</code> and confirm the Memory files section lists exactly the files you expect.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>This is a monorepo — help me set it up for large-repo work:
+
+1. Read the root layout and what each package under packages/ does, then write a
+   CLAUDE.md at the repo root, under 200 lines: repo layout only, a one-line
+   description per package, and global conventions (package manager, commit style,
+   rules like "run commands in the package directory, not the root");
+2. Write a dedicated CLAUDE.md for the package I'm working on, packages/&lt;name&gt;:
+   build/test/migration commands, directory layout, package-specific conventions;
+3. In the launch directory's .claude/settings.json, add permissions.deny Read
+   rules blocking dist/, build/, *.generated.* and vendored code;
+4. List every file you created or modified. Afterwards I'll restart the session
+   and use /context to verify that Memory files loads only the expected files.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/large-codebases.md" rel="noopener">large-codebases (the full monorepo setup guide: layering / excludes / deny / sparsePaths / per-package skills)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/memory.md" rel="noopener">memory (CLAUDE.md loading mechanics / rules / claudeMdExcludes / the 200-line guideline)</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (tied to specific config keys like claudeMdExcludes and sparsePaths; as of version 2.1.222).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

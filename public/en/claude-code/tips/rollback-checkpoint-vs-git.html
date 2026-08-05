@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to roll back a bad change (checkpoints are not git) · Claude Code Learning Hub</title>
+<meta name="description" content="Claude broke your code — now what? What /rewind can and cannot restore (bash changes, subagent edits, and external modifications are not tracked), and the right division of labor between checkpoints and git.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/rollback-checkpoint-vs-git.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/rollback-checkpoint-vs-git.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/rollback-checkpoint-vs-git.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/rollback-checkpoint-vs-git.html">
+<meta property="og:title" content="How to roll back a bad change (checkpoints are not git) · Claude Code Learning Hub">
+<meta property="og:description" content="What checkpoints and /rewind can restore, what they cannot, and how the work splits between checkpoints and git.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/rollback-checkpoint-vs-git.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/rollback-checkpoint-vs-git.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · Reliability &amp; quality</span></p>
+  <h1>How to roll back a bad change (checkpoints are not git)</h1>
+  <p>Claude went on a spree and broke the project — before you roll anything back, figure out which changes /rewind can save and which only git can.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code automatically snapshots your code state before every prompt you send (a checkpoint), and you can <code>/rewind</code> back to one at any time. But it only tracks changes Claude made with its <strong>file-editing tools</strong> — bash commands, subagents, and your own edits in the editor are all outside its protection. Treat it like git and it will bite you eventually.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      When things break, first <code>/rewind</code> (or press <code>Esc</code> twice) back to the checkpoint before the damage; but a checkpoint is only “session-level undo” — bash changes, subagent edits, and external modifications are beyond its reach, and those take git. <span class="badge badge-official">Official</span>The official positioning, in spirit: a checkpoint is local undo, git is permanent history; the former complements the latter, never replaces it.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Open the rewind menu.</strong> Run <code>/rewind</code>, or press <code>Esc</code> twice while the input box is empty. <span class="badge badge-official">Official</span>The menu lists every prompt you sent this session — each prompt automatically created a checkpoint. The session keeps file snapshots for the most recent 100 checkpoints, and checkpoints persist with the session, so you can still rewind after resuming it (sessions are cleaned up after 30 days by default, adjustable via <code>cleanupPeriodDays</code>).</li>
+      <li><strong>Choose the restore point and what to restore.</strong> <span class="badge badge-official">Official</span>After selecting a prompt there are three kinds of restore: <strong>code + conversation</strong>, <strong>conversation only</strong> (code stays as it is), and <strong>code only</strong> (conversation kept — for “right idea, wrong edits”). Two further Summarize options compress context and never touch files on disk. Expected: after restoring code, files Claude edited return to their content at that checkpoint.</li>
+      <li><strong>Check which changes were NOT rolled back.</strong> This is the crux of this tip — <span class="badge badge-official">Official</span>checkpoints explicitly do not track:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Source of change</th><th>Can /rewind restore it?</th><th>What to do</th></tr></thead>
+          <tbody>
+            <tr><td>Claude’s file-editing tools (Edit/Write)</td><td>Yes</td><td>Rewind freely</td></tr>
+            <tr><td>Bash commands (<code>rm</code>/<code>mv</code>/<code>cp</code>, scripts, code generators)</td><td>No</td><td>git or manual recovery</td></tr>
+            <tr><td>Subagent edits (incl. background <code>/code-review --fix</code>)</td><td>No (foreground forks are the exception)</td><td>Roll back with git</td></tr>
+            <tr><td>Your own editor changes, other concurrent sessions</td><td>Not tracked</td><td>Use git</td></tr>
+            <tr><td>Files behind symlinks/hardlinks</td><td>Skipped, with a warning</td><td>Manual, or have Claude edit them back</td></tr>
+          </tbody>
+        </table></div>
+        If restoring code shows a “Restored the code, but skipped N files” warning, link-type paths were skipped; run <code>/debug</code> to enable logging first, then rewind — the log names every skipped path. <span class="badge badge-official">Official</span></li>
+      <li><strong>Build the division-of-labor habit.</strong> <span class="badge badge-site">Our take</span>The working rule: start with a clean working tree (git as the safety floor), let Claude charge at big experimental changes — if it fails, rewind and try another angle; commit milestones promptly. That way rewind covers “minute-scale trial and error” and git covers “hour-scale milestones,” two layers of insurance that stay out of each other’s way. For the full checkpoint mechanism, see <a href="/en/claude-code/course/day-06.html">D6 · the checkpoints &amp; session management lesson</a>; to break less in the first place, pair this with <a href="/en/claude-code/tips/self-verifiable-done.html">give it checks it can run itself</a>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Your last changes broke the project. Stop — do not make any more edits. Help me evaluate rollback options:
+1. List every file you changed with the file-editing tools in this session (these I can restore with /rewind).
+2. List the file changes you made through bash commands (created/deleted/moved/rewritten by scripts — /rewind
+   cannot restore these), and give the exact git commands to recover them (git status / git checkout / git clean).
+3. Tell me the recommended recovery order, and how to verify the project is back in a working state afterwards.
+Analysis only — do not run any recovery commands yet.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/checkpointing.md" target="_blank" rel="noopener">Checkpointing</a> — automatic snapshots, 100 checkpoints, the five rewind-menu options, the four kinds of untracked changes, local undo vs permanent history; fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: high (tied to checkpoint behavior details and versions; re-checked periodically).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

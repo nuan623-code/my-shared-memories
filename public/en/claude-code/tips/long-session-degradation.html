@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why long sessions get dumber · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code sessions degrade as they grow: context noise dilutes attention and compaction loses detail. The degradation mechanics, the signals it's time to start fresh, and how a handoff doc makes the switch lossless.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/long-session-degradation.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/long-session-degradation.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/long-session-degradation.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/long-session-degradation.html">
+<meta property="og:title" content="Why long sessions get dumber · Claude Code Learning Hub">
+<meta property="og:description" content="The fuller the context, the worse the performance: noise dilution plus compaction loss. The signals to /clear and restart, and how to hand off without losing context.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/long-session-degradation.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/long-session-degradation.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · Cost & context</span></p>
+  <h1>Why long sessions get dumber</h1>
+  <p>The longer a session runs, the more Claude forgets instructions and makes rookie mistakes — that's not your imagination; it's the inevitable result of how context works.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Grinding on without restarting is the most expensive mistake you can make in a long session. This page covers the two degradation mechanisms, the four signals that it's time to start over, and how to hand off without losing context.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Bottom line</span>
+      <span class="badge badge-official">Official</span>The docs say it outright: LLM performance degrades as the context fills; near the limit Claude starts "forgetting" earlier instructions and making more mistakes. Degradation comes from two mechanisms: noise dilution (irrelevant content crowding out attention) and compaction loss (auto-compact replacing verbatim history with a summary). If you've corrected the same problem twice and it's still wrong, write a handoff doc, <code>/clear</code>, and start fresh — a clean session with a better initial prompt almost always beats a long session dragging a pile of failed attempts.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Understand degradation mechanism one: noise dilution.</strong><span class="badge badge-official">Official</span>The context window holds the entire session — every message, every file read, every command output; a single debugging run can eat tens of thousands of tokens. The official best practices list this as the first constraint: the fuller the context, the worse the performance. Mixing unrelated tasks into one session (what the docs call a kitchen sink session) and the failed attempts left behind by repeated corrections all dilute the information that actually matters — "important rules drown in the noise."</li>
+      <li><strong>Understand degradation mechanism two: compaction loses detail.</strong><span class="badge badge-official">Official</span>Near the limit, auto-compact triggers and replaces the conversation history with a structured summary: it keeps the request intent, key decisions, changed files, and important code snippets, and drops verbatim tool output and intermediate reasoning. There are hidden losses after compaction too: rules with <code>paths:</code> and subdirectory CLAUDE.md files only reload once a matching file is read again; invoked skill bodies reload under a cap of 5,000 tokens each and 25,000 total, oldest dropped first. Details the summary didn't capture are genuinely gone from Claude's head afterwards.</li>
+      <li><strong>Recognize the signals to start fresh.</strong><span class="badge badge-site">Our take</span>Building on the official advice — if any of these appear, don't grind on:
+        <ul>
+          <li>You've corrected the same problem twice and it's still wrong — the docs are explicit: the context is now polluted by failed approaches; <code>/clear</code> and put what you learned into the new prompt;</li>
+          <li>Claude starts violating rules explicitly written in CLAUDE.md;</li>
+          <li>It rereads files it has already read, or re-asks questions already answered;</li>
+          <li>Auto-compact has already fired, and you're about to start something entirely new.</li>
+        </ul>
+      </li>
+      <li><strong>Hand off before restarting — don't restart bare.</strong><span class="badge badge-official">Official</span>Pick the handoff to match the task size:
+        <ul>
+          <li><strong>Small switch</strong>: <code>/rename</code> before <code>/clear</code>, so you can <code>/resume</code> back anytime (see <a href="/en/claude-code/course/day-06.html">D6 · Checkpoint / rewind / session management</a>);</li>
+          <li><strong>Big task</strong>: have Claude write the state to a file (a spec or handoff doc), and let the new session read it and continue. The official interview→spec workflow is exactly this pattern: once the spec is final, "run it in a new session that has clean, implementation-focused context";</li>
+          <li><strong>Continuity, but slimmer</strong>: <code>/compact</code> with a directive (e.g. <code>/compact focus on the API changes</code>) to control what the summary keeps; or use the <code>/rewind</code> menu's Summarize from here / up to here to compress one stretch and keep the rest;</li>
+          <li><strong>Quick side questions</strong>: ask with <code>/btw</code> — the answer stays out of the conversation history and doesn't grow the context.</li>
+        </ul>
+      </li>
+      <li><strong>Side benefit: it's cheaper.</strong>A long session isn't just dumber — it's billed on the full context, every message carrying the entire history. For the complete quota-saving playbook, see <a href="/en/claude-code/tips/where-quota-goes.html">Where did this month's quota go?</a>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>This session has grown long; I'm going to continue in a new one. Write the
+current working state into a handoff doc at HANDOFF.md, covering:
+1. The task goal and current progress (done / not done, item by item);
+2. The list of files changed, and the reason for each change;
+3. Approaches that were tried and failed, and why they failed (so the new
+   session doesn't repeat them);
+4. The concrete next steps, and how to verify they were done right;
+5. Project conventions or gotchas the new session needs to know.
+When it's written, give me the first message for the new session: have it
+read HANDOFF.md before starting work.</code></pre>
+
+    <h2>Sources & last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" rel="noopener">code.claude.com/docs/en/best-practices.md</a> (performance degrades as context fills, /clear after two corrections, the kitchen-sink anti-pattern, new session after interview→spec), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/context-window.md" rel="noopener">code.claude.com/docs/en/context-window.md</a> (what compaction keeps and drops, skill/rule reload caps, /context and /autocompact), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sessions.md" rel="noopener">code.claude.com/docs/en/sessions.md</a> (in-session use of /rename, /resume, /clear, /compact, /context), fetched 2026-08-05.</li>
+      <li><span class="badge badge-site">Our take</span>The "four signals to start fresh" list and the HANDOFF.md handoff template are our arrangement of the official advice.</li>
+      <li>Last verified: 2026-08-05 · volatility:low (the core is context-management and handoff methodology, which barely ages; for version-specific details like compaction, the official docs are authoritative).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

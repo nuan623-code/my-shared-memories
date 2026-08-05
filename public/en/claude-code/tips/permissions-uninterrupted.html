@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Permissions: from approving every step to uninterrupted flow · Claude Code Learning Hub</title>
+<meta name="description" content="The progressive path from default step-by-step approval to allowlists, acceptEdits, and auto mode — and the permissions you should never grant.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Permissions: from approving every step to uninterrupted flow · Claude Code Learning Hub">
+<meta property="og:description" content="The progressive path from default step-by-step approval to allowlists, acceptEdits, and auto mode — and the permissions you should never grant.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/permissions-uninterrupted.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/permissions-uninterrupted.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/permissions-uninterrupted.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/permissions-uninterrupted.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/permissions-uninterrupted.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/permissions-uninterrupted.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · Configuration &amp; choosing tools</span></p>
+  <h1>Permissions: from approving every step to uninterrupted flow</h1>
+  <p>Clicking "yes" on every single command gets old fast — but jumping straight to allow-everything is dangerous. This tip lays out the officially supported path to progressively loosening permissions, and the lines you must not cross.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code's permission system has two layers: the permission mode sets the baseline, and allow/ask/deny rules provide fine-grained overrides. The right way to loosen up is to climb these two layers step by step — not to flip on <code>bypassPermissions</code>.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Four progressive steps: build an allowlist in default mode via "Yes, don't ask again" → switch to <code>acceptEdits</code> to skip edit confirmations → move up to auto mode and let a classifier do background safety review; meanwhile use <code>ask</code> rules to keep a manual checkpoint on <code>git push</code> and <code>deny</code> rules to block sensitive files. Use <code>bypassPermissions</code> only inside an isolated container/VM — never day-to-day on your own machine.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Start in default mode and let approvals settle into rules.</strong><span class="badge badge-official">Official</span>Default mode (called Manual in the UI) skips confirmation only for reads; Bash commands need approval on first use. When approving, pick "Yes, don't ask again" and the Bash rule is stored permanently in <code>.claude/settings.local.json</code> at the repo root, taking effect for future sessions across the whole repo (including subdirectories and worktrees); approving a compound command (like <code>git status &amp;&amp; npm test</code>) saves it split into sub-commands. File-edit approvals last only until the session ends and are never persisted. After a day or two of use, your everyday commands have accumulated into a realistic allowlist.</li>
+      <li><strong>Tidy the rules with <code>/permissions</code>.</strong><span class="badge badge-official">Official</span><code>/permissions</code> lists every allow/ask/deny rule and its source file. Evaluation order is fixed: deny → ask → allow, first match wins, and specificity does not change the order (so a broad deny overrides a narrow allow). When hand-writing rules, mind the wildcard semantics: <code>Bash(npm run *)</code> matches commands starting with <code>npm run</code>; the space in <code>Bash(ls *)</code> is a word boundary — it matches <code>ls -la</code> but not <code>lsof</code>. To share with your team, move the rules into <code>.claude/settings.json</code> and commit it.</li>
+      <li><strong>Switch to <code>acceptEdits</code> and review after the fact.</strong><span class="badge badge-official">Official</span>Press <code>Shift+Tab</code> in a session to cycle through modes. <code>acceptEdits</code> auto-accepts file edits inside the working directory plus common filesystem commands (<code>mkdir</code>, <code>touch</code>, <code>mv</code>, <code>cp</code>, <code>sed</code>, etc.); other Bash commands still prompt as usual. It fits the "let it edit, then review everything at once with <code>git diff</code>" workflow. To make it your default, put <code>"permissions": {"defaultMode": "acceptEdits"}</code> in <code>~/.claude/settings.json</code>.</li>
+      <li><strong>Move up to auto mode: uninterrupted, but with a backstop.</strong><span class="badge badge-official">Official</span>In auto mode everything runs automatically while a separate classifier model reviews each action in the background, blocking high-risk operations by default — <code>curl | bash</code>, force pushes, production deploys, sending secrets out of the repo; boundaries you state in the conversation (like "don't push yet") also count as blocking signals. Two caveats: entering auto mode temporarily revokes broad allow rules that grant arbitrary code execution, such as <code>Bash(*)</code> (narrow rules like <code>Bash(npm test)</code> are kept); explicit ask rules still force a prompt. Auto mode requires your account to meet model and other conditions — if it doesn't, it simply won't appear in the <code>Shift+Tab</code> cycle. What each mode skips confirmation for:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Mode</th><th>No confirmation needed for</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr><td><code>default</code> (Manual)</td><td>Reads only</td><td>Getting started, sensitive work</td></tr>
+            <tr><td><code>acceptEdits</code></td><td>Reads + file edits + common filesystem commands</td><td>Edit freely, review via diff</td></tr>
+            <tr><td><code>plan</code></td><td>Reads (when auto is available, classifier-approved commands pass too)</td><td>Exploring before touching anything</td></tr>
+            <tr><td><code>auto</code></td><td>Everything, with background classifier review</td><td>Long tasks, fighting confirmation fatigue</td></tr>
+            <tr><td><code>dontAsk</code></td><td>Only pre-approved tools; everything else auto-denied</td><td>CI, locked-down script environments</td></tr>
+            <tr><td><code>bypassPermissions</code></td><td>Everything, no review</td><td>Isolated containers/VMs only</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>Hold the safety line — what never to allow.</strong><span class="badge badge-official">Official</span>The explicit official rules: use <code>bypassPermissions</code> only in isolated environments (it even allows writes to protected paths like <code>.git</code> and <code>.claude</code>, and refuses to start under root/sudo); to stay uninterrupted while keeping a manual checkpoint, add ask rules on push-type actions — the official recipe is <code>"ask": ["Bash(git push *)", "Bash(gh pr create *)"]</code>, which forces a prompt even in auto mode; deny sensitive files, e.g. <code>Read(.env)</code>, <code>Read(~/.ssh/**)</code>. <span class="badge badge-site">Our take</span>Two more practical rules: never allow any download-and-execute command (<code>curl | bash</code>); and remember that Bash prefix rules match the command string — a deny on <code>Bash(rm *)</code> won't stop <code>/bin/rm</code> or <code>find -delete</code>, so when you need a hard guarantee use a PreToolUse hook or the sandbox (see <a href="/en/claude-code/course/day-03.html">D3 Permission modes &amp; the sandbox</a>). Also remember: permissions are enforced by Claude Code, while "don't do X" written in CLAUDE.md is guidance, not a boundary.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Upgrade this project's permission setup from "confirm every step" to "fewer interruptions, firm boundaries":
+
+1. Read the allow rules accumulated in .claude/settings.local.json, pick out the
+   build/test/lint commands worth sharing with the team, and organize them into
+   permissions.allow in .claude/settings.json;
+2. Add "Bash(git push *)" and "Bash(gh pr create *)" to permissions.ask,
+   keeping a manual checkpoint for pushes and PR creation;
+3. Add permissions.deny rules for reading .env, secrets directories, and ~/.ssh;
+4. Do not allow any deletion commands, download-and-execute commands (curl|bash),
+   or commands that change system configuration;
+5. When done, explain what each rule does, and tell me how the deny → ask → allow
+   evaluation order affects this configuration.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/permissions.md" rel="noopener">permissions (rule syntax / evaluation order / where rules are saved / managed settings)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/permission-modes.md" rel="noopener">permission-modes (the six modes / how to switch / auto mode's block list / protected paths)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/auto-mode-config.md" rel="noopener">auto-mode-config (manual-checkpoint recipe / trusted infrastructure)</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (auto mode's availability conditions and block rules evolve quickly across versions; as of version 2.1.222).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

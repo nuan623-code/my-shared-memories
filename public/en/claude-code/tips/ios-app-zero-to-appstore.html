@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>An iOS app from zero to App Store submission · Claude Code Learning Hub</title>
+<meta name="description" content="The complete solo route from idea to App Store submission with Claude Code: interview to a spec, scaffold, closed-loop iOS simulator verification, fastlane release prep, TestFlight to submission — and what Claude does in each phase.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="An iOS app from zero to App Store submission · Claude Code Learning Hub">
+<meta property="og:description" content="Interview to spec → scaffold → simulator-verified iteration → fastlane release prep → TestFlight → submission: how to use Claude Code at every phase.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/ios-app-zero-to-appstore.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/ios-app-zero-to-appstore.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/ios-app-zero-to-appstore.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/ios-app-zero-to-appstore.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/ios-app-zero-to-appstore.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/ios-app-zero-to-appstore.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">F · End-to-end scenarios</span></p>
+  <h1>An iOS app from zero to App Store submission</h1>
+  <p>One person, one Mac, one idea — walk the whole road from kickoff to App Store submission with Claude Code: how to split the phases, what Claude does in each, and how to close the verification loop in the simulator.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">During development, the key is letting Claude verify its own work (the iOS Simulator pane lets it tap and look for itself); during release, the key is handing the Apple busywork to fastlane. The former is an official capability, the latter mature community practice.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Split the project into six phases: interview to a spec → scaffold → feature iteration (simulator loop) → release prep (fastlane) → TestFlight → submission. During development, use the iOS Simulator pane in Claude Code Desktop so Claude can install the app, tap through it, and read the screen to check itself (an official capability, in public beta); for release, the community standard is fastlane to automate signing, screenshots, metadata, and uploads — and to make it the only channel that writes to App Store Connect (third-party practice). The phase breakdown itself is our arrangement.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Interview to a spec:</strong> don't write code yet. <span class="badge badge-official">Official</span>Best practices suggest that for big features you first have Claude interview you with the AskUserQuestion tool — technical approach, UI/UX, edge cases, trade-offs — then write it all up as SPEC.md and start a clean new session to implement. Details in <a href="/en/claude-code/tips/interview-to-spec.html">Interview your way to a spec</a>. Expected output: a SPEC.md with explicit acceptance criteria.</li>
+      <li><strong>Scaffold:</strong> once the empty project exists in Xcode, run <code>/init</code> to generate CLAUDE.md and write in the build/test commands, target devices, and code style. <span class="badge badge-site">Our take</span>For iOS projects especially, spell out "how to build, how to run tests" — every later iteration depends on Claude using them to check itself.</li>
+      <li><strong>Feature iteration + simulator loop:</strong> develop in Claude Code Desktop (macOS); when you give Claude a task like "build the app and run it in the simulator to check the onboarding flow", the iOS Simulator pane opens automatically: Claude installs the app, taps through it, and reads the screen to verify the change, while you watch — or take over and tap yourself. <span class="badge badge-official">Official</span>Requirements: Claude Desktop v1.24012.0+, Xcode 26.x with the iOS platform installed (Xcode 27 not yet supported); in public beta, available on Pro/Max/Team but not Enterprise; local sessions only. Each simulator needs a one-time authorization on first use, and screenshots are sent to Anthropic — don't sign into real accounts on test devices. To pick a device, just say so, e.g. "run it on the iPhone SE simulator". After each feature lands, have Claude walk the flow in the simulator against SPEC.md and paste screenshot evidence (see the prompt below) — that's the <a href="/en/claude-code/tips/self-verifiable-done.html">self-verifiable definition of done</a> loop; more detail in <a href="/en/claude-code/tips/ios-simulator-verify.html">iOS simulator verification</a>.</li>
+      <li><strong>Release prep (fastlane):</strong> <span class="badge badge-third">Third-party</span>fastlane is the community-standard iOS release automation tool, turning archive, signing, screenshots, metadata upload, and submission into repeatable "lanes". There's a ready-made Claude Code skill (greenstevester/fastlane-skill); once installed, plain language like "Set up Fastlane for my iOS app" has Claude read your Xcode project and generate the config. <span class="badge badge-third">Third-party</span>Field experience (theyawns.com's BaseballScorer series): make fastlane the only channel that writes to App Store Connect, keep the App Store copy in the repo as the single source of truth, and never hand-edit in the web console — two sources of truth will inevitably fight.</li>
+      <li><strong>TestFlight:</strong> <span class="badge badge-third">Third-party</span>The same source's beta-lane practice: bump build → archive → upload to TestFlight → only tag in git after success (baking "don't burn a build number on a failed upload" into the control flow instead of relying on someone remembering). A note on device testing: <span class="badge badge-official">Official</span>Claude can only drive the simulator, not a physical iPhone/iPad — run it on the real device yourself and send screenshots of whatever you find back to Claude to fix.</li>
+      <li><strong>Submission:</strong> <span class="badge badge-site">Our take</span>Have Claude draft the App Store description, privacy notes, and reviewer notes; keep them in the repo and submit via fastlane. Review materials are read by Apple's reviewers — read every word yourself before sending. If you get rejected, paste the rejection letter verbatim into Claude to analyze and fix.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <p>During feature iteration, run this verification loop each time a feature lands (in a local Claude Code Desktop session):</p>
+    <pre class="prompt"><code>Fully verify the changes we just made in the iOS simulator:
+1. Build the app and launch it in the simulator; fix any compile errors before continuing.
+2. Starting from a cold launch, walk the main flow — "new user opens the app for the first time → completes the core action" — taking a screenshot at each key screen.
+3. Check every acceptance criterion in SPEC.md one by one, list anything that fails, fix it, and walk the flow again.
+4. Once everything passes, paste the key screenshots and the commands you ran as evidence — don't just say "done".</code></pre>
+    <p>When you reach the release phase, you can open with this (requires the fastlane skill installed, or let Claude learn it on the fly):</p>
+    <pre class="prompt"><code>Set up fastlane for this iOS project:
+1. Read the Xcode project and generate a Fastfile with a beta lane: check we're on the main branch with a clean working tree →
+   bump build number → archive → upload to TestFlight → only commit, tag, and push after the upload succeeds.
+2. Keep the App Store metadata (description, What's New, keywords) in the repo's docs/ directory as the single source of truth,
+   synced by fastlane — never make me hand-edit the web console.
+3. Do a dry run, and list the steps it would execute plus the credentials/permissions I need to supply manually.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/desktop-ios-simulator.md" rel="noopener">Test iOS apps in the simulator</a> (version requirements, authorization, limitations), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" rel="noopener">Best practices for Claude Code</a> (interview to a spec, verification loop, /init), fetched 2026-08-05.</li>
+      <li><span class="badge badge-third">Third-party</span><a href="https://github.com/greenstevester/fastlane-skill" rel="noopener">fastlane-skill (GitHub)</a>: the community's Claude Code fastlane skill, fetched 2026-08-05.</li>
+      <li><span class="badge badge-third">Third-party</span><a href="https://theyawns.com/2026/07/03/claude-code-custom-skills-fastlane-for-ios-releases/" rel="noopener">Claude Code Custom Skills &amp; fastlane for iOS Releases (Nodes and Edges, 2026-07)</a>: a solo developer's retrospective on shipping to the App Store in 18 days, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: high (the iOS Simulator pane is in public beta — version and plan requirements will change; fastlane is a third-party tool).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

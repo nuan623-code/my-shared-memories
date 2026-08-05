@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Using image-generation tools with Claude Code to build apps · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code doesn't generate images itself, but MCP lets you plug in Recraft, fal.ai, and other services: generate app assets, save them into the project, and wire them into code — one session, closed loop. Connect commands and workflow on this page.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/image-gen-tools-with-claude-code.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/image-gen-tools-with-claude-code.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/image-gen-tools-with-claude-code.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/image-gen-tools-with-claude-code.html">
+<meta property="og:title" content="Using image-generation tools with Claude Code to build apps · Claude Code Learning Hub">
+<meta property="og:description" content="Plug Recraft, fal.ai, and other image services into Claude Code via MCP: one command to connect, and asset generation, saving, and code wiring all happen in the same session.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/image-gen-tools-with-claude-code.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/image-gen-tools-with-claude-code.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">C · Design &amp; assets</span></p>
+  <h1>Using image-generation tools with Claude Code to build apps</h1>
+  <p>Apps always need icons, illustrations, and placeholders — and Claude's models don't produce images. Connect an image-generation service as an MCP tool, and assets get generated and used right inside your dev session.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">There is only one idea here: turn image generation into a tool Claude Code can call directly, instead of you generating on some other site and dragging files back. MCP is the official channel (mechanics covered in course <a href="/en/claude-code/course/day-09.html">D9 · MCP</a>), and the image services are third-party — this page wires the two together.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Use <code>claude mcp add</code> to connect an image-generation service to Claude Code: services with an official remote MCP (like Recraft) take one command to add as an HTTP server; API-only services (like fal.ai) go through a community stdio server — or simply have Claude write a script that calls the API. Once connected, "generate asset → save into project → wire into code → see the result" closes the loop in a single session.<span class="badge badge-site">Our take</span>
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Pick a route.</strong> Three routes, ordered by how little hassle they are:<span class="badge badge-site">Our take</span>
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Route</th><th>Best for</th><th>How to connect</th></tr></thead>
+          <tbody>
+            <tr><td>Vendor's official remote MCP</td><td>Services that host their own MCP endpoint, like Recraft</td><td><code>claude mcp add --transport http</code>, OAuth authorization, no API key to manage</td></tr>
+            <tr><td>Community stdio MCP</td><td>Services with community wrappers, like fal.ai</td><td><code>claude mcp add --transport stdio</code> + <code>--env</code> to pass the API key</td></tr>
+            <tr><td>No MCP — call the API directly</td><td>Any image service with an HTTP API</td><td>Have Claude write a script (curl / SDK) into scripts/ and reuse it later</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>Connect a remote MCP (Recraft as the example).</strong><span class="badge badge-third">Third-party</span>Recraft's official docs give the remote server address <code>https://mcp.recraft.ai/mcp</code> (streamable HTTP, OAuth 2.0; the first connection redirects to Recraft for authorization), and the connect command is straight from their docs:
+        <pre><code>claude mcp add --transport http recraft https://mcp.recraft.ai/mcp</code></pre>
+        <span class="badge badge-official">Official</span>The command syntax matches the official Claude Code MCP docs; a successful add prints <code>Added ...</code>, then run <code>claude mcp list</code> to confirm the status is <code>✔ Connected</code> (<code>! Needs authentication</code> means the authorization flow isn't finished yet).</li>
+      <li><strong>Connect a community stdio MCP (fal.ai as the example).</strong><span class="badge badge-third">Third-party</span>fal.ai has several community MCP servers, such as <code>fal-image-video-mcp</code> (supports Imagen 4, FLUX, Recraft V3, Stable Diffusion 3.5, and more; results are saved locally, to Downloads by default, changeable via <code>DOWNLOAD_PATH</code>) and <code>fal-mcp-server</code> (image/video/audio). Connect with the official stdio syntax, passing the API key via <code>--env</code>:
+        <pre><code>claude mcp add --env FAL_KEY=your-fal-key --transport stdio fal-image -- npx -y fal-image-video-mcp</code></pre>
+        <span class="badge badge-site">Our take</span>Community server quality varies — check the tool list it exposes in <code>/mcp</code> before deciding to use it; anything carrying an API key means billing, so keep an eye on usage.</li>
+      <li><strong>Use it inside a dev task.</strong> Once connected, state the asset requirements and target location right in the task, and have Claude wire the generated assets into code immediately (see the prompt below). Expect: asset files appear in the directory you specified, and the code references are updated in the same pass.<span class="badge badge-site">Our take</span>Have it record each image's generation parameters (model, prompt, size) in a manifest file, so regenerating or restyling later doesn't require archaeology.</li>
+      <li><strong>Manage it, and protect your context.</strong><span class="badge badge-official">Official</span>To share with the whole team, use <code>--scope project</code> to write it into <code>.mcp.json</code> and commit it to the repo; for personal use across all your projects, use <code>--scope user</code>. An image server isn't needed in every session, and keeping it attached long-term eats context — disable it when unused (why and how in <a href="/en/claude-code/tips/too-many-mcp-servers.html">the cost of installing too many MCP servers</a>). Also, if you run in a restricted network (such as a cloud sandbox), allowlist the image service's download domains — otherwise generation succeeds but the files can't be fetched back.<span class="badge badge-site">Our take</span></li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Use the connected image-generation MCP tools to create a batch of UI assets for this project:
+1. First read the UI code under src/ and list the places that are missing assets (empty-state illustrations, onboarding art, default avatars, etc.), and confirm the list with me.
+2. For each image, agree a one-line style description with me first (flat / outline / palette); only generate after I confirm. Use consistent size specs, and prefer SVG/vector over bitmaps wherever possible.
+3. Save the generated files under assets/generated/, named content-size; also record each image's model, full prompt, and dimensions in assets/generated/manifest.md so they can be regenerated later.
+4. Update the code references to point at the new assets, and run a build to confirm there are no broken links.
+5. Finally report: which images were generated, how many calls it took, and which spots still lack assets.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/mcp.md" target="_blank" rel="noopener">Connect Claude Code to tools via MCP (claude mcp add syntax, scopes, health status)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-third">Third-party</span><a href="https://www.recraft.ai/docs/mcp-reference/remote-server" target="_blank" rel="noopener">Recraft official docs — MCP remote server (endpoint, OAuth, Claude Code connect command)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-third">Third-party</span><a href="https://github.com/RamboRogers/fal-image-video-mcp" target="_blank" rel="noopener">fal-image-video-mcp (community fal.ai MCP server: model list, FAL_KEY, local saving)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-third">Third-party</span><a href="https://github.com/raveenb/fal-mcp-server" target="_blank" rel="noopener">fal-mcp-server (another community fal.ai MCP server, image/video/audio)</a>, retrieved 2026-08-05.</li>
+      <li>Note: DALL·E / gpt-image and other OpenAI image generators also have community MCP wrappers, but this site has not verified them individually, so they are not listed; the "have Claude write a script that calls the API" route works for them just the same.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (third-party server package names, model lists, and endpoints can all change; check each service's own docs before connecting).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

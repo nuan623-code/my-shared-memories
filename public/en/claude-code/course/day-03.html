@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D3 · Permission modes &amp; sandboxing · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code's six permission modes and how to switch them, how to write allow/ask/deny permission rules and their precedence, the /sandbox OS-level isolation, and how to trade safety against efficiency.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D3 · Permission modes &amp; sandboxing · Claude Code Learning Hub">
+<meta property="og:description" content="The six permission modes, how to write allow/ask/deny rules, the sandbox's OS-level isolation, and the safety-versus-efficiency trade-off.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-03.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-03.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-03.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-03.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-03.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-03.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D3</p>
+  <h1>D3 · Permission modes &amp; sandboxing</h1>
+  <p>Every "act" step in the agentic loop passes through an authorization gate. This lesson explains what permission modes, allow/ask/deny rules, and the sandbox each govern, and how they work together.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">Permission modes decide how often you get asked; permission rules decide which operations are pre-approved or blocked outright; the sandbox decides what a command can touch once it is running. Three layers, three jobs — combined well, you get few interruptions without running unprotected.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p>In <a href="/en/claude-code/course/day-01.html">D1</a> we took apart the agentic loop: gather context → act → verify, looping forward. Every step of the "act" phase — editing files, running shell commands, making network requests — first passes through Claude Code's authorization gate. Without understanding it, you either get interrupted by prompts until you are frustrated, or wave everything through for convenience and leave safety to luck.</p>
+    <p>This lesson also underpins later ones: plan mode, covered in <a href="/en/claude-code/course/day-05.html">D5</a>, is itself a permission mode; the headless and CI scenarios in <a href="/en/claude-code/course/day-13.html">D13</a> depend on never-wait-for-input modes like <code>dontAsk</code>.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>Permission modes: how often you get asked</h3>
+    <p><span class="badge badge-official">Official</span>When Claude wants to edit a file, run a shell command, or make a network request, it pauses and asks for your approval; the permission mode controls how often that pause appears. There are six official modes, each trading convenience against oversight differently:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>Mode</th><th>What runs without asking</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td><code>default</code> (shown as Manual in the UI)</td><td>Read-only operations only</td><td>Getting started; sensitive work</td></tr>
+        <tr><td><code>acceptEdits</code></td><td>Reads, file edits, and common filesystem commands like <code>mkdir</code>, <code>touch</code>, <code>mv</code>, <code>cp</code></td><td>Day-to-day iteration where you review the diffs yourself</td></tr>
+        <tr><td><code>plan</code></td><td>Reads; plus classifier-approved commands when auto mode is available</td><td>Understanding a codebase before changing it</td></tr>
+        <tr><td><code>auto</code></td><td>Almost everything, each action safety-screened by a background classifier</td><td>Long tasks; reducing approval fatigue</td></tr>
+        <tr><td><code>dontAsk</code></td><td>Only pre-allowed tools; everything else is rejected outright</td><td>Locked-down CI and scripts</td></tr>
+        <tr><td><code>bypassPermissions</code></td><td>Everything</td><td>Isolated containers / VMs only</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><span class="badge badge-official">Official</span>A few details: <code>default</code> shows up as <strong>Manual</strong> in the UI while the config value stays <code>default</code> (since v2.1.200 the CLI also accepts the <code>manual</code> alias); <code>acceptEdits</code> auto-approval only covers paths inside the working directory and <code>additionalDirectories</code>; writes to protected paths (<code>.git</code>, <code>.claude</code>, <code>~/.zshrc</code>, and so on) are never auto-approved in any mode except <code>bypassPermissions</code>. Auto mode only appears when your account qualifies, and its classifier blocks actions that exceed the request's scope, point at unfamiliar infrastructure, or look steered by malicious content; <code>bypassPermissions</code> has no background checks whatsoever and does not defend against prompt injection — it belongs only in isolated environments such as containers and VMs.</p>
+
+    <h3>How to switch modes</h3>
+    <p><span class="badge badge-official">Official</span>Modes are switched through these controls — asking Claude to change them in chat does nothing:</p>
+    <ul>
+      <li><strong>Mid-session</strong>: press <code>Shift+Tab</code> to cycle <code>default</code> → <code>acceptEdits</code> → <code>plan</code>; the status bar shows the current mode badge (such as <code>accept edits on</code>). Auto joins the cycle when your account qualifies; <code>bypassPermissions</code> only joins if enabled at startup via a flag like <code>--dangerously-skip-permissions</code>; <code>dontAsk</code> never joins the cycle and can only be set at startup.</li>
+      <li><strong>At startup</strong>: pass a flag, for example <code>claude --permission-mode plan</code>; the same works for non-interactive runs with <code>-p</code>.</li>
+      <li><strong>Persistent default</strong>: set <code>permissions.defaultMode</code> in a settings file:</li>
+    </ul>
+    <pre><code>{
+  "permissions": {
+    "defaultMode": "acceptEdits"
+  }
+}</code></pre>
+
+    <h3>Permission rules: where allow / ask / deny live and how to write them</h3>
+    <p><span class="badge badge-official">Official</span>The mode sets the baseline; rules layer fine-grained control on top of it: <strong>allow</strong> passes without asking, <strong>ask</strong> forces a prompt every time, <strong>deny</strong> blocks outright. <code>/permissions</code> shows every rule and which settings file each one comes from. Rules can live in five sources, highest precedence first: managed settings → command-line flags → <code>.claude/settings.local.json</code> (personal, local) → <code>.claude/settings.json</code> (project-shared, can be committed to git) → <code>~/.claude/settings.json</code> (user-global). Once any level denies a tool, no other level can allow it back.</p>
+    <p><span class="badge badge-official">Official</span>The rule format is <code>Tool</code> or <code>Tool(specifier)</code>. Bash rules support the <code>*</code> wildcard, and a single <code>*</code> can match multiple arguments across spaces; file rules use gitignore syntax; WebFetch takes a <code>domain:</code> prefix; MCP tools use <code>mcp__server__tool</code>. A typical project config:</p>
+    <pre><code>{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git commit *)",
+      "WebFetch(domain:github.com)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Bash(curl *)"
+    ]
+  }
+}</code></pre>
+    <p><span class="badge badge-official">Official</span>The evaluation order is fixed: <strong>deny → ask → allow</strong> — the first matching rule decides the outcome, and no amount of specificity changes that order. So a broad <code>Bash(aws *)</code> deny overrides a narrow <code>Bash(aws s3 ls)</code> allow — you cannot punch exception holes through a deny. Only when none of the three match does the decision fall through to the current permission mode's default. There is also a built-in read-only command set (<code>ls</code>, <code>cat</code>, <code>grep</code>, <code>pwd</code>, the read-only forms of <code>git</code>, and so on) that never asks in any mode.</p>
+    <figure>
+      <svg viewBox="0 0 640 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Permission decision flow: a tool call is matched against deny, ask, then allow rules; if none match, the current permission mode decides">
+        <rect class="svg-box-accent" x="20" y="10" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="36" text-anchor="middle" font-size="14">Tool call</text>
+        <line class="svg-line" x1="95" y1="52" x2="95" y2="76" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,76 100,76 95,84"/>
+        <rect class="svg-box" x="20" y="84" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="110" text-anchor="middle" font-size="14">Deny rule match?</text>
+        <line class="svg-line" x1="170" y1="105" x2="404" y2="105" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="404,100 412,105 404,110"/>
+        <text class="svg-ink-soft" x="184" y="99" font-size="12">yes</text>
+        <rect class="svg-box" x="416" y="84" width="200" height="42" rx="10"/>
+        <text class="svg-ink" x="516" y="110" text-anchor="middle" font-size="14">Blocked, not executed</text>
+        <line class="svg-line" x1="95" y1="126" x2="95" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,150 100,150 95,158"/>
+        <text class="svg-ink-soft" x="106" y="142" font-size="12">no</text>
+        <rect class="svg-box" x="20" y="158" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="184" text-anchor="middle" font-size="14">Ask rule match?</text>
+        <line class="svg-line" x1="170" y1="179" x2="404" y2="179" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="404,174 412,179 404,184"/>
+        <text class="svg-ink-soft" x="184" y="173" font-size="12">yes</text>
+        <rect class="svg-box" x="416" y="158" width="200" height="42" rx="10"/>
+        <text class="svg-ink" x="516" y="184" text-anchor="middle" font-size="14">Asks, waits for approval</text>
+        <line class="svg-line" x1="95" y1="200" x2="95" y2="224" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,224 100,224 95,232"/>
+        <text class="svg-ink-soft" x="106" y="216" font-size="12">no</text>
+        <rect class="svg-box" x="20" y="232" width="150" height="42" rx="10"/>
+        <text class="svg-ink" x="95" y="258" text-anchor="middle" font-size="14">Allow rule match?</text>
+        <line class="svg-line" x1="170" y1="253" x2="404" y2="253" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="404,248 412,253 404,258"/>
+        <text class="svg-ink-soft" x="184" y="247" font-size="12">yes</text>
+        <rect class="svg-box" x="416" y="232" width="200" height="42" rx="10"/>
+        <text class="svg-ink" x="516" y="258" text-anchor="middle" font-size="14">Runs without asking</text>
+        <line class="svg-line" x1="95" y1="274" x2="95" y2="298" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="90,298 100,298 95,306"/>
+        <text class="svg-ink-soft" x="106" y="290" font-size="12">no</text>
+        <rect class="svg-box" x="20" y="306" width="400" height="42" rx="10"/>
+        <text class="svg-ink" x="220" y="332" text-anchor="middle" font-size="14">No match: the permission mode decides</text>
+        <text class="svg-ink-soft" x="530" y="332" text-anchor="middle" font-size="12">e.g. default asks</text>
+      </svg>
+      <figcaption>The permission decision flow: deny → ask → allow, first match wins; only when nothing matches does the mode's baseline take over.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>Choosing "Yes, don't ask again" in a permission prompt stores Bash approvals permanently in <code>.claude/settings.local.json</code> at the repo root, applying to future sessions in that repo (file-edit approvals last only until the session ends). Also, permission rules are enforced by Claude Code, not by the model's goodwill — writing "don't git push" in CLAUDE.md only affects whether Claude <em>wants</em> to, not whether it <em>can</em>. <a href="/en/claude-code/course/day-04.html">D4</a> comes back to this boundary.</p>
+
+    <h3>The sandbox: a hard OS-level boundary</h3>
+    <p><span class="badge badge-official">Official</span>The sandbox is operating-system-level isolation built into Claude Code: macOS uses the system's own Seatbelt, Linux and WSL2 use bubblewrap (requires installing the <code>bubblewrap</code> and <code>socat</code> packages), and native Windows is unsupported. Run <code>/sandbox</code> in a session to open the panel and enable it; the chosen mode is saved to the project's <code>.claude/settings.local.json</code>. To enable it globally, set <code>sandbox.enabled: true</code> in <code>~/.claude/settings.json</code>.</p>
+    <p><span class="badge badge-official">Official</span>The sandbox draws two default boundaries, enforced by the OS on Bash commands and all their child processes:</p>
+    <ul>
+      <li><strong>Filesystem</strong>: by default only the working directory and the session temp directory are writable; reads default to nearly the whole disk — note that credentials like <code>~/.ssh</code> and <code>~/.aws/credentials</code> remain readable by default; to block them, configure <code>sandbox.credentials</code> or <code>denyRead</code>.</li>
+      <li><strong>Network</strong>: traffic goes through a proxy outside the sandbox, with zero pre-allowed domains by default; the first time a command needs a new domain an approval prompt appears, and once approved it is remembered for the session (since v2.1.191). You can also pre-approve with <code>allowedDomains</code>.</li>
+    </ul>
+    <p><span class="badge badge-official">Official</span>The sandbox itself has two approval modes: <strong>auto-allow</strong> (commands that can run inside the sandbox run without asking) and <strong>regular permissions</strong> (the normal permission flow). The isolation boundary is identical in both — the only difference is auto-approval. Even under auto-allow, deny rules, content-level ask rules (like <code>Bash(git push *)</code>), and <code>rm</code> aimed at <code>/</code> or your home directory are still stopped. When a command fails because of sandbox restrictions, Claude may retry it outside the sandbox with the <code>dangerouslyDisableSandbox</code> parameter, going through the regular permission flow; set <code>allowUnsandboxedCommands: false</code> to close that escape hatch.</p>
+    <p><span class="badge badge-official">Official</span>The key point: the sandbox covers only Bash commands and their child processes. Read, Edit, and WebFetch go through the permission system, while MCP servers and hooks are separate, unconstrained processes on the host. To put the entire process inside a boundary, the official options are the sandbox runtime (no Docker required), dev containers, your own containers, VMs, and Claude Code on the web with Anthropic-managed VMs — increasing in both isolation strength and setup cost.</p>
+
+    <h3>How permissions and the sandbox relate</h3>
+    <p><span class="badge badge-official">Official</span>They are two complementary gates that stop different things: permissions are evaluated <strong>before</strong> a command runs, based on the command string (with an extra classifier check in auto mode); the sandbox is enforced <strong>at runtime</strong> by the operating system on the process itself — even if an approved command turns out to do something other than its name suggests, or Claude gets steered off course by prompt injection from malicious file content, the OS boundary still holds.</p>
+    <figure>
+      <svg viewBox="0 0 660 175" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two gates: permission rules decide before the command runs, the sandbox is OS-enforced at runtime">
+        <rect class="svg-box-accent" x="10" y="51" width="150" height="48" rx="10"/>
+        <text class="svg-ink" x="85" y="80" text-anchor="middle" font-size="14">A Bash command</text>
+        <line class="svg-line" x1="160" y1="75" x2="212" y2="75" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="212,70 220,75 212,80"/>
+        <rect class="svg-box" x="220" y="30" width="180" height="90" rx="10"/>
+        <text class="svg-ink" x="310" y="60" text-anchor="middle" font-size="14">Gate 1: permission rules</text>
+        <text class="svg-ink-soft" x="310" y="82" text-anchor="middle" font-size="12">Pre-run, on the string</text>
+        <text class="svg-ink-soft" x="310" y="100" text-anchor="middle" font-size="12">deny → ask → allow</text>
+        <line class="svg-line" x1="400" y1="75" x2="452" y2="75" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="452,70 460,75 452,80"/>
+        <rect class="svg-box" x="460" y="30" width="180" height="90" rx="10"/>
+        <text class="svg-ink" x="550" y="60" text-anchor="middle" font-size="14">Gate 2: the sandbox</text>
+        <text class="svg-ink-soft" x="550" y="82" text-anchor="middle" font-size="12">At runtime, OS-enforced</text>
+        <text class="svg-ink-soft" x="550" y="100" text-anchor="middle" font-size="12">File &amp; network boundaries</text>
+        <text class="svg-ink-soft" x="330" y="160" text-anchor="middle" font-size="12">Permissions gate whether it may run; the sandbox gates what it can touch; Bash + children only</text>
+      </svg>
+      <figcaption>Defense in depth: if the first gate is bypassed or judges wrongly, the second, OS-enforced boundary still holds.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>The two layers' configurations also merge: <code>sandbox.filesystem</code> merges with Read/Edit deny rules into the final file boundary, and WebFetch domain rules merge with <code>allowedDomains</code>/<code>deniedDomains</code> into the network boundary. With the sandbox on and <code>autoAllowBashIfSandboxed</code> left at its default <code>true</code>, sandboxed commands skip the prompt even when a bare <code>Bash</code> ask rule exists — the sandbox boundary stands in for that tool-level prompt.</p>
+
+    <h3>Trading off safety against efficiency</h3>
+    <p><span class="badge badge-site">Our take</span>The core principle fits in one sentence: <strong>every "ask" you relax must be backed by another hard boundary stepping in</strong>. The prompt is the last human line of defense; before removing it, confirm at least one of the classifier, the sandbox, or a container is on duty. By scenario:</p>
+    <ul>
+      <li><strong>Unfamiliar repos, sensitive operations</strong>: Manual or plan mode, review every step — slow is fast.</li>
+      <li><strong>Daily iteration with after-the-fact diff review</strong>: <code>acceptEdits</code> + sandbox auto-allow. File edits and in-workdir commands never interrupt, while anything out of bounds (new domains, <code>git push</code>, protected paths) still asks.</li>
+      <li><strong>Long unattended runs</strong>: auto mode (the classifier vets each action), or <code>bypassPermissions</code> inside a container / VM — the official docs are explicit that the latter has no checks backing it, so isolation is a precondition, not a recommendation.</li>
+      <li><strong>CI pipelines</strong>: <code>dontAsk</code> + a <code>permissions.allow</code> whitelist — never waits for input, and everything off the list is rejected.</li>
+    </ul>
+    <p><span class="badge badge-site">Our take</span>A common mistake: treating "sandbox on" as a permission mode. It isn't — the mode decides <em>whether to ask</em>, the sandbox decides <em>what can be touched</em>; they toggle independently and combine freely. For a systematic recipe to reduce prompts without sacrificing safety, see the tip <a href="/en/claude-code/tips/permissions-uninterrupted.html">Permissions: from approving every step to uninterrupted flow</a>.</p>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Do the steps below in any git project of yours; they take under 30 minutes:</p>
+    <ol>
+      <li><strong>Meet the mode cycle</strong>: start <code>claude</code> and press <code>Shift+Tab</code> repeatedly. Expected: the status bar cycles Manual → <code>accept edits on</code> → <code>plan mode on</code>; accounts that qualify also see <code>auto mode on</code>.</li>
+      <li><strong>Inspect existing rules</strong>: type <code>/permissions</code>. Expected: the Allow / Ask / Deny rule lists, plus which settings file each rule comes from.</li>
+      <li><strong>Write two rules</strong>: create or edit <code>.claude/settings.json</code> at the project root with the JSON from the "Permission rules" section above (swap in commands for your own project). Expected: after restarting the session, a workspace-trust dialog lists these allow rules on first run; once accepted, commands like <code>npm run build</code> pass straight through, while <code>git push --dry-run</code> hits the ask rule and forces a prompt.</li>
+      <li><strong>Experience "don't ask again"</strong>: have Claude run a harmless command outside the read-only set (say <code>npm --version</code>) and choose "Yes, don't ask again" in the prompt. Expected: a matching allow rule appears in <code>.claude/settings.local.json</code>, and future sessions pass it through.</li>
+      <li><strong>Turn on the sandbox</strong>: run <code>/sandbox</code> and pick auto-allow on the Mode page (works out of the box on macOS; on Linux/WSL2, if the panel only shows the Dependencies page, run <code>sudo apt-get install bubblewrap socat</code> first and restart). Expected: Claude runs file-writing commands inside the working directory without prompts; touching a never-approved domain pops a domain approval.</li>
+      <li><strong>Verify end to end</strong>: paste the prompt below into Claude Code verbatim:</li>
+    </ol>
+    <pre class="prompt"><code>Help me verify this session's permission setup. In order:
+1. Run ls and git status (built-in read-only commands - these should not ask);
+2. Run npm run build (if I configured an allow rule, it should pass straight through);
+3. Try git push --dry-run (it should hit an ask or deny rule - prompted or blocked).
+Then walk me through each command: which path did it take -
+the built-in read-only set, an allow rule, an ask rule, or the mode's default prompt?</code></pre>
+    <p>Expected: the three commands behave differently, and Claude's recap matches the rules you saw in <code>/permissions</code> one for one.</p>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>You can name the six permission modes without the docs, and say what each runs without asking.</li>
+      <li>You can explain the deny → ask → allow evaluation order, and why a broad deny cannot be holed by a narrow allow.</li>
+      <li>You can state the division of labor in one sentence: permissions decide before running whether a command may run; the sandbox uses the OS at runtime to limit what it can touch — and the sandbox covers only Bash and its child processes.</li>
+      <li>Hands-on complete: your own rules show up in <code>/permissions</code>; under sandbox auto-allow, in-workdir commands skip prompts and new domains trigger an approval.</li>
+      <li>Self-test: with an allow rule <code>Bash(aws s3 ls)</code> and a deny rule <code>Bash(aws *)</code> both present, what happens when Claude runs <code>aws s3 ls</code>? (Answer: it is denied — deny is evaluated before allow, and rule specificity does not change the order.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/permission-modes" rel="noopener">Choose a permission mode</a> (fetched 2026-08-05)</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/permissions" rel="noopener">Configure permissions</a> (fetched 2026-08-05)</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sandboxing" rel="noopener">Configure the sandboxed Bash tool</a> (fetched 2026-08-05)</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sandbox-environments" rel="noopener">Choose a sandbox environment</a> (fetched 2026-08-05)</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-02.html">Previous: D2 · The context window &amp; prompt caching</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-04.html">Next: D4 · CLAUDE.md &amp; rules</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

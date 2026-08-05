@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big feature? Have Claude interview you into a SPEC.md first · Claude Code Learning Hub</title>
+<meta name="description" content="Diving straight into a big feature often builds the wrong thing. Have Claude interview you with AskUserQuestion, write requirements and acceptance criteria into SPEC.md, then implement phase by phase in a fresh session — the officially recommended workflow for large features.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/interview-to-spec.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/interview-to-spec.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/interview-to-spec.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/interview-to-spec.html">
+<meta property="og:title" content="Big feature? Have Claude interview you into a SPEC.md first · Claude Code Learning Hub">
+<meta property="og:description" content="For big features, have Claude ask clarifying questions first and produce a SPEC.md with acceptance criteria; implement in phases after you confirm.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/interview-to-spec.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/interview-to-spec.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · Reliability &amp; quality</span></p>
+  <h1>Big feature? Have Claude interview you into a SPEC.md first</h1>
+  <p>Toss Claude a one-liner like “build me an XX system” and let it run, and what comes back is usually not what you wanted — big features need the questions to flow the other way first, pinning the requirements down on paper.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The requirement in your head hides a pile of unspoken decisions: technology choices, edge cases, what’s deliberately left out. Rather than letting Claude guess wrong and reworking, have it “interview” you first and distill the answers into a SPEC.md with acceptance criteria — then start building once you’ve confirmed it.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      For a big feature, start with one minimal prompt that has Claude use the AskUserQuestion tool to grill you until the requirements are clear, then write the complete spec into SPEC.md; once you confirm, <strong>open a brand-new session</strong> and implement against the spec. <span class="badge badge-official">Official</span>This is the native best-practices workflow: the fresh session has clean context focused purely on implementation, and you hold a written spec to verify the result against.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Start the interview.</strong> Use the prompt below (an English rendering of the official template), swapping in your one-sentence description for the bracketed part. Expected: Claude starts probing you with multiple-choice questions and follow-ups on technical implementation, UI/UX, edge cases, risks and trade-offs — <span class="badge badge-official">Official</span>the docs stress it will ask about the parts you “haven’t thought of yet,” which is exactly the point.</li>
+      <li><strong>Answer seriously — don’t wing it.</strong> <span class="badge badge-site">Our take</span>Ten extra minutes in the interview saves hours of rework in implementation. For questions you can’t decide, answer “you recommend, and explain why” so the decision is made explicitly.</li>
+      <li><strong>Review the SPEC.md.</strong> Once the interview has covered everything, Claude writes SPEC.md. <span class="badge badge-official">Official</span>The bar for a good spec: self-contained (names the files and interfaces involved), states what is out of scope, and ends with an end-to-end verification step that proves the feature actually runs. The official line, in spirit: polishing the spec pays off more than supervising the implementation.</li>
+      <li><strong>Confirm, then implement in a new session.</strong> <span class="badge badge-official">Official</span>Once the spec is final, start a separate session to execute it: clean context, fully focused on implementation. <span class="badge badge-site">Our take</span>Have the implementation prompt reference <code>@SPEC.md</code> directly, and require delivery phase by phase as the spec lays out — run each phase’s acceptance criteria before moving on to the next.</li>
+      <li><strong>Pair complex changes with plan mode.</strong> <span class="badge badge-official">Official</span>During implementation you can use plan mode (toggle with <code>Shift+Tab</code> — the status bar shows plan mode on — or launch with <code>claude --permission-mode plan</code>) to get an implementation plan first, edit the plan right in your editor with <code>Ctrl+G</code>, and only touch code after approval. For the full explore→plan→code rhythm, see <a href="/en/claude-code/course/day-05.html">D5 · the plan mode lesson</a>.</li>
+      <li><strong>Close out by verifying against the spec.</strong> <span class="badge badge-site">Our take</span>Have a subagent that took no part in the implementation compare the diff against SPEC.md and call out the gaps (see <a href="/en/claude-code/tips/adversarial-review.html">adversarial review</a>); for how to design the verification itself, see <a href="/en/claude-code/tips/self-verifiable-done.html">give it checks it can run itself</a>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>I want to build [one-sentence description of the feature]. Use the AskUserQuestion tool to interview me in detail:
+ask about technical implementation, UI/UX, edge cases, risks, and trade-offs; skip the obvious questions
+and dig into the hard parts I probably haven't considered. Keep asking until everything is covered, then write
+the complete spec into SPEC.md. It must include: the files and interfaces involved, what is explicitly
+out of scope, a phased implementation plan with runnable acceptance criteria for each phase
+(which commands to run and what output counts as passing), and finally an end-to-end verification step.
+Show it to me for confirmation when done — do not change any code before I confirm.</code></pre>
+    <p>Once the spec is confirmed, send this in a <strong>new session</strong>:</p>
+    <pre class="prompt"><code>Implement phase 1 per @SPEC.md. When done, run that phase's acceptance criteria and paste the results.
+Once everything passes, stop and wait for my confirmation — do not start the next phase on your own.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Let Claude interview you / Explore first, then plan, then code</a> — the interview prompt template, SPEC.md, fresh-session execution, what makes a good spec; fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/common-workflows.md" target="_blank" rel="noopener">Common workflows — Plan before editing</a> — how to enter plan mode and the approval flow; fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: low (mostly methodology; only names like AskUserQuestion and plan mode are product-bound).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Five questions to ask on day one with an unfamiliar codebase · Claude Code Learning Hub</title>
+<meta name="description" content="Onboard onto an unfamiliar codebase with Claude Code: architecture overview, entry points and data flow, build and test commands, conventions and pitfalls, recent changes — five questions with a copy-paste prompt, then distill it all into CLAUDE.md with /init.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Five questions to ask on day one with an unfamiliar codebase · Claude Code Learning Hub">
+<meta property="og:description" content="Five questions to ask in order, plus a copy-paste prompt — let Claude Code be your onboarding guide, then distill the answers into CLAUDE.md with /init.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/five-questions-new-codebase.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/five-questions-new-codebase.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/five-questions-new-codebase.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/five-questions-new-codebase.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/five-questions-new-codebase.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/five-questions-new-codebase.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">F · End-to-end scenarios</span></p>
+  <h1>Five questions to ask on day one with an unfamiliar codebase</h1>
+  <p>Joining a new team or inheriting someone else's project? On day one, instead of digging through the code yourself, let Claude Code be your guide: ask five questions in order and you walk away with a map you can actually work from.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The official docs' advice is "treat Claude like a senior colleague and just ask" — no special prompting tricks required. This page turns that advice into a five-question checklist you can run on day one, each question with a single purpose, ending with the conclusions distilled into CLAUDE.md.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Start Claude Code at the project root (ideally switching to plan mode first for read-only exploration), then work through five questions from broad to narrow — architecture overview → entry points and data flow → build and test commands → conventions and pitfalls → what's changed recently — and finish by running <code>/init</code> to distill the conclusions into CLAUDE.md. Going from broad to narrow is the officially recommended way to explore; the five-question framework is our arrangement of it.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Prepare:</strong> go to the project root and run <code>claude</code>, then press <code>Shift+Tab</code> to switch to plan mode (the status bar shows <code>⏸ plan mode on</code>); Claude reads files without modifying anything — ideal for pure exploration on day one. <span class="badge badge-official">Official</span>The official recommendation is "explore first", starting with broad questions and narrowing down. See <a href="/en/claude-code/course/day-05.html">D5 · plan mode</a>.</li>
+      <li><strong>Question 1 · Architecture overview:</strong> ask for the bird's-eye view first — what the repo does, what modules it has, what tech stack and architecture patterns it uses. <span class="badge badge-official">Official</span>This is the first step of the official "Understand new codebases" workflow; the verbatim prompt is <code>give me an overview of this codebase</code>, followed by <code>explain the main architecture patterns used here</code>. Expect a list of modules and their responsibilities.</li>
+      <li><strong>Question 2 · Entry points and data flow:</strong> where the program starts, and which layers a typical request passes through. <span class="badge badge-official">Official</span>The official recipe: <code>trace the login process from front-end to database</code> — swap in whatever path is most central to your project. Expect a call path annotated with file names.</li>
+      <li><strong>Question 3 · Build and test commands:</strong> how to install dependencies, run the project locally, and run tests and lint. <span class="badge badge-site">Our take</span>Getting the commands and running them on the spot is the most concrete win of day one — documentation for a project you can't get running is worth nothing.</li>
+      <li><strong>Question 4 · Conventions and pitfalls:</strong> which practices in this project differ from the defaults. <span class="badge badge-official">Official</span>The official tips explicitly suggest "ask about coding conventions and patterns used in the project" and "request a glossary of project-specific terms". Expect a glossary plus a list of project-specific conventions.</li>
+      <li><strong>Question 5 · What's changed recently:</strong> have Claude read the git history and summarize active branches and frequently changed files. <span class="badge badge-official">Official</span>The "Point to sources" pattern from best practices: rather than asking "why is this API so weird", tell it to <code>look through the git history and summarize</code>. You learn what the team is pushing forward and which areas are minefields.</li>
+      <li><strong>Wrap-up · Distill:</strong> run <code>/init</code>; it analyzes the codebase, detecting the build system, test framework, and code patterns, and generates an initial CLAUDE.md. Fold in the key conclusions from today's five questions (commands, conventions, pitfalls), then confirm it's loaded with <code>/context</code>. <span class="badge badge-official">Official</span>CLAUDE.md is read at the start of every session — keep it lean and only include what applies universally. See <a href="/en/claude-code/course/day-04.html">D4 · CLAUDE.md and rules</a>.</li>
+    </ol>
+    <p><span class="badge badge-site">Our take</span>In large repos, questions 1 and 2 can easily pull a huge number of files into context and blow it up: ask Claude to "investigate with a subagent" so only the conclusions come back to the main session (see <a href="/en/claude-code/course/day-10.html">D10 · Subagents</a>); if context gets dirty between questions, run <code>/clear</code>.</p>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>I just took over this codebase today. Working read-only, answer five questions for me in order, pausing after each one for my confirmation:
+1) Architecture overview: what does this repo do? What modules does it have, and what is each responsible for? What tech stack and architecture patterns does it use?
+2) Entry points and data flow: where does the program start? Pick the most central path and give me the complete call chain from entry point to database write (or output), with file names.
+3) Build and test: how do I install dependencies locally, get it running, and run tests and lint? List the commands one by one.
+4) Conventions and pitfalls: which coding conventions and naming habits here differ from the defaults? Put together a glossary of project-specific terms, and point out the traps newcomers tend to fall into.
+5) What's changed recently: read the last 30 git log entries and the active branches, and summarize what the team is working on and which files change most often.
+Use subagents when exploring large directories — don't pull whole file contents into the main context.
+Finally, compress the conclusions from 1–4 into a bullet list; I'll use it to flesh out CLAUDE.md.</code></pre>
+    <p>Once you've finished the questions, run <code>/init</code> to generate CLAUDE.md, then have Claude merge the bullet list above into it.</p>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/common-workflows.md" rel="noopener">Common workflows · Understand new codebases</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" rel="noopener">Best practices for Claude Code</a> (/init, CLAUDE.md, plan mode, subagents, Point to sources), fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: low (the five questions are methodology; <code>/init</code>, <code>/context</code>, and plan mode reflect current product behavior).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

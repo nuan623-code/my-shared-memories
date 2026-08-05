@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D14 · Plugins: packaging &amp; distribution · Claude Code Learning Hub</title>
+<meta name="description" content="A Claude Code plugin packages Skills, Hooks, MCP, and Subagents into one installable unit: this lesson covers the directory layout and plugin.json manifest, marketplace publishing and installation, versioning and cache mechanics, and three distribution routes for teams — closing out the 14-day course.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-14.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-14.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-14.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-14.html">
+<meta property="og:title" content="D14 · Plugins: packaging &amp; distribution · Claude Code Learning Hub">
+<meta property="og:description" content="Package Skills, Hooks, MCP, and Subagents into a plugin and publish it to your team and the community via a marketplace: directory layout, manifest, versioning, and distribution in one lesson.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-14.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-14.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D14</p>
+  <h1>D14 · Plugins: packaging &amp; distribution</h1>
+  <p>Pack the Skills, Hooks, MCP, and Subagents you've learned into an installable, versionable plugin, and distribute it to your team and the community through a marketplace — the finale of the 14-day course.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">The first 13 lessons taught you to add capabilities to <strong>your own</strong> Claude Code; this one teaches you to package those capabilities as a plugin, so a new machine, a new project, or a new colleague never means re-copying config by hand. By the end you'll have closed the loop from "I can use it" to "the whole team uses it".</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p>Look back at the syllabus: <a href="/en/claude-code/course/day-07.html">D7 taught Skills</a>, <a href="/en/claude-code/course/day-08.html">D8 taught Hooks</a>, <a href="/en/claude-code/course/day-09.html">D9 taught MCP</a>, <a href="/en/claude-code/course/day-10.html">D10 taught Subagents</a>. These four capabilities share one trait: their configuration is scattered across your local <code>.claude/</code> directory or <code>settings.json</code>. To share them with a colleague, you'd have to copy files by hand — no versions, no update mechanism, no install command.</p>
+    <p><span class="badge badge-official">Official</span>Plugins are the official packaging answer: a self-contained directory that bundles skills, agents, hooks, MCP servers, LSP servers and other components, and — with a manifest — can be installed, updated, and distributed through a marketplace. <span class="badge badge-site">Our take</span>It sits in the final lesson because a plugin introduces no new capability of its own — it's the shipping container for everything that came before; understand the contents first, then learn the packing, and the order makes sense. <a href="/en/claude-code/course/day-13.html">D13's CI scenario</a> also gets its closing piece here: the official seed-directory mechanism lets container images pre-install plugins at build time.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>One box for everything you've learned</h3>
+    <p><span class="badge badge-official">Official</span>Physically, a plugin is just a directory: metadata lives in <code>.claude-plugin/plugin.json</code> (the manifest), and every other component sits in its default location under the <strong>plugin root</strong>. The docs warn specifically: <code>.claude-plugin/</code> holds only <code>plugin.json</code> — stuffing <code>skills/</code>, <code>agents/</code>, <code>hooks/</code> and the like into it is the most common structural mistake.</p>
+    <figure>
+      <svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plugin directory structure diagram: the manifest and where each component lives under the plugin root">
+        <text class="svg-ink" x="14" y="20" font-size="14">my-plugin/ — plugin root</text>
+        <rect class="svg-box" x="10" y="30" width="660" height="360" rx="12"/>
+        <rect class="svg-box-accent" x="30" y="50" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="76" text-anchor="middle" font-size="13">.claude-plugin/plugin.json</text>
+        <text class="svg-ink-soft" x="180" y="96" text-anchor="middle" font-size="11.5">manifest: name / version / description</text>
+        <text class="svg-ink-soft" x="350" y="72" font-size="12">This subdirectory holds only the manifest;</text>
+        <text class="svg-ink-soft" x="350" y="92" font-size="12">all components below live in the plugin root</text>
+        <rect class="svg-box" x="30" y="136" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="162" text-anchor="middle" font-size="13">skills/&lt;name&gt;/SKILL.md</text>
+        <text class="svg-ink-soft" x="180" y="182" text-anchor="middle" font-size="11.5">Skills · from D7</text>
+        <rect class="svg-box" x="350" y="136" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="500" y="162" text-anchor="middle" font-size="13">hooks/hooks.json</text>
+        <text class="svg-ink-soft" x="500" y="182" text-anchor="middle" font-size="11.5">Event hooks · from D8</text>
+        <rect class="svg-box" x="30" y="216" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="242" text-anchor="middle" font-size="13">.mcp.json</text>
+        <text class="svg-ink-soft" x="180" y="262" text-anchor="middle" font-size="11.5">MCP servers · from D9</text>
+        <rect class="svg-box" x="350" y="216" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="500" y="242" text-anchor="middle" font-size="13">agents/*.md</text>
+        <text class="svg-ink-soft" x="500" y="262" text-anchor="middle" font-size="11.5">Subagents · from D10</text>
+        <rect class="svg-box" x="30" y="296" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="180" y="322" text-anchor="middle" font-size="13">.lsp.json · bin/</text>
+        <text class="svg-ink-soft" x="180" y="342" text-anchor="middle" font-size="11.5">LSP code intelligence · executables added to PATH</text>
+        <rect class="svg-box" x="350" y="296" width="300" height="60" rx="10"/>
+        <text class="svg-ink" x="500" y="322" text-anchor="middle" font-size="13">settings.json · monitors/ etc.</text>
+        <text class="svg-ink-soft" x="500" y="342" text-anchor="middle" font-size="11.5">Defaults, background monitors, themes, workflows</text>
+      </svg>
+      <figcaption>What's inside a plugin: the manifest lives alone in <code>.claude-plugin/</code>; components all sit at the root. The first four components are exactly the capabilities you learned in D7–D10.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>The manifest itself is optional: without one, Claude Code auto-discovers components in their default locations and the plugin takes its directory name; with one, only <code>name</code> is required. Skills inside a plugin carry a namespace prefix — <code>hello</code> inside plugin <code>my-plugin</code> becomes <code>/my-plugin:hello</code> — so same-named skills in different plugins don't collide.</p>
+
+    <h3>Standalone config or a plugin?</h3>
+    <p><span class="badge badge-official">Official</span>The docs give explicit selection criteria:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Approach</th><th>Skill name</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td>Standalone config (<code>.claude/</code> directory)</td><td><code>/hello</code></td><td>Personal workflows, single-project customization, quick experiments</td></tr>
+        <tr><td>Plugin (self-contained directory + manifest)</td><td><code>/my-plugin:hello</code></td><td>Sharing with a team/community, cross-project reuse, versioned releases, marketplace distribution</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>The recommended path: iterate quickly in <code>.claude/</code> first, then convert to a plugin to share once it matures. Migration is mostly copying <code>.claude/skills/</code> and <code>agents/</code> into the plugin root, and moving hooks from settings into <code>hooks/hooks.json</code> (same format). <span class="badge badge-site">Our take</span>Remember to delete the originals from <code>.claude/</code> after migrating: a same-named agent gets overridden by the project-level definition, so the plugin version would never take effect. For choosing among the five extension mechanisms, see the tip <a href="/en/claude-code/tips/skill-hook-mcp-subagent-plugin.html">Skill / Hook / MCP / Subagent / Plugin: which to use</a>.</p>
+
+    <h3>Analogy: a marketplace is an app store, a plugin is an app</h3>
+    <p><span class="badge badge-official">Official</span>The docs use this analogy themselves: adding a marketplace is like adding an app store — you've only registered the catalog and can browse it, nothing is installed yet; from it you then pick individual plugins to install. So distribution is always two steps: <code>/plugin marketplace add</code> registers the catalog, <code>/plugin install plugin-name@marketplace-name</code> installs.</p>
+    <p>A marketplace's physical form is <code>.claude-plugin/marketplace.json</code> at the repo root, with three required fields: <code>name</code>, <code>owner</code>, <code>plugins</code>; each entry in the <code>plugins</code> array needs at least <code>name</code> and <code>source</code>. <code>source</code> supports five kinds: an in-repo relative path (<code>./plugins/xx</code>), <code>github</code> (owner/repo), <code>url</code> (any git address), <code>git-subdir</code> (a monorepo subdirectory, sparse clone), and <code>npm</code> (an npm package). <span class="badge badge-official">Official</span>Keep the two layers straight: the <strong>marketplace source</strong> is "where the catalog itself lives"; a <strong>plugin source</strong> is "where each plugin in the catalog is fetched from" — the two can point at different repos and pin versions independently.</p>
+    <figure>
+      <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plugin distribution chain: dev directory, marketplace, user registers the marketplace, install into the cache">
+        <rect class="svg-box-accent" x="20" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="90" y="68" text-anchor="middle" font-size="13">Dev directory</text>
+        <text class="svg-ink-soft" x="90" y="88" text-anchor="middle" font-size="10.5">--plugin-dir testing</text>
+        <rect class="svg-box" x="195" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="265" y="68" text-anchor="middle" font-size="13">marketplace</text>
+        <text class="svg-ink-soft" x="265" y="88" text-anchor="middle" font-size="10.5">marketplace.json</text>
+        <rect class="svg-box" x="370" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="440" y="68" text-anchor="middle" font-size="13">User adds market</text>
+        <text class="svg-ink-soft" x="440" y="88" text-anchor="middle" font-size="10.5">marketplace add</text>
+        <rect class="svg-box" x="545" y="40" width="140" height="64" rx="10"/>
+        <text class="svg-ink" x="615" y="68" text-anchor="middle" font-size="13">Install to cache</text>
+        <text class="svg-ink-soft" x="615" y="88" text-anchor="middle" font-size="10.5">copy into versioned cache</text>
+        <line class="svg-line" x1="160" y1="72" x2="187" y2="72" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="187,67 197,72 187,77"/>
+        <line class="svg-line" x1="335" y1="72" x2="362" y2="72" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="362,67 372,72 362,77"/>
+        <line class="svg-line" x1="510" y1="72" x2="537" y2="72" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="537,67 547,72 537,77"/>
+        <text class="svg-ink-soft" x="177" y="130" text-anchor="middle" font-size="10.5">list in catalog &amp; push</text>
+        <text class="svg-ink-soft" x="352" y="130" text-anchor="middle" font-size="10.5">share owner/repo</text>
+        <text class="svg-ink-soft" x="527" y="130" text-anchor="middle" font-size="10.5">/plugin install</text>
+        <text class="svg-ink-soft" x="350" y="170" text-anchor="middle" font-size="11.5">New release: bump version (or push a new commit if version is unset) → users pull via /plugin update</text>
+      </svg>
+      <figcaption>The distribution chain from development to a user's machine. Installation is not an in-place reference — the plugin is copied into <code>~/.claude/plugins/cache</code>.</figcaption>
+    </figure>
+
+    <h3>Versioning and the cache: the two easiest traps to hit</h3>
+    <p><strong>Trap one: "I pushed a new commit, so users will get the update."</strong> <span class="badge badge-official">Official</span>Versions resolve in this order: 1. <code>version</code> in <code>plugin.json</code> → 2. <code>version</code> on the marketplace entry → 3. the git commit SHA of the plugin source. Once you've written <code>"version": "1.0.0"</code>, no number of extra commits matters — until you bump that field, users running <code>/plugin update</code> just get "already up to date": the version string is the cache key. Official advice: fast-iterating internal plugins should simply omit <code>version</code>, so every commit counts as a new release; explicit semantic versions are for stable public releases. Also don't set it in both <code>plugin.json</code> and the marketplace entry: the former silently wins, so a stale manifest version will mask the number you changed in the catalog.</p>
+    <p><strong>Trap two: "a plugin can reference files elsewhere in the repo."</strong> <span class="badge badge-official">Official</span>When installed from a marketplace, the plugin directory is <strong>copied</strong> into the local cache at <code>~/.claude/plugins/cache</code>, not used in place. Files reached through out-of-bounds paths like <code>../shared-utils</code> don't get copied, so they are guaranteed broken after install. To reference the plugin's own files, use the <code>${CLAUDE_PLUGIN_ROOT}</code> variable (it points at the install directory and changes on every update); for data that must persist across versions and updates (such as <code>node_modules</code> or caches), use <code>${CLAUDE_PLUGIN_DATA}</code>. If files truly must be shared within one marketplace, the official escape hatch is symlinks.</p>
+
+    <h3>Three routes for team distribution</h3>
+    <p><span class="badge badge-site">Our take</span>Ordered from smallest audience to largest:</p>
+    <ol>
+      <li><strong>Bundled with the project repo (the team default).</strong> <span class="badge badge-official">Official</span>Write <code>extraKnownMarketplaces</code> (declaring the marketplace) plus <code>enabledPlugins</code> (declaring which plugins are enabled by default) into the project's <code>.claude/settings.json</code>; teammates get an install prompt once they trust the directory. The install scopes confirm this design: <code>user</code> (you, all projects), <code>project</code> (written into <code>.claude/settings.json</code>, shared with the repo), <code>local</code> (you, this project), <code>managed</code> (admin-controlled, read-only).</li>
+      <li><strong>A private marketplace repo (company-internal).</strong> <span class="badge badge-official">Official</span>Installing from private git repos is supported — git permissions are your access control; GitHub, GitLab, and self-hosted git all work. For CI/container scenarios, <code>CLAUDE_CODE_PLUGIN_SEED_DIR</code> pre-seeds the marketplace and plugin cache at image build time, for zero-clone startup at runtime — the companion piece to D13's headless mode.</li>
+      <li><strong>Public release (community).</strong> <span class="badge badge-official">Official</span>Anthropic maintains two public marketplaces: <code>claude-plugins-official</code> is curated by Anthropic, auto-registered on first interactive startup, with no submission channel; <code>claude-community</code> accepts third-party submissions, included after automated validation and security screening, and added manually by users with <code>/plugin marketplace add anthropics/claude-plugins-community</code>. Submissions go through the form on claude.ai or the Console; run <code>claude plugin validate ./your-plugin</code> locally before submitting.</li>
+    </ol>
+    <div class="callout"><span class="callout-label">Security note</span><span class="badge badge-official">Official</span>Plugins and marketplaces are high-trust components that can execute arbitrary code with your user permissions; install only from sources you trust. Before installing, <code>claude plugin details plugin-name</code> shows its component inventory and estimated token overhead; organizations can control which marketplaces may be added with <code>strictKnownMarketplaces</code>.</div>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Walk the official quickstart end to end — create the plugin → test locally → create a marketplace → install — about 30 minutes.</p>
+    <ol>
+      <li>Create the plugin directory and manifest. Expected result: <code>my-first-plugin/.claude-plugin/plugin.json</code>:
+<pre><code>mkdir -p my-first-plugin/.claude-plugin
+cat &gt; my-first-plugin/.claude-plugin/plugin.json &lt;&lt;'EOF'
+{
+  "name": "my-first-plugin",
+  "description": "A greeting plugin to learn the basics",
+  "version": "1.0.0"
+}
+EOF</code></pre></li>
+      <li>Add a skill. Create <code>my-first-plugin/skills/hello/SKILL.md</code>:
+<pre><code>---
+description: Greet the user with a friendly message
+disable-model-invocation: true
+---
+
+Greet the user warmly and ask how you can help them today.</code></pre></li>
+      <li>Load it locally for testing: start <code>claude --plugin-dir ./my-first-plugin</code>, then type <code>/my-first-plugin:hello</code>. Expected: Claude replies with a greeting; the Custom commands tab of <code>/help</code> lists the skill under its namespace. After edits, run <code>/reload-plugins</code> to hot-reload — no restart needed.</li>
+      <li>Validate the structure: <code>claude plugin validate ./my-first-plugin</code>. Expected: it prints <code>Validation passed</code> with a check mark; add <code>--strict</code> to treat warnings as errors too — good for CI.</li>
+      <li>Create a local marketplace and install from it. First build the catalog:
+<pre><code>mkdir -p my-marketplace/.claude-plugin
+mv my-first-plugin my-marketplace/plugins/
+cat &gt; my-marketplace/.claude-plugin/marketplace.json &lt;&lt;'EOF'
+{
+  "name": "my-plugins",
+  "owner": { "name": "Your Name" },
+  "plugins": [
+    {
+      "name": "my-first-plugin",
+      "source": "./plugins/my-first-plugin",
+      "description": "A greeting plugin to learn the basics"
+    }
+  ]
+}
+EOF</code></pre>
+      Then, inside Claude Code, run <code>/plugin marketplace add ./my-marketplace</code>, then <code>/plugin install my-first-plugin@my-plugins</code>, and pick a scope on the details page that appears. Expected: the install summary shows the plugin is active, or prompts <code>Run /reload-plugins to activate.</code> — do so. To distribute publicly, push <code>my-marketplace</code> to GitHub, and others can add it with <code>/plugin marketplace add owner/repo</code>.</li>
+      <li>Package your own existing config. Let Claude Code do the work with the prompt below:</li>
+    </ol>
+    <pre class="prompt"><code>Migrate the skills, agents, and the hooks in settings from this project's .claude/ directory into a Claude Code plugin named team-toolkit:
+1. Create team-toolkit/.claude-plugin/plugin.json, leaving out the version field for now (use commit SHAs as versions to make iteration easy);
+2. Copy .claude/skills/ and .claude/agents/ into the plugin root, move the hooks config into hooks/hooks.json, and switch script paths to ${CLAUDE_PLUGIN_ROOT};
+3. Run claude plugin validate ./team-toolkit and make it pass, fixing the warnings too;
+4. List which originals I should delete from .claude/ after the migration to avoid same-name overrides — don't delete anything yet.</code></pre>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>You can articulate the difference and trade-offs between standalone config (<code>.claude/</code>) and a plugin: namespacing (<code>/hello</code> vs <code>/plugin:hello</code>), distributability, versioning.</li>
+      <li>You can sketch the plugin directory layout and point out the most common mistake — putting component directories inside <code>.claude-plugin/</code>.</li>
+      <li>You've run your first plugin with <code>--plugin-dir</code>, passed <code>claude plugin validate</code>, and completed one install from a local marketplace.</li>
+      <li>You can explain what <code>/plugin marketplace add</code> and <code>/plugin install</code> each do, and the difference between a marketplace source and a plugin source.</li>
+      <li>Self-test: you shipped with <code>"version": "1.0.0"</code> in <code>plugin.json</code>, then pushed three bug-fix commits. What do users see when they run <code>/plugin update</code>, and how do you fix it? (Answer: they see "already up to date", because the version string is the cache key and it hasn't changed; either bump <code>version</code> on every release, or delete the field and let the commit SHA serve as the version.)</li>
+    </ul>
+    <p>And that wraps the 14-day course. The through-line, looking back: D1–D6 laid the foundations (the loop, context, permissions, memory, planning, sessions), D7–D10 the four extension mechanisms, D11–D13 parallelism and automation, D14 packaging and distribution. From "using it" to "using it well" to "getting the whole team on it" — the loop is closed.</p>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/plugins.md" rel="noopener">Create plugins (plugins.md)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/plugins-reference.md" rel="noopener">Plugins reference (plugins-reference.md)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/plugin-marketplaces.md" rel="noopener">Create and distribute a plugin marketplace (plugin-marketplaces.md)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/discover-plugins.md" rel="noopener">Discover and install prebuilt plugins (discover-plugins.md)</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-13.html">Previous: D13 · Headless &amp; CI</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

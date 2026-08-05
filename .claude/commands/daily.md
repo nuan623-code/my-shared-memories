@@ -14,6 +14,7 @@ description: 每日更新 Claude Code 学习站（推进一课 + 2 条 Tip + 复
   - `course/index.html`:`COURSE-TABLE-START/END`(发布后该行标题变链接、状态改「已发布 + 日期」)
   - `tips/index.html`:`CLUSTER-X-START/END`(planned 项变链接项)+ `#tips-index` 内联 JSON 搜索索引(每条 `{"slug","title","cluster","question","summary","keywords":[]}`)
   - `changelog.html`:`CHANGELOG-START/END`(新条目插在标记下、最新在上)
+- **站点是双语的(2026-08-05 起)**:英文镜像在 `public/en/claude-code/`,路径与 slug 与中文版一一对应。凡新写或修订一个中文页,必须同步产出/修订英文版;四个索引页(index / course/index / tips/index / changelog)两个语言都要更新(英文 tips-index JSON 用英文 title/summary/keywords)。互指规则:两边 head 都有 hreflang 三连(zh/en/x-default,x-default 指中文),topbar 有「EN/中文」切换链接;界面固定译法照抄任一已发布英文页(badge:Official/Third-party/Our take;Tip 四段:One-line answer/Steps/Copy-paste prompt/Sources & last verified)。资料库双语配对由 sync 脚本 keyFromBase 自动完成,无需手动。
 - 部署 = `git add … && git commit && ./publish.sh --deploy-only`(它负责构建、部署 Cloudflare、把新页面同步进资料库、自动 push)。不要手动 push 之后再跑它。
 
 ## 第一步:读状态
@@ -65,7 +66,7 @@ description: 每日更新 Claude Code 学习站（推进一课 + 2 条 Tip + 复
 1. 所有内部链接和锚点可达,没有 404(可用脚本扫 `public/claude-code/` 下所有 href/src 对应文件是否存在)
 2. 新页面在浅色 / 深色 / 跟随系统三种模式下都正常(检查页面确有主题引导脚本 + `#theme-switch`,新增样式没写死颜色)
 3. 移动端宽度下不横向溢出(新页面没有超宽的固定尺寸元素;表格/代码块都在可滚动容器里)
-4. `state.json` 是合法 JSON,且与实际文件一一对应:`published_days`/`tips` 里登记的每个页面文件都存在,`course/`、`tips/` 下每个正式页面(index 与 template 除外)都已登记——有页面没登记、或登记了没页面,都要报错
+4. `state.json` 是合法 JSON,且与实际文件一一对应:`published_days`/`tips` 里登记的每个页面文件都存在,`course/`、`tips/` 下每个正式页面(index 与 template 除外)都已登记——有页面没登记、或登记了没页面,都要报错;**中英对称**:`public/claude-code/` 与 `public/en/claude-code/` 的正式页面(template 除外,en 无 template)必须一一对应,缺一边都要报错
 5. 全部通过后再 `git add … && git commit`(message 写清今天动了什么,如 `claude-code: {{DATE}} D3 权限模式 + 2 tips`),然后 `./publish.sh --deploy-only`,确认线上探活 200(`curl -sL` 跟随 307)
 6. **任何一项验证不通过就不 commit、不 push、不部署**,把失败项写进摘要明确报错,留给人工处理
 

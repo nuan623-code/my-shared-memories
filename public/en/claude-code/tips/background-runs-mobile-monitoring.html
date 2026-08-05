@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Run it in the background, watch it from your phone · Claude Code Learning Hub</title>
+<meta name="description" content="Run long tasks in the background or in the cloud and use your phone to watch progress, approve permissions, and give feedback: Remote Control while the computer stays on, claude --cloud sessions when the lid closes.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Run it in the background, watch it from your phone · Claude Code Learning Hub">
+<meta property="og:description" content="Computer staying on: Remote Control. Lid closing: claude --cloud sessions. Watch progress, approve permissions, and get push notifications from your phone.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/background-runs-mobile-monitoring.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/background-runs-mobile-monitoring.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/background-runs-mobile-monitoring.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/background-runs-mobile-monitoring.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/background-runs-mobile-monitoring.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/background-runs-mobile-monitoring.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / B · Parallelism &amp; throughput</p>
+  <h1>Run it in the background, watch it from your phone</h1>
+  <p>You don't have to babysit long tasks at the terminal: keep them running in the background or in the cloud, and once you step away, use your phone to watch progress, approve permissions, and give feedback.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The Claude app on your phone doesn't run code — it's just a client for the session. The real choice is where the task runs: your machine (Remote Control) or Anthropic's cloud (cloud session). And there's exactly one criterion: does the computer stay on?</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      <span class="badge badge-official">Official</span>Computer stays on and the task needs local files/tools/MCP → Remote Control: start the session with <code>claude remote-control</code>, scan the QR code with your phone to take over — code always executes on your machine. Lid closing and the repo is on GitHub → cloud session: <code>claude --cloud "task"</code> hands it to Anthropic's managed infrastructure; open the Claude app's Code tab anytime to check progress, then pull it back into your terminal with <code>claude --teleport</code> when you're back at your desk.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Set up the phone side.</strong><span class="badge badge-official">Official</span>Download the Claude app for iOS/Android (run <code>/mobile</code> in the terminal for a download QR code), sign in with the same claude.ai account you use for Claude Code, and find the entry point in the app's <strong>Code</strong> tab. Both routes require a claude.ai subscription login; API keys are not supported.</li>
+      <li><strong>Local route: start Remote Control.</strong><span class="badge badge-official">Official</span>Three ways to start: <code>claude remote-control</code> (server mode, dedicated to waiting for remote connections), <code>claude --remote-control</code> (a normal interactive session that's also remotely reachable), or, from inside an existing session, <code>/remote-control</code> to connect with the current conversation history attached. In server mode, press space to show the QR code; one scan and the phone is in. What to expect: a session URL in the terminal, and a green dot on that session in the phone's Code list.</li>
+      <li><strong>What you can do from the phone.</strong><span class="badge badge-official">Official</span>Watch the conversation and live subagent/workflow progress, send messages to keep directing the work, upload images (automatically downloaded to your machine as <code>@</code> file references), and answer permission prompts; terminal and phone can take turns typing, synced across devices. If the laptop sleeps or drops offline, the session reconnects automatically once it recovers.</li>
+      <li><strong>Turn on push notifications.</strong><span class="badge badge-official">Official</span>In the terminal, <code>/config</code> has two switches: <strong>Push when Claude decides</strong> (proactive pushes when a long task finishes or needs your decision) and <strong>Push when actions required</strong> (pushes for permission prompts and questions); you can also just write "notify me when the tests finish" in the prompt.</li>
+      <li><strong>The local route's hard limits.</strong><span class="badge badge-official">Official</span>The local <code>claude</code> process must stay alive — close the terminal and the session is gone; on a remote server, wrap it in <code>tmux</code>/<code>screen</code> before dropping SSH; if the machine is awake but offline for more than about 10 minutes, the session times out.</li>
+      <li><strong>Cloud route: use <code>--cloud</code> when the computer has to shut.</strong><span class="badge badge-official">Official</span><code>claude --cloud "Fix the flaky test in auth.spec.ts"</code> opens a cloud session from the current repo's GitHub remote on the current branch (unpushed local commits get pushed first); each <code>--cloud</code> invocation is an independent session, so firing off several in a row means parallel runs. <code>/tasks</code> in the CLI shows progress; on the phone, open the session to ask questions and correct course, or even start new tasks from the phone itself (pick a repo and branch in the Code tab). First-time setup: connect GitHub by following the official web quickstart.</li>
+      <li><strong>Wrap up back at your desk.</strong><span class="badge badge-official">Official</span><code>claude --teleport</code> opens a session picker and pulls the cloud session, branch and all, back into your local terminal to keep working; it requires clean local git status, the same claude.ai account, and a checkout of the same repo. Cloud sessions can also run auto-fix on the side: tell one from your phone to "watch this PR and fix any CI failures or review comments" and it follows up automatically when CI breaks or review comments arrive.</li>
+      <li><strong>Watch your quota.</strong><span class="badge badge-official">Official</span>Cloud sessions share rate limits with the rest of your Claude usage — the more you run in parallel, the faster it burns; the cloud VMs themselves cost nothing extra.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>This task is going to run for a long time: &lt;task description&gt;.
+I've connected my phone via /remote-control and I'm about to step away.
+Please:
+1. Break the task into clear stages and print a one-line status summary
+   as each stage completes, so I can glance at my phone and know where
+   things stand;
+2. Notify me when the task finishes or needs my decision;
+3. Fire off permission requests as needed — I'll approve them from my
+   phone; if an approval doesn't arrive for a long while, skip that step,
+   keep going with whatever else you can do, and list everything you
+   skipped at the end.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/remote-control.md">Continue local sessions from any device with Remote Control</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/mobile.md">Claude Code on mobile</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/claude-code-on-the-web.md">Use Claude Code on the web</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (Remote Control and Claude Code on the web are both research previews; entry points and limits change across versions).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

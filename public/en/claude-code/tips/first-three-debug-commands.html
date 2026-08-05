@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>When something breaks, run these three commands first · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code's debugging trio: /doctor for an automated checkup, /context to see what actually loaded, /mcp for external server status — what each solves, plus follow-up commands by symptom.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="When something breaks, run these three commands first · Claude Code Learning Hub">
+<meta property="og:description" content="Claude Code's debugging trio: /doctor for an automated checkup, /context to see what actually loaded, /mcp for external server status.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/first-three-debug-commands.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/first-three-debug-commands.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/first-three-debug-commands.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/first-three-debug-commands.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/first-three-debug-commands.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/first-three-debug-commands.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · Configuration &amp; choosing tools</span></p>
+  <h1>When something breaks, run these three commands first</h1>
+  <p>CLAUDE.md not taking effect, a hook not firing, MCP with no tools… don't guess. Run three diagnostic commands and let Claude Code tell you which link in the chain broke.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Configuration problems almost always have one of three causes: the file <strong>didn't load</strong>, it loaded from <strong>somewhere else</strong>, or it was <strong>overridden by another configuration layer</strong>. The three-command routine rules these out one by one.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Run in order: <code>/doctor</code> (automated install-and-config checkup, proposes fixes) → <code>/context</code> (see whether CLAUDE.md, skills, and MCP tools actually loaded) → <code>/mcp</code> (check external server connections and approval status). If Claude Code won't start at all, run <code>claude doctor</code> in the terminal instead; if you suspect a plugin/hook/MCP server is slowing down or breaking the session, compare against a bare run with <code>claude --safe-mode</code>.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>First: <code>/doctor</code> — when you don't know what's broken, start here.</strong><span class="badge badge-official">Official</span>It runs a one-shot install-and-config checkup: installation health, invalid settings files, unused extensions, same-directory subagent name collisions, and redundant CLAUDE.md content Claude could have inferred on its own (the trim check needs v2.1.206+; the current release 2.1.222 qualifies). When it finds problems it proposes fixes and applies them only after you confirm. If <code>claude</code> won't start at all, run <code>claude doctor</code> in the terminal — it prints a read-only diagnosis without opening a session. While you're at it, note your version: <code>claude --version</code>, or <code>/status</code> inside a session — many fixes come down to version gates.</li>
+      <li><strong>Second: <code>/context</code> — confirm whether "it actually loaded".</strong><span class="badge badge-official">Official</span>It lists everything occupying the current session's context window, by category: system prompt, built-in/MCP tools, custom subagents and their sources, memory files, skills, conversation messages. Your CLAUDE.md missing from the Memory files list? Then Claude simply cannot see it — check the file's location (subdirectory CLAUDE.md files load on demand only when Claude reads a file in that directory, not at startup). Listed, but Claude doesn't follow it? Then it's a writing problem: instructions too vague, two files contradicting each other, or a file so long it dilutes attention — see <a href="/en/claude-code/tips/claude-md-ignored-too-long.html">CLAUDE.md ignored because it's too long</a>.</li>
+      <li><strong>Third: <code>/mcp</code> — check external servers.</strong><span class="badge badge-official">Official</span>It lists each configured server's connection status and project approval status. Three common traps: servers in a project-level <code>.mcp.json</code> need a one-time approval — dismiss the prompt and they stay disabled until you approve them in <code>/mcp</code>; server startup failures are often relative paths in <code>command</code>/<code>args</code> (resolved relative to the launch directory); shown as connected but with 0 tools — pick Reconnect first, and if that doesn't help, run <code>claude --debug mcp</code> to see the server's stderr.</li>
+      <li><strong>Follow up by symptom: the targeted-command table.</strong><span class="badge badge-official">Official</span>Once the trio has narrowed down the category, dig deeper with the matching command:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Symptom / suspicion</th><th>Run</th><th>What it tells you</th></tr></thead>
+          <tbody>
+            <tr><td>Hook not firing</td><td><code>/hooks</code>, then <code>claude --debug hooks</code></td><td>Which hooks are registered; not in the list = never read (hooks must live under the <code>"hooks"</code> key in settings.json — there is no standalone hooks file); in the list but not firing usually means a bad matcher (case-sensitive; use <code>"Edit|Write"</code> for multiple tools)</td></tr>
+            <tr><td>A setting isn't taking effect</td><td><code>/status</code> + <code>/permissions</code></td><td>Which settings sources are in effect; common traps: the same key overridden by <code>settings.local.json</code>, or config mistakenly written to <code>~/.claude.json</code> (it belongs in <code>~/.claude/settings.json</code> — two different files)</td></tr>
+            <tr><td>Memory/instruction problems</td><td><code>/memory</code> + <code>/skills</code></td><td>Where each scope's memory files live; a skill not appearing is often the file saved as <code>.claude/skills/name.md</code> (should be the <code>name/SKILL.md</code> directory structure)</td></tr>
+            <tr><td>Suspect an extension is misbehaving (lag / odd behavior)</td><td><code>claude --safe-mode</code></td><td>Runs bare with all customization disabled (CLAUDE.md/skills/plugins/hooks/MCP); problem gone = an extension is the culprit — use the targeted commands above to pin it down</td></tr>
+            <tr><td>Suspect the user-level config itself is broken</td><td><code>CLAUDE_CONFIG_DIR=/tmp/claude-clean claude</code></td><td>Points at an empty config directory, bypassing <code>~/.claude</code> entirely; problem persists = the cause lies outside your config</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>Still stuck? Hand the problem to Claude.</strong><span class="badge badge-official">Official</span>Inside a session, <code>/debug [describe the problem]</code> turns on debug logging for this session and has Claude diagnose it from the logs and settings paths; for performance problems (high CPU/memory, freezes) see the official troubleshooting page — the usual fixes are <code>/compact</code> to shrink context and restarting the session (<code>claude --resume</code> keeps the conversation).</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>My Claude Code configuration doesn't seem to be taking effect. Symptom: &lt;fill in, e.g. "rules in
+CLAUDE.md are ignored" / "my PostToolUse hook doesn't fire" / "the MCP server connects but has no tools"&gt;.
+
+Diagnose it following the official debugging order:
+1. Have me run /doctor and /context first; I'll paste you the output;
+2. From the output, decide which case this is: file not loaded, loaded from a
+   different location, or overridden by another scope
+   (managed &gt; local &gt; project &gt; user);
+3. If loading looks fine but behavior is wrong, check whether it's an
+   instruction-writing problem (vague / conflicting / too long);
+4. If hooks or MCP are involved, have me also run /hooks or /mcp;
+5. Finish with concrete fix steps, noting what I should expect to see at each step.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/debug-your-config.md" rel="noopener">debug-your-config (/context, /doctor, /hooks, /mcp usage and the common-cause lookup table)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/troubleshooting.md" rel="noopener">troubleshooting (symptom triage table / performance problems / safe mode)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/skills.md" rel="noopener">skills (checking the version with claude --version and /status)</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (the command list and /doctor's capabilities evolve across versions; as of version 2.1.222).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

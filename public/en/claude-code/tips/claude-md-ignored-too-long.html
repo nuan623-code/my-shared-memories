@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude ignores your CLAUDE.md — it’s probably too long · Claude Code Learning Hub</title>
+<meta name="description" content="Claude won’t follow the rules in your CLAUDE.md? The most common cause is length: the file is loaded into context every session and rules drown in noise. How to slim it down, what to move to .claude/rules/ or skills, and what to turn into hooks.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/claude-md-ignored-too-long.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/claude-md-ignored-too-long.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/claude-md-ignored-too-long.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/claude-md-ignored-too-long.html">
+<meta property="og:title" content="Claude ignores your CLAUDE.md — it’s probably too long · Claude Code Learning Hub">
+<meta property="og:description" content="CLAUDE.md occupies context every session; too long and it gets diluted. How to slim it, what moves to rules/skills, what becomes a hook.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/claude-md-ignored-too-long.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/claude-md-ignored-too-long.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · Reliability &amp; quality</span></p>
+  <h1>Claude ignores your CLAUDE.md — it’s probably too long</h1>
+  <p>You wrote the rule in CLAUDE.md and Claude still does its own thing — before blaming the model, count how many lines your file has.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">CLAUDE.md is loaded into context in full at the start of every session — it is “context,” not “enforced configuration.” The longer the file, the more easily any single rule drowns in the noise. The official docs say it outright: a bloated CLAUDE.md causes Claude to ignore your actual instructions.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Cut CLAUDE.md to under 200 lines and keep only facts that every session needs; move locally scoped rules into <code>.claude/rules/</code> with path scoping, move multi-step procedures into skills, and rewrite actions that must happen 100% of the time as hooks. <span class="badge badge-official">Official</span>The official test for every line: “Will Claude make a mistake without it?” If not, delete it.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>First confirm the file actually loads.</strong> Run <code>/context</code> in a session and look for your CLAUDE.md in the <strong>Memory files</strong> list. <span class="badge badge-official">Official</span>If it isn’t listed, Claude can’t see it — that’s a path problem, not a length problem. Listed but not followed? Keep going.</li>
+      <li><strong>Run a line-by-line “deletion test.”</strong> <span class="badge badge-official">Official</span>The official recommendation is to keep a single file under 200 lines; anything longer consumes more context and lowers adherence — and the docs warn explicitly that “if Claude ignores a rule, the file is most likely too long and the rule is drowning in noise.” Typical keeps and deletes:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Keep (what Claude can’t guess)</th><th>Delete (what Claude figures out itself)</th></tr></thead>
+          <tbody>
+            <tr><td>Build/test commands it couldn’t guess</td><td>Anything inferable by reading the code</td></tr>
+            <tr><td>Code style that differs from the defaults</td><td>Standard conventions of the language</td></tr>
+            <tr><td>Repo etiquette (branch naming, PR conventions)</td><td>Detailed API docs (a link is enough)</td></tr>
+            <tr><td>Project-specific architecture decisions, environment traps</td><td>File-by-file codebase descriptions, long tutorials</td></tr>
+            <tr><td>Non-obvious gotchas</td><td>Filler like “write clean code”</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>Move rules that only apply locally into <code>.claude/rules/</code>.</strong> <span class="badge badge-official">Official</span>Markdown files in the rules directory can scope themselves via a <code>paths</code> field in the YAML frontmatter (e.g. <code>src/api/**/*.ts</code>) so they enter context only when Claude reads a matching file — no match, no space used. A rule without <code>paths</code> still loads every time, so don’t just move the pile to a different directory.</li>
+      <li><strong>Move “occasionally used, multi-step procedures” into skills.</strong> <span class="badge badge-official">Official</span>Skills load on demand: they enter context only when you invoke them or Claude judges them relevant — a good fit for domain knowledge and reusable workflows. Rule of thumb: CLAUDE.md holds “facts true in every session,” skills hold “procedures only some tasks need.”</li>
+      <li><strong>Turn “must happen every single time” actions into hooks.</strong> <span class="badge badge-official">Official</span>CLAUDE.md is advisory context with no enforcement power; hard constraints like “must lint before commit” or “never touch the migrations directory” are only guaranteed when written as hooks. The official fix guidance, in spirit: instructions Claude gets right without a reminder — delete them or convert them into hooks.</li>
+      <li><strong>Clean out contradictions and lazy splits.</strong> <span class="badge badge-official">Official</span>When two rules conflict, Claude may pick either one; and <code>@path/to/file</code> imports are purely organizational — imported files are still fully loaded at startup and save <em>no context whatsoever</em>. From v2.1.206 you can run <code>/doctor</code>, which suggests trims for a checked-in CLAUDE.md: cut directory structures and dependency lists derivable from the code; keep the traps, the rationale, and the non-default conventions.</li>
+      <li><strong>Verify the effect.</strong> <span class="badge badge-site">Our take</span>After slimming down, watch a few sessions: are the previously ignored rules now being followed? The official docs also suggest adding “IMPORTANT” / “YOU MUST” emphasis to a few critical rules — but that is the final seasoning, not the cure for a long file.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Help me slim down @CLAUDE.md to under 200 lines:
+1. Review it line by line; for each line answer: "Would you make a mistake without it?" If not, mark it for deletion.
+2. Find rules that contradict or duplicate each other, and recommend which to keep.
+3. Rewrite rules that only apply to specific directories/file types as rule files under .claude/rules/
+   with paths frontmatter; rewrite multi-step procedures as skills under .claude/skills/.
+4. List the actions that must be enforced every time (e.g. lint before commit) and suggest the matching hook config.
+5. Output: the full slimmed-down CLAUDE.md + a migration list (what moved where, and why).
+Show me the plan first; only change files after I confirm.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/memory.md" target="_blank" rel="noopener">How Claude remembers your project (memory)</a> — the 200-line target, path-scoped rules, imports saving no context, /doctor trims, conflicting rules picked arbitrarily; fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Write an effective CLAUDE.md / The over-specified CLAUDE.md</a> — the deletion test, the keep/delete table, “bloat causes ignored instructions”; fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: high (tied to concrete product mechanics — rules/skills/hooks and /doctor; re-checked periodically).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

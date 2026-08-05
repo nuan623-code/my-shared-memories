@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D11 · Worktrees &amp; agent view · Claude Code Learning Hub</title>
+<meta name="description" content="git worktree gives every Claude Code session its own working copy so edits never collide; agent view puts every background session on one screen. Mechanics, launch and cleanup, and how the two fit together.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-11.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-11.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-11.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-11.html">
+<meta property="og:title" content="D11 · Worktrees &amp; agent view · Claude Code Learning Hub">
+<meta property="og:description" content="git worktree gives every session its own working copy so parallel edits never collide; agent view manages all background sessions on one screen.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-11.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-11.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D11</p>
+  <h1>D11 · Worktrees &amp; agent view</h1>
+  <p>The other dimension of parallelism: isolate each session's file edits in its own git worktree, then keep every background session in view on one screen with agent view.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">D10's subagents answered "how do we split the work"; today answers "how do the files not collide": a worktree gives every parallel session its own copy of the files, and agent view is the control desk for those sessions — who's running, who's waiting on you, who's finished, at a glance.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p><a href="/en/claude-code/course/day-10.html">D10</a> covered subagents: splitting one task across multiple agents advancing in parallel — that's parallelism of <em>work</em>. But as long as they all write files in the same working directory, parallelism has a ceiling — two sessions edit the same file, and the later write clobbers the earlier one. This lesson adds the other dimension, parallelism of <em>files</em>: <span class="badge badge-official">Official</span>the official docs explicitly divide the labor between the parallel mechanisms — worktrees isolate file changes, while subagents and agent teams organize the work itself, and the two stack.</p>
+    <p>This lesson is also the foundation for <a href="/en/claude-code/course/day-12.html">D12 agent teams</a>: sessions can only collaborate if each has its own turf. And once background sessions multiply, you need a panel to keep watch over them — that's this lesson's second lead, agent view. To go straight into the full multi-session parallel playbook afterwards, read on with <a href="/en/claude-code/tips/worktrees-parallel-sessions.html">Tip B2: Running parallel sessions with worktrees</a> and <a href="/en/claude-code/tips/multi-session-vs-multi-agent.html">Tip B1: Multiple sessions or multiple agents</a>.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>git worktree: one repo, many workbenches</h3>
+    <p><span class="badge badge-official">Official</span>A git worktree is a <strong>separate working directory</strong>: it has its own files and its own branch, but shares the same repository history and remotes with the main checkout. Each Claude Code session runs in its own worktree, so one session's edits can never touch another session's files — build a new feature on one side while fixing a bug on the other.</p>
+    <p><span class="badge badge-site">Our take</span>An analogy: the repo's <code>.git</code> is a library's collection, and the main checkout is the reading desk you usually sit at. Worktrees are extra desks, each with a different branch's files spread out — the desktops never interfere, but every book is borrowed from the same collection, and returns (commits) all go back into that same collection.</p>
+    <figure>
+      <svg viewBox="0 0 700 336" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the main checkout and two worktrees, each independent, all sharing one .git">
+        <text class="svg-ink-soft" x="120" y="40" text-anchor="middle" font-size="11">claude (terminal 1)</text>
+        <text class="svg-ink-soft" x="350" y="40" text-anchor="middle" font-size="11">claude --worktree feature-auth</text>
+        <text class="svg-ink-soft" x="580" y="40" text-anchor="middle" font-size="11">claude --worktree bugfix</text>
+        <rect class="svg-box" x="15" y="52" width="210" height="96" rx="10"/>
+        <text class="svg-ink" x="120" y="82" text-anchor="middle" font-size="13">Main checkout</text>
+        <text class="svg-ink-soft" x="120" y="106" text-anchor="middle" font-size="11">branch: main</text>
+        <text class="svg-ink-soft" x="120" y="126" text-anchor="middle" font-size="10">directory: repo root</text>
+        <rect class="svg-box-accent" x="245" y="52" width="210" height="96" rx="10"/>
+        <text class="svg-ink" x="350" y="82" text-anchor="middle" font-size="13">worktree feature-auth</text>
+        <text class="svg-ink-soft" x="350" y="106" text-anchor="middle" font-size="10">branch: worktree-feature-auth</text>
+        <text class="svg-ink-soft" x="350" y="126" text-anchor="middle" font-size="10">.claude/worktrees/feature-auth/</text>
+        <rect class="svg-box-accent" x="475" y="52" width="210" height="96" rx="10"/>
+        <text class="svg-ink" x="580" y="82" text-anchor="middle" font-size="13">worktree bugfix</text>
+        <text class="svg-ink-soft" x="580" y="106" text-anchor="middle" font-size="10">branch: worktree-bugfix</text>
+        <text class="svg-ink-soft" x="580" y="126" text-anchor="middle" font-size="10">.claude/worktrees/bugfix/</text>
+        <text class="svg-ink-soft" x="350" y="180" text-anchor="middle" font-size="12">Files and branches: independent — edits invisible to each other</text>
+        <line class="svg-line" x1="120" y1="148" x2="205" y2="244" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="200,240 209,248 198,250"/>
+        <line class="svg-line" x1="350" y1="196" x2="350" y2="244" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="345,238 350,248 355,238"/>
+        <line class="svg-line" x1="580" y1="148" x2="495" y2="244" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="502,250 491,248 500,240"/>
+        <rect class="svg-box" x="130" y="248" width="440" height="52" rx="10"/>
+        <text class="svg-ink" x="350" y="280" text-anchor="middle" font-size="13">Shared .git (commit history · branches · remote origin)</text>
+        <text class="svg-ink-soft" x="350" y="326" text-anchor="middle" font-size="11">commits made in a worktree land in the same .git — the main checkout sees them immediately</text>
+      </svg>
+      <figcaption>Three parallel sessions: files edited separately, history shared by all — which is why worktrees make both isolation and merging simple.</figcaption>
+    </figure>
+
+    <h3>Misconception: a worktree is not a clone</h3>
+    <p><span class="badge badge-site">Our take</span>A common misreading is "a worktree is just another clone". The difference is what gets shared: a clone is a second, complete repository with independent history, synced back and forth via push/pull; a worktree copies only the working files, and <span class="badge badge-official">Official</span>git commands inside it write directly to the main repo's shared <code>.git</code> directory — commit in a worktree and the main checkout can see that branch immediately, so merging back to the main branch is one local merge or one PR, with no "cross-repo ferrying". Beyond <code>.git</code>, a worktree also shares project-level plugins and saved permission approvals with the main checkout ("Yes, don't ask again" is written back to the main checkout's <code>.claude/settings.local.json</code> and applies repo-wide).</p>
+
+    <h3>Opening an isolated session with --worktree</h3>
+    <p><span class="badge badge-official">Official</span>Start with <code>--worktree</code> (short form <code>-w</code>) and a name, and Claude Code creates the worktree and opens the session right inside it. The default location is <code>.claude/worktrees/&lt;name&gt;/</code> under the repo root, with a new branch named <code>worktree-&lt;name&gt;</code>; omit the name and one is generated for you (like <code>bright-running-fox</code>). Run it again in another terminal with a different name and you have a second session that can't interfere with the first.</p>
+    <pre><code>claude --worktree feature-auth   # terminal 1
+claude --worktree bugfix         # terminal 2, fully isolated from terminal 1</code></pre>
+    <p><span class="badge badge-official">Official</span>A few companion moves: add <code>.claude/worktrees/</code> to <code>.gitignore</code> so worktree contents don't show up as untracked files in the main checkout; a worktree is a fresh checkout, so gitignored files like <code>.env</code> aren't in it by default — add a <code>.worktreeinclude</code> file at the project root (gitignore syntax) to have them copied automatically into every new worktree; new worktrees branch off the repo's default branch (usually main) — set <code>worktree.baseRef</code> to <code>"head"</code> to branch off your current HEAD instead, carrying your unpushed work along; <code>claude --worktree "#1234"</code> branches straight off a PR. Mid-session, you can also just tell Claude to "work in a worktree" and it creates one with the <code>EnterWorktree</code> tool. In the desktop app, every new session lives in its own worktree by default.</p>
+
+    <h3>Cleanup and merging</h3>
+    <p><span class="badge badge-official">Official</span>When you exit an interactive worktree session, Claude checks whether it contains anything that deleting would lose (changes, untracked files, new commits):</p>
+    <ul>
+      <li><strong>Clean + unnamed session</strong>: worktree and branch are deleted automatically; named sessions get asked first, so you can keep them around to come back to.</li>
+      <li><strong>Has work</strong>: asks whether to keep or delete. Keep, and the directory and branch stay for a later return; delete, and the work goes with it.</li>
+      <li><strong>Run non-interactively with <code>-p</code></strong>: no exit prompt, no cleanup — remove it yourself with <code>git worktree remove</code>.</li>
+    </ul>
+    <p><span class="badge badge-site">Our take</span>There's no dedicated "merge" command because none is needed: the work sits on the <code>worktree-&lt;name&gt;</code> branch and history is shared, so back in the main checkout it's simply <code>git merge worktree-&lt;name&gt;</code>, or push the branch and open a PR — the same as merging any other branch.</p>
+    <p><span class="badge badge-official">Official</span>Subagents can each take a worktree too: tell Claude to "use worktrees for your agents", or pin it in a custom subagent's frontmatter with <code>isolation: worktree</code> (building on <a href="/en/claude-code/course/day-10.html">D10</a>). A subagent's temporary worktree is deleted automatically if it ends with no changes; those with changes stay on disk and are collected by a periodic sweep according to the <code>cleanupPeriodDays</code> setting — the sweep skips worktrees that still hold work, and never touches the ones you opened yourself with <code>--worktree</code>.</p>
+
+    <h3>agent view: every background session on one screen</h3>
+    <p><span class="badge badge-official">Official</span>Agent view opens with <code>claude agents</code>: one screen for all your background sessions — what's running, what's waiting for your input, what's done. Each row is a full Claude Code session hosted by a separate supervisor process, running continuously with no terminal attached. Sessions are grouped by status, with "Ready for review" (PR opened) and "Needs input" at the top; the row icon's color and animation signal state: animated = working, yellow = waiting for your input, green = done, red = failed. The one-line summary in each row is generated by a Haiku-class model, and when a session has opened a PR the row ends with a status-colored <code>#1234</code> tag. Note it's currently a research preview: it needs Claude Code v2.1.139 or later, and the UI and shortcuts may change.</p>
+    <p><span class="badge badge-official">Official</span>One lap around the core controls: type a task in the bottom input box and press <code>Enter</code> to dispatch a new background session (every line you enter is a new session — fire off several in a row to run them in parallel); select a row and press <code>Space</code> to open a peek panel showing its latest output or the question it's asking, and type right there to reply; press <code>Enter</code> or <code>→</code> to attach into the full conversation, and <code>←</code> on an empty input box to detach back to the list; <code>Esc</code> exits agent view with sessions still running. Send an existing foreground session to the background with <code>/bg</code> (or <code>←</code> on an empty input box); from the shell, <code>claude --bg "task"</code> dispatches directly, managed with <code>claude attach / logs / stop / rm &lt;id&gt;</code>. Two limits: every background session burns subscription quota independently — ten in parallel burn ten times as fast; and sessions run on your machine — they survive sleep, but shutdown stops them.</p>
+
+    <h3>How the two lock together</h3>
+    <p><span class="badge badge-official">Official</span>Agent view's file isolation is worktrees, exactly: each background session starts from your working directory but moves itself into its own worktree under <code>.claude/worktrees/</code> <strong>before touching any files</strong> — parallel sessions read the same checkout, but each writes in its own. This is skipped when you're already inside a worktree, or when the directory isn't a git repo at all (and no <code>WorktreeCreate</code> hook is configured); to turn it off entirely, set <code>worktree.bgIsolation</code> to <code>"none"</code> in project settings. When a background session finishes its edits in a worktree, it wraps up by securing the work: it commits without asking, pushes the branch if the repo has a remote, and opens a draft PR when the task calls for it — but it never pushes to main/master, never force-pushes, never merges, and your own git conventions in CLAUDE.md or the task take precedence. Pressing <code>Ctrl+X</code> twice in agent view deletes the session <strong>together with its worktree</strong> (uncommitted changes go too) — though a worktree with unpushed commits is never deleted.</p>
+    <figure>
+      <svg viewBox="0 0 700 192" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lifecycle of an agent view background session: dispatch, supervision, into a worktree, work secured at wrap-up">
+        <rect class="svg-box-accent" x="10" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="87" y="70" text-anchor="middle" font-size="12.5">Dispatch a task</text>
+        <text class="svg-ink-soft" x="87" y="90" text-anchor="middle" font-size="10.5">agent view input box</text>
+        <text class="svg-ink-soft" x="87" y="106" text-anchor="middle" font-size="10.5">or claude --bg</text>
+        <rect class="svg-box" x="185" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="262" y="70" text-anchor="middle" font-size="12.5">Background session</text>
+        <text class="svg-ink-soft" x="262" y="90" text-anchor="middle" font-size="10.5">hosted by a supervisor</text>
+        <text class="svg-ink-soft" x="262" y="106" text-anchor="middle" font-size="10.5">runs with no terminal</text>
+        <rect class="svg-box" x="360" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="437" y="70" text-anchor="middle" font-size="12.5">Isolate before editing</text>
+        <text class="svg-ink-soft" x="437" y="90" text-anchor="middle" font-size="10.5">moves itself into its own</text>
+        <text class="svg-ink-soft" x="437" y="106" text-anchor="middle" font-size="10.5">.claude/worktrees/</text>
+        <rect class="svg-box" x="535" y="44" width="155" height="76" rx="10"/>
+        <text class="svg-ink" x="612" y="70" text-anchor="middle" font-size="12.5">Wrap-up secures work</text>
+        <text class="svg-ink-soft" x="612" y="90" text-anchor="middle" font-size="10.5">commit + push branch</text>
+        <text class="svg-ink-soft" x="612" y="106" text-anchor="middle" font-size="10.5">draft PR when needed</text>
+        <line class="svg-line" x1="165" y1="82" x2="177" y2="82" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="175,77 185,82 175,87"/>
+        <line class="svg-line" x1="340" y1="82" x2="352" y2="82" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="350,77 360,82 350,87"/>
+        <line class="svg-line" x1="515" y1="82" x2="527" y2="82" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="525,77 535,82 525,87"/>
+        <text class="svg-ink-soft" x="350" y="150" text-anchor="middle" font-size="12">Row states: Working → Needs input (your answer) → Completed / Failed</text>
+        <text class="svg-ink-soft" x="350" y="176" text-anchor="middle" font-size="12">Any time: Space to peek · Enter to attach · ← back to the list; deleting a row deletes its worktree too</text>
+      </svg>
+      <figcaption>A background session's life: dispatched, hosted by a supervisor, into a worktree before editing files, and at wrap-up commit / push / draft PR to secure the work.</figcaption>
+    </figure>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Requires a project that is a git repo. About 25 minutes end to end.</p>
+    <ol>
+      <li>Run <code>claude --version</code> to check your version (agent view needs v2.1.139+; the latest at the time of writing is 2.1.222). If Claude has never run in this project, run <code>claude</code> once at the project root first to accept workspace trust, or <code>--worktree</code> will error out.</li>
+      <li>Add <code>.claude/worktrees/</code> to the project's <code>.gitignore</code>. Expected: the worktrees you open later won't pollute <code>git status</code> in the main checkout.</li>
+      <li>Run <code>claude --worktree demo</code>. Expected: the session starts inside <code>.claude/worktrees/demo/</code> on branch <code>worktree-demo</code>.</li>
+      <li>Paste the prompt below as-is and let it prove its own isolation:</li>
+    </ol>
+    <pre class="prompt"><code>You should be inside a git worktree right now. In order:
+1. Run pwd and git branch --show-current, and tell me the current directory and branch;
+2. Append the line "worktree isolation test" to README.md and commit it to the
+   current branch — do not push;
+3. Run git worktree list and explain in one sentence how the main checkout and the
+   current worktree relate in the output.</code></pre>
+    <ol start="5">
+      <li>Open another terminal and run <code>git status</code> and <code>git worktree list</code> in the <strong>main checkout</strong>. Expected: the main checkout is clean and README unchanged, yet <code>git worktree list</code> shows two lines — isolation and sharing verified in one go.</li>
+      <li>Exit the worktree session. Expected: because it holds a new commit, Claude asks whether to keep or delete; choose keep. Then merge and clean up from the main checkout: <code>git merge worktree-demo</code>, followed by <code>git worktree remove .claude/worktrees/demo</code>.</li>
+      <li>Try agent view: run <code>claude agents</code>, type a small task in the bottom input box (like "summarize this repo's directory structure") and press <code>Enter</code>. Expected: a row appears, its icon animating to show Working; press <code>Space</code> to peek at its progress, <code>Enter</code> to attach into the full conversation, <code>←</code> on an empty input box to return to the list. When it finishes, press <code>Ctrl+X</code> twice to delete the row (remember: its worktree is deleted with it).</li>
+    </ol>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>Without notes, you can explain worktree vs clone: what's isolated (files, branch, directory) and what's shared (<code>.git</code> history, remotes, plugins, permission approvals).</li>
+      <li>The hands-on ran end to end: after committing in the <code>--worktree</code> session, the main checkout could merge that branch immediately; and you saw the cleanup prompt on exit.</li>
+      <li>You can say when a background session automatically moves into a worktree, when it skips that, and what deleting a session in agent view means for its worktree.</li>
+      <li>Self-check: you ran a one-off task with <code>claude -p --worktree ci-run</code> — is the worktree still there afterwards? How do you clean it up? (Answer: yes — non-interactive runs get no exit cleanup; remove it yourself with <code>git worktree remove</code>.)</li>
+    </ul>
+
+    <div class="callout"><span class="callout-label">Next step</span>D12 covers agent teams and dynamic workflows: sessions that don't just work side by side but message each other and divide the labor — file isolation (this lesson) plus work orchestration (D10, D12) completes the parallelism picture.</div>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/worktrees.md" rel="noopener">Run parallel sessions with worktrees</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/agent-view.md" rel="noopener">Manage multiple agents with agent view</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-10.html">Previous: D10 · Subagents</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-12.html">Next: D12 · Agent teams &amp; dynamic workflows</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

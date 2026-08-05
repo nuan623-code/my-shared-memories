@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screenshot-diff: let Claude judge its own UI · Claude Code Learning Hub</title>
+<meta name="description" content="Give Claude the target design, have it screenshot the current implementation, diff against the mock, fix item by item, and re-verify — the visual UI iteration loop endorsed by the official best practices. Browsers via Claude in Chrome, native apps via computer use.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/screenshot-diff-ui-check.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/screenshot-diff-ui-check.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/screenshot-diff-ui-check.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/screenshot-diff-ui-check.html">
+<meta property="og:title" content="Screenshot-diff: let Claude judge its own UI · Claude Code Learning Hub">
+<meta property="og:description" content="Target design + its own screenshots + its own comparison = UI iteration without you as the referee. How to set up the officially endorsed visual verification loop.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/screenshot-diff-ui-check.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/screenshot-diff-ui-check.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">C · Design &amp; assets</span></p>
+  <h1>Screenshot-diff: let Claude judge its own UI</h1>
+  <p>"Does it look right?" shouldn't be a question you answer by refreshing the page every round — give it the design, and let it screenshot itself, compare itself, and keep fixing until it matches.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The most human-draining part of UI work is verification: after every iteration you have to look with your own eyes. The official best-practices answer is to hand the "looking" to Claude too — a screenshot is a check it can run itself, on the same footing as tests and build exit codes. This page shows how to set that loop up.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Paste the target design into the conversation and ask Claude, after implementing, to "screenshot the current result, compare it against the design, list the differences, and fix them" — looping until the differences hit zero.<span class="badge badge-official">Official</span>This is the pattern given verbatim in the official best practices: "[paste screenshot] implement this design. take a screenshot of the result and compare it to the original. list differences and fix them"; the screenshot channel is Claude in Chrome for browsers and computer use for native apps.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Prepare the target image.</strong> A Figma export, a competitor screenshot, even a hand-drawn wireframe — copy-paste or drag it straight into the prompt.<span class="badge badge-official">Official</span>The docs confirm images can be copy/pasted or dragged &amp; dropped into the conversation. Expect: Claude's reply accurately describes the layout in the image, which tells you it actually read it.</li>
+      <li><strong>Open the channel that lets it screenshot itself.</strong> Choose by target platform:<span class="badge badge-official">Official</span>
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Target</th><th>Channel</th><th>Prerequisites</th></tr></thead>
+          <tbody>
+            <tr><td>Web pages</td><td><code>claude --chrome</code> with the Claude in Chrome extension</td><td>Extension ≥1.0.36; Pro/Max/Team/Enterprise subscription accounts, signed in via <code>/login</code> (not available under API-key auth)</td></tr>
+            <tr><td>Native macOS apps</td><td>Enable <code>computer-use</code> in <code>/mcp</code></td><td>macOS research preview; Pro/Max; requires Accessibility and Screen Recording permissions</td></tr>
+            <tr><td>iOS apps</td><td>Desktop iOS Simulator pane / CLI via computer use</td><td>See <a href="/en/claude-code/tips/ios-simulator-verify.html">Not done until it runs in the iOS Simulator</a></td></tr>
+          </tbody>
+        </table></div>
+        Use <code>/chrome</code> to check the connection (you want to see Status: Enabled and Extension: Installed). The official capability list explicitly includes this scenario: build the UI from a Figma mock, then open the browser to verify it matches.</li>
+      <li><strong>Send the "implement → screenshot → compare → fix" loop prompt.</strong> Copy-paste version below. Expect: each round Claude posts a concrete difference list (e.g. "primary button corner radius too small", "card gap is 16px, should be 24px"), fixes the items, then screenshots and compares again — not a bare "implemented per the design".<span class="badge badge-site">Our take</span>The difference list is the soul of this method — forcing it to write each item out is what stops "looks about right" from slipping through.</li>
+      <li><strong>Demand evidence on disk.</strong><span class="badge badge-official">Official</span>Have it save the final screenshot ("take a screenshot and save it to disk", requires v2.1.211+), or record the whole interaction flow as a GIF; reviewing evidence is faster than re-running the verification yourself, and it also works for sessions you weren't watching. Note that computer-use screenshots are automatically downsampled (e.g. 3456×2234 down to about 1372×887) — if interface text is too small, bump the in-app font size rather than changing the screen resolution.</li>
+      <li><strong>For unattended runs, make the comparison a hard gate.</strong><span class="badge badge-official">Official</span>Best practices gives the escalation path: asking for the loop within the same prompt is the lightest; harder is making "no major differences between screenshot and design" a <code>/goal</code> condition (re-checked each round by an independent evaluator), or a Stop hook running a comparison script that blocks completion. For the general approach see <a href="/en/claude-code/tips/self-verifiable-done.html">Give it checks it can run itself</a>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>[paste the target design here]
+Implement the page from this design, and verify it with a screenshot-comparison loop:
+1. First list the key specs you read from the design: layout structure, colors, type scale, spacing, corner radii — and confirm them with me.
+2. After implementing, open the corresponding page on localhost:3000 and take a screenshot of the current result.
+3. Compare the screenshot against the design item by item and output a difference list (location + current + expected). "Basically matches" is not acceptable.
+4. Fix each item, then screenshot and compare again, until there are no visible differences; post the difference list every round.
+5. At the end, save the final screenshot to the screenshots/ directory and report how many rounds it took and which unexplained differences remain.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Give Claude a way to verify its work (the visual verification pattern, /goal, Stop hooks, evidence)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/chrome.md" target="_blank" rel="noopener">Use Claude Code with Chrome (--chrome, prerequisites, saving screenshots, GIF recording)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/computer-use.md" target="_blank" rel="noopener">Computer use from the CLI (native app screenshots, permissions, automatic downsampling)</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (tied to specific features and version gates such as --chrome, computer-use, and save-to-disk; re-checked periodically).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

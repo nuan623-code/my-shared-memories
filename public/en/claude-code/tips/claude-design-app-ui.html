@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to build app UI with Claude Design · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Design is Anthropic Labs' official design product: prototype your app UI on a canvas, then use Handoff to Claude Code to package it for Claude Code to implement. Full workflow on this page.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/claude-design-app-ui.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/claude-design-app-ui.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/claude-design-app-ui.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/claude-design-app-ui.html">
+<meta property="og:title" content="How to build app UI with Claude Design · Claude Code Learning Hub">
+<meta property="og:description" content="Prototype the UI in Claude Design, then use Handoff to Claude Code to hand it over for implementation: design-system sync, handoff bundle, and the verification loop — the full workflow.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/claude-design-app-ui.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/claude-design-app-ui.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">C · Design &amp; assets</span></p>
+  <h1>How to build app UI with Claude Design</h1>
+  <p>Want to lock the UI design down before writing any code? Claude Design can package a finished design and hand it straight to Claude Code — no re-guessing from screenshots.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Design is an official Anthropic Labs product released April 17, 2026 (research preview): chat on the left, canvas on the right, producing design mockups and interactive prototypes through conversation. The right way to pair it with Claude Code is not "paste a screenshot over" — it ships with an official handoff channel. Note: it does not appear in the Claude Code docs on code.claude.com; the official information lives on anthropic.com and support.claude.com.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Build your app UI prototype conversationally in Claude Design, then use "Handoff to Claude Code" in the export menu to package the design for Claude Code (local or Web) to implement — Claude Code continues from your existing design instead of starting from scratch.<span class="badge badge-official">Official</span>The official announcement confirms designs can be "handed off to Claude Code, which continues from your existing work instead of starting over".
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Check eligibility and entry points.</strong><span class="badge badge-official">Official</span>Claude Design is available on Pro, Max, Team, and Enterprise plans (research preview; off by default on Enterprise, an admin must enable it) and is powered by Claude Opus 4.7; entry points are claude.ai/design or the Claude Desktop sidebar, web and desktop only. Expect: opening it shows the chat-left, canvas-right interface.</li>
+      <li><strong>Feed it your design system before you start drawing.</strong><span class="badge badge-official">Official</span>Projects automatically inherit your organization's design system; you can also import one yourself — supported sources are GitHub repos, design files, direct upload, or running the <code>/design-sync</code> command against your local codebase in Claude Code. Everything generated afterwards then automatically applies your colors, fonts, and components. Expect: generated screens that match your existing app's look, not a generic template style.</li>
+      <li><strong>Generate the UI conversationally, then refine.</strong><span class="badge badge-official">Official</span>Describe what you want in a sentence (official example scenarios include: a dashboard with filters, a mobile onboarding flow, a multi-section landing page, a form with conditional logic) and Claude produces a first pass; then iterate three ways: leave inline comments on specific elements, edit the copy directly, or use the tuning sliders it generates to adjust spacing/colors/layout in real time.</li>
+      <li><strong>Hand off to Claude Code.</strong><span class="badge badge-official">Official</span>In the export menu choose "Handoff to Claude Code"; there are two options: "Send to local coding agent" (your local Claude Code) or "Send to Claude Code Web". The design is packed into a handoff bundle — one instruction to Claude Code and it can start.<span class="badge badge-third">Third-party</span>Community testing found the bundle contains the component structure, the design tokens actually used on the canvas, the layout hierarchy, and referenced assets, plus a README telling the coding agent how to reproduce it in your tech stack — editing that README to include your stack, file paths, and definition of done noticeably improves handoff quality.</li>
+      <li><strong>Implement in Claude Code and close the verification loop.</strong><span class="badge badge-site">Our take</span>The handoff only solves "design to code"; it does not guarantee pixel-perfect fidelity. After implementing, have Claude screenshot its result and compare it against the design to find the gaps (how-to in <a href="/en/claude-code/tips/screenshot-diff-ui-check.html">Screenshot-diff: let Claude judge its own UI</a>; for iOS apps add a <a href="/en/claude-code/tips/ios-simulator-verify.html">simulator verification pass</a>), and only call it done once the differences hit zero.</li>
+    </ol>
+    <p><span class="badge badge-site">Our take</span>If you don't have Claude Design access, the fallback official path is to drag the design images straight into the Claude Code conversation and have it implement from them (the docs explicitly support pasting/dragging images), then run the screenshot-comparison loop — not as good as a token-carrying handoff bundle, but the workflow still runs end to end.</p>
+
+    <h2>Copy-paste prompt</h2>
+    <p>After completing "Handoff to Claude Code" in Claude Design, follow up in Claude Code with:</p>
+    <pre class="prompt"><code>This is a design bundle handed off from Claude Design. Implement the app UI from it:
+1. First read the README and design tokens in the bundle, list your understanding of the page structure, component inventory, and style conventions, and confirm with me before you start.
+2. Implement using this project's existing tech stack and component conventions (if unsure, look at similar components under src/ first) — do not invent a separate styling system.
+3. Use the token values from the bundle for every color, font size, and spacing — no eyeballed approximations.
+4. When done, screenshot each screen, compare against the design, list every visible difference, and fix them one by one.
+5. Finally report: which screens you implemented, which components you reused/created, and which differences remain unresolved and why.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://www.anthropic.com/news/claude-design-anthropic-labs" target="_blank" rel="noopener">Introducing Claude Design by Anthropic Labs (anthropic.com)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://support.claude.com/en/articles/14604416-get-started-with-claude-design" target="_blank" rel="noopener">Get started with Claude Design (Claude Help Center)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Claude Code Best practices (images can be pasted/dragged into prompts)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-third">Third-party</span><a href="https://claudefa.st/blog/guide/mechanics/claude-design-handoff" target="_blank" rel="noopener">Claude Design to Claude Code: AI Design Handoff (claudefa.st; handoff bundle contents and README customization notes)</a>, retrieved 2026-08-05.</li>
+      <li>Note: as of 2026-08-05 the Claude Code docs map on code.claude.com has no dedicated Claude Design page; the facts on this page follow the official anthropic.com / support.claude.com pages above.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (Claude Design is a research preview; entry points, menus, and capabilities may change quickly).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

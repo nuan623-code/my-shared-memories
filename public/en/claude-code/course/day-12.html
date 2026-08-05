@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D12 · Agent teams &amp; dynamic workflows · Claude Code Learning Hub</title>
+<meta name="description" content="Agent teams let multiple full sessions message each other and share a task list; dynamic workflows orchestrate hundreds of subagents deterministically from a script. This lesson covers how both work, how they differ from subagents, how to start them, and when orchestration is worth the extra tokens.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D12 · Agent teams &amp; dynamic workflows · Claude Code Learning Hub">
+<meta property="og:description" content="Two routes to multi-agent collaboration: agent teams whose members talk to each other, and dynamic workflows that orchestrate subagents at scale from a script. Mechanics, selection, and cost awareness.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-12.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-12.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-12.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-12.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-12.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-12.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D12</p>
+  <h1>D12 · Agent teams &amp; dynamic workflows</h1>
+  <p>When one session can't hold all the work: team up multiple full sessions that talk to each other (agent teams), or write the orchestration as a re-runnable script that drives hundreds of subagents (dynamic workflows).</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">This lesson lays out the two advanced routes to multi-agent collaboration: what an agent team is, how it differs from subagents, and how to start one; how a dynamic workflow orchestrates subagents at scale deterministically from a script; and — most importantly — when orchestration is worth it, and when a single session is actually the cheapest option.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p><a href="/en/claude-code/course/day-10.html">D10's subagents</a> solved "delegating work inside one session": each worker has its own context, but can only report results back to the main agent — workers never talk to each other. <a href="/en/claude-code/course/day-11.html">D11's worktrees</a> solved "manually running several parallel sessions": physical isolation, but you have to be the coordinator. That leaves two gaps: first, workers can't discuss or challenge each other's conclusions; second, the "do this first, then that" orchestration logic exists only in Claude's context at that moment — switch sessions and it's gone, unreproducible.</p>
+    <p><span class="badge badge-site">Our take</span>D12's two mechanisms fill exactly those gaps: agent teams let multiple full sessions share a task list and message each other; workflows turn the orchestration itself into a readable, storable, re-runnable script. After this lesson you'll hold the complete spectrum of tools from "one session" to "hundreds of agents". <a href="/en/claude-code/course/day-13.html">D13 (Headless &amp; CI)</a> will build on today's conclusions: workflows run just as well under <code>claude -p</code> and the Agent SDK, making them the foundation of automated pipelines; and a saved workflow can be packed into a plugin for distribution — that's <a href="/en/claude-code/course/day-14.html">D14</a>.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>Agent team: a squad of full sessions that talk to each other</h3>
+    <p><span class="badge badge-official">Official</span>An agent team is multiple Claude Code instances working together: your main session acts as the <strong>team lead</strong>, coordinating, assigning tasks, and aggregating results; each <strong>teammate</strong> is a complete, independent Claude Code session with its own context window, and teammates can message each other directly — you can also bypass the lead and talk to any teammate yourself. A team consists of four parts: the team lead (coordination), teammates (doing the work), a shared task list (claiming work), and a mailbox (inter-agent messaging, one JSON inbox file per agent).</p>
+    <div class="callout"><span class="callout-label">Experimental feature</span><span class="badge badge-official">Official</span>Agent teams are currently experimental and off by default. You must set <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code> in settings.json or as an environment variable to enable them; the docs explicitly list known limitations around session resumption (<code>/resume</code> does not restore in-process teammates), task-state sync, and shutdown speed.</div>
+<pre><code>{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}</code></pre>
+    <p><span class="badge badge-official">Official</span>Starting one takes no ceremony: with the flag on, describe the task and the teammates you want in natural language, and Claude spawns the teammates, populates the shared task list, and starts coordinating (since v2.1.178 there is no separate "create a team" step; the old <code>TeamCreate</code>/<code>TeamDelete</code> tools were removed). Claude may also proactively propose a team when it judges a task fit for parallel work, but nothing is spawned without your confirmation. A few mechanics worth remembering:</p>
+    <ul>
+      <li><strong>Task list</strong>: tasks have three states — pending / in progress / completed — and can declare dependencies; claiming uses a file lock so two teammates can't grab the same task. The lead can assign tasks by name, and teammates can pick up the next task themselves when they finish one.</li>
+      <li><strong>Reusing roles</strong>: when spawning teammates you can directly reference <a href="/en/claude-code/course/day-10.html">a subagent type defined in D10</a> (such as security-reviewer); the teammate honors that definition's <code>tools</code> allowlist and <code>model</code>, and the definition body is appended to the teammate's system prompt.</li>
+      <li><strong>Permissions</strong>: teammates inherit the lead's permission settings, and permission prompts bubble up to the lead session for you to approve in person; one teammate can't authorize on your behalf, nor hand a denied operation to another teammate to sneak past the check.</li>
+      <li><strong>Quality gates</strong>: combined with <a href="/en/claude-code/course/day-08.html">D8's hooks</a>, the <code>TeammateIdle</code> / <code>TaskCreated</code> / <code>TaskCompleted</code> hooks block with exit code 2 — enough to send a teammate back to work when it tries to clock out early.</li>
+      <li><strong>Display modes</strong>: the default is in-process (all teammates in one terminal; arrow keys to pick one, Enter to enter its conversation); to see everyone on one screen use split panes (requires tmux or iTerm2), switched via the <code>teammateMode</code> setting.</li>
+    </ul>
+
+    <h3>Versus subagents: do the workers need to talk?</h3>
+    <p><span class="badge badge-official">Official</span>Both can work in parallel; the dividing line is whether workers need to communicate with each other:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th></th><th>Subagents (D10)</th><th>Agent teams (this lesson)</th></tr></thead>
+      <tbody>
+        <tr><td>Context</td><td>Own context; results return to the caller</td><td>Own context; fully autonomous</td></tr>
+        <tr><td>Communication</td><td>Reports to the main agent only</td><td>Teammates message each other directly</td></tr>
+        <tr><td>Coordination</td><td>Main agent manages all the work</td><td>Shared task list, self-claimed</td></tr>
+        <tr><td>Best for</td><td>Focused tasks where only the result matters</td><td>Complex work needing discussion and collaboration</td></tr>
+        <tr><td>Token cost</td><td>Lower: results are compressed back into the main context</td><td>Higher: every teammate is a full instance</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>The strong use cases the docs give: parallel code review (one reviewer each for security / performance / test coverage), competing-hypothesis debugging (several teammates each champion one bug hypothesis and debate to knock the others down — the theory left standing is more likely the real root cause), and cross-layer collaboration (frontend / backend / tests each owning a lane). Conversely, sequential tasks, work that touches the same files, and long dependency chains are better served by a single session or subagents.</p>
+
+    <h3>Dynamic workflow: moving orchestration out of context, into code</h3>
+    <p><span class="badge badge-official">Official</span>A dynamic workflow is a JavaScript script that orchestrates subagents: you describe the task, Claude writes the script for you, and a runtime independent of the session executes it in the background. The key design point: <strong>intermediate results live in script variables, not in Claude's context window</strong> — the session only receives the final answer. Who holds the plan changes too: with subagents, skills, and agent teams, Claude decides the next step turn by turn; with a workflow, the script holds the loops, branches, and intermediate results, so the same orchestration can be re-run as-is. Requires Claude Code v2.1.154+, available on paid plans; Pro users flip the Dynamic workflows toggle in <code>/config</code>.</p>
+    <p><span class="badge badge-official">Official</span>There are three ways to start one:</p>
+    <ol>
+      <li><strong>Ask for it in the prompt</strong>: write the keyword <code>ultracode</code>, or simply say "use a workflow for this" in natural language, and Claude writes a script for the task instead of working turn by turn.</li>
+      <li><strong>Let Claude decide</strong>: <code>/effort ultracode</code> (xhigh reasoning + automatic orchestration) — after that, Claude plans every substantial task as a workflow; token consumption rises noticeably, and it lasts only for the current session.</li>
+      <li><strong>Run a ready-made command</strong>: the built-in <code>/deep-research</code> (multi-angle search, cross-verification, a report with citations), or any workflow command you've saved yourself.</li>
+    </ol>
+    <p><span class="badge badge-official">Official</span>A saved script looks like this (a <code>meta</code> block plus a script body with top-level <code>await</code>):</p>
+<pre><code>export const meta = {
+  name: 'audit-routes',
+  description: 'Audit every route handler for missing auth checks',
+}
+
+const found = await agent('List every .ts file under src/routes/.', {
+  schema: { type: 'object', required: ['files'],
+    properties: { files: { type: 'array', items: { type: 'string' } } } },
+})
+
+const audits = await pipeline(found.files, file =&gt;
+  agent(`Audit ${file} for missing authentication checks.`, { label: file }),
+)
+
+return audits.filter(Boolean)</code></pre>
+    <p><span class="badge badge-official">Official</span><code>agent()</code> launches one subagent (pass <code>schema</code> for structured results, <code>label</code> to name it in the progress view); <code>pipeline()</code> runs one agent per item in a list. An <code>agent()</code> call you stop midway, or that hits an unrecoverable API error, resolves to <code>null</code>, and <code>pipeline()</code> keeps the <code>null</code> in its result array — which is why the example ends with <code>.filter(Boolean)</code> to clear them out. The docs present only these two primitives; for the full options they point to the Workflow tool entry in the Agent SDK reference. Run progress appears in the <code>/workflows</code> view grouped by phase: agent count, total tokens, and elapsed time per phase, and you can drill all the way down to a single agent's prompt and result.</p>
+    <figure>
+      <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Workflow pipeline diagram: a discovery phase lists files, a fan-out phase audits each file with its own agent, a verification phase adversarially reviews findings, and a summary phase produces the report returned to the session">
+        <text class="svg-ink-soft" x="80" y="24" text-anchor="middle" font-size="12">Phase 1 · Discover</text>
+        <text class="svg-ink-soft" x="260" y="24" text-anchor="middle" font-size="12">Phase 2 · Fan out</text>
+        <text class="svg-ink-soft" x="440" y="24" text-anchor="middle" font-size="12">Phase 3 · Verify</text>
+        <text class="svg-ink-soft" x="610" y="24" text-anchor="middle" font-size="12">Phase 4 · Summarize</text>
+
+        <rect class="svg-box" x="10" y="126" width="140" height="48" rx="10"/>
+        <text class="svg-ink" x="80" y="155" text-anchor="middle" font-size="13">List target files</text>
+
+        <rect class="svg-box" x="190" y="40" width="140" height="44" rx="10"/>
+        <text class="svg-ink" x="260" y="67" text-anchor="middle" font-size="13">Audit file-1</text>
+        <rect class="svg-box" x="190" y="128" width="140" height="44" rx="10"/>
+        <text class="svg-ink" x="260" y="155" text-anchor="middle" font-size="13">Audit file-2</text>
+        <rect class="svg-box" x="190" y="216" width="140" height="44" rx="10"/>
+        <text class="svg-ink" x="260" y="243" text-anchor="middle" font-size="13">Audit file-N</text>
+
+        <rect class="svg-box" x="370" y="126" width="140" height="48" rx="10"/>
+        <text class="svg-ink" x="440" y="155" text-anchor="middle" font-size="13">Adversarial review</text>
+
+        <rect class="svg-box-accent" x="550" y="126" width="120" height="48" rx="10"/>
+        <text class="svg-ink" x="610" y="155" text-anchor="middle" font-size="13">Final report</text>
+
+        <path class="svg-line" d="M150 150 H170 V62 H182" fill="none" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="182,57 192,62 182,67"/>
+        <line class="svg-line" x1="150" y1="150" x2="182" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="182,145 192,150 182,155"/>
+        <path class="svg-line" d="M150 150 H170 V238 H182" fill="none" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="182,233 192,238 182,243"/>
+
+        <path class="svg-line" d="M330 62 H350 V144" fill="none" stroke-width="1.5"/>
+        <line class="svg-line" x1="330" y1="150" x2="350" y2="150" stroke-width="1.5"/>
+        <path class="svg-line" d="M330 238 H350 V156" fill="none" stroke-width="1.5"/>
+        <line class="svg-line" x1="350" y1="150" x2="362" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="362,145 372,150 362,155"/>
+
+        <line class="svg-line" x1="510" y1="150" x2="542" y2="150" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="542,145 552,150 542,155"/>
+
+        <text class="svg-ink-soft" x="80" y="290" text-anchor="middle" font-size="12">agent()</text>
+        <text class="svg-ink-soft" x="260" y="290" text-anchor="middle" font-size="12">pipeline(), one per item</text>
+        <text class="svg-ink-soft" x="440" y="290" text-anchor="middle" font-size="12">Results in script vars</text>
+        <text class="svg-ink-soft" x="610" y="290" text-anchor="middle" font-size="12">Only this returns</text>
+      </svg>
+      <figcaption>A typical workflow pipeline: discover → fan out → verify → summarize. Intermediate results from every phase stay in script variables; only the final report returns to the session context. The adversarial-verification step is a reusable quality pattern unique to workflows: independent agents cross-check each other's findings before reporting.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>Hard runtime constraints: at most 16 concurrent agents (fewer on machines with fewer CPU cores), a cap of 1,000 agents per run, no user input while a run is in progress (if a phase boundary needs human sign-off, split the work into multiple workflows), and the script itself cannot touch the filesystem or shell — all reads, writes, and commands are executed by agents; the script only coordinates. On permissions, workflow-spawned subagents always run in acceptEdits mode and inherit your tool allowlist; shell commands and web fetches outside the allowlist still pause for confirmation mid-run, so add the commands you'll need to the allowlist before kicking off a long run. A stopped run can be resumed within the same session: completed agents usually replay their cached results — a script fanned out into many small agents preserves far more progress than one long agent.</p>
+    <p><span class="badge badge-official">Official</span>Once a run produces results you like, select it in <code>/workflows</code> and press <code>s</code> to save: to the project's <code>.claude/workflows/</code> (shared with the repo) or <code>~/.claude/workflows/</code> (yours only, available in all projects). It then becomes a <code>/&lt;name&gt;</code> command, and can take arguments passed at invocation via <code>args</code> (read inside the script as the global variable <code>args</code>). To distribute across teams, put it in a plugin's <code>workflows/</code> directory and invoke it as <code>/plugin-name:workflow-name</code>.</p>
+
+    <h3>Choosing among the four: who holds the plan?</h3>
+    <p><span class="badge badge-official">Official</span>The docs give a master comparison table; the core axes are "who decides the next step" and "where intermediate results live":</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th></th><th>Subagents</th><th>Skills</th><th>Agent teams</th><th>Workflows</th></tr></thead>
+      <tbody>
+        <tr><td>What it is</td><td>A worker Claude dispatches</td><td>Instructions Claude follows</td><td>Peer sessions under a lead</td><td>A script a runtime executes</td></tr>
+        <tr><td>Who decides next</td><td>Claude, turn by turn</td><td>Claude, per the prompt</td><td>The lead agent, turn by turn</td><td>The script</td></tr>
+        <tr><td>Where intermediates live</td><td>Claude's context</td><td>Claude's context</td><td>Shared task list</td><td>Script variables</td></tr>
+        <tr><td>What's reusable</td><td>The worker definition</td><td>The instructions themselves</td><td>The team definition</td><td>The orchestration itself</td></tr>
+        <tr><td>Scale</td><td>A few per turn</td><td>Same as subagents</td><td>A few long-running peers</td><td>Tens to hundreds per run</td></tr>
+        <tr><td>On interruption</td><td>Whole turn redone</td><td>Whole turn redone</td><td>Teammates keep running</td><td>Resumable within the session</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-site">Our take</span>One-line selector: you only want the result, not the process → subagent; workers need to discuss and challenge each other → agent team; large scale, fixed steps, will run again later → workflow; what you want to capture is the "method", not the orchestration → skill (<a href="/en/claude-code/course/day-07.html">D7</a>).</p>
+
+    <h3>Cost awareness: when orchestration is worth it</h3>
+    <p><span class="badge badge-official">Official</span>Both mechanisms cost far more than a single session, and the docs give explicit guardrails. Agent teams: token consumption grows linearly with teammate count; start with 3–5 teammates, with 5–6 tasks per teammate as the saturation point; three focused teammates often beat five scattered ones; beginners should start with non-coding tasks like research and review; two teammates editing the same file will overwrite each other, so split work along clean file boundaries. Workflows: trial-run on a small slice first to estimate cost (one directory, not the whole repo); when a single run schedules more than 25 agents, or is projected to exceed 1.5M tokens, the task panel shows a <code>Large workflow</code> warning (v2.1.203+, advisory only, doesn't block); the size guideline in <code>/config</code> controls the agent scale Claude aims for when writing scripts, defaulting to <code>medium</code> (up to 15, v2.1.219+); each agent defaults to the session's current model — you can have the script route lighter phases to a smaller model, or override globally with <code>CLAUDE_CODE_SUBAGENT_MODEL</code> — so glance at <code>/model</code> before a large run.</p>
+    <div class="callout"><span class="callout-label">In practice</span><span class="badge badge-site">Our take</span>"Change 200 files in one go" is exactly where workflow fan-out shines: discover → one agent per file editing in isolation → verify each → summarize. For the concrete breakdown and crash-avoidance details, see <a href="/en/claude-code/tips/bulk-edit-200-files.html">Tip B3: Bulk-editing 200 files</a>.</div>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Prerequisite check: <code>claude --version</code> must be ≥ 2.1.154 (latest today is 2.1.222); on the Pro plan, first enable Dynamic workflows in <code>/config</code>. Steps 1–3 take about 30 minutes; step 4 is optional.</p>
+    <ol>
+      <li><strong>Try a built-in workflow.</strong> In a session, run <code>/deep-research</code> with a question you genuinely want answered — for example the one below. Expected: Claude Code asks whether to allow the workflow; after you choose Yes, the run moves to the background and a one-line progress summary appears in the task panel below the input box.
+<pre class="prompt"><code>/deep-research What changed in Node.js's permission model from v20 to v22?</code></pre></li>
+      <li><strong>Drill into the progress view.</strong> Run <code>/workflows</code>, select the run with the arrow keys, and press Enter. Expected: a view grouped by phase, each with agent count, total tokens, and elapsed time; keep pressing Enter to drill into a single agent and read its prompt, recent tool calls, and result. When it finishes, a report with citations lands back in the session, with conclusions that failed cross-verification filtered out.</li>
+      <li><strong>Write and save your own workflow.</strong> Pick a <em>small</em> directory (cost awareness: small slices first) and ask, in natural language, for an audit workflow with adversarial verification. Expected: the approval prompt lists the planned phases, with an optional View raw script (or <code>Ctrl+G</code> to open in an editor) so you can read the script before letting it run; when it's done, press <code>s</code> in <code>/workflows</code> to save it, Tab to switch between the project / personal locations — and from then on it's one of your slash commands.
+<pre class="prompt"><code>Use a workflow to audit every route file under src/routes/ for missing auth checks.
+Have an independent agent adversarially verify each finding before it goes in the report,
+then summarize everything into one list sorted by severity.</code></pre></li>
+      <li><strong>(Optional) Spin up your first agent team.</strong> Add <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code> to the <code>env</code> block of settings.json, restart the session, and send the prompt below. Expected: three teammates appear in the agent panel below the input box; arrow keys select one, Enter drops you into its session for a direct conversation; when they're done, have the lead merge the three reviews. Note: agents showing up in the panel doesn't mean you got a team (subagents share the same panel) — if Claude used subagents, explicitly ask again for an agent team.
+<pre class="prompt"><code>Spawn three teammates to review this PR in parallel:
+- one looks only at security risks
+- one looks only at performance impact
+- one looks only at test coverage
+Have each review independently and report back to you, then merge their findings into one review.</code></pre></li>
+    </ol>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>You can explain, without notes, how subagents, agent teams, and workflows differ on "who decides the next step" and "where intermediate results live", with one fitting use case for each.</li>
+      <li>You've completed a <code>/deep-research</code> run and drilled down to an individual agent's prompt and result in the <code>/workflows</code> view.</li>
+      <li>You've had Claude write a workflow from natural language, read the generated script (you can tell what <code>meta</code> / <code>agent()</code> / <code>pipeline()</code> / <code>.filter(Boolean)</code> each do), and saved it as your own slash command.</li>
+      <li>You can name two cost guardrails: the thresholds that trigger the Large workflow warning, and the default size guideline tier.</li>
+      <li>Self-test: you need to migrate 200 component files from styled-components to Tailwind — which mechanism, and why not an agent team? (Reference answer: a workflow — the files are independent of each other and workers don't need to talk, <code>pipeline()</code> fan-out is a natural fit, and the orchestration is savable, re-runnable, and resumable after interruption; an agent team's value lies in teammates communicating and challenging each other, which buys nothing here — you'd just pay coordination overhead and higher token cost.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/agent-teams">Orchestrate teams of Claude Code sessions (agent-teams)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/workflows">Orchestrate subagents at scale with dynamic workflows (workflows)</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-11.html">Previous: D11 · Worktrees &amp; agent view</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-13.html">Next: D13 · Headless &amp; CI</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

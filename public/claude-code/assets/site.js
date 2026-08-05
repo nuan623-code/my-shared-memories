@@ -8,6 +8,16 @@
 (function () {
   'use strict';
 
+  /* ---- 界面语言:按 <html lang> 切换文案(en 页面复用同一份脚本) ---- */
+  var EN = (document.documentElement.lang || '').toLowerCase().indexOf('en') === 0;
+  var T = EN
+    ? { system: 'System', light: 'Light', dark: 'Dark', themeLabel: 'Theme',
+        copy: 'Copy', copied: 'Copied',
+        noHit: 'No matching tip. Try another keyword, or browse the clusters below.' }
+    : { system: '跟随系统', light: '浅色', dark: '深色', themeLabel: '主题切换',
+        copy: '复制', copied: '已复制',
+        noHit: '没有命中的 Tip。换个关键词试试,或浏览下面的分簇列表。' };
+
   /* ---- 主题三档切换 ---- */
   var KEY = 'cc-theme';
   function getMode() {
@@ -24,9 +34,9 @@
   function initThemeSwitch() {
     var host = document.getElementById('theme-switch');
     if (!host) return;
-    var modes = [['system', '跟随系统'], ['light', '浅色'], ['dark', '深色']];
+    var modes = [['system', T.system], ['light', T.light], ['dark', T.dark]];
     host.setAttribute('role', 'group');
-    host.setAttribute('aria-label', '主题切换');
+    host.setAttribute('aria-label', T.themeLabel);
     modes.forEach(function (m) {
       var b = document.createElement('button');
       b.type = 'button';
@@ -114,12 +124,13 @@
           .join(' ').toLowerCase();
         return terms.every(function (w) { return hay.indexOf(w) !== -1; });
       });
+      var base = EN ? '/en/claude-code/tips/' : '/claude-code/tips/';
       var html = hits.length
         ? '<ul class="tip-list">' + hits.map(function (t) {
-            return '<li><a href="/claude-code/tips/' + t.slug + '.html">' +
+            return '<li><a href="' + base + t.slug + '.html">' +
               '<span class="chip">' + t.cluster + '</span><span>' + t.title + '</span></a></li>';
           }).join('') + '</ul>'
-        : '<p class="no-hit">没有命中的 Tip。换个关键词试试,或浏览下面的分簇列表。</p>';
+        : '<p class="no-hit">' + T.noHit + '</p>';
       results.innerHTML = html;
       results.classList.add('on');
       clusters.classList.add('off');
@@ -132,13 +143,13 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'copy-btn';
-      btn.textContent = '复制';
+      btn.textContent = T.copy;
       btn.addEventListener('click', function () {
         var code = pre.querySelector('code');
-        var text = (code || pre).innerText.replace(/^复制\n?/, '');
+        var text = (code || pre).innerText.replace(new RegExp('^' + T.copy + '\\n?'), '');
         navigator.clipboard.writeText(text).then(function () {
-          btn.textContent = '已复制';
-          setTimeout(function () { btn.textContent = '复制'; }, 1600);
+          btn.textContent = T.copied;
+          setTimeout(function () { btn.textContent = T.copy; }, 1600);
         });
       });
       pre.appendChild(btn);

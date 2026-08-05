@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D7 · Skills · Claude Code Learning Hub</title>
+<meta name="description" content="A structured lesson on Claude Code Skills: SKILL.md structure and frontmatter, how to write descriptions that actually trigger, user/project/plugin-level locations, on-demand loading versus always-resident CLAUDE.md, and a minimum viable skill you can build in 30 minutes.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D7 · Skills · Claude Code Learning Hub">
+<meta property="og:description" content="SKILL.md structure, writing descriptions that trigger, where skills live, on-demand loading vs always-resident CLAUDE.md — plus a minimum viable skill hands-on.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-07.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-07.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-07.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-07.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-07.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-07.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D7</p>
+  <h1>D7 · Skills</h1>
+  <p>Distill the procedures and reference material you keep pasting into SKILL.md files Claude loads on demand: learn to write the structure, write the description, pick the location — and ship your first auto-triggering skill.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">A skill is a folder with an instruction manual: the manual (the description) stays resident in context so Claude can "find its way", while the body loads only when invoked. This lesson is based on official docs fetched 2026-08-05 (Claude Code 2.1.222 waterline).</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p><a href="/en/claude-code/course/day-04.html">D4</a> covered CLAUDE.md: fully resident, occupying context on every single request, so it should hold only short always-apply rules. But real work has another class of content — deploy checklists, API style guides, debugging runbooks — not needed every turn, yet needed in full when it is. That's exactly where Skills sit: <span class="badge badge-official">Official</span>the official docs explicitly advise that when you keep pasting the same set of instructions into conversations, or a section of CLAUDE.md has grown from "facts" into "procedure", it's time to extract it into a skill; a skill's body loads only when used, so long reference material costs almost no context while idle.</p>
+    <p>This lesson is also the foundation for the back half of the course: <a href="/en/claude-code/course/day-08.html">D8 Hooks</a> will contrast skills with "deterministic execution vs. model-interpreted execution"; <a href="/en/claude-code/course/day-10.html">D10 Subagents</a> uses the <code>context: fork</code> mentioned here; and the packaging-and-distribution story of <a href="/en/claude-code/course/day-14.html">D14 Plugins</a> ships skills as its main cargo. Skip this lesson and all three that follow are missing a piece of the puzzle.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>SKILL.md: frontmatter + body</h3>
+    <p><span class="badge badge-official">Official</span>Each skill is a directory whose entry file is always named <code>SKILL.md</code>, in two parts: the YAML frontmatter fenced by <code>---</code> tells Claude "when to use me", and the markdown body after it holds the instructions Claude executes when it's invoked. The directory name is the command name you type (<code>.claude/skills/deploy-staging/</code> → <code>/deploy-staging</code>). All frontmatter fields are optional; the docs recommend only <code>description</code> as a must-write:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Common field</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>description</code></td><td>What the skill does and when to use it. Claude relies on it to decide whether to auto-load; if omitted, the body's first paragraph is used instead</td></tr>
+        <tr><td><code>when_to_use</code></td><td>Extra trigger scenarios (trigger phrases, example requests), appended after the description; together the two are truncated at 1,536 characters in the listing</td></tr>
+        <tr><td><code>disable-model-invocation</code></td><td>Set <code>true</code> and only you can trigger it (good for side-effectful actions like deploy or commit)</td></tr>
+        <tr><td><code>user-invocable</code></td><td>Set <code>false</code> to hide it from the <code>/</code> menu; only Claude can use it (good for pure background knowledge)</td></tr>
+        <tr><td><code>allowed-tools</code></td><td>Tools usable without approval during the turn that invokes the skill; the grant clears when you send your next message</td></tr>
+        <tr><td><code>context: fork</code> + <code>agent</code></td><td>Run this skill in an isolated subagent (details in <a href="/en/claude-code/course/day-10.html">D10</a>)</td></tr>
+        <tr><td><code>paths</code></td><td>Glob patterns; auto-activates only when operations touch matching files</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>In the body you can receive arguments with <code>$ARGUMENTS</code> / <code>$0</code> and reference the skill's own scripts with <code>${CLAUDE_SKILL_DIR}</code>; there's also "dynamic context injection": <code>!`command`</code> executes before Claude sees the content, its output replacing the placeholder — so Claude receives real data, not the command itself. The docs advise keeping SKILL.md under 500 lines, splitting detailed material into companion files in the directory for Claude to read when needed.</p>
+
+    <h3>Triggering: the description is your only ad slot</h3>
+    <p><span class="badge badge-official">Official</span>At session start, only the name and description of every model-invocable skill enter context; Claude matches your request against those descriptions and loads the full text only on a hit. You can also type <code>/skill-name</code> to skip matching and force-load. Which means: <strong>how well the description is written directly decides whether the skill gets remembered</strong>.</p>
+    <figure>
+      <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Skill trigger flow: user input goes through description matching, a hit loads the full SKILL.md and executes; a miss leaves only the description in context; /skill-name skips matching and loads directly">
+        <rect class="svg-box-accent" x="12" y="36" width="128" height="48" rx="10"/>
+        <text class="svg-ink" x="76" y="65" text-anchor="middle" font-size="13">You send a message</text>
+        <line class="svg-line" x1="140" y1="60" x2="180" y2="60" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="178,55 188,60 178,65"/>
+        <rect class="svg-box" x="190" y="36" width="116" height="48" rx="10"/>
+        <text class="svg-ink" x="248" y="65" text-anchor="middle" font-size="13">Description match</text>
+        <text class="svg-ink-soft" x="331" y="30" text-anchor="middle" font-size="12">Hit</text>
+        <line class="svg-line" x1="306" y1="60" x2="344" y2="60" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="344,55 354,60 344,65"/>
+        <rect class="svg-box" x="356" y="36" width="180" height="48" rx="10"/>
+        <text class="svg-ink" x="446" y="65" text-anchor="middle" font-size="13">Load full SKILL.md</text>
+        <line class="svg-line" x1="536" y1="60" x2="572" y2="60" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="570,55 580,60 570,65"/>
+        <rect class="svg-box" x="582" y="36" width="126" height="48" rx="10"/>
+        <text class="svg-ink" x="645" y="65" text-anchor="middle" font-size="13">Execute instructions</text>
+        <line class="svg-line" x1="248" y1="84" x2="248" y2="138" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="243,136 248,146 253,136"/>
+        <text class="svg-ink-soft" x="230" y="166" text-anchor="middle" font-size="12">Miss: description stays, body not loaded</text>
+        <rect class="svg-box" x="356" y="178" width="180" height="46" rx="10"/>
+        <text class="svg-ink" x="446" y="206" text-anchor="middle" font-size="13">/skill-name direct call</text>
+        <line class="svg-line" x1="446" y1="178" x2="446" y2="98" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="441,100 446,90 451,100"/>
+        <text class="svg-ink-soft" x="454" y="142" font-size="12">Skips matching, loads directly</text>
+      </svg>
+      <figcaption>A skill's two trigger paths: Claude auto-loads it on a description match, or you load it manually with /skill-name.</figcaption>
+    </figure>
+    <p>So how do you write a description that hits? Direction from the official troubleshooting guide: <span class="badge badge-official">Official</span>include the keywords a user would naturally say, and put the most central use cases first (overly long descriptions get truncated); when a skill won't trigger, first confirm it appears in the answer to "What skills are available?", then rephrase your ask closer to the description, or just invoke it with <code>/skill-name</code>. <span class="badge badge-site">Our take</span>If you usually talk to Claude Code in Chinese, write your Chinese trigger phrases into the description too — matching is semantic, but putting the words you'd actually say into the description verbatim gives the steadiest hit rate.</p>
+    <p>One sneaky pitfall: <span class="badge badge-official">Official</span>when the frontmatter YAML is broken, Claude Code loads the body with "empty metadata" — manual <code>/skill-name</code> invocation still works fine, but Claude has no description to match against, so auto-triggering fails completely. Start with <code>--debug</code> to see the parse error. So "works manually, never triggers automatically" is almost always a description missing keywords, or broken YAML.</p>
+
+    <h3>Where to put it: three levels and name collisions</h3>
+    <p><span class="badge badge-official">Official</span>Where a skill lives decides who can use it:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Level</th><th>Path</th><th>Scope</th></tr></thead>
+      <tbody>
+        <tr><td>Personal</td><td><code>~/.claude/skills/&lt;skill-name&gt;/SKILL.md</code></td><td>All of your projects</td></tr>
+        <tr><td>Project</td><td><code>.claude/skills/&lt;skill-name&gt;/SKILL.md</code></td><td>This project only (commit it to the repo to share with the team)</td></tr>
+        <tr><td>Plugin</td><td><code>&lt;plugin&gt;/skills/&lt;skill-name&gt;/SKILL.md</code></td><td>Wherever the plugin is enabled</td></tr>
+        <tr><td>Enterprise</td><td>Delivered via managed settings</td><td>Every user in the organization</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>On a name collision, levels override: enterprise &gt; personal &gt; project, and a same-named skill at any level overrides the built-in bundled skill (drop a <code>code-review</code> in your project and it replaces the bundled <code>/code-review</code>). Plugin skills use the <code>plugin-name:skill-name</code> namespace, so they never collide. The skills directory is watched live: edits to SKILL.md take effect on the spot, no session restart needed (except when creating a brand-new top-level skills directory). This "project level commits with the repo, plugin level packages for distribution" path is the doorway into <a href="/en/claude-code/course/day-14.html">D14 Plugins</a>.</p>
+
+    <h3>Versus CLAUDE.md: resident vs. on-demand (continuing D4)</h3>
+    <figure>
+      <svg viewBox="0 0 700 215" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context-loading comparison: CLAUDE.md stays fully resident on every request; a skill keeps only its name and description resident, loading the full text only when invoked">
+        <text class="svg-ink-soft" x="160" y="16" text-anchor="middle" font-size="12">Session start</text>
+        <text class="svg-ink-soft" x="430" y="16" text-anchor="middle" font-size="12">You or Claude invoke the skill</text>
+        <line class="svg-line" x1="160" y1="24" x2="160" y2="215" stroke-width="1" stroke-dasharray="4 4"/>
+        <line class="svg-line" x1="430" y1="24" x2="430" y2="215" stroke-width="1" stroke-dasharray="4 4"/>
+        <text class="svg-ink" x="12" y="81" font-size="13">CLAUDE.md</text>
+        <rect class="svg-box-accent" x="160" y="58" width="510" height="38" rx="8"/>
+        <text class="svg-ink" x="415" y="82" text-anchor="middle" font-size="13">Fully resident: counted in context on every request</text>
+        <text class="svg-ink" x="12" y="151" font-size="13">Skill</text>
+        <rect class="svg-box" x="160" y="128" width="250" height="38" rx="8"/>
+        <text class="svg-ink" x="285" y="152" text-anchor="middle" font-size="13">Name + description only (light)</text>
+        <rect class="svg-box-accent" x="430" y="128" width="240" height="38" rx="8"/>
+        <text class="svg-ink" x="550" y="152" text-anchor="middle" font-size="13">Full text loads on invocation</text>
+      </svg>
+      <figcaption>The same content: in CLAUDE.md it's a fixed cost every turn; as a skill it idles for the price of one description.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>The official division of labor: short rules that "every session must know" (build commands, coding conventions, never-do rules) go in CLAUDE.md, kept under 200 lines; occasionally-needed reference material and triggerable workflows become skills. Two details worth remembering: first, once a skill's full text is invoked it stays in the conversation as a message until the session ends, so keep the body disciplined too — it's not a dumping ground; second, with <code>disable-model-invocation: true</code> not even the description enters context, making manually-triggered-only skills zero idle cost. <span class="badge badge-site">Our take</span>Rule of thumb: content that's "facts and rules" goes in CLAUDE.md, "procedures and reference" goes in a skill; the moment a CLAUDE.md section sprouts steps 1, 2, 3, that's its signal to move out.</p>
+
+    <h3>Slash commands are skills</h3>
+    <p><span class="badge badge-official">Official</span>Custom commands have been folded into the skill system: <code>.claude/commands/deploy.md</code> and <code>.claude/skills/deploy/SKILL.md</code> both create <code>/deploy</code>, with identical behavior; old commands files keep working. Skills are the superset, adding three things: a whole directory of companion files, frontmatter controlling "who can invoke", and being auto-loaded by Claude on description match. The built-in bundled skills (<code>/code-review</code>, <code>/debug</code>, <code>/loop</code>, etc.) run on the same machinery. By default both you and Claude can invoke any skill; two switches turn that into "you only" (<code>disable-model-invocation: true</code>, for actions like deploy where you control the timing) or "Claude only" (<code>user-invocable: false</code>, for background knowledge that isn't an action).</p>
+
+    <div class="callout"><span class="callout-label">Choosing tools</span>For picking among the five — skill, hook, MCP, subagent, plugin — this site has a dedicated side-by-side: <a href="/en/claude-code/tips/skill-hook-mcp-subagent-plugin.html">Tip E1 · Skill / hook / MCP / subagent / plugin: how to choose</a>. For now, remember one line: "want Claude to do it with understanding" → skill; "must happen exactly the same every time" → hook (<a href="/en/claude-code/course/day-08.html">D8</a> expands).</div>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Goal: build a minimal "summarize uncommitted changes" skill and verify three things — auto-trigger, manual invocation, on-demand loading. About 20 minutes; you'll need a git project.</p>
+    <ol>
+      <li>Create the skill directory (personal level, available in all projects):
+        <pre><code>mkdir -p ~/.claude/skills/summarize-changes</code></pre>
+        Expected: directory created. Note: if <code>~/.claude/skills/</code> is brand-new and a Claude Code session is already open, restart the session so it watches the new directory; edits after that all take effect immediately.</li>
+      <li>Save the following as <code>~/.claude/skills/summarize-changes/SKILL.md</code> (structure from the official getting-started example, with the description worded to match how you'd actually ask):
+        <pre><code>---
+name: summarize-changes
+description: Summarizes the current uncommitted git changes and flags anything risky. Use when the user asks "what did I change", wants this round of changes reviewed, needs a commit message, or asks you to review the diff.
+---
+
+## Current changes
+
+!`git diff HEAD`
+
+## Instructions
+
+Summarize the changes above in two or three bullet points, then list the risks you notice,
+such as missing error handling, hard-coded values, or tests that need updating.
+If the diff is empty, just say there are no uncommitted changes.</code></pre>
+        The <code>!`git diff HEAD`</code> is dynamic context injection: when the skill is invoked, the command runs first and the real diff is spliced into the instructions before they reach Claude.</li>
+      <li>In any git project, casually change a file, start <code>claude</code>, and test auto-triggering first — with a natural question close to the description:
+        <pre class="prompt"><code>What did I just change? Summarize this round of changes for me and point out any risks.</code></pre>
+        Expected: the UI shows the skill loading, and Claude gives a two-or-three-point summary plus a risk list based on the real diff — not guesswork.</li>
+      <li>Now test manual invocation: type <code>/summarize-changes</code>. Expected: matching is skipped, and you get the same structured output directly.</li>
+      <li>Verify on-demand loading: ask Claude "What skills are available?" to confirm the skill is registered; then recall <code>/context</code> from D1 — the Skills line shows only the cost of the description list; the full text only entered context when it was invoked just now.</li>
+      <li>One step further: add a <code>disable-model-invocation: true</code> line to the frontmatter, save (no restart needed), and ask the step-3 question again. Expected: no more auto-trigger (the description has been removed from context), but <code>/summarize-changes</code> still works. Delete the line to restore things once you've seen the effect.</li>
+    </ol>
+    <p>Finally, put this capability to work on something real — have Claude Code distill one of your recurring procedures into a project-level skill:</p>
+    <pre class="prompt"><code>Turn my pre-release checklist into a project-level skill:
+- Create .claude/skills/release-check/SKILL.md
+- Write a description that spells out the trigger scenarios, including the keywords I actually say (release, ship, go live)
+- List the check steps in the body, each one verifiable
+- Set disable-model-invocation: true so only I can trigger it manually with /release-check
+When it's written, show me the file contents and explain what each frontmatter field does.</code></pre>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>Without notes, you can describe SKILL.md's two-part structure, and the role the description plays "at session start" versus "at trigger time".</li>
+      <li>You can draw (or talk through) this lesson's first diagram: the difference between the auto-match path and the <code>/skill-name</code> path.</li>
+      <li>You can explain the context-cost difference between the same content living in CLAUDE.md versus as a skill, and what each is suited to hold.</li>
+      <li>All 6 hands-on steps completed: you've seen auto-trigger, manual invocation, and the effect of <code>disable-model-invocation</code> with your own eyes.</li>
+      <li>Self-check: a skill runs fine via <code>/name</code>, but Claude never uses it on its own. Name the two most likely causes and their fixes. (Hint: one is in the description's content, one is in the frontmatter's syntax or switches.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/skills.md" rel="noopener">code.claude.com/docs/en/skills.md</a> (full Skills reference: SKILL.md structure, frontmatter, locations, triggering and troubleshooting) · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/features-overview.md" rel="noopener">code.claude.com/docs/en/features-overview.md</a> (the extension landscape: how Skills sit against CLAUDE.md / hooks / MCP / subagents, with context-cost comparison) · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-06.html">Previous: D6 · Checkpoints, rewind and session management</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-08.html">Next: D8 · Hooks</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

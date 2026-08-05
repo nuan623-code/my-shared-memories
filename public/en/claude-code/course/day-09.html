@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D9 · MCP · Claude Code Learning Hub</title>
+<meta name="description" content="What the MCP protocol is, the stdio/HTTP/SSE transports, the claude mcp command and its three scopes, authentication, and the context cost of MCP tools.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D9 · MCP · Claude Code Learning Hub">
+<meta property="og:description" content="What the MCP protocol is, the stdio/HTTP/SSE transports, the claude mcp command and its three scopes, authentication, and the context cost of MCP tools.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-09.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-09.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-09.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-09.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-09.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-09.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D9</p>
+  <h1>D9 · MCP</h1>
+  <p>Wire external tools into Claude Code with the Model Context Protocol: the three transports, the claude mcp command, scopes and authentication — and how much context these tools cost.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">Everything Claude does happens through tools, but the built-in set only covers local files, the shell, and the web. MCP lets you turn issue trackers, databases, browsers, and monitoring systems into tools Claude can call directly. This lesson covers the protocol itself, connecting and managing servers, and the price you pay.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p>As <a href="/en/claude-code/course/day-01.html">D1</a> explained, at every step of the agentic loop the model is picking a tool from the tool list to execute. The longer that list, the larger Claude's radius of action. The last two lessons — <a href="/en/claude-code/course/day-07.html">Skills</a> and <a href="/en/claude-code/course/day-08.html">Hooks</a> — solved knowledge injection and workflow interception respectively, but neither gave Claude any new ability to act. That is exactly the gap MCP fills: wrap an external system as new tools and plug them into that list.</p>
+    <p>With this lesson done, assigning tools to subagents in <a href="/en/claude-code/course/day-10.html">D10 Subagents</a> and plugins bundling MCP servers for distribution in <a href="/en/claude-code/course/day-14.html">D14 Plugins</a> have a foundation to stand on. Skip it, and every tool name prefixed <code>mcp__...</code> that shows up later will leave you wondering where it came from.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>What MCP is</h3>
+    <p><span class="badge badge-official">Official</span>MCP (Model Context Protocol) is an open standard that specifies how AI applications connect to external tools. Tools are provided by an <strong>MCP server</strong> — a server can be a process running on your machine or a service hosted in the cloud; Claude Code connects to them as a client, and once connected, the server's tools, resources, and prompts all become available in your session.</p>
+    <p><span class="badge badge-site">Our take</span>An analogy: MCP is to AI tools what USB-C is to peripherals. Claude Code only has to implement one "port" (the protocol); any server that speaks the protocol plugs in and just works — no bespoke integration per service. When should you connect a server? The official heuristic is genuinely useful: <span class="badge badge-official">Official</span>when you catch yourself repeatedly copy-pasting data from another tool (issue contents, monitoring dashboard numbers, database query results) into the conversation, it's time to wire that system up as a server and let Claude read and write it directly.</p>
+
+    <h3>Transports: stdio, HTTP, SSE (and WebSocket)</h3>
+    <p><span class="badge badge-official">Official</span>Servers come in several transports, grouped by where they run and how they communicate:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>transport</th><th>Where it runs</th><th>How to add it</th><th>When to use it</th></tr></thead>
+      <tbody>
+        <tr><td><code>stdio</code></td><td>Local subprocess, launched by Claude Code</td><td>Default transport, <code>claude mcp add &lt;name&gt; -- &lt;command&gt;</code></td><td>Needs local resources: browsers, the filesystem, database sockets</td></tr>
+        <tr><td><code>http</code></td><td>Remote URL, hosted in the cloud</td><td><code>--transport http</code>, supports OAuth login</td><td>Recommended for remote services (Notion, Sentry, GitHub, ...)</td></tr>
+        <tr><td><code>sse</code></td><td>Remote URL</td><td><code>--transport sse</code></td><td><strong>Deprecated</strong>; only for legacy services that expose SSE endpoints only</td></tr>
+        <tr><td><code>ws</code></td><td>Remote URL, persistent bidirectional connection</td><td>Only configurable via <code>.mcp.json</code> or <code>add-json</code>; no OAuth</td><td>When the server needs to push events to Claude</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>The <code>--</code> separator in stdio commands matters: everything before it is Claude Code's own options (<code>--transport</code>, <code>--env</code>, <code>--scope</code>); everything after it is passed through verbatim as the server's launch command. Drop the <code>--</code> and the server's own flags get misparsed as Claude Code options.</p>
+
+    <figure>
+      <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Topology: Claude Code connects over MCP to three kinds of servers — stdio, HTTP, and SSE/WebSocket">
+        <rect class="svg-box-accent" x="20" y="110" width="180" height="120" rx="10"/>
+        <text class="svg-ink" x="110" y="145" text-anchor="middle" font-size="15" font-weight="600">Claude Code</text>
+        <text class="svg-ink-soft" x="110" y="170" text-anchor="middle" font-size="12">agentic loop (client)</text>
+        <text class="svg-ink-soft" x="110" y="192" text-anchor="middle" font-size="12">tool list: built-in tools</text>
+        <text class="svg-ink-soft" x="110" y="212" text-anchor="middle" font-size="12">+ mcp__server__tool</text>
+
+        <rect class="svg-box" x="440" y="26" width="220" height="72" rx="10"/>
+        <text class="svg-ink" x="550" y="56" text-anchor="middle" font-size="14">stdio server</text>
+        <text class="svg-ink-soft" x="550" y="80" text-anchor="middle" font-size="12">local subprocess (command + args)</text>
+
+        <rect class="svg-box" x="440" y="134" width="220" height="72" rx="10"/>
+        <text class="svg-ink" x="550" y="164" text-anchor="middle" font-size="14">HTTP server</text>
+        <text class="svg-ink-soft" x="550" y="188" text-anchor="middle" font-size="12">remote URL, OAuth supported</text>
+
+        <rect class="svg-box" x="440" y="242" width="220" height="72" rx="10"/>
+        <text class="svg-ink" x="550" y="272" text-anchor="middle" font-size="14">SSE (deprecated) / WebSocket</text>
+        <text class="svg-ink-soft" x="550" y="296" text-anchor="middle" font-size="12">legacy compatibility / event push</text>
+
+        <line class="svg-line" x1="200" y1="140" x2="432" y2="62" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="431,57 441,62 433,68"/>
+        <line class="svg-line" x1="200" y1="170" x2="432" y2="170" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="432,165 442,170 432,175"/>
+        <line class="svg-line" x1="200" y1="200" x2="432" y2="278" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="433,272 441,278 431,283"/>
+
+        <text class="svg-ink-soft" x="316" y="152" text-anchor="middle" font-size="12">tools / resources / prompts</text>
+        <text class="svg-ink-soft" x="316" y="330" text-anchor="middle" font-size="12">which servers connect: ~/.claude.json (local / user) and repo-root .mcp.json (project)</text>
+      </svg>
+      <figcaption>Claude Code, as an MCP client, connects to several servers at once; each server's tools join the tool list under the name <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>.</figcaption>
+    </figure>
+
+    <h3>claude mcp: add, manage, remove</h3>
+    <p><span class="badge badge-official">Official</span>Server management lives under <code>claude mcp</code>, run in your terminal (not inside a claude session); inside a session, use the <code>/mcp</code> panel to check status, authenticate, and temporarily toggle a server on or off:</p>
+    <pre><code># Add a remote HTTP server
+claude mcp add --transport http notion https://mcp.notion.com/mcp
+
+# Add a local stdio server (everything after -- is the launch command)
+claude mcp add playwright -- npx -y @playwright/mcp@latest
+
+# With env vars / with a static token
+claude mcp add --env AIRTABLE_API_KEY=YOUR_KEY --transport stdio airtable -- npx -y airtable-mcp-server
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/ --header "Authorization: Bearer &lt;token&gt;"
+
+# List, inspect, remove
+claude mcp list          # list every server with its connection status
+claude mcp get notion    # details and scope for a single server
+claude mcp remove notion</code></pre>
+    <p><span class="badge badge-official">Official</span>When <code>claude mcp add</code> prints <code>Added ...</code>, that only means the config was written — not that the connection works. Check the real status with <code>claude mcp list</code>: <code>✔ Connected</code>, <code>! Needs authentication</code>, <code>✘ Failed to connect</code>, and so on. A stdio server may show as failed on its first check while <code>npx</code> is still downloading — wait a moment and retry.</p>
+
+    <h3>Scope: where the config lives, who gets it</h3>
+    <p><span class="badge badge-official">Official</span>When adding a server, <code>--scope</code> decides where the configuration belongs — three levels:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>scope</th><th>Stored in</th><th>Applies to</th><th>Team-shared</th></tr></thead>
+      <tbody>
+        <tr><td><code>local</code> (default)</td><td>Under the current project's entry in <code>~/.claude.json</code></td><td>Just you, this project only</td><td>No</td></tr>
+        <tr><td><code>project</code></td><td><code>.mcp.json</code> at the repo root</td><td>Everyone on this project</td><td>Yes — committed to the repo</td></tr>
+        <tr><td><code>user</code></td><td>Top-level <code>mcpServers</code> in <code>~/.claude.json</code></td><td>Just you, every project</td><td>No</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>Two rules that trip people up. One: project-scope servers prompt for approval before first use, for safety (a cloned repo must not get to start processes on your machine without your consent); if you declined once and want another chance, run <code>claude mcp reset-project-choices</code>. Two: when the same server name is defined in multiple scopes, the <strong>entire</strong> definition is taken from the highest-priority scope — local &gt; project &gt; user &gt; plugins &gt; claude.ai connectors — fields are never merged across scopes. A server's scope is fixed once added; to change it, remove and re-add.</p>
+
+    <h3>Authentication: OAuth and tokens</h3>
+    <p><span class="badge badge-official">Official</span>Many cloud servers (Sentry, Linear, Notion, ...) use OAuth 2.0: first <code>claude mcp add</code> it — at this point <code>list</code> shows <code>! Needs authentication</code> — then run <code>/mcp</code> inside a session, select the server, and choose Authenticate to complete login in the browser; or run <code>claude mcp login &lt;name&gt;</code> straight from the terminal (since v2.1.186). Tokens are stored securely and refreshed automatically; <code>claude mcp logout &lt;name&gt;</code> clears them. Services that authenticate with a static token (like a GitHub PAT) take <code>--header "Authorization: Bearer &lt;token&gt;"</code> at add time. Also, connectors you added and logged into on the claude.ai web app appear automatically in the <code>/mcp</code> list when you log into Claude Code with the same subscription account.</p>
+
+    <h3>How tools enter the tool list, and what they cost in context</h3>
+    <p><span class="badge badge-official">Official</span>Once a server connects, each of its tools joins Claude's tool list under the name <code>mcp__&lt;server&gt;__&lt;tool&gt;</code> (for example <code>mcp__github__get_issue</code>); permission rules, hooks, and subagent tool configs all reference this full name. The first time Claude calls a new tool, it asks for your authorization.</p>
+    <p><span class="badge badge-official">Official</span>On cost: every connected server's tool names and server instructions are loaded into the context window of <strong>every single</strong> session. The good news is that tool search is on by default — full tool definitions are deferred and loaded on demand via search, so connecting several servers hits your context far less than it used to; on top of that, a single MCP tool output over 10,000 tokens triggers a warning, with a default cap of 25,000 tokens (tunable via <code>MAX_MCP_OUTPUT_TOKENS</code>). <span class="badge badge-site">Our take</span>But "smaller impact" is not "free": tool names, instructions, and the output of every real call keep occupying the same finite window <a href="/en/claude-code/course/day-02.html">D2</a> described. For diagnosing and pruning a session made slow and dumb by a pile of servers, see the tip <a href="/en/claude-code/tips/too-many-mcp-servers.html">"What happens when you install too many MCP servers"</a>.</p>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Use the auth-free docs-search server from the official tutorial to walk the full add → verify → use → remove loop; it fits in 30 minutes:</p>
+    <ol>
+      <li>Register the server in your terminal (not inside a claude session): expect it to print <code>Added HTTP MCP server claude-code-docs ...</code> plus a <code>File modified:</code> line naming the config file it wrote.</li>
+      <li>Run <code>claude mcp list</code>: expect the server to show <code>✔ Connected</code>.</li>
+      <li>Run <code>claude</code> to start a session and paste the prompt below. Expected: the first call pops a tool-authorization prompt; after you approve, the tool calls in the answer carry the <code>claude-code-docs</code> server name — that is your evidence the answer came from the MCP server rather than model memory.</li>
+      <li>Run <code>claude mcp get claude-code-docs</code>: expect to see it registered in local scope. To make it available across all your projects, <code>remove</code> it and re-add with <code>--scope user</code>.</li>
+      <li>Clean up (optional): <code>claude mcp remove claude-code-docs</code>; expect a <code>Removed ...</code> confirmation.</li>
+    </ol>
+    <pre><code>claude mcp add --transport http claude-code-docs https://code.claude.com/docs/mcp
+claude mcp list
+claude
+# ...after experimenting in the session...
+claude mcp remove claude-code-docs</code></pre>
+    <pre class="prompt"><code>Use the claude-code-docs MCP server to look up what the MCP_TIMEOUT environment
+variable does, and tell me which tool call you used to get the answer.</code></pre>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>Without notes, you can explain what kind of protocol MCP is, what "server" and "client" each refer to, and the three kinds of things a server can provide (tools / resources / prompts).</li>
+      <li>You can state the essential difference between the stdio and HTTP transports (local subprocess vs remote URL), and the current status of SSE (deprecated).</li>
+      <li>You can sketch where each of the three scopes is stored and who it applies to, and explain why project scope prompts for approval.</li>
+      <li>All five hands-on steps ran end to end, and you can point at the exact spot in the session output that proves the answer came from the MCP server.</li>
+      <li>Self-check: the same server name is defined both in your local scope and in the repo's <code>.mcp.json</code> — which config do you connect to? What about a teammate who clones the repo? (Answer: you get the local one — local outranks project, the whole definition wins, fields don't merge; your teammate's machine has no entry in their <code>~/.claude.json</code>, so they connect to the <code>.mcp.json</code> one — and must approve it before first use.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/mcp-quickstart.md">Connect to MCP servers (MCP quickstart)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/mcp.md">Connect Claude Code to tools via MCP (MCP reference)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/permissions.md">Permissions (mcp__server__tool naming and permission rules)</a>, fetched 2026-08-05.</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-08.html">Previous: D8 · Hooks</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-10.html">Next: D10 · Subagents</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

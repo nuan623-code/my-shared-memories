@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D4 · CLAUDE.md &amp; rules · Claude Code Learning Hub</title>
+<meta name="description" content="CLAUDE.md's four levels and loading rules, what belongs in it and what doesn't, and how .claude/rules/ splits instructions into multiple files that activate per path.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-04.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-04.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-04.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-04.html">
+<meta property="og:title" content="D4 · CLAUDE.md &amp; rules · Claude Code Learning Hub">
+<meta property="og:description" content="CLAUDE.md's levels and loading rules, what to write and what to leave out, and how .claude/rules/ activates instructions per path.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-04.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-04.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D4</p>
+  <h1>D4 · CLAUDE.md &amp; rules</h1>
+  <p>CLAUDE.md is the persistent instruction file every session carries with it. This lesson covers its levels and loading rules, what to write and what to leave out, and how to split instructions by path with .claude/rules/.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">The one-sentence version: CLAUDE.md lives in context permanently, so "short and specific" beats "long and comprehensive" by a wide margin; conventions that apply to only some files belong in rules files with <code>paths:</code>, loaded on demand.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p>In <a href="/en/claude-code/course/day-01.html">D1</a> we saw that every turn of Claude Code's agentic loop starts from the same context, and CLAUDE.md is the fixed, present-in-every-session part of it — loaded at session start and carried on every turn after. <a href="/en/claude-code/course/day-02.html">D2</a> then did the math: every line of permanent context keeps costing tokens. Connect the two and you get this lesson's central question: where should this always-present file live, what should it say, and how should it be split once it grows long.</p>
+    <p>It also paves the way forward: <a href="/en/claude-code/course/day-07.html">Skills in D7</a> are the other half — "loaded on demand". CLAUDE.md and rules without <code>paths:</code> sit in context permanently, while skills load only when invoked; telling these two classes apart is the basis of any configuration setup. And <a href="/en/claude-code/course/day-08.html">Hooks in D8</a> handle what CLAUDE.md cannot: CLAUDE.md is advice, hooks are enforcement.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>What CLAUDE.md is: persistent instructions you write</h3>
+    <p><span class="badge badge-official">Official</span>Every Claude Code session starts from a blank context. Two mechanisms carry knowledge across sessions: CLAUDE.md (instructions you write) and auto memory (notes Claude keeps for itself). Both load at the start of every session. This lesson focuses on the former; for auto memory, three facts are enough for now: it is on by default, it lives in <code>~/.claude/projects/&lt;project&gt;/memory/</code>, and each session loads only the first 200 lines or 25KB of its index, MEMORY.md.</p>
+    <p><span class="badge badge-official">Official</span>The key framing: both kinds of memory are "context", not "enforced configuration". Claude reads them and does its best to follow them, but nothing hard-constrains it — to block an action no matter what, use a PreToolUse hook (expanded in D8). The more specific and concise the instructions, the more reliably they are followed.</p>
+
+    <h3>Four levels, one concatenation order</h3>
+    <p><span class="badge badge-official">Official</span>CLAUDE.md can live in four places, scoped from widest to narrowest. At load time they are concatenated into context in that wide-to-narrow order, so project instructions appear after user instructions; the official note on the global CLAUDE.md says the same: both are present, and when instructions conflict, the project level wins.</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Level</th><th>Location</th><th>Who it serves</th><th>In version control?</th></tr></thead>
+      <tbody>
+        <tr><td>Managed policy</td><td>macOS <code>/Library/Application Support/ClaudeCode/CLAUDE.md</code> (Linux/WSL and Windows have their own paths)</td><td>The whole organization, pushed by IT; individuals cannot opt out</td><td>Managed by IT</td></tr>
+        <tr><td>User</td><td><code>~/.claude/CLAUDE.md</code></td><td>You, across all projects</td><td>No</td></tr>
+        <tr><td>Project</td><td><code>./CLAUDE.md</code> or <code>./.claude/CLAUDE.md</code></td><td>The team, shared with the source</td><td>Yes, committed to git</td></tr>
+        <tr><td>Project-local</td><td><code>./CLAUDE.local.md</code></td><td>You, this project only</td><td>No — add it to <code>.gitignore</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Loading rules: everything upward, on demand downward</h3>
+    <p><span class="badge badge-official">Official</span>At startup, Claude Code walks from the current working directory all the way up to the filesystem root, loading every CLAUDE.md and CLAUDE.local.md it passes. All files are <strong>concatenated</strong> into context, never overriding one another: files higher up the directory tree come first, files closer to the working directory come later; within one directory, CLAUDE.local.md comes after CLAUDE.md. Subdirectories work the other way around: a CLAUDE.md below the working directory is not loaded at startup — it is brought in on demand once Claude actually reads a file in that directory.</p>
+    <figure>
+      <svg viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CLAUDE.md level-loading diagram: on the left, the managed policy, user level, ancestor directories, project root, and local file are concatenated in order at startup; on the right, subdirectory CLAUDE.md files and rules with paths load on demand">
+        <text class="svg-ink" x="24" y="30" font-size="14" font-weight="600">Loaded at session start (in this order)</text>
+        <rect class="svg-box" x="24" y="46" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="72" font-size="13">Managed policy CLAUDE.md</text>
+        <line class="svg-line" x1="189" y1="88" x2="189" y2="99" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,99 194,99 189,106"/>
+        <rect class="svg-box" x="24" y="106" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="132" font-size="13">User-level ~/.claude/CLAUDE.md &amp; rules/</text>
+        <line class="svg-line" x1="189" y1="148" x2="189" y2="159" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,159 194,159 189,166"/>
+        <rect class="svg-box" x="24" y="166" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="192" font-size="13">Ancestor-directory CLAUDE.md (monorepo)</text>
+        <line class="svg-line" x1="189" y1="208" x2="189" y2="219" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,219 194,219 189,226"/>
+        <rect class="svg-box-accent" x="24" y="226" width="330" height="56" rx="9"/>
+        <text class="svg-ink" x="40" y="248" font-size="13">Project root CLAUDE.md / .claude/CLAUDE.md</text>
+        <text class="svg-ink-soft" x="40" y="270" font-size="12">+ rules without paths: in .claude/rules/</text>
+        <line class="svg-line" x1="189" y1="282" x2="189" y2="293" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,293 194,293 189,300"/>
+        <rect class="svg-box" x="24" y="300" width="330" height="42" rx="9"/>
+        <text class="svg-ink" x="40" y="326" font-size="13">CLAUDE.local.md (personal, not committed)</text>
+        <text class="svg-ink-soft" x="24" y="366" font-size="12">Lower rows are narrower in scope and read later in the concatenation</text>
+        <line class="svg-line" x1="380" y1="24" x2="380" y2="342" stroke-width="1" stroke-dasharray="4 4"/>
+        <text class="svg-ink" x="402" y="30" font-size="14" font-weight="600">Loaded on demand (no startup cost)</text>
+        <rect class="svg-box" x="402" y="46" width="254" height="58" rx="9"/>
+        <text class="svg-ink" x="418" y="70" font-size="13">CLAUDE.md in subdirectories</text>
+        <text class="svg-ink-soft" x="418" y="90" font-size="12">Loads when Claude reads files there</text>
+        <rect class="svg-box" x="402" y="124" width="254" height="58" rx="9"/>
+        <text class="svg-ink" x="418" y="148" font-size="13">Rules files with paths:</text>
+        <text class="svg-ink-soft" x="418" y="168" font-size="12">Load when a glob-matching file is read</text>
+        <text class="svg-ink-soft" x="402" y="214" font-size="12">They enter context only once triggered —</text>
+        <text class="svg-ink-soft" x="402" y="232" font-size="12">ideal for conventions scoped to some files</text>
+      </svg>
+      <figcaption>CLAUDE.md level loading: the left column is fully concatenated into context at session start; the right column loads only when triggered.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>A few easily missed details: block-level HTML comments (<code>&lt;!-- … --&gt;</code>) in CLAUDE.md are stripped before injection into context, so they make free human-facing maintenance notes that cost no tokens; a file can pull in other files with the <code>@path/to/import</code> syntax, and imported files are expanded and loaded at startup too (relative paths resolve against the containing file, up to 4 levels of recursion; wrapping the reference in backticks suppresses the import); an import in a project file that points outside the working directory triggers a confirmation dialog the first time. Also, Claude Code reads CLAUDE.md, not AGENTS.md — for repos that already have an AGENTS.md, the official advice is a one-line <code>@AGENTS.md</code> import in CLAUDE.md, or simply a symlink.</p>
+
+    <h3>What belongs in it, and what doesn't</h3>
+    <p><span class="badge badge-official">Official</span>The test is a single question: for every line, ask "if I delete this, will Claude make a mistake because of it?" If not, delete it. The official trade-off table:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Write this</th><th>Not this</th></tr></thead>
+      <tbody>
+        <tr><td>Build/test/deploy commands Claude cannot guess</td><td>Anything inferable from the code (directory layout, dependency lists)</td></tr>
+        <tr><td>Code style rules that differ from the defaults</td><td>Universal language conventions (Claude already knows them)</td></tr>
+        <tr><td>How to run tests and the preferred test runner</td><td>Detailed API documentation (link to it instead)</td></tr>
+        <tr><td>Repo etiquette: branch naming, PR conventions</td><td>Information that changes frequently</td></tr>
+        <tr><td>Project-specific architecture decisions</td><td>Long explanations and tutorials</td></tr>
+        <tr><td>Environment quirks (required environment variables)</td><td>File-by-file codebase descriptions</td></tr>
+        <tr><td>Common pitfalls and unintuitive behavior</td><td>Unverifiable platitudes like "write clean code"</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>Size target: keep a single CLAUDE.md under 200 lines. An overlong file still loads in full, but it crowds the context and lowers compliance. Three writing principles: <strong>specific and verifiable</strong> ("indent with 2 spaces" beats "format properly"), <strong>structured</strong> (headings plus lists, not long paragraphs), and <strong>conflict-free</strong> (when two rules clash, Claude may follow either one). When splitting, note that <code>@import</code> only solves organization — imported files still load at startup and save no context; what actually saves context is the path-scoped rules below.</p>
+
+    <h3>Rules: split instructions into files, activated per path</h3>
+    <p><span class="badge badge-official">Official</span>Once the project grows, split instructions into the <code>.claude/rules/</code> directory: one <code>.md</code> file per topic (say <code>testing.md</code>, <code>api-design.md</code>); subdirectories are discovered recursively too. Rules without a <code>paths:</code> frontmatter load at startup, with the same precedence as <code>.claude/CLAUDE.md</code>; rules with <code>paths:</code> load only when Claude reads a file matching the glob:</p>
+    <pre><code>---
+paths:
+  - "src/api/**/*.ts"
+---
+
+# API Development Rules
+
+- All API endpoints must include input validation
+- Use the standard error response format</code></pre>
+    <p><span class="badge badge-official">Official</span>Globs support multiple patterns and brace expansion (like <code>src/**/*.{ts,tsx}</code>). Personal, universal conventions can go in <code>~/.claude/rules/</code>, applying to all projects and loading before project rules (project rules win); <code>.claude/rules/</code> also supports symlinks, handy for sharing one rule set across repos. In a monorepo, if an ancestor directory drags in another team's CLAUDE.md, exclude it by path with the <code>claudeMdExcludes</code> setting (managed-policy files excepted). Note: rules are the same kind of thing as CLAUDE.md — advice Claude reads, not enforced configuration.</p>
+
+    <h3>The classic misconception: "I wrote it and Claude ignores it"</h3>
+    <p><span class="badge badge-official">Official</span>The misconception is treating CLAUDE.md as a config file where writing something guarantees effect. In reality it enters the context as a user message after the system prompt; Claude reads it and tries to follow it, but nothing enforces it. The official troubleshooting order: first run <code>/context</code> and check the <strong>Memory files</strong> list to confirm the file actually loaded (if it isn't listed, Claude cannot see it at all); then check that the file sits at a level that gets loaded; then make the instructions more specific; finally look for conflicts across multiple files.</p>
+    <p><span class="badge badge-site">Our take</span>In practice the most common cause of "wrote it, ignored" is a file that is too long: the important rules drown in noise — the official best-practices doc warns in as many words that a bloated CLAUDE.md makes Claude miss your real instructions. <code>/doctor</code> can suggest trims for a committed CLAUDE.md (needs v2.1.206+). For the full diagnose-and-slim walkthrough, see the tip: <a href="/en/claude-code/tips/claude-md-ignored-too-long.html">Claude ignores your CLAUDE.md — it’s probably too long</a>. And remember the division of labor: anything that <em>must</em> happen at a given moment (like running lint before every commit) should not be a hope written into CLAUDE.md — make it a hook (D8).</p>
+
+    <h2>Hands-on: doable today</h2>
+    <ol>
+      <li>If the project has no CLAUDE.md yet, run <code>/init</code> in a session. Expected: Claude analyzes the codebase and generates a CLAUDE.md with build commands, test practices, and project conventions; if one already exists, it proposes improvements rather than overwriting. Skip to the next step if you already have one.</li>
+      <li>Run <code>/context</code> and confirm in the <strong>Memory files</strong> list that your CLAUDE.md (plus CLAUDE.local.md and rules) actually loaded. Expected: you can see the file list; a file that is missing means it sits at a level that isn't loaded.</li>
+      <li>Use the prompt below to have Claude audit your CLAUDE.md and slim it against the table above:</li>
+    </ol>
+    <pre class="prompt"><code>Audit this project's CLAUDE.md (and .claude/rules/ if present):
+1. List anything Claude could infer from the code itself (directory layout, dependency
+   lists, architecture overview) and suggest deleting it;
+2. List instructions too vague to verify (like "keep the code clean"), each with a
+   specific, verifiable rewrite;
+3. List contradictory or duplicated instructions;
+4. For instructions that only apply to certain directories or file types, suggest moving
+   them into .claude/rules/ with a paths: glob.
+Output the audit report first; wait for my confirmation before changing any files.</code></pre>
+    <ol start="4">
+      <li>Build a path-scoped rule by hand: <code>mkdir -p .claude/rules</code>, then create <code>.claude/rules/testing.md</code> with content like the below (adjust the globs to your project). Then start a new session, run <code>/context</code> first to confirm it is <strong>not</strong> in the startup load list (rules with paths load on demand), then have Claude read a matching test file and restate the testing conventions currently in effect. Expected: the rule's content shows up in Claude's answer only after it reads a matching file.
+      <pre><code>---
+paths:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+---
+
+# Testing Rules
+- Name tests "should [expected result] when [condition]"
+- Mock external dependencies, not internal modules</code></pre></li>
+      <li>(Optional) Run <code>/memory</code> to browse where each level's memory files live, and open the auto memory directory to see what Claude has already noted about this project on its own.</li>
+    </ol>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>You can recite CLAUDE.md's four levels and their concatenation order without the diagram, and say which load at startup and which on demand.</li>
+      <li>You can name at least three kinds of content that do not belong in CLAUDE.md, and justify it with D2's context costs.</li>
+      <li>The project has a CLAUDE.md under 200 lines that passed the step-3 audit, plus at least one rules file with <code>paths:</code> whose on-demand loading you verified.</li>
+      <li>Self-test: a monorepo root and the subpackage you own each have a CLAUDE.md, and you start Claude Code in the subpackage directory — which ones load, and in what order? (Answer: both load at startup, root first, subpackage after; a CLAUDE.md in a deeper subdirectory below the subpackage loads on demand only once Claude reads a file in that directory.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/memory.md">code.claude.com/docs/en/memory.md</a> (CLAUDE.md levels, load order, imports, rules, auto memory, troubleshooting) · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/claude-directory.md">code.claude.com/docs/en/claude-directory.md</a> (the .claude directory overview; rules vs CLAUDE.md positioning) · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md">code.claude.com/docs/en/best-practices.md</a> (the write / don't-write table, the "would deleting it cause mistakes" test, the bloat warning) · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-03.html">Previous: D3 · Permission modes &amp; sandboxing</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-05.html">Next: D5 · Plan mode and explore→plan→code</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

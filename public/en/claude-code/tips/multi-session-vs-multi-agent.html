@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiple sessions or multiple agents — which actually speeds you up? · Claude Code Learning Hub</title>
+<meta name="description" content="Multiple sessions vs. multiple agents is not either-or: subagents give one task parallel width, sessions handle task switching across time — classify the problem, then pick the tool.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Multiple sessions or multiple agents — which actually speeds you up? · Claude Code Learning Hub">
+<meta property="og:description" content="Subagents give a single task parallel width; sessions handle task switching across time. The two axes are orthogonal — classify the problem, then pick the tool.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/multi-session-vs-multi-agent.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/multi-session-vs-multi-agent.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/multi-session-vs-multi-agent.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/multi-session-vs-multi-agent.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/multi-session-vs-multi-agent.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/multi-session-vs-multi-agent.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / B · Parallelism &amp; throughput</p>
+  <h1>Multiple sessions or multiple agents — which actually speeds you up?</h1>
+  <p>When work piles up, should you open more terminal windows or have Claude dispatch more agents? This page gives you a decision rule you can apply as-is.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">These two are often treated as two ways of doing the same thing. In fact they solve problems along two different axes — they don't conflict, and neither can replace the other.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      <span class="badge badge-site">Our take</span>It's not either-or: multiple agents (subagents) solve <strong>width within a single task</strong> — side quests like searching, testing, and research run in parallel in separate contexts, bringing only summaries back to the main conversation; multiple sessions solve <strong>length across time</strong> — each independent piece of work gets its own nameable, resumable session. Ask "is this a side branch of my current task, or a separate piece of work?" and the answer falls out.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Classify the work first.</strong><span class="badge badge-official">Official</span>The criterion for a subagent: a side task would flood the main conversation with search results, logs, or file contents you'll never reference again — so it does the work in its own context window and returns only a summary. Conversely, if it's a separate piece of work unrelated to what you're doing now, it deserves its own session.</li>
+      <li><strong>For width within one task, use subagents.</strong>Just say it in the conversation: "use subagents to research the auth, database, and API modules in parallel".<span class="badge badge-official">Official</span>Since v2.1.198 subagents run in the background by default, so the main conversation isn't blocked; but note that each subagent's result eventually flows back into the main conversation — spawn too many, each returning a long report, and they crowd out your context all the same.</li>
+      <li><strong>For multiple tasks across time, use multiple sessions.</strong><span class="badge badge-official">Official</span>A session is a conversation bound to a project directory and persisted to disk: name it at startup with <code>claude -n auth-refactor</code>, then resume it by name with <code>claude --resume auth-refactor</code>; inside a session, <code>/branch</code> copies the current conversation to try another path while leaving the original untouched. For the full session-management playbook, see <a href="/en/claude-code/course/day-06.html">D6 · Session management</a>.</li>
+      <li><strong>Multiple sessions editing the same repo will step on each other's files</strong> — the fix is one worktree per session; see <a href="/en/claude-code/tips/worktrees-parallel-sessions.html">Worktrees: keep parallel sessions out of each other's way</a>.</li>
+      <li><strong>At larger scale, upgrade by asking "who coordinates".</strong><span class="badge badge-official">Official</span>The docs give selection criteria for four parallelism modes:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Mode</th><th>Who coordinates</th><th>When to use it</th></tr></thead>
+          <tbody>
+            <tr><td>Subagents</td><td>Claude dispatches and collects results within one conversation</td><td>Side tasks would flood the main conversation</td></tr>
+            <tr><td>Agent view (<code>claude agents</code>)</td><td>You toss independent tasks into the background and check status later</td><td>Several unrelated things in flight at once (research preview)</td></tr>
+            <tr><td>Agent teams</td><td>A lead agent splits work, assigns it, and tracks progress</td><td>You want Claude itself to coordinate a group of workers (experimental, off by default)</td></tr>
+            <tr><td>Dynamic workflows</td><td>A script holds the plan and runs dozens or hundreds of subagents</td><td>Repo-wide audits, large migrations — work beyond what one conversation can coordinate</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>Our own experiment backs this up.</strong><span class="badge badge-site">Our take</span>We ran a controlled experiment with 27 agents and reached the same conclusion: multiple agents manage width within one task, multiple sessions manage length across time and total context, and the two axes are orthogonal; what actually decides whether parallel development succeeds is having an interface contract everyone follows. Full write-up: <a href="/articles/ai-notes-multi-session-vs-multi-agent">Multiple sessions or multiple agents? I ran 27 agents to find out</a>.</li>
+      <li><strong>Cost note.</strong><span class="badge badge-official">Official</span>Running several sessions or subagents at once multiplies token consumption, and it all counts toward your plan's usage and rate limits.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>I have these things on my plate:
+1. &lt;task A&gt;
+2. &lt;task B&gt;
+3. &lt;task C&gt;
+
+Classify them first — don't start working yet:
+- Which are side branches of the same task that can run in parallel?
+  Handle those yourself with background subagents; each subagent should
+  return only its conclusions and a list of changes, not its working
+  output;
+- Which are independent tasks? List those back to me and I'll open a
+  separate session for each with claude -n &lt;name&gt;.
+
+Show me the classification for confirmation first; once I confirm,
+execute only the parts that belong in this session.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sessions.md">Manage sessions</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sub-agents.md">Create custom subagents</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/agents.md">Run agents in parallel</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-site">Our take</span><a href="/articles/ai-notes-multi-session-vs-multi-agent">Multiple sessions or multiple agents? I ran 27 agents to find out</a>, our long-form experiment write-up, verified 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (agent view and agent teams are both preview/experimental features; behavior changes across versions).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

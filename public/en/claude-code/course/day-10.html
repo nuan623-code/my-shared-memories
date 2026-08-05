@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D10 · Subagents · Claude Code Learning Hub</title>
+<meta name="description" content="A subagent is a separate-context worker your main session delegates to: built-in Explore/Plan/general-purpose, custom .claude/agents/*.md, when to use them, their boundaries, and managing background runs.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-10.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-10.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-10.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-10.html">
+<meta property="og:title" content="D10 · Subagents · Claude Code Learning Hub">
+<meta property="og:description" content="A subagent is a separate-context worker your main session delegates to: built-in types, custom .claude/agents/*.md, when to use them and their boundaries, background execution.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-10.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-10.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D10</p>
+  <h1>D10 · Subagents</h1>
+  <p>Subagents are the "clones" your main session sends off to do the work: they search, run tests, and read logs in their own separate context windows, and hand back nothing but a report. This lesson covers the built-in types, writing your own, when to use them, and the boundaries.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">The one-line version: any job whose process output is noisy but whose conclusion fits in a paragraph belongs in a subagent — it digests search results, test logs, and file contents in its own context, and your main session pays context cost only for the final summary.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p><a href="/en/claude-code/course/day-02.html">D2</a> made the point: the context window is your scarcest resource, and stuffing it with irrelevant content drags model quality down. Subagents are Claude Code's built-in answer — separate "exploration" from "implementation", and keep the exploration noise inside the clone's window. <span class="badge badge-site">Our take</span>You have actually used one already: in <a href="/en/claude-code/course/day-05.html">D5</a>'s plan mode, the codebase research Claude delegates goes to the built-in Plan subagent.</p>
+    <p>Looking ahead, this lesson is the foundation of parallel workflows: <a href="/en/claude-code/course/day-11.html">D11</a>'s worktrees give each subagent an isolated copy of the code, and <a href="/en/claude-code/course/day-12.html">D12</a>'s agent teams upgrade "delegation within one session" to "collaboration across sessions". If the line between "open more sessions" and "have one session delegate to several subagents" feels blurry, finish this lesson and read the comparison tip: <a href="/en/claude-code/tips/multi-session-vs-multi-agent.html">Multiple sessions vs multiple agents — how to choose</a>.</p>
+
+    <h2>Core concepts, explained</h2>
+    <p><span class="badge badge-official">Official</span>A subagent is a specialized AI assistant for a particular kind of task: it runs in <strong>its own context window</strong>, with its own system prompt, tool set, and permissions. When a task matches a subagent's description, Claude delegates the work; the subagent completes it independently and hands back the result. The core problem it solves: side tasks flood the main conversation with search results, logs, and file contents you will never reference again.</p>
+
+    <h3>An analogy: the colleague on loan</h3>
+    <p><span class="badge badge-site">Our take</span>Think of a subagent as a colleague on loan: you hand them a written task brief (the delegation message), they dig through the archives, run experiments, and fill an entire scratchpad of their own (their context), then hand back a one-page memo. Your notebook grows by exactly that one page; their scratchpad you never have to see. Borrow several people and they each work heads-down, <strong>none of them can see each other's scratchpads</strong> — consolidating is your job (the main session's).</p>
+    <figure>
+      <svg viewBox="0 0 680 336" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The main session fans tasks out to three subagents, each working in a separate context and returning only a report">
+        <rect class="svg-box-accent" x="14" y="118" width="150" height="96" rx="10"/>
+        <text class="svg-ink" x="89" y="158" text-anchor="middle" font-size="14">Main session</text>
+        <text class="svg-ink-soft" x="89" y="180" text-anchor="middle" font-size="12">context window</text>
+
+        <rect class="svg-box" x="402" y="16" width="264" height="72" rx="10"/>
+        <text class="svg-ink" x="534" y="46" text-anchor="middle" font-size="13">Subagent A · own context</text>
+        <text class="svg-ink-soft" x="534" y="68" text-anchor="middle" font-size="11">search results and intermediate output stay here</text>
+        <rect class="svg-box" x="402" y="116" width="264" height="72" rx="10"/>
+        <text class="svg-ink" x="534" y="146" text-anchor="middle" font-size="13">Subagent B · own context</text>
+        <text class="svg-ink-soft" x="534" y="168" text-anchor="middle" font-size="11">test logs stay here</text>
+        <rect class="svg-box" x="402" y="216" width="264" height="72" rx="10"/>
+        <text class="svg-ink" x="534" y="246" text-anchor="middle" font-size="13">Subagent C · own context</text>
+        <text class="svg-ink-soft" x="534" y="268" text-anchor="middle" font-size="11">contents of files it read stay here</text>
+
+        <line class="svg-line" x1="164" y1="146" x2="392" y2="42" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,37 402,42 392,47"/>
+        <line class="svg-line" x1="164" y1="146" x2="392" y2="142" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,137 402,142 392,147"/>
+        <line class="svg-line" x1="164" y1="146" x2="392" y2="242" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,237 402,242 392,247"/>
+        <text class="svg-ink-soft" x="268" y="76" text-anchor="middle" font-size="12">delegate tasks</text>
+
+        <line class="svg-line" x1="402" y1="70" x2="174" y2="176" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <polygon class="svg-arrow" points="174,171 164,176 174,181"/>
+        <line class="svg-line" x1="402" y1="170" x2="174" y2="188" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <polygon class="svg-arrow" points="174,183 164,188 174,193"/>
+        <line class="svg-line" x1="402" y1="270" x2="174" y2="200" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <polygon class="svg-arrow" points="174,195 164,200 174,205"/>
+        <text class="svg-ink-soft" x="268" y="256" text-anchor="middle" font-size="12">one report each</text>
+
+        <text class="svg-ink-soft" x="340" y="326" text-anchor="middle" font-size="12">solid = the delegation prompt; dashed = the returned summary; the three clones cannot see each other</text>
+      </svg>
+      <figcaption>Fan-out/fan-in: the main session delegates to several subagents; each works in its own context, and only summaries flow back.</figcaption>
+    </figure>
+
+    <h3>Built-in subagents</h3>
+    <p><span class="badge badge-official">Official</span>Claude Code ships with several built-in subagents, and Claude delegates to them automatically when the moment fits:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Type</th><th>Model</th><th>Tools</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Explore</td><td>Inherits the main session (capped at Opus on the Claude API)</td><td>Read-only, Write/Edit disabled</td><td>File discovery, code search, understanding a codebase</td></tr>
+        <tr><td>Plan</td><td>Inherits the main session</td><td>Read-only, Write/Edit disabled</td><td>Codebase research in plan mode</td></tr>
+        <tr><td>general-purpose</td><td>Inherits the main session</td><td>Every tool available to subagents</td><td>Complex multi-step tasks that both explore and make changes</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>Two special traits: to stay fast and cheap, Explore and Plan <strong>do not load CLAUDE.md or the parent session's git status</strong>; every other built-in and custom subagent loads both. If some rule (say, "ignore the vendor/ directory") must reach them, write it into the delegation prompt. There are also a few auto-triggered helper agents (claude, statusline-setup, claude-code-guide) you generally never manage directly.</p>
+
+    <h3>Custom subagents: .claude/agents/*.md</h3>
+    <p><span class="badge badge-official">Official</span>A custom subagent is just a Markdown file with YAML frontmatter: the frontmatter is configuration, the body is its system prompt. What the subagent receives is this system prompt plus basic environment info — <strong>not the full Claude Code system prompt</strong>. A minimal working example:</p>
+    <pre><code>---
+name: code-reviewer
+description: Reviews code for quality and best practices
+tools: Read, Glob, Grep
+model: sonnet
+---
+
+You are a code reviewer. When invoked, analyze the code and provide
+specific, actionable feedback on quality, security, and best practices.</code></pre>
+    <p><span class="badge badge-official">Official</span>Only <code>name</code> and <code>description</code> are required; the description decides when Claude delegates to it — write it clearly, and add "use proactively" if you want it picked up on Claude's own initiative. Common optional fields:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Field</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>tools</code> / <code>disallowedTools</code></td><td>Tool allowlist / blocklist; omit tools to inherit every available tool</td></tr>
+        <tr><td><code>model</code></td><td><code>sonnet</code> / <code>opus</code> / <code>haiku</code> / <code>fable</code> / a full model ID / <code>inherit</code> (default); this is how you route exploration tasks to a cheaper model</td></tr>
+        <tr><td><code>permissionMode</code></td><td>Permission mode: <code>plan</code> (read-only), <code>acceptEdits</code>, <code>bypassPermissions</code> (use with care), etc.</td></tr>
+        <tr><td><code>skills</code></td><td>Preloads the named Skills' full content into context at startup (builds on <a href="/en/claude-code/course/day-07.html">D7</a>)</td></tr>
+        <tr><td><code>mcpServers</code></td><td>Per-subagent MCP servers; inline definitions stay out of the main session, saving tool-description context (builds on <a href="/en/claude-code/course/day-09.html">D9</a>)</td></tr>
+        <tr><td><code>hooks</code></td><td>Hooks that apply only while this subagent is active (builds on <a href="/en/claude-code/course/day-08.html">D8</a>)</td></tr>
+        <tr><td><code>memory</code></td><td>Persistent memory across sessions, scope: <code>user</code> / <code>project</code> / <code>local</code></td></tr>
+        <tr><td><code>background</code></td><td><code>true</code> always runs it in the background; unset lets Claude decide</td></tr>
+        <tr><td><code>isolation</code></td><td><code>worktree</code>: works in a temporary git worktree without touching your checkout (previewing <a href="/en/claude-code/course/day-11.html">D11</a>)</td></tr>
+        <tr><td><code>maxTurns</code></td><td>Maximum number of turns</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>Where the file lives decides who can use it; on a name clash the higher priority wins, from high to low: managed settings &gt; the <code>--agents</code> CLI flag (that session only) &gt; project <code>.claude/agents/</code> (commit it to the repo, shared with the team) &gt; user <code>~/.claude/agents/</code> (all your projects) &gt; a plugin's <code>agents/</code> directory. Since v2.1.198, <code>/agents</code> no longer opens a creation wizard — just ask Claude to write the file, or edit it yourself; changes take effect within seconds, with one exception: the first agent file in a given scope needs a session restart to be discovered.</p>
+
+    <h3>When to use one, when not to</h3>
+    <p><span class="badge badge-official">Official</span>Three signals to reach for a subagent: the task will generate lots of output the main context has no use for (running tests, fetching docs, scanning logs); you want to force a narrower tool set or permissions (a read-only reviewer); the work is self-contained and a single summary is a complete deliverable. Conversely, stay in the main session when: you need tight back-and-forth iteration; multiple stages share a lot of context; it's a quick small change; you care about latency — a subagent starts from zero and spends time regathering context.</p>
+    <p><span class="badge badge-official">Official</span>The two most common patterns: <strong>isolating high-noise operations</strong> ("run the tests in a subagent and report only the failing cases") and <strong>parallel exploration</strong> (one subagent per independent research direction, all running at once, Claude consolidates). The docs also warn: many subagents each returning a verbose report will still eat a good chunk of main-session context — for sustained large-scale parallelism, consider <a href="/en/claude-code/course/day-12.html">D12</a>'s agent teams.</p>
+
+    <h3>Boundaries: no shared context, one report back</h3>
+    <p><span class="badge badge-official">Official</span>Every subagent starts from a <strong>fresh, isolated context</strong>: it cannot see your conversation history, the skills you've invoked, or the files Claude has already read. What it gets is — its own system prompt, the delegation message Claude wrote, the full CLAUDE.md hierarchy (except Explore/Plan), a snapshot of git state from when the parent session started, and any preloaded skills. When the work is done, the only thing that returns to the main session is <strong>one final report</strong> — everything in between stays in its own transcript.</p>
+    <p><span class="badge badge-official">Official</span>Several boundaries follow. Parallel subagents <strong>share no context and do not talk to each other</strong>; if B needs A's findings, the main session has to write the relevant parts of A's report into B's delegation message. After a subagent finishes, Claude can continue the same instance (a "resume" that keeps its full history) — but Explore and Plan are one-shot and cannot be resumed. Subagents can also spawn subagents of their own: by default at most three levels of nesting below the main session, with a per-session total cap of 200 and a concurrency cap of 20 (all adjustable via environment variables). The inverse special case is fork (the <code>/subtask</code> command): it inherits the main session's full conversation history before going off on the side task, trading input isolation for "no need to re-explain the background" — the output is still just one result.</p>
+
+    <h3>Background execution</h3>
+    <p><span class="badge badge-official">Official</span>Since v2.1.198, subagents <strong>run in the background by default</strong>, so you can keep working in the main session; the foreground (blocking) mode is used only when Claude needs the result immediately. When a background subagent hits an operation that needs authorization, the permission prompt floats up into the main session, labeled with which subagent is asking; approve to let it proceed, or press Esc to deny just that one call. You can steer this yourself too: tell Claude to "run it in the background", press <strong>Ctrl+B</strong> to send a running task to the background; <code>/tasks</code> lists every background item, with view, take-over, and stop. Two costs: a background subagent's built-in tool set is smaller than the foreground one (all MCP tools are kept); and results arrive as a completion notification in a later turn — ask for progress early and Claude can only tell you it's still running.</p>
+
+    <h2>Hands-on: doable today</h2>
+    <p>The whole set takes about 30 minutes, in any project that has tests or a reasonable amount of code.</p>
+    <ol>
+      <li><strong>Feel the isolation.</strong> Run <code>/context</code> first and note the current usage (from D1), then hand Claude Code the prompt below. Expected: a subagent delegation line appears (agent name + short task description), the full test output never enters the main conversation, and only the failure summary comes back; run <code>/context</code> again — the increase is far smaller than the volume of the test output.</li>
+    </ol>
+    <pre class="prompt"><code>Run the full test suite in a subagent and report back only the failing tests
+with their error messages. Do not bring the full test output into the main session.</code></pre>
+    <ol start="2">
+      <li><strong>Create a custom subagent.</strong> Use the prompt below to have Claude write the file. Expected: <code>.claude/agents/code-reviewer.md</code> appears, with name, description, tools, and model in the frontmatter, and a reviewer system prompt as the body. If this is the first time the project has a <code>.claude/agents/</code> directory, restart the session so it gets discovered.</li>
+    </ol>
+    <pre class="prompt"><code>Create a code-reviewer subagent in .claude/agents/: read-only (Read, Grep, Glob),
+using the sonnet model. Its job is to review recent code changes and output a list
+of issues in three tiers — must fix / should fix / could improve — each item with
+the current code and the improved version. In the description, say it should be
+used proactively after code changes.</code></pre>
+    <ol start="3">
+      <li><strong>Invoke it explicitly.</strong> Say "use the code-reviewer subagent to review my recent changes", or type <code>@</code> and pick it from the completion list (an @-mention guarantees this run goes to it). Expected: a <code>code-reviewer (…)</code> delegation line appears, and a few minutes later you receive the three-tier issue list.</li>
+      <li><strong>Parallel fan-out.</strong> Tell Claude: "Use three parallel subagents to research this project's auth, database, and API modules; have each summarize its responsibilities and key files, then consolidate." Expected: three subagents run in the background at once, <code>/tasks</code> shows each one's status, and when they finish Claude delivers the consolidated summary — exactly the fan-out/fan-in from this lesson's diagram.</li>
+    </ol>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>Without notes, you can list what a subagent has in context at startup (its own system prompt, the delegation message, CLAUDE.md, the git snapshot, preloaded skills) and what comes back at the end (one report).</li>
+      <li>You can explain the division of labor between Explore / Plan / general-purpose, and the two special traits of Explore and Plan: read-only; no CLAUDE.md or git status loaded.</li>
+      <li>Your project has a <code>.claude/agents/*.md</code> you wrote yourself, and it has successfully executed at least one delegation.</li>
+      <li>Self-check: three subagents research in parallel — can B directly cite A's findings? How do you get A's conclusions to B? (Answer: no, subagents share no context; A's report returns to the main session first, and Claude writes the relevant parts into B's delegation message; direct worker-to-worker communication is <a href="/en/claude-code/course/day-12.html">D12</a> agent teams territory.)</li>
+    </ul>
+    <div class="callout"><span class="callout-label">Next step</span>Subagents all work on your one and only checkout (unless <code>isolation: worktree</code>). <a href="/en/claude-code/course/day-11.html">D11</a> covers how worktrees give each strand of parallel work an isolated copy; when you're unsure whether to "open another session" or "delegate a subagent", see <a href="/en/claude-code/tips/multi-session-vs-multi-agent.html">Multiple sessions vs multiple agents — how to choose</a>.</div>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sub-agents.md">Create custom subagents</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/agents.md">Run agents in parallel</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-09.html">Previous: D9 · MCP</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-11.html">Next: D11 · Worktrees &amp; agent view</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why too many MCP servers slow you down and cost more · Claude Code Learning Hub</title>
+<meta name="description" content="MCP server tool definitions eat into Claude Code's context budget. How the default tool-search deferral works, which scenarios load tools fully into the prefix, checking usage with /context and /usage, and toggling servers in /mcp.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/too-many-mcp-servers.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/too-many-mcp-servers.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/too-many-mcp-servers.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/too-many-mcp-servers.html">
+<meta property="og:title" content="Why too many MCP servers slow you down and cost more · Claude Code Learning Hub">
+<meta property="og:description" content="Tool search already defers MCP tool definitions by default; alwaysLoad, gateways, and some platforms still load them in full. How to audit the usage and toggle servers on demand.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/too-many-mcp-servers.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/too-many-mcp-servers.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · Cost & context</span></p>
+  <h1>Why too many MCP servers slow you down and cost more</h1>
+  <p>Every MCP server you connect touches your context budget — the good news is the default tool search already handles the biggest chunk; the rest you have to audit and turn off yourself.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The cost of MCP isn't in "being connected" — it's in whether tool definitions land in the context prefix. Understand the default mechanism and its exceptions, and you'll know exactly what to turn off and what to keep.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Bottom line</span>
+      <span class="badge badge-official">Official</span>Tool search is on by default: MCP tool definitions are deferred — at session start only tool names and server instructions load, so connecting many servers has limited impact. But with <code>alwaysLoad</code>, non-first-party gateways, and certain cloud platforms, tools load fully into the prefix — eating context, and every server connect/disconnect then punches through the prompt cache too. Check usage with <code>/context</code>; turn off what you don't use in <code>/mcp</code>.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Understand the default first: tool search.</strong><span class="badge badge-official">Official</span>Tool search is on by default, and MCP tools no longer load in full: at session start only tool names and server instructions enter the context; when a task needs one, Claude loads the specific schema on demand through a search tool, so only tools actually used enter the context. The docs state explicitly that adding more MCP servers has minimal impact on the context window, and there is no fixed per-server tool limit — the real constraint is simply your context budget. So under the default configuration, "connecting many servers inevitably blows the context" no longer holds.</li>
+      <li><strong>Know the exceptions: scenarios where tools load fully into the prefix.</strong><span class="badge badge-official">Official</span>
+        <ul>
+          <li><code>ENABLE_TOOL_SEARCH=false</code> is set, or <code>CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS</code>;</li>
+          <li>In <code>ENABLE_TOOL_SEARCH=auto</code> threshold mode, when the total tools fit within the threshold (default 10% of context), they go straight into the prefix;</li>
+          <li>A server or an individual tool is marked <code>alwaysLoad: true</code>;</li>
+          <li><code>ANTHROPIC_BASE_URL</code> points at a non-first-party gateway (most proxies don't forward tool_reference, so Claude Code automatically falls back to full loading);</li>
+          <li>Azure-hosted Microsoft Foundry deployments (the server side rejects tool search), and models earlier than the Claude 4.5 generation on Google Cloud Agent Platform.</li>
+        </ul>
+        With full loading, the problem doubles: server connects, disconnects, and tool-list changes all invalidate the prompt cache, forcing a full recompute next turn — and "automatic" connect/disconnects such as a stdio process exiting or an HTTP session expiring require no action from you at all. Details in <a href="/en/claude-code/tips/prompt-cache-invalidation.html">Which actions invalidate the prompt cache?</a>.</li>
+      <li><strong>Check usage with the three commands.</strong><span class="badge badge-official">Official</span><code>/context</code> shows the current context usage by category with optimization suggestions; <code>/usage</code>'s attribution breakdown shows each MCP server's share of recent usage (Pro/Max/Team/Enterprise); the <code>/mcp</code> panel shows each server's connection status and tool count. Look at the data before acting — don't delete on gut feeling.</li>
+      <li><strong>Toggle on demand instead of deleting everything.</strong><span class="badge badge-official">Official</span>In the <code>/mcp</code> panel, toggle unused servers off: the config is kept, and the choice is remembered per project in <code>disabledMcpServers</code> in <code>~/.claude.json</code> — flip it back on when needed. For servers you truly don't want, run <code>claude mcp remove &lt;name&gt;</code>. When installing a new server, use <code>-s</code> to control the scope (local / project / user), and only put it at user level when you genuinely use it in every project (see <a href="/en/claude-code/course/day-09.html">D9 · MCP</a>).</li>
+      <li><strong>Prefer a CLI over MCP wherever one exists.</strong><span class="badge badge-official">Official</span>CLI tools like gh, aws, gcloud, and sentry-cli add zero per-tool context overhead; the docs say outright that they're cheaper on context than MCP servers — Claude just runs the commands.</li>
+      <li><strong>Manage tool output — the other half of the cost.</strong><span class="badge badge-official">Official</span>MCP tool output is capped at 25,000 tokens by default (with a warning past 10,000), and large outputs still eat your context; for calls that frequently return big results, consider delegating to a subagent that returns only a summary. When you need to tune tool search behavior, use <code>ENABLE_TOOL_SEARCH</code>:
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Value</th><th>Behavior</th></tr></thead>
+          <tbody>
+            <tr><td>(unset)</td><td>Default: all MCP tools deferred, loaded on demand (gateways/certain platforms automatically fall back to full loading)</td></tr>
+            <tr><td><code>true</code></td><td>Force deferral (except on platforms that reject it server-side)</td></tr>
+            <tr><td><code>auto</code> / <code>auto:N</code></td><td>Threshold mode: load everything into the prefix while tools stay within 10% (or N%) of context; defer only beyond that</td></tr>
+            <tr><td><code>false</code></td><td>Load all tools in full, no deferral</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Audit this project's MCP configuration for me. Goal: save context and money:
+1. Read the MCP server config in the project's .mcp.json, ~/.claude.json,
+   and settings at every level; list every server's name, scope, and
+   transport type;
+2. Flag servers or tools configured with alwaysLoad: true and assess,
+   one by one, whether they're truly needed on every turn;
+3. Check whether ENABLE_TOOL_SEARCH or ANTHROPIC_BASE_URL is set in the
+   environment or settings (gateways force full tool loading);
+4. Ask me which servers I've actually used in the past two weeks, and
+   sort the unused ones into two tiers: "toggle off in /mcp" or
+   "claude mcp remove";
+5. Remind me to run /context and /mcp myself to verify the usage (user
+   commands — you can't run them for me), and tell me what to look for.</code></pre>
+
+    <h2>Sources & last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/mcp.md" rel="noopener">code.claude.com/docs/en/mcp.md</a> (tool search mechanics and config table, alwaysLoad, /mcp panel and disabledMcpServers, output limits), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/costs.md" rel="noopener">code.claude.com/docs/en/costs.md</a> (Reduce MCP server overhead: check usage with /context, toggle idle servers in /mcp, prefer CLIs), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/prompt-caching.md" rel="noopener">code.claude.com/docs/en/prompt-caching.md</a> (how MCP server connects/disconnects affect the cache, the deferred-tools exception), fetched 2026-08-05.</li>
+      <li><span class="badge badge-site">Our take</span>"Look at the data before deleting" and "user scope only when you use it in every project" are our recommendations based on the official mechanics.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (tool search defaults and platform exceptions change across versions; official docs at v2.1.222, needs periodic re-checking).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

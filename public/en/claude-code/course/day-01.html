@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D1 · The agentic loop and what Claude can actually read (/context) · Claude Code Learning Hub</title>
+<meta name="description" content="Lesson 1: understand Claude Code's working loop (gather context, take action, verify results), what it can and cannot read on each turn, and how to see the window's makeup with /context.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-01.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-01.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-01.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-01.html">
+<meta property="og:title" content="D1 · The agentic loop and what Claude can actually read (/context)">
+<meta property="og:description" content="Understand Claude Code's working loop and context window: what it reads each turn, what it can't see, and how to check with /context.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-01.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-01.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D1</p>
+  <h1>D1 · The agentic loop and what Claude can actually read (/context)</h1>
+  <p>Your first lesson after installing Claude Code: build two mental models — how it loops through work, and what it can and cannot see on each turn.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">No configuration tricks in this lesson. It answers just two questions: how Claude Code gets a task done (the agentic loop), and what it can and cannot read while doing it (the context window). At the end, the <code>/context</code> command turns the second question into something you can see with your own eyes.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p><span class="badge badge-site">Our take</span>The two most common newcomer frustrations with Claude Code — "why doesn't it know this file exists in my repo" and "why did it forget what I told it last session" — are not the model falling short. They come from not knowing what it <strong>can read</strong>. Once that clicks, every later lesson follows naturally:</p>
+    <ul>
+      <li><a href="/en/claude-code/course/day-02.html">D2 The context window &amp; prompt caching</a> expands on what each part of today's "window layers" diagram costs;</li>
+      <li><a href="/en/claude-code/course/day-03.html">D3 Permission modes &amp; sandboxing</a> governs whether the "act" step of the loop can run automatically;</li>
+      <li><a href="/en/claude-code/course/day-04.html">D4 CLAUDE.md &amp; rules</a> solves exactly the "I have to re-explain everything every session" problem.</li>
+    </ul>
+    <p>So on day one, we only lay the foundation.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>One loop: gather context → take action → verify results</h3>
+    <p><span class="badge badge-official">Official</span>Give Claude a task and it works in three phases: <strong>gathering context</strong>, <strong>taking action</strong>, and <strong>verifying results</strong>. The three phases are not a fixed pipeline — they interleave. Claude advances by calling tools the whole way: searching files to understand the code, editing files to make changes, running tests to check its own work. Whatever a tool call returns feeds back into the loop and shapes the next step, chaining dozens of actions with self-correction along the way until the task is done.</p>
+    <p><span class="badge badge-official">Official</span>You are in the loop too: press <code>Esc</code> at any moment to stop Claude immediately, or simply type a follow-up and hit Enter — it will read it once the current action finishes and adjust its next step accordingly.</p>
+    <figure>
+      <svg viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agentic loop diagram: your prompt enters a loop of gathering context, taking action, and verifying results; if unfinished it loops again with new information, if finished it exits; interruptible throughout">
+        <rect class="svg-box" x="498" y="16" width="112" height="40" rx="10"/>
+        <text class="svg-ink" x="554" y="41" text-anchor="middle" font-size="14">Task complete</text>
+        <rect class="svg-box-accent" x="10" y="100" width="104" height="46" rx="10"/>
+        <text class="svg-ink" x="62" y="128" text-anchor="middle" font-size="14">Your prompt</text>
+        <rect class="svg-box" x="162" y="100" width="128" height="46" rx="10"/>
+        <text class="svg-ink" x="226" y="128" text-anchor="middle" font-size="14">Gather context</text>
+        <rect class="svg-box" x="338" y="100" width="112" height="46" rx="10"/>
+        <text class="svg-ink" x="394" y="128" text-anchor="middle" font-size="14">Take action</text>
+        <rect class="svg-box" x="498" y="100" width="112" height="46" rx="10"/>
+        <text class="svg-ink" x="554" y="128" text-anchor="middle" font-size="14">Verify results</text>
+        <line class="svg-line" x1="114" y1="123" x2="154" y2="123" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="154,118 164,123 154,128"/>
+        <line class="svg-line" x1="290" y1="123" x2="330" y2="123" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="330,118 340,123 330,128"/>
+        <line class="svg-line" x1="450" y1="123" x2="490" y2="123" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="490,118 500,123 490,128"/>
+        <line class="svg-line" x1="554" y1="100" x2="554" y2="64" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="549,66 554,56 559,66"/>
+        <text class="svg-ink-soft" x="572" y="84" font-size="12">done</text>
+        <path class="svg-line" d="M554 146 V190 H226 V156" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="221,158 226,148 231,158"/>
+        <text class="svg-ink-soft" x="390" y="208" text-anchor="middle" font-size="12">Not done: loop again with the new information</text>
+        <text class="svg-ink-soft" x="340" y="242" text-anchor="middle" font-size="12">The phases interleave; press Esc anytime to interrupt, or type extra guidance</text>
+      </svg>
+      <figcaption>The agentic loop: every tool result feeds back into the loop and decides the next step; it repeats until the task is done.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>Two parts drive the loop: the <strong>model</strong> does the reasoning, and <strong>tools</strong> do the acting. Without tools, Claude can only produce text; with them, it can read code, change files, and run commands. Claude Code itself is the "agentic harness" wrapped around the model — it supplies the tools, context management, and execution environment. The built-in tools fall into roughly five groups:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Category</th><th>What Claude can do</th></tr></thead>
+      <tbody>
+        <tr><td>File operations</td><td>Read files, edit code, create files, rename and reorganize</td></tr>
+        <tr><td>Search</td><td>Find files by pattern, search content with regex, explore the codebase</td></tr>
+        <tr><td>Execution</td><td>Run shell commands, start servers, run tests, use git</td></tr>
+        <tr><td>Web</td><td>Search the web, fetch docs, look up error messages</td></tr>
+        <tr><td>Code intelligence</td><td>See type errors after edits, jump to definitions, find references (requires the code intelligence plugin)</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>The official example: you say "fix the failing tests", and Claude might run the tests to see which fail → read the error output → search for the relevant source files → read them to understand the code → edit a fix → run the tests again to verify. That is the loop in motion.</p>
+
+    <h3>Another way to put it: a pair programmer who only sees the desk</h3>
+    <p><span class="badge badge-site">Our take</span>Think of Claude as a highly capable pair programmer who can only see <strong>the materials spread out on the desk</strong>. The desk is the "context window". It has not memorized your repository; to look at a file it has to reach for it (call a tool), and only once the content lands on the desk does it "see" it. The desk is a limited surface, and a full desk needs clearing (that is <a href="/en/claude-code/course/day-02.html">D2</a>'s topic). Understand the desk and you understand most of this course: CLAUDE.md, skills, and subagents — everything that comes later — are really answers to "what should live on the desk permanently, and what should be fetched only when needed".</p>
+
+    <h3>What it can and cannot read each turn</h3>
+    <p><span class="badge badge-official">Official</span>In the directory where you run <code>claude</code>, it <strong>can access</strong>: project files in that directory and its subdirectories (other locations need your approval), any command your terminal can run, git state (current branch, uncommitted changes, recent commits), CLAUDE.md, auto memory (the first 200 lines or 25KB of MEMORY.md, loaded at the start of every session), and the extensions you have configured (MCP, skills, subagents, and so on).</p>
+    <p><span class="badge badge-official">Official</span>What actually <strong>goes into the context window</strong> on each request: system instructions, CLAUDE.md, auto memory, loaded skills, the conversation history, and the file contents and command outputs it has read.</p>
+    <figure>
+      <svg viewBox="0 0 680 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context window layers diagram: inside the window are the system prompt, CLAUDE.md and auto memory, skill descriptions and MCP tool names, conversation history, and tool results; outside the window, unread repo files and previous sessions' history are read in via tools only when needed">
+        <text class="svg-ink" x="200" y="24" text-anchor="middle" font-size="14">What one request loads into the window</text>
+        <rect class="svg-box" x="20" y="36" width="360" height="290" rx="12"/>
+        <rect class="svg-box" x="32" y="48" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="77" font-size="13">System prompt &amp; built-in tools</text>
+        <text class="svg-ink-soft" x="356" y="77" text-anchor="end" font-size="11">loaded at start</text>
+        <rect class="svg-box" x="32" y="102" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="131" font-size="13">CLAUDE.md &amp; auto memory</text>
+        <text class="svg-ink-soft" x="356" y="131" text-anchor="end" font-size="11">loaded at start</text>
+        <rect class="svg-box" x="32" y="156" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="185" font-size="13">Skill descriptions, MCP tool names</text>
+        <text class="svg-ink-soft" x="356" y="185" text-anchor="end" font-size="11">loaded at start</text>
+        <rect class="svg-box-accent" x="32" y="210" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="239" font-size="13">Conversation: you &amp; Claude</text>
+        <text class="svg-ink-soft" x="356" y="239" text-anchor="end" font-size="11">keeps growing</text>
+        <rect class="svg-box-accent" x="32" y="264" width="336" height="48" rx="8"/>
+        <text class="svg-ink" x="44" y="293" font-size="13">Tool results: files read, outputs</text>
+        <text class="svg-ink-soft" x="356" y="293" text-anchor="end" font-size="11">keeps growing</text>
+        <rect class="svg-box" x="428" y="48" width="232" height="170" rx="12" stroke-dasharray="6 4"/>
+        <text class="svg-ink" x="544" y="76" text-anchor="middle" font-size="13">Outside the window</text>
+        <text class="svg-ink-soft" x="448" y="104" font-size="12">Repo files never read</text>
+        <text class="svg-ink-soft" x="448" y="128" font-size="12">Whole chats from past sessions</text>
+        <text class="svg-ink-soft" x="448" y="152" font-size="12">Background you never shared</text>
+        <text class="svg-ink-soft" x="544" y="190" text-anchor="middle" font-size="11">never loaded automatically</text>
+        <path class="svg-line" d="M428 200 H396 V288 H382" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="382,283 372,288 382,293"/>
+        <text class="svg-ink-soft" x="520" y="250" text-anchor="middle" font-size="11">read in on demand via search/read tools</text>
+        <text class="svg-ink-soft" x="340" y="344" text-anchor="middle" font-size="12">Run /context anytime to see how much each part takes</text>
+      </svg>
+      <figcaption>Context window layers: the top three load at session start, the bottom two grow with the conversation; anything outside the window must be read in on demand via tools.</figcaption>
+    </figure>
+    <p>Two of the most common misconceptions, cleared up right now:</p>
+    <ul>
+      <li><span class="badge badge-site">Our take</span><strong>Misconception 1: "Claude has already read my whole repo."</strong> In reality, "can access" is not "has read" — it searches and reads on demand, and only what it has read enters the window. How to check: ask about a detail in a file it has not read, and you will see it call a search or read tool first instead of answering directly.</li>
+      <li><span class="badge badge-official">Official</span><strong>Misconception 2: "It still remembers what I said last session."</strong> The official docs state it plainly: sessions are independent, and every new session starts from a fresh, blank context with no prior conversation history. To carry information across sessions, use auto memory or persistent instructions you write into CLAUDE.md (covered in <a href="/en/claude-code/course/day-04.html">D4</a>).</li>
+    </ul>
+    <p><span class="badge badge-official">Official</span>The window fills up as you work. When Claude Code nears the limit it compacts automatically: first it clears older tool outputs, and if that is not enough it summarizes the whole conversation — your request and the key code are preserved, but detailed instructions from early in the conversation may be lost. Hence the official advice: put persistent rules in CLAUDE.md instead of relying on conversation history. Details wait for <a href="/en/claude-code/course/day-02.html">D2</a>.</p>
+
+    <h3>Inspecting the window with /context</h3>
+    <p><span class="badge badge-official">Official</span><code>/context</code> draws the current context usage as a colored grid and offers optimization advice: which tools are eating context, whether memory has bloated, capacity warnings. When the conversation exceeds the window limit, the output also shows how far over you are and which command frees space (this warning requires Claude Code v2.1.216 or later; the latest version at our last check was 2.1.222). In fullscreen mode, <code>/context</code> collapses the per-item breakdown to keep the grid visible; pass <code>all</code> (i.e. <code>/context all</code>) to expand it.</p>
+    <p><span class="badge badge-official">Official</span>Meet two neighboring commands while you are here: when the conversation gets long, <code>/compact</code> compresses it into a summary to free space, while <code>/clear</code> simply starts a new conversation with a blank context. Also, MCP tools' full definitions are lazy-loaded by default — until a tool is used, only its name occupies context — and <code>/mcp</code> shows each server's token cost. No need to dig deeper today; just know that every number you see in <code>/context</code> has a traceable source.</p>
+
+    <h2>Hands-on: doable today</h2>
+    <p>This assumes Claude Code is installed and you are logged in. About 30 minutes total, and none of your files will be modified.</p>
+    <ol>
+      <li><strong>Go to a project directory you know well and run <code>claude</code>.</strong> Expected: the interactive UI opens with an input box.</li>
+      <li><strong>Immediately type <code>/context</code>.</strong> Expected: a colored grid plus an itemized list; at this point usage is mostly the "loaded at start" parts — system prompt, system tools — with conversation messages near zero. Note the rough numbers: this is your baseline.</li>
+      <li><strong>Send your first task and watch the "gather context" phase:</strong>
+        <pre class="prompt"><code>Summarize what this project does in three sentences, and list the files you actually read to answer this.</code></pre>
+        Expected: you can watch Claude call search and read tools, picking only a handful of files to read — verifying with your own eyes that it does <strong>not</strong> read the whole repo up front.</li>
+      <li><strong>Now run one full loop (gather → act → verify, all visible):</strong>
+        <pre class="prompt"><code>Pick the simplest automatically verifiable check in this repo (a test suite or lint, say),
+run it once and tell me the result. If it fails, only explain why - do not modify any files.</code></pre>
+        Expected: Claude first finds the check command (gather), asks for your confirmation before executing (act; why it asks is <a href="/en/claude-code/course/day-03.html">D3</a>'s topic), then reads the output and reports back (verify).</li>
+      <li><strong>Try interrupting and steering.</strong> While it is executing, type "by the way, tell me what you plan to do next" and hit Enter. Expected: once the current action finishes it reads your message and adjusts its response; to stop it immediately, press <code>Esc</code>.</li>
+      <li><strong>Type <code>/context</code> again and compare with step 2.</strong> Expected: the conversation-message portion is visibly bigger, and the growth comes mostly from tool results (files read, command output). You just watched the desk fill up.</li>
+    </ol>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>You can name the three phases of the agentic loop without notes, and explain why they "interleave" rather than form a fixed pipeline (hint: every tool result changes the next step).</li>
+      <li>You can list at least 5 kinds of content in the context window, and name two things that do <strong>not</strong> enter it automatically.</li>
+      <li>You ran <code>/context</code> twice during the hands-on and can explain which layer accounts for the difference between the two readings.</li>
+      <li>Self-test: in a brand-new session, does Claude remember the conventions you agreed on last session? Why? Where should you put them so it remembers every time? (Answer: no — sessions are independent and each new session starts from a blank context; put them in CLAUDE.md, covered in <a href="/en/claude-code/course/day-04.html">D4</a>.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/how-claude-code-works.md">How Claude Code works</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/features-overview.md">Extend Claude Code (features overview)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/claude-directory.md">Explore the .claude directory</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/commands.md">Commands reference (the /context, /compact, /clear, /mcp entries)</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-02.html">Next: D2 · The context window &amp; prompt caching</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

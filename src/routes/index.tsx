@@ -39,6 +39,7 @@ const TOOLS: {
   title: string;
   titleEn?: string;
   href: string;
+  hrefEn?: string; // 有英文版页面的工具,en 界面下用这个链接
   desc: string;
   descEn?: string;
   tags: string[];
@@ -69,6 +70,7 @@ const TOOLS: {
     title: "Claude Code 学习站",
     titleEn: "Claude Code learning hub",
     href: "/claude-code/",
+    hrefEn: "/en/claude-code/",
     desc: "每日更新:14 课系统课程从零建立体系,实战 Tip 按问题检索、单页自足。基于官方文档增量写成。",
     descEn: "Updated daily: a 14-day systematic course plus searchable, self-contained tips, all grounded in the official docs.",
     tags: ["Claude Code", "教程", "每日更新"],
@@ -391,7 +393,7 @@ export function HomePage() {
               {TOOLS.map((tool) => (
                 <a
                   key={tool.href}
-                  href={tool.href}
+                  href={locale === "en" && tool.hrefEn ? tool.hrefEn : tool.href}
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => {

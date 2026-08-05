@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D5 · Plan mode and explore→plan→code · Claude Code Learning Hub</title>
+<meta name="description" content="What plan mode is, how to enter and exit it, the three plan-approval options, and the officially recommended explore→plan→code workflow: why exploring and planning before coding is far less likely to head in the wrong direction than diving straight in.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-05.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-05.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-05.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-05.html">
+<meta property="og:title" content="D5 · Plan mode and explore→plan→code · Claude Code Learning Hub">
+<meta property="og:description" content="What plan mode is, how to enter and exit it, the three plan-approval options, and the officially recommended explore→plan→code workflow.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-05.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-05.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D5</p>
+  <h1>D5 · Plan mode and explore→plan→code</h1>
+  <p>Have Claude research read-only first, write up a plan, and only touch your code after you approve — this lesson covers entering and exiting plan mode, the approval flow, and why the official docs recommend "explore first, then plan, then code".</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">As D3 said: plan mode is, strictly speaking, just one of the permission modes. But it earns its own lesson, because the workflow the Claude Code docs recommend most — explore→plan→code — is built around it. By the end of this lesson you'll be able to judge whether a task deserves planning first, and walk through a complete "explore → plan → approve → implement" cycle.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p>This lesson picks up directly from <a href="/en/claude-code/course/day-03.html">D3 · Permission modes and sandboxing</a>: there you learned what default, acceptEdits, auto and the rest can each do without asking, and plan mode was one row in that table. Today we switch perspective — treating plan mode not as a permission setting but as a way of working: split "understand the problem" and "change the code" into two phases, with a gate you control in between.</p>
+    <p>It also sets up what's ahead: <a href="/en/claude-code/course/day-06.html">D6 · checkpoint / rewind</a> is about backing out after a mistake, while plan mode is about needing that escape hatch less often; the hands-on tip <a href="/en/claude-code/tips/interview-to-spec.html">"Have Claude interview you and turn requirements into a spec"</a> is the advanced version of this lesson's idea — planning done heavier and more formally. <span class="badge badge-site">Our take</span>Skip this lesson and you'll fall into the habit of letting Claude start coding the moment it gets a requirement — with a noticeably higher rework rate on big tasks.</p>
+
+    <h2>Core concepts, explained</h2>
+    <p><span class="badge badge-official">Official</span>Plan mode in one sentence: Claude only researches and proposes changes, but doesn't actually make them. Claude can read files, run commands to explore, and write up a plan, but it will not edit your source; until the plan is approved, edits stay blocked (the single exception is covered in the misconceptions section below). The CLI status bar shows <code>⏸ plan mode on</code> while it's active. The official framing: explore a codebase before changing it.</p>
+
+    <h3>The permissions view: what's blocked, what's allowed</h3>
+    <p><span class="badge badge-official">Official</span>In plan mode, read operations never need approval. Shell commands split into two cases: if your account qualifies for auto mode and the <code>useAutoModeDuringPlan</code> setting is on (it is by default), shell commands during the planning phase are reviewed by a classifier model — the ones that pass simply run, the ones that don't are blocked, with no prompt either way; otherwise, commands outside the built-in read-only command set still trigger an approval prompt.</p>
+    <p><span class="badge badge-site">Our take</span>A handy way to remember it: plan mode = "read freely, write never, run commands case by case". What it blocks is modifications to your source code — not any of the exploration you need to understand the problem.</p>
+
+    <h3>Entering, exiting, approving: one gate</h3>
+    <p><span class="badge badge-official">Official</span>There are three ways into plan mode:</p>
+    <ul>
+      <li>In a session, press <code>Shift+Tab</code> to cycle permission modes, in the order <code>default</code> → <code>acceptEdits</code> → <code>plan</code>; press <code>Shift+Tab</code> once more to leave plan mode without approving a plan.</li>
+      <li>Prefix a single message with <code>/plan</code> to enable plan mode for that one prompt only.</li>
+      <li>Start with <code>claude --permission-mode plan</code>; to make a project default to plan, set <code>"permissions": {"defaultMode": "plan"}</code> in <code>.claude/settings.json</code>.</li>
+    </ul>
+    <figure>
+      <svg viewBox="0 0 760 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="explore→plan→code flow: explore and plan happen inside plan mode; passing the plan-approval gate exits plan mode into implementation and commit; rejecting returns to the plan for more revision">
+        <rect class="svg-line" x="8" y="48" width="318" height="100" rx="12" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text class="svg-ink-soft" x="167" y="38" text-anchor="middle" font-size="12">Inside plan mode: read-only research, no source edits</text>
+
+        <rect class="svg-box" x="18" y="64" width="120" height="48" rx="10"/>
+        <text class="svg-ink" x="78" y="86" text-anchor="middle" font-size="14">Explore</text>
+        <text class="svg-ink-soft" x="78" y="103" text-anchor="middle" font-size="11">Read files, ask questions</text>
+
+        <rect class="svg-box" x="188" y="64" width="120" height="48" rx="10"/>
+        <text class="svg-ink" x="248" y="86" text-anchor="middle" font-size="14">Plan</text>
+        <text class="svg-ink-soft" x="248" y="103" text-anchor="middle" font-size="11">Write the implementation plan</text>
+
+        <rect class="svg-box-accent" x="356" y="56" width="130" height="64" rx="10"/>
+        <text class="svg-ink" x="421" y="84" text-anchor="middle" font-size="14">Plan approval</text>
+        <text class="svg-ink-soft" x="421" y="101" text-anchor="middle" font-size="11">The gate: you decide</text>
+
+        <rect class="svg-box" x="516" y="64" width="100" height="48" rx="10"/>
+        <text class="svg-ink" x="566" y="86" text-anchor="middle" font-size="14">Code</text>
+        <text class="svg-ink-soft" x="566" y="103" text-anchor="middle" font-size="11">Edit per the plan</text>
+
+        <rect class="svg-box" x="646" y="64" width="100" height="48" rx="10"/>
+        <text class="svg-ink" x="696" y="86" text-anchor="middle" font-size="14">Commit</text>
+        <text class="svg-ink-soft" x="696" y="103" text-anchor="middle" font-size="11">commit + PR</text>
+
+        <line class="svg-line" x1="138" y1="88" x2="180" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="180,83 190,88 180,93"/>
+        <line class="svg-line" x1="308" y1="88" x2="348" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="348,83 358,88 348,93"/>
+        <line class="svg-line" x1="486" y1="88" x2="508" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="508,83 518,88 508,93"/>
+        <line class="svg-line" x1="616" y1="88" x2="638" y2="88" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="638,83 648,88 638,93"/>
+
+        <path class="svg-line" d="M421 122 v44 H248 v-42" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="243,126 248,114 253,126"/>
+        <text class="svg-ink-soft" x="334" y="184" text-anchor="middle" font-size="12">Not approved: stay in plan mode, keep revising</text>
+
+        <text class="svg-ink-soft" x="631" y="140" text-anchor="middle" font-size="11">Plan mode exited; runs in the mode you chose</text>
+      </svg>
+      <figcaption>The explore→plan→code workflow: exploring and planning both happen inside plan mode, and plan approval is the only gate; approving exits plan mode and starts implementation, while rejecting keeps you in the planning phase to polish further.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span>Once the plan is written, Claude lays it out and asks how to proceed, usually with three options:</p>
+    <ul>
+      <li><strong>Yes, and use auto mode</strong> — approve and start executing in auto mode; when auto mode isn't available this option reads <strong>Yes, auto-accept edits</strong>, and in a session started with bypass permissions it reads <strong>Yes, and bypass permissions</strong>.</li>
+      <li><strong>Yes, manually approve edits</strong> — approve the plan, but confirm every edit one by one.</li>
+      <li><strong>No, keep planning</strong> — stay in plan mode and tell Claude what to change in the plan.</li>
+    </ul>
+    <p><span class="badge badge-official">Official</span>Note: approving a plan <strong>exits plan mode</strong> and switches the session to the permission mode matching the option you chose. To plan another round, cycle back with <code>Shift+Tab</code> or use the <code>/plan</code> prefix. Before approving, you can also press <code>Ctrl+G</code> to open the plan text in your default editor and edit it directly; accepting a plan also auto-names the session from the plan's content (unless you've already named it with <code>--name</code> or <code>/rename</code>).</p>
+
+    <h3>Why explore before planning: the official reasoning</h3>
+    <p><span class="badge badge-official">Official</span>Best practices lists this as a core recommendation, and the reasoning is blunt: let Claude start coding straight from the requirement, and you'll likely get code that "solves the wrong problem". Plan mode exists precisely to separate exploration from execution. The full recommended workflow has four steps: <strong>Explore</strong> (read code and answer questions in plan mode) → <strong>Plan</strong> (have Claude write a detailed implementation plan) → <strong>Implement</strong> (approve the plan or exit with <code>Shift+Tab</code>, then start coding and verify against the plan) → <strong>Commit</strong> (commit and open a PR).</p>
+    <p><span class="badge badge-site">Our take</span>Put another way — it's renovation logic: measure the rooms and find the load-bearing walls (explore), then draw up plans and a quote (plan), you sign off (approve), and only then does construction start (implement), ending with inspection and handover (commit). Skip the first two steps and start knocking down walls, and the cost of hitting the wrong one dwarfs the time drawings would have taken. With an LLM there's an extra payoff: the code read into context during exploration is exactly the most relevant background for the implementation phase, and the written plan pins "what we're doing" down in text — giving the implementation an anchor to check against, so it's much harder to drift as it writes.</p>
+
+    <h3>Which tasks deserve a plan first — and which don't</h3>
+    <div class="callout"><span class="callout-label">The official test</span><span class="badge badge-official">Official</span>Plan mode is useful, but it has overhead. Tasks with a clear scope and a tiny change — fixing a typo, adding a log line, renaming a variable — just let Claude do them. Planning pays off most when: you're unsure about the approach, the change spans multiple files, or you don't know the code you're about to touch. The official one-line test: if you can describe the diff in a single sentence, skip the plan.</div>
+    <p><span class="badge badge-site">Our take</span>One more practical signal: if you plan to leave the screen and let Claude run on its own afterwards (say, switching to auto mode after approval), planning first is worth even more — the gate is your last human check before going unattended.</p>
+
+    <h3>Common misconceptions</h3>
+    <p><strong>Misconception 1: "In plan mode Claude can't run any commands at all."</strong><span class="badge badge-official">Official</span>Wrong. Reads are always allowed; when auto mode is available, shell commands during planning are auto-approved or blocked by the classifier. What plan mode blocks at its core is "editing your source" — not "touching anything at all".</p>
+    <p><strong>Misconception 2: "Once I'm in plan mode I'm completely safe."</strong><span class="badge badge-official">Official</span>There is one explicit exception: in a session with bypass permissions enabled, plan mode's blocking is not enforced — Claude is still instructed to only plan and not edit, but if it does actually attempt an edit or a command, it executes without a prompt. Don't treat plan mode combined with bypass as a "read-only vault".</p>
+    <p><strong>Misconception 3: "After approving the plan I'm still in plan mode."</strong><span class="badge badge-official">Official</span>You're not. Approval exits, and the session switches to the mode you picked (auto / edit-by-edit approval, etc.). Plenty of people get halfway through implementation, want to "plan a bit more", and assume they're still in plan mode when they left it long ago — press <code>Shift+Tab</code> again or use <code>/plan</code>.</p>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Pick a real project you know well (a few source files is enough) and walk the full gate flow once, about 20–30 minutes:</p>
+    <ol>
+      <li>Start in plan mode: <code>claude --permission-mode plan</code>. Expected: the status bar shows <code>⏸ plan mode on</code>.</li>
+      <li>Send an exploration prompt (copy the first block below, swapping in your directory name). Expected: Claude reads files and gives its analysis without changing any file.</li>
+      <li>Follow with the second prompt to ask for a plan. Expected: Claude produces a step-by-step plan and the approval menu appears (the three option families — Yes, and use auto mode / Yes, manually approve edits / No, keep planning — with wording varying slightly by account configuration).</li>
+      <li>Choose <strong>No, keep planning</strong> first and give one revision note (for example, "in step 2, write the tests before changing the implementation"). Expected: still in plan mode, and the plan gets updated.</li>
+      <li>When the approval menu appears, press <code>Ctrl+G</code>. Expected: the plan text opens in your default editor for direct edits; saving returns you to the menu.</li>
+      <li>Choose <strong>Yes, manually approve edits</strong>. Expected: the plan mode marker disappears from the status bar and Claude starts editing per the plan, with each edit prompting you individually for confirmation.</li>
+      <li>To wrap up, press <code>Shift+Tab</code> a few times and watch the <code>default</code> → <code>acceptEdits</code> → <code>plan</code> cycle, confirming you can switch back into plan mode anytime.</li>
+    </ol>
+    <pre class="prompt"><code>Read through the code under src/ related to login and sessions, and work out
+the current authentication flow. Don't change any files yet. Answer two questions:
+1. Where are tokens generated, and where are they validated?
+2. Which file holds the current session-expiry logic?</code></pre>
+    <pre class="prompt"><code>I want to add a "remember me for 30 days" option to login.
+Based on what you just explored, give me a step-by-step implementation plan:
+for each step, list which files change, why, and how to verify the change.
+Call out explicitly in the plan what is out of scope for this round.</code></pre>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>Without the docs, you can name the three ways into plan mode (the <code>Shift+Tab</code> cycle, the <code>/plan</code> prefix, <code>--permission-mode plan</code>) and how to exit without approving a plan.</li>
+      <li>You can explain what plan mode blocks and allows at the permission level, plus the exception in bypass-permissions sessions.</li>
+      <li>You can recite the three families of approval options, and state clearly that "approving = exiting plan mode + switching to the matching mode".</li>
+      <li>All 7 hands-on steps completed, including editing a plan once via <code>Ctrl+G</code>.</li>
+      <li>Self-check 1: "fix a typo" vs. "wire up OAuth across five files" — which deserves a plan first? Justify it with the official one-line test.</li>
+      <li>Self-check 2: you approved the plan with "Yes, and use auto mode" — what permission mode is the session in now? Are you still in plan mode?</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/permission-modes" rel="noopener">Choose a permission mode (plan mode, approval flow, mode switching)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices" rel="noopener">Best practices for Claude Code (Explore first, then plan, then code)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/common-workflows" rel="noopener">Common workflows (Plan before editing)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/interactive-mode" rel="noopener">Interactive mode (Shift+Tab, Ctrl+G and other shortcuts)</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-04.html">Previous: D4 · CLAUDE.md and rules</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-06.html">Next: D6 · Checkpoints, rewind and session management</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

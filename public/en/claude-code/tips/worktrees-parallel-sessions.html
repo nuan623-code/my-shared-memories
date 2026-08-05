@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worktrees: keep parallel sessions out of each other's way · Claude Code Learning Hub</title>
+<meta name="description" content="Multiple Claude Code sessions editing one repo step on each other's files: give each session its own checkout with claude --worktree — including environment setup, merging, and cleanup.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Worktrees: keep parallel sessions out of each other's way · Claude Code Learning Hub">
+<meta property="og:description" content="Give each parallel session its own checkout with claude --worktree: how to start one, initialize the environment, merge, and clean up.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/worktrees-parallel-sessions.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/worktrees-parallel-sessions.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/worktrees-parallel-sessions.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/worktrees-parallel-sessions.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/worktrees-parallel-sessions.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/worktrees-parallel-sessions.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / B · Parallelism &amp; throughput</p>
+  <h1>Worktrees: keep parallel sessions out of each other's way</h1>
+  <p>Two sessions working in the same repo: one is running tests while the other edits the files — now neither result can be trusted. The fix is one checkout each.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">A git worktree is another working directory of the same repository: separate files, separate branch, shared history and remotes. Give each Claude Code session its own worktree and one session's edits can never touch another session's files.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      <span class="badge badge-official">Official</span>Start each parallel session in its own worktree with <code>claude --worktree &lt;name&gt;</code>: each gets its own files and branch, so building a feature and fixing a bug never interfere; worktree branches are ordinary git branches — merge or open a PR as usual when you're done, and Claude walks you through cleanup when the session exits.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Confirm the problem really is sessions stepping on each other.</strong>Symptoms: two sessions open in the same directory, session A's <code>git status</code> suddenly shows session B's changes, files change mid-test-run.<span class="badge badge-official">Official</span>That's exactly what worktrees are positioned for: "running each Claude Code session in its own worktree means edits in one session never touch files in another". Prerequisite: it must be a git repository.</li>
+      <li><strong>Start the first isolated session.</strong>Inside the repo, run <code>claude --worktree feature-auth</code> (short form <code>-w</code>).<span class="badge badge-official">Official</span>By default this creates the worktree at <code>.claude/worktrees/feature-auth/</code> under the repo root, on a new branch named <code>worktree-feature-auth</code>, cut from the repo's default branch (usually main). Omit the name and one is generated automatically. Before first use, you need to have run <code>claude</code> once in that directory and accepted workspace trust.</li>
+      <li><strong>Open a second one under a different name.</strong>In another terminal, run <code>claude --worktree fix-login-bug</code> — from then on, the two sessions each edit their own copy.<span class="badge badge-official">Official</span>The docs recommend adding <code>.claude/worktrees/</code> to <code>.gitignore</code> so worktree contents don't show up as untracked files in the main checkout.</li>
+      <li><strong>Initialize the environment.</strong>A worktree is a fresh checkout: dependencies need reinstalling, and gitignored files like <code>.env</code> aren't there.<span class="badge badge-official">Official</span>Add a <code>.worktreeinclude</code> file at the project root (.gitignore syntax) listing <code>.env</code>, <code>.env.local</code>, and so on; every new worktree then gets them automatically. Only files that both match a pattern and are themselves gitignored get copied.</li>
+      <li><strong>Collect the changes.</strong><span class="badge badge-official">Official</span>A worktree shares the <code>.git</code> directory and remotes with the main checkout, so <code>git commit</code> and push work as usual inside it.<span class="badge badge-site">Our take</span>So merging needs no special ceremony: push and open a PR, or go back to the main checkout and <code>git merge worktree-feature-auth</code> — just treat it as an ordinary branch.</li>
+      <li><strong>Clean up.</strong><span class="badge badge-official">Official</span>When you exit an interactive session, Claude checks the worktree: clean, unnamed ones are removed automatically; if one still holds changes or new commits, you're asked whether to keep or remove it. Worktrees created by non-interactive <code>claude -p</code> runs get no exit prompt — remove them manually with <code>git worktree remove &lt;path&gt;</code> (add <code>--force</code> if there are uncommitted changes), and <code>git worktree list</code> shows what currently exists.</li>
+      <li><strong>Two advanced switches.</strong><span class="badge badge-official">Official</span>① Mid-session, just say "work in a worktree" and Claude creates one on the spot with the EnterWorktree tool; ② subagents can each take their own worktree too: add <code>isolation: worktree</code> to a custom subagent's frontmatter (subagent basics in <a href="/en/claude-code/course/day-10.html">D10 · Subagents</a>). If you want worktrees cut from your current unpushed work rather than the default branch, set <code>"worktree": {"baseRef": "head"}</code> in settings.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Do this task in a new worktree: &lt;task description&gt;.
+Requirements:
+1. Isolate the work in a worktree — don't touch any file in my main
+   checkout;
+2. After entering the worktree, initialize the environment first: install
+   dependencies, check whether local config files like .env exist, and if
+   any are missing, list them and ask me before proceeding;
+3. When the changes are done, run &lt;test command&gt;; once it passes, commit
+   to the worktree branch, then tell me the branch name and a summary of
+   the changes. I'll decide whether to merge or open a PR — don't merge
+   it yourself.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/worktrees.md">Run parallel sessions with worktrees</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (cleanup, baseRef, and EnterWorktree approval behavior have changed frequently across recent versions).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

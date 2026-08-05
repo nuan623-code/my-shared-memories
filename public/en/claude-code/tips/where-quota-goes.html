@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where did this month's quota go? · Claude Code Learning Hub</title>
+<meta name="description" content="Use /usage's attribution breakdown to find what's burning your Claude Code quota: long sessions at full context, cache-expiry recompute, scheduled tasks, agent teammates, /compact — plus the habits that stop the bleed.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/where-quota-goes.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/where-quota-goes.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/where-quota-goes.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/where-quota-goes.html">
+<meta property="og:title" content="Where did this month's quota go? · Claude Code Learning Hub">
+<meta property="og:description" content="Find your quota's biggest line items with /usage attribution: long sessions, cache expiry, scheduled tasks, agent teammates, /compact — and how to save on each.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/where-quota-goes.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/where-quota-goes.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">D · Cost & context</span></p>
+  <h1>Where did this month's quota go?</h1>
+  <p>You barely got anything done, yet the plan's usage bar is nearly empty — don't guess. Run /usage and read the attribution first; the biggest line item is usually not the one you suspect.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Quota burn has little to do with how much you type, and everything to do with how much context each message carries and whether the cache is hitting. This page: locate the leak first, then stop the bleeding.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Bottom line</span>
+      Run <code>/usage</code> and read the attribution breakdown first (share by skill/subagent/plugin/MCP server, plus long context and cache-miss flags), then check the five usual suspects: long sessions at full context, cache-expiry recompute, scheduled tasks, agent teammates, and /compact itself. <span class="badge badge-site">Our take</span>For most people, the quota is quietly burned by a long session that never gets /clear'd.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Run <code>/usage</code> — attribution before totals.</strong><span class="badge badge-official">Official</span>The Session block at the top shows the current session's token stats and a locally estimated dollar amount (for subscribers this figure is not your bill — just watch the plan usage bar below it). Pro/Max/Team/Enterprise plans also get a breakdown: recent usage split into percentages by skills, subagents, plugins, and each MCP server, with any behavior above 10% of recent usage (such as long context or cache misses) individually flagged with saving suggestions; press <code>d</code>/<code>w</code> to switch between the last 24 hours and 7 days. Note that this data comes from local session history — it excludes other devices and claude.ai usage.</li>
+      <li><strong>Check the official list of ways long sessions burn money, and see which apply to you.</strong><span class="badge badge-official">Official</span>
+        <ul>
+          <li><strong>Long context</strong>: every message resends the entire history; ask a single question in a session that's been open all day and you're billed for the whole conversation (cache hits at the cached rate — but still burning).</li>
+          <li><strong>Cache miss</strong>: step away past the cache lifetime (1 hour on subscriptions; 5 minutes default for API keys and cloud providers) and the first message recomputes the entire context. Mechanics in <a href="/en/claude-code/tips/prompt-cache-invalidation.html">Which actions invalidate the prompt cache?</a>.</li>
+          <li><strong>Scheduled tasks</strong>: fire on their cycle even while the session is idle, each run carrying the full context.</li>
+          <li><strong>Agent teammates</strong>: each active teammate occupies its own context window and keeps consuming tokens until it exits; the official figure is that with teammates running plan mode, agent teams use about 7x the tokens of a regular session.</li>
+          <li><strong><code>/compact</code> itself</strong>: compaction has to read the full conversation first, so compacting a large context is itself one large request; when what you want is a clean restart, <code>/clear</code> is free.</li>
+        </ul>
+      </li>
+      <li><strong>Change habits to stop the bleed — highest payoff first.</strong><span class="badge badge-official">Official</span>
+        <ul>
+          <li><code>/clear</code> between tasks: clear whenever you switch to unrelated work; <code>/rename</code> it first so <code>/resume</code> can find it later.</li>
+          <li>Match the model to the task: Sonnet for everyday work, Opus reserved for hard architecture decisions; give simple subagent tasks <code>model: haiku</code> in their config.</li>
+          <li>Delegate long outputs to subagents: running tests, reading logs, fetching docs — put big-output work in a child context that returns only a summary (see <a href="/en/claude-code/course/day-10.html">D10 · Subagents</a>).</li>
+          <li>Keep only the MCP servers you use: toggle idle servers off in <code>/mcp</code>; CLIs like gh, aws, and gcloud are cheaper on context than MCP (see <a href="/en/claude-code/tips/too-many-mcp-servers.html">Why too many MCP servers slow you down and cost more</a>).</li>
+          <li>Keep CLAUDE.md under 200 lines; move specialized procedures into skills, loaded on demand.</li>
+          <li>Lower effort for simple tasks (<code>/effort</code>) or trim the thinking budget; thinking tokens are billed as output, and the default budget can reach tens of thousands of tokens per request.</li>
+        </ul>
+      </li>
+      <li><strong>Teams and API users: reconcile at the org level.</strong><span class="badge badge-official">Official</span>OpenTelemetry exports <code>claude_code.token.usage</code> and <code>claude_code.cost.usage</code> into your own monitoring stack, sliceable by user and by model, available under any auth method; Console (API) users should treat platform.claude.com/usage as the source of truth — the local <code>/usage</code> dollar figure is estimated at standard list prices, with no discounts applied.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>Run a Claude Code usage check-up for me. Goal: find what's burning quota and fix it:
+1. Count the lines in the project root CLAUDE.md and ~/.claude/CLAUDE.md;
+   where either exceeds 200 lines, point out which sections should move
+   into skills that load on demand;
+2. Read the MCP server list configured in .mcp.json and settings at every
+   level, and — given what this project actually needs — flag the idle
+   servers I should toggle off in /mcp;
+3. Check whether scheduled tasks or agent-teams settings are configured,
+   and assess their background consumption;
+4. Remind me to run /usage and /context myself (user commands — you can't
+   run them for me), and tell me which fields to focus on in each;
+5. Finish with a quota-saving checklist in two tiers: "do now" and
+   "do this week".</code></pre>
+
+    <h2>Sources & last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/costs.md" rel="noopener">code.claude.com/docs/en/costs.md</a> (/usage explained, long-session burn mechanics, all "Reduce token usage" strategies, agent teams 7x), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/monitoring-usage.md" rel="noopener">code.claude.com/docs/en/monitoring-usage.md</a> (OTel export, token.usage and cost.usage metrics), fetched 2026-08-05.</li>
+      <li><span class="badge badge-site">Our take</span>"The biggest line item is usually a long session that never gets /clear'd" is our judgment based on the official mechanics; the fix-priority ordering is our arrangement.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (the /usage UI and billing semantics change across versions; official docs at v2.1.222, needs periodic re-checking).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

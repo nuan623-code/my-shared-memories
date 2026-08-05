@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D13 · Headless &amp; CI · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code headless mode in depth: non-interactive runs with claude -p, the three output formats and exit codes, locking down permissions for unattended runs, and wiring the official GitHub Action into CI with auth and cost control.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D13 · Headless &amp; CI · Claude Code Learning Hub">
+<meta property="og:description" content="Non-interactive claude -p runs, output formats and exit codes, unattended permission lockdown, and how to wire up the official GitHub Action with cost controls.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-13.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-13.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-13.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-13.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-13.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-13.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D13</p>
+  <h1>D13 · Headless &amp; CI</h1>
+  <p>Turn Claude Code from "a terminal session you watch" into "one command in a pipeline": headless claude -p runs, structured output, unattended permission lockdown, and how to wire in the official GitHub Action.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">For the first twelve lessons, Claude Code always had a person sitting at the terminal making the calls; this lesson removes that person. You'll learn headless mode's (<code>claude -p</code>) input/output contract — prompt in, text or JSON out, exit code decides success — what happens to permissions when nobody is there to click "Allow", and finally how to wire it into your PR flow with the official GitHub Action.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p>This lesson is the "unattended edition" final assembly of several earlier ones: in <a href="/en/claude-code/course/day-03.html">D3's permission modes</a> you learned interactive allow/deny, but in CI nobody answers prompts — the answers must be written in advance into <code>--allowedTools</code> or a permission mode; and the "machine referee" idea from <a href="/en/claude-code/course/day-08.html">D8's Hooks</a> holds in CI too — in headless runs, hooks are one of the few mechanisms that can still forcibly block an action.<span class="badge badge-site">Our take</span></p>
+    <p>Looking ahead, <a href="/en/claude-code/course/day-14.html">D14 (Plugins)</a> covers packaging and distribution, and headless is one of the main places distributed plugins get consumed: the official action supports installing plugins and running their skills in CI. After this lesson, read the hands-on tips <a href="/en/claude-code/tips/github-actions-integration.html">F3 · GitHub Actions integration</a> and <a href="/en/claude-code/tips/scheduled-tasks.html">F4 · Scheduled tasks</a> — that's the step from "understanding the mechanism" to "copying a working setup".</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>headless: the input/output contract of a single command</h3>
+    <p><span class="badge badge-official">Official</span>Add <code>-p</code> (i.e. <code>--print</code>) to any <code>claude</code> command and it becomes non-interactive: execute the prompt, print the result, exit; every CLI flag can be combined with <code>-p</code>. It reads stdin, so it takes pipes like any ordinary Unix tool (piped stdin capped at 10MB since v2.1.128):</p>
+<pre><code># Q&amp;A style: result goes to stdout
+claude -p "What does the auth module do?"
+
+# Pipe style: build log in, explanation out
+cat build-error.txt | claude -p 'concisely explain the root cause of this build error' &gt; output.txt</code></pre>
+    <p><span class="badge badge-official">Official</span>Success is expressed through exit codes: 0 on success, non-zero on failure, so scripts can branch directly on exit status; on SIGTERM it aborts the current turn, runs SessionEnd hooks, and exits with 143. <span class="badge badge-official">Official</span>In CI, add <code>--bare</code>: it skips hooks, skills, plugins, MCP, auto memory, and CLAUDE.md auto-discovery, guaranteeing identical results on every machine and faster startup; the docs note it will become the default behavior of <code>-p</code> in the future. Note that bare mode doesn't read OAuth credentials or the system keychain — you must authenticate via the <code>ANTHROPIC_API_KEY</code> environment variable (or apiKeyHelper in settings).</p>
+
+    <h3>Three output formats: for humans vs for programs</h3>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>--output-format</th><th>Output</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td><code>text</code> (default)</td><td>Plain-text answer</td><td>Humans, simple pipes</td></tr>
+        <tr><td><code>json</code></td><td>One JSON object: <code>result</code>, <code>session_id</code>, <code>total_cost_usd</code>, and per-model costs</td><td>Script parsing, per-run accounting</td></tr>
+        <tr><td><code>stream-json</code></td><td>Line-by-line JSON event stream (with <code>--verbose --include-partial-messages</code> you get token-level increments)</td><td>Live progress, building your own UI</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="badge badge-official">Official</span>For structured output conforming to a fixed schema, use <code>--output-format json</code> with <code>--json-schema</code>; the result lands in the <code>structured_output</code> field, ready to pluck values from with jq; an invalid schema errors out (since v2.1.205). <span class="badge badge-official">Official</span>The first event of the stream-json stream, <code>system/init</code>, carries fields like <code>mcp_server_errors</code> and <code>plugin_errors</code> — CI can fail directly on "non-empty error array", catching the silent failure where a server didn't load but the process still exited cleanly.</p>
+
+    <h3>Unattended runs: what happens to permissions</h3>
+    <p>This is the CI answer to <a href="/en/claude-code/course/day-03.html">D3</a>'s question. In an interactive session a human answers permission prompts; in headless there's nobody there, so the docs give three layers of lockdown:<span class="badge badge-official">Official</span></p>
+    <ul>
+      <li><strong>Allow item by item:</strong> <code>--allowedTools "Bash(git diff *),Read,Edit"</code>, using permission-rule syntax precise down to the command prefix. Mind the space before the <code>*</code>: <code>Bash(git diff *)</code> only allows commands starting with git diff; writing <code>git diff*</code> would let <code>git diff-index</code> through as well.</li>
+      <li><strong>Set a baseline:</strong> <code>--permission-mode dontAsk</code> denies everything not covered by allow rules or the read-only command set — right for locked-down CI; <code>--permission-mode acceptEdits</code> writes files without prompting and auto-allows common filesystem commands like mkdir, touch, mv, cp, while other shell commands still need allow rules or the run aborts.</li>
+      <li><strong>Cap the damage:</strong> <code>--max-turns</code> limits turns (the CLI has no default limit; hitting it errors out), <code>--max-budget-usd</code> caps dollar spend per run (subagent spend counts too; enforcement of the cap requires v2.1.217+).</li>
+    </ul>
+    <div class="callout"><span class="callout-label">Common misconception</span>"Nobody's watching in CI, so just open everything with <code>--dangerously-skip-permissions</code>" — convenient, but it hands the model's output the full permissions of your repo and runner, and if the prompt gets injected via PR content there is no gate left at all. The sturdier CI combination: precise allowedTools + a dontAsk/acceptEdits baseline + max-turns/budget caps, with D8's hooks as hard blocks on top.<span class="badge badge-site">Our take</span></div>
+
+    <h3>Wiring into GitHub Actions</h3>
+    <p><span class="badge badge-official">Official</span>The official GitHub Action is <code>anthropics/claude-code-action@v1</code> (under the hood it's the Agent SDK / headless capability). It auto-detects its mode: configured with event triggers but no prompt, it responds to <code>@claude</code> mentions in comments (interactive mode); given a <code>prompt</code> input, it executes directly (automation mode). Any CLI argument passes through via <code>claude_args</code> — for example <code>--max-turns</code> (defaults to 10 in the action), <code>--model</code>, <code>--allowedTools</code>.</p>
+    <figure>
+      <svg viewBox="0 0 680 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flowchart: PR or scheduled events trigger GitHub Actions; the official action in the runner executes Claude headless, producing PR comments, commits, or JSON results">
+        <rect class="svg-box" x="40" y="12" width="170" height="40" rx="10"/>
+        <text class="svg-ink" x="125" y="37" text-anchor="middle" font-size="13">@claude mention</text>
+        <rect class="svg-box" x="255" y="12" width="170" height="40" rx="10"/>
+        <text class="svg-ink" x="340" y="37" text-anchor="middle" font-size="13">pull_request event</text>
+        <rect class="svg-box" x="470" y="12" width="170" height="40" rx="10"/>
+        <text class="svg-ink" x="555" y="37" text-anchor="middle" font-size="13">schedule (cron)</text>
+        <line class="svg-line" x1="125" y1="52" x2="125" y2="84" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="120,84 125,94 130,84"/>
+        <line class="svg-line" x1="340" y1="52" x2="340" y2="84" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="335,84 340,94 345,84"/>
+        <line class="svg-line" x1="555" y1="52" x2="555" y2="84" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="550,84 555,94 560,84"/>
+        <rect class="svg-box" x="30" y="94" width="620" height="116" rx="12"/>
+        <text class="svg-ink-soft" x="48" y="116" font-size="12">GitHub Actions runner (CI)</text>
+        <rect class="svg-box" x="60" y="128" width="240" height="48" rx="10"/>
+        <text class="svg-ink" x="180" y="157" text-anchor="middle" font-size="13">claude-code-action@v1</text>
+        <rect class="svg-box-accent" x="380" y="128" width="240" height="48" rx="10"/>
+        <text class="svg-ink" x="500" y="157" text-anchor="middle" font-size="13">runs claude -p headless</text>
+        <line class="svg-line" x1="300" y1="152" x2="372" y2="152" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="372,147 382,152 372,157"/>
+        <text class="svg-ink-soft" x="340" y="200" text-anchor="middle" font-size="12">Auth: secrets.ANTHROPIC_API_KEY injected; permissions locked down via claude_args</text>
+        <line class="svg-line" x1="125" y1="210" x2="125" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="120,240 125,250 130,240"/>
+        <line class="svg-line" x1="340" y1="210" x2="340" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="335,240 340,250 345,240"/>
+        <line class="svg-line" x1="555" y1="210" x2="555" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="550,240 555,250 560,240"/>
+        <rect class="svg-box" x="40" y="250" width="170" height="44" rx="10"/>
+        <text class="svg-ink" x="125" y="277" text-anchor="middle" font-size="13">PR comments / reviews</text>
+        <rect class="svg-box" x="255" y="250" width="170" height="44" rx="10"/>
+        <text class="svg-ink" x="340" y="277" text-anchor="middle" font-size="13">New commits / PRs</text>
+        <rect class="svg-box" x="470" y="250" width="170" height="44" rx="10"/>
+        <text class="svg-ink" x="555" y="277" text-anchor="middle" font-size="13">JSON results &amp; exit codes</text>
+      </svg>
+      <figcaption>Three trigger types feed the same runner: the official action runs Claude headless and produces comments, commits, or JSON for downstream steps to consume.</figcaption>
+    </figure>
+    <p><span class="badge badge-official">Official</span><strong>Auth:</strong> the fastest path is running <code>/install-github-app</code> in a Claude Code terminal (requires repo admin; the GitHub App needs read/write on Contents/Issues/Pull requests; the shortcut is only for users connecting directly to the Claude API). The manual path: install the App, store the API key in the repo secret <code>ANTHROPIC_API_KEY</code>, and copy a workflow from the official examples. Subscribers can generate a long-lived OAuth token for CI with <code>claude setup-token</code>. Enterprise environments can go through Amazon Bedrock / Google Cloud, using OIDC instead of storing static keys, with <code>use_bedrock</code> or <code>use_vertex</code> enabled on the action side. <strong>Never put the key in the workflow file.</strong></p>
+    <p><span class="badge badge-official">Official</span><strong>Cost:</strong> CI spends two currencies — GitHub Actions minutes + API tokens. The official controls: specific, well-scoped @claude instructions to cut wasted invocations, <code>--max-turns</code> against endless iteration, workflow-level timeouts against runaway jobs, and GitHub concurrency to limit parallelism. Combine with <code>total_cost_usd</code> from <code>--output-format json</code> for per-run accounting.</p>
+
+    <h2>Hands-on: doable today</h2>
+    <p>The first three steps only need Claude Code installed locally, about 15 minutes; step 4 needs a GitHub repo where you have admin rights.</p>
+    <ol>
+      <li><strong>Run a minimal headless call and check the exit code.</strong> In any project directory run the first command below. Expected: a JSON object containing <code>result</code> (the answer text), <code>session_id</code>, and <code>total_cost_usd</code>; right after, <code>echo $?</code> should print <code>0</code>.</li>
+      <li><strong>Use it as a Unix tool.</strong> Run the second, piped command. Expected: Claude outputs only the spelling problems in the diff (no pleasantries) — the embryo of "Claude as a linter". It can read the diff without any Bash permission because the content arrives through the pipe.</li>
+      <li><strong>Feel the permission lockdown.</strong> The third command runs a file-modifying task under the <code>acceptEdits</code> baseline; expected: no confirmation prompts at all. Then remove <code>--permission-mode acceptEdits</code> and re-run; expected: the task can't finish because nobody is there to approve the file writes — which is exactly why CI requires permissions declared up front.</li>
+    </ol>
+    <pre class="prompt"><code># 1. Minimal headless call + exit code
+claude -p "Summarize what this project does in one sentence" --output-format json
+echo $?
+
+# 2. Pipe: diff in, spell check out
+git diff main | claude -p "You are a spell checker. For every spelling mistake in the diff, print one line with file:line, then the problem on the next line. No other output."
+
+# 3. Permission lockdown: run with the baseline, then remove it and compare
+claude -p "Fix the typos in README.md" --permission-mode acceptEdits --max-turns 5</code></pre>
+    <ol start="4">
+      <li><strong>Wire into GitHub Actions.</strong> In a repo where you have admin rights, open interactive Claude Code and run <code>/install-github-app</code>; follow the guide to install the App, add the secret, and generate the workflow. Then comment on any issue or PR with <code>@claude Where are the weak spots in this repo's test coverage?</code> — expected: Claude replies as a comment within a few minutes. No suitable repo? Read and understand the minimal workflow below today, and install it tomorrow:</li>
+    </ol>
+<pre><code>name: Claude Code
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 10"</code></pre>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>You can explain <code>claude -p</code>'s input/output contract to someone else: prompt/stdin in, text/json/stream-json out, exit code 0 or non-zero decides success.</li>
+      <li>You can say which scenarios json and stream-json each fit, and which field <code>--json-schema</code> results land in.</li>
+      <li>Hands-on steps 1–3 all ran, and you can explain why the behavior changed in step 3 after removing the permission baseline.</li>
+      <li>You can name the three CI auth routes: the <code>ANTHROPIC_API_KEY</code> secret, <code>claude setup-token</code> for subscribers, and OIDC via Bedrock/Vertex.</li>
+      <li>Self-test: in CI you want Claude to fix lint and commit, unattended — no prompts, but without opening up all permissions either. How do you configure it? (Key points: <code>--allowedTools</code> precisely allowing the git/lint commands + an <code>acceptEdits</code> or <code>dontAsk</code> baseline + <code>--max-turns</code>/<code>--max-budget-usd</code> as stop-loss; not <code>--dangerously-skip-permissions</code>.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/headless.md">Run Claude Code programmatically (headless)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/github-actions.md">Claude Code GitHub Actions</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/cli-reference.md">CLI reference</a> (-p, --output-format, --json-schema, --max-budget-usd, setup-token, etc.), fetched 2026-08-05.</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-12.html">Previous: D12 · Agent teams &amp; dynamic workflows</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-14.html">Next: D14 · Plugins: packaging &amp; distribution</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

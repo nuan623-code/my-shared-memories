@@ -1,7 +1,15 @@
 # Claude Code 学习站 · 运维说明
 
-> 板块位置:`public/claude-code/` → 线上 https://mingyuyang.com/claude-code/
-> 初始化:2026-08-05(PROMPT-0)。**同日应用户要求全量首发**:14 课 + 25 条 Tip 一次性发布(并行子代理写成,均基于当日抓取的官方文档),未走每日渐进。此文件相当于该板块的 README:怎么部署、每日任务怎么跑、state.json 怎么接力。
+> 板块位置:`public/claude-code/`(中文)+ `public/en/claude-code/`(英文镜像)→ 线上 https://mingyuyang.com/claude-code/ 与 https://mingyuyang.com/en/claude-code/
+> 初始化:2026-08-05(PROMPT-0)。**同日应用户要求全量首发**:14 课 + 25 条 Tip 一次性发布(并行子代理写成,均基于当日抓取的官方文档),未走每日渐进;**同日补齐英文版全量镜像**。此文件相当于该板块的 README:怎么部署、每日任务怎么跑、state.json 怎么接力。
+
+## 双语(2026-08-05 起)
+
+- 英文镜像 `public/en/claude-code/` 与中文版路径、slug 一一对应(en 无 template 页);共用同一份 `shared.css` 与 `site.js`(脚本按 `<html lang>` 切界面文案)。
+- 互指:两边 head 均有 hreflang 三连(zh / en / x-default→中文),topbar 有「EN/中文」切换链接。
+- 资料库配对:sync 脚本对 claude-code 目录用 `keyFromBase` 生成 `i18n_key`(= keyPrefix-文件名),中英行共享同一 key;中文存量行已用 `supabase/patches/2026-08-05-claude-code-i18n.sql` 回填。
+- 主站首页工具卡:TOOLS 支持 `hrefEn`,en 界面下学习站卡片链到 `/en/claude-code/`。
+- **每日任务必须中英同步**:新写/修订的页面两个语言都发,四个索引页两边都更新(已写进 daily.md)。
 
 ## 这是什么
 

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill, Hook, MCP, Subagent, or Plugin — which one do you need? · Claude Code Learning Hub</title>
+<meta name="description" content="One decision table for the five extension mechanisms: Skills for knowledge, Hooks for guaranteed actions, MCP for external systems, Subagents for isolation and parallelism, Plugins for packaging — plus the official trigger signals and easy-to-confuse pairs.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Skill, Hook, MCP, Subagent, or Plugin — which one do you need? · Claude Code Learning Hub">
+<meta property="og:description" content="One decision table for the five extension mechanisms: Skills for knowledge, Hooks for guaranteed actions, MCP for external systems, Subagents for isolation and parallelism, Plugins for packaging.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/skill-hook-mcp-subagent-plugin.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/skill-hook-mcp-subagent-plugin.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/skill-hook-mcp-subagent-plugin.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/skill-hook-mcp-subagent-plugin.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/skill-hook-mcp-subagent-plugin.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/skill-hook-mcp-subagent-plugin.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">E · Configuration &amp; choosing tools</span></p>
+  <h1>Skill, Hook, MCP, Subagent, or Plugin — which one do you need?</h1>
+  <p>You've heard all five names, but when it's time to actually configure something you don't know which to pick. Match by the problem you're solving — one table settles it.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">These five mechanisms aren't five competing options. They plug into different points of the agentic loop, solve different problems, and are often combined. The cost of picking the wrong one is usually either wasted context or something that should have happened not happening.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Choose by purpose: reusable <strong>knowledge and workflows</strong> go in a Skill; <strong>mandatory actions</strong> that must happen every time go in a Hook; connecting <strong>external tools and data</strong> is MCP; needing <strong>isolated context or parallelism</strong> means a Subagent; and only when you want to <strong>package and distribute</strong> the whole setup to other repos or teams do you reach for a Plugin — Plugins are a packaging layer, not a fifth standalone capability.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Start with the decision table.</strong><span class="badge badge-official">Official</span>The official features-overview doc lays out each mechanism's role and its use cases; here it is as a comparison table (the "Not for" column is a reverse reminder from <span class="badge badge-site">Our take</span>):
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Mechanism</th><th>What it is</th><th>Use it for</th><th>Not for (use instead)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Skill</strong></td><td>A markdown file holding knowledge, checklists, or workflows; invoke it with <code>/name</code>, and Claude can also auto-load it when relevant</td><td>The same prompt you keep pasting, API style guides, triggerable flows like <code>/deploy</code></td><td>Actions that "must happen every single time" (→ Hook); connecting external systems (→ MCP)</td></tr>
+            <tr><td><strong>Hook</strong></td><td>A script / HTTP request / prompt / subagent that <em>always executes</em> on lifecycle events (e.g. PostToolUse, SessionStart)</td><td>Auto-lint after edits, blocking dangerous commands, a notification when the session ends — deterministic actions that need no model reasoning</td><td>Flows where Claude has to judge how to act (→ Skill)</td></tr>
+            <tr><td><strong>MCP</strong></td><td>An open protocol for connecting external services, with servers providing tools and data access</td><td>Querying a database, reading issues, posting to Slack, driving a browser — systems Claude otherwise can't see</td><td>Knowledge about "how to use those tools well" (→ Skill; the two often pair up)</td></tr>
+            <tr><td><strong>Subagent</strong></td><td>An isolated worker with its own context window; when done, only a summary comes back to the main session</td><td>Research that reads dozens of files, parallel tasks, keeping a side task from flooding the main context</td><td>Content you want to reuse across sessions (→ Skill); multiple sessions talking to each other (→ agent teams)</td></tr>
+            <tr><td><strong>Plugin</strong></td><td>A packaging layer: bundles skills, hooks, subagents, and MCP servers into one installable unit; skills get a namespace (<code>/my-plugin:review</code>)</td><td>A second repo needs the same setup, or you're distributing to a team or the community</td><td>Personal single-project config (just put it in <code>.claude/</code>)</td></tr>
+          </tbody>
+        </table></div>
+        <p><span class="badge badge-official">Official</span>And don't forget the even more basic sixth option: "always do X" rules you must follow every time belong in <a href="/en/claude-code/course/day-04.html">CLAUDE.md</a> — it's loaded in full at the start of every session, no trigger required.</p>
+      </li>
+      <li><strong>Self-check against the official trigger signals.</strong><span class="badge badge-official">Official</span>The official advice is not to set up every mechanism up front, but to add each one when its signal shows up: Claude gets the same convention wrong twice → write it into CLAUDE.md; you paste the same runbook for the third time → save it as a Skill; you keep copying data from the browser that Claude can't see → connect MCP; a side task's output floods the conversation → hand it to a Subagent; you want something to "happen automatically every time" → write a Hook; a second repo needs the same setup → package it as a Plugin.</li>
+      <li><strong>Two easy-to-confuse pairs — memorize the discriminators.</strong><span class="badge badge-official">Official</span>Skill vs Hook: a Hook fires deterministically on its event (guaranteed), while a Skill relies on Claude understanding and following it (results can drift) — so <strong>guardrails must be Hooks</strong>. Writing "never edit .env" in CLAUDE.md or a Skill is only a request; a PreToolUse hook that blocks it is enforcement. Skill vs Subagent: a Skill is "loadable content", a Subagent is "an isolated execution environment", and the two compose — a skill can run in isolated context via <code>context: fork</code>, and a subagent can preload skills through its <code>skills:</code> field.</li>
+      <li><strong>Do the context math before you decide.</strong><span class="badge badge-official">Official</span>Each mechanism has a different context cost: CLAUDE.md is in every request, in full; a Skill keeps only its description resident and loads the full text on use; MCP loads only tool names, fetching schemas when used; a Subagent is fully isolated; a Hook runs externally and costs nothing unless it returns output. The scarcer your context (see <a href="/en/claude-code/tips/too-many-mcp-servers.html">the cost of installing too many MCP servers</a>), the more heavy content should move into Skills, Subagents, and Hooks.</li>
+      <li><strong>Combine — don't single-pick.</strong><span class="badge badge-official">Official</span>Real setups are usually combinations: MCP connects the database + a Skill records your schema and query habits; an <code>/audit</code> Skill dispatches three parallel Subagents for security, performance, and style; a post-edit Hook runs lint and feeds the results back into context. For a deep dive into each mechanism, see lessons <a href="/en/claude-code/course/day-07.html">D7 Skills</a>, <a href="/en/claude-code/course/day-08.html">D8 Hooks</a>, <a href="/en/claude-code/course/day-09.html">D9 MCP</a>, <a href="/en/claude-code/course/day-10.html">D10 Subagents</a>, <a href="/en/claude-code/course/day-14.html">D14 Plugins</a>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>I want to add a capability to Claude Code: &lt;describe your need, e.g. "run eslint automatically after every file edit", "hand Claude the team's release checklist", "let Claude query our PostgreSQL"&gt;.
+
+Following the official decision logic, tell me whether this should be a Skill, Hook, MCP,
+Subagent, or Plugin (or a combination), explain why,
+then generate the configuration directly:
+- Skills go in .claude/skills/&lt;name&gt;/SKILL.md
+- Hooks go under the "hooks" key in .claude/settings.json
+- For MCP, give me the claude mcp add command
+- Subagents go in .claude/agents/&lt;name&gt;.md
+Finally, explain when this configuration gets loaded and how much context it consumes.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/features-overview.md" rel="noopener">features-overview (Extend Claude Code — decision table / trigger signals / context costs)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/skills.md" rel="noopener">skills</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/hooks-guide.md" rel="noopener">hooks-guide</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/mcp.md" rel="noopener">mcp</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sub-agents.md" rel="noopener">sub-agents</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/plugins.md" rel="noopener">plugins</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (tied to Claude Code's current mechanism boundaries; as of version 2.1.222).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

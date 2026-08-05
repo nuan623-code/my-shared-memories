@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hooking Claude Code into GitHub Actions · Claude Code Learning Hub</title>
+<meta name="description" content="Wire Claude Code into GitHub Actions with one /install-github-app command: installation and setup, @claude mentions and PR review workflows, plus secrets and permission best practices.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Hooking Claude Code into GitHub Actions · Claude Code Learning Hub">
+<meta property="og:description" content="Installing and configuring the official GitHub Actions, @claude mention and PR review workflows, secrets and permission essentials.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/github-actions-integration.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/github-actions-integration.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/github-actions-integration.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/github-actions-integration.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/github-actions-integration.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/github-actions-integration.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">F · End-to-end scenarios</span></p>
+  <h1>Hooking Claude Code into GitHub Actions</h1>
+  <p>Install Claude Code into your repo's CI: one @claude comment in an issue or PR, and it can analyze code, implement features, fix bugs, and open PRs.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The official GitHub Actions integration centers on a single action, <code>anthropics/claude-code-action@v1</code>: install the GitHub App, configure the API key secret, and it automatically decides whether to respond to an @claude mention or execute a prompt directly.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Run <code>/install-github-app</code> in the Claude Code terminal; the interactive flow installs the GitHub App, the workflow file, and the <code>ANTHROPIC_API_KEY</code> secret, and you're wired in — from then on, <code>@claude</code> in any issue/PR comment triggers it. <span class="badge badge-official">Official</span>This whole installation is the shortcut documented officially, provided you're a repo admin and connect to the Claude API directly.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Check the prerequisites:</strong> <span class="badge badge-official">Official</span>Installing the GitHub App and adding secrets requires repo admin permissions; the <code>/install-github-app</code> shortcut is only available to users connecting directly to the Claude API — enterprise environments on Amazon Bedrock / Google Cloud need to configure OIDC and IAM manually per the official docs.</li>
+      <li><strong>Quick install:</strong> run <code>/install-github-app</code> in the Claude Code terminal and follow the guided flow to install the Claude GitHub App (it asks for read/write on Contents, Issues, and Pull requests), pick a workflow, and write the API key secret. <span class="badge badge-official">Official</span>Since v2.1.187 you can install just the App and choose "Skip for now", then run the command again later to finish configuring the workflow.</li>
+      <li><strong>Manual install (fallback):</strong> install <a href="https://github.com/apps/claude" rel="noopener">github.com/apps/claude</a> → add the <code>ANTHROPIC_API_KEY</code> secret in the repo's Settings → copy the official <code>examples/claude.yml</code> into <code>.github/workflows/</code>. <span class="badge badge-official">Official</span>The minimal workflow looks like this:
+<pre><code>name: Claude Code
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}</code></pre></li>
+      <li><strong>Verify:</strong> comment <code>@claude explain how this issue should be fixed</code> on any issue or PR. <span class="badge badge-official">Official</span>Note it's <code>@claude</code>, not <code>/claude</code>; the action auto-detects its run mode from the configuration — with a <code>prompt</code> input it executes directly (automation mode), without one it responds to mentions (interactive mode).</li>
+      <li><strong>Typical workflows:</strong> <span class="badge badge-official">Official</span>Three official scenarios: (1) @claude mentions (the basic workflow above); (2) automatic PR review — trigger on <code>pull_request: types: [opened, synchronize]</code> with a <code>prompt</code> that calls the code-review plugin's skill (installed via the <code>plugin_marketplaces</code> + <code>plugins</code> inputs); it runs on every PR without any mention; (3) scheduled jobs — a <code>schedule: cron</code> trigger plus a <code>prompt</code>, e.g. summarizing yesterday's commits and open issues at 9 a.m. every day (for choosing between schedulers see <a href="/en/claude-code/tips/scheduled-tasks.html">Scheduled tasks</a>). CLI flags all go through <code>claude_args</code>, e.g. <code>--max-turns 10</code>, <code>--model</code>, <code>--allowedTools</code>.</li>
+      <li><strong>Secrets and permissions:</strong> <span class="badge badge-official">Official</span>Never hardcode the API key into the workflow — always go through GitHub Secrets (<code>${{ secrets.ANTHROPIC_API_KEY }}</code>); scope the action's permissions down to the minimum; have a human review Claude's output before merging. Cost adds up on two fronts: GitHub Actions minutes plus API token consumption — put a floor under it with <code>--max-turns</code>, workflow timeouts, and concurrency controls.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <p>Have Claude Code write the review workflow for you (paste into a local session):</p>
+    <pre class="prompt"><code>Add a Claude Code GitHub Actions workflow to this repo at .github/workflows/claude.yml:
+- Use anthropics/claude-code-action@v1.
+- Triggers: the created events of issue_comment and pull_request_review_comment, responding to @claude mentions.
+- Read the API key from secrets.ANTHROPIC_API_KEY; no plaintext secrets may appear anywhere in the workflow.
+- Add --max-turns 10 in claude_args to prevent runaway usage.
+When you're done, explain each section, list the steps I still need to complete manually on GitHub
+(installing the Claude GitHub App, adding the secret), and finally show me how to post a test comment to verify.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/github-actions.md" rel="noopener">Claude Code GitHub Actions</a> (installation, workflow examples, claude_args, security and cost), fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: high (the action version, input names, and install flow evolve with releases; the beta → v1 transition already included one breaking change).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

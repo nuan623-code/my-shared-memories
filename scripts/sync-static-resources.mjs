@@ -35,9 +35,12 @@ const SCAN = [
   // 英文版每日内容:与中文版共享 i18n_key(= 目录+日期),供 hreflang 互指与语言切换
   { dir: "en/ai-daily", prefix: "en-ai-daily-", category: "ai", subcategory: "daily", tags: ["AI deep dive"], preferTitleTag: true, lang: "en", keyPrefix: "ai-daily" },
   { dir: "en/ai-briefing", prefix: "en-ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI briefing"], preferTitleTag: true, lang: "en", keyPrefix: "ai-briefing" },
-  // Claude Code 学习站(2026-08-05):课程与 tip 单页入库;index/template 由通用规则+manifest skip 排除
-  { dir: "claude-code/course", prefix: "claude-code-course-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true },
-  { dir: "claude-code/tips", prefix: "claude-code-tips-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true },
+  // Claude Code 学习站(2026-08-05):课程与 tip 单页入库;index/template 由通用规则+manifest skip 排除。
+  // keyFromBase:slug 不含日期,i18n_key 直接取 keyPrefix-文件名,中英两版共享同一 key(供 hreflang 与语言切换)。
+  { dir: "claude-code/course", prefix: "claude-code-course-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true, keyPrefix: "claude-code-course", keyFromBase: true },
+  { dir: "claude-code/tips", prefix: "claude-code-tips-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true, keyPrefix: "claude-code-tips", keyFromBase: true },
+  { dir: "en/claude-code/course", prefix: "en-claude-code-course-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true, lang: "en", keyPrefix: "claude-code-course", keyFromBase: true },
+  { dir: "en/claude-code/tips", prefix: "en-claude-code-tips-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true, lang: "en", keyPrefix: "claude-code-tips", keyFromBase: true },
   { dir: "", prefix: "", category: "ai", subcategory: null, tags: ["AI"] }, // public/ 根
 ];
 
@@ -130,10 +133,13 @@ for (const s of SCAN) {
       tags: o.tags || s.tags,
       url: urlPath,
       lang: o.lang ?? s.lang ?? "zh",
-      // 同一天的中英版本共享 key(= 栏目+日期),前端据此做 hreflang 与语言切换
-      i18n_key: o.i18n_key ?? (s.keyPrefix && /(\d{4}-\d{2}-\d{2})/.test(base)
-        ? `${s.keyPrefix}-${base.match(/(\d{4}-\d{2}-\d{2})/)[1]}`
-        : null),
+      // 中英版本共享 key,前端据此做 hreflang 与语言切换:
+      // 日期型栏目(ai-daily 等)= 栏目+日期;keyFromBase 型(claude-code)= 栏目+文件名。
+      i18n_key: o.i18n_key ?? (s.keyFromBase && s.keyPrefix
+        ? `${s.keyPrefix}-${base}`
+        : s.keyPrefix && /(\d{4}-\d{2}-\d{2})/.test(base)
+          ? `${s.keyPrefix}-${base.match(/(\d{4}-\d{2}-\d{2})/)[1]}`
+          : null),
     });
   }
 }

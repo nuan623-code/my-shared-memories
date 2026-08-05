@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>It says “done” but it isn’t — give it checks it can run itself · Claude Code Learning Hub</title>
+<meta name="description" content="Claude says “done” but the feature doesn’t even work? The root cause: it has no checks it can run itself. How to close the loop with tests, builds, lint, and screenshots — and enforce the gate with hooks.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/self-verifiable-done.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/self-verifiable-done.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/self-verifiable-done.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/self-verifiable-done.html">
+<meta property="og:title" content="It says “done” but it isn’t — give it checks it can run itself · Claude Code Learning Hub">
+<meta property="og:description" content="Give Claude verification it can run itself (tests/build/lint/screenshots) instead of verbal promises; enforce the gate with hooks when needed.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/self-verifiable-done.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/self-verifiable-done.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · Reliability &amp; quality</span></p>
+  <h1>It says “done” but it isn’t — give it checks it can run itself</h1>
+  <p>Claude reports “done,” you run it, and the feature is broken — the problem isn’t that it’s lying, it’s that you never gave it an objective standard for what “done” means.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude stops when the work “looks done.” Without a runnable check, “looks done” is its only signal — and you become the human verification loop, with every bug waiting for you to find it. Hand the verification to Claude itself and the loop finally closes.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Give Claude a check it can run on its own that returns a pass/fail signal — tests, build exit codes, lint, a diff script, or screenshots — and require it to show evidence of the run rather than a verbal report. <span class="badge badge-official">Official</span>The official best practices are explicit: without a check, “looks done” is its only signal; with one, Claude will build, run it, read the results, and iterate until it passes.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Put the verification criteria in the task itself.</strong> Don’t just say “implement an email-validation function” — give concrete cases and ask it to “run the tests after implementing.” <span class="badge badge-official">Official</span>The forms of check the docs list: test suites, build exit codes, linters, scripts that diff output against fixtures, browser screenshots compared to the design. Expected: Claude runs the check automatically after implementing, and keeps fixing on failure.</li>
+      <li><strong>Require evidence.</strong> Have Claude paste the test output, the commands it ran and what they returned, or a screenshot of the result — not a one-liner saying “done.” <span class="badge badge-official">Official</span>The docs point out that reviewing evidence is faster than re-running the verification yourself, and it works for sessions you weren’t around for.</li>
+      <li><strong>Pick how hard the gate should be.</strong> Once the check exists, decide how forcefully it blocks completion: <span class="badge badge-official">Official</span>
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th>Level</th><th>How</th><th>Characteristics</th></tr></thead>
+          <tbody>
+            <tr><td>Single prompt</td><td>Ask for “run the check and iterate” in the same message</td><td>Zero setup — works for any task today</td></tr>
+            <tr><td>Whole session</td><td>Set the check as a <code>/goal</code> condition</td><td>An independent evaluator re-checks after every turn; work continues until it’s satisfied</td></tr>
+            <tr><td>Deterministic gate</td><td>A Stop hook runs the check as a script</td><td>The turn can’t end until the check passes; after 8 consecutive blocks Claude Code force-releases</td></tr>
+            <tr><td>Second opinion</td><td>A verification subagent re-checks with a fresh context</td><td>The model that did the work doesn’t grade itself</td></tr>
+          </tbody>
+        </table></div>
+      </li>
+      <li><strong>Hooks are enforced; CLAUDE.md is advisory.</strong> <span class="badge badge-official">Official</span>Hooks execute scripts at fixed lifecycle points — unlike the “advisory” instructions in CLAUDE.md, they guarantee the action actually happens. You can just have Claude write them for you; for example, the official sample PostToolUse hook runs Prettier after every edit:
+        <pre><code>{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write" }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+        Note that the Stop hook fires every time Claude ends a reply, not only on “task complete”; in hook scripts, check the <code>stop_hook_active</code> field in the input to avoid infinite loops, and adjust the block cap via <code>CLAUDE_CODE_STOP_HOOK_BLOCK_CAP</code>.<span class="badge badge-official">Official</span></li>
+      <li><strong>Add one last independent check.</strong> Have a subagent that took no part in the implementation critique the diff alone — see this cluster’s <a href="/en/claude-code/tips/adversarial-review.html">adversarial review</a>. <span class="badge badge-site">Our take</span>“Verify yourself + get reviewed by someone else” is double insurance that mostly retires “says done, isn’t done.”</li>
+    </ol>
+    <p><span class="badge badge-official">Official</span>The docs list “trusted but never verified” as a common failure pattern (the trust-then-verify gap), and the fix principle they give is: always provide a way to verify; if something can’t be verified, don’t ship it.</p>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>For this next task, a verbal "done" is not accepted — you must provide verifiable evidence:
+1. Before starting, state how you plan to verify (tests / build / lint / screenshot diff — whichever applies).
+2. After implementing, run the verification commands yourself (e.g. npm test, npm run build) and paste the key output verbatim.
+3. If verification fails, keep fixing and re-verifying until everything passes; do not "go green" by skipping tests or suppressing errors.
+4. When you finish, report: which commands you ran, what each returned, and which parts are still not covered by verification.</code></pre>
+    <p>To turn verification into an enforced action, follow up with this — <span class="badge badge-official">Official</span>the docs confirm Claude can write hooks for you.</p>
+    <pre class="prompt"><code>Write a hook for me: after every file edit, automatically run eslint; when it reports errors,
+feed them back to you to fix. Put it in this project's .claude/settings.json,
+and explain what each field means once you're done.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Give Claude a way to verify its work / Avoid common failure patterns</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/hooks-guide.md" target="_blank" rel="noopener">Automate actions with hooks (hooks-guide)</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: high (tied to /goal, the Stop hook, the block cap, and other concrete product behavior; re-checked periodically).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

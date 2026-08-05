@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scheduled tasks: /loop, Desktop, or cloud Routines · Claude Code Learning Hub</title>
+<meta name="description" content="Comparing and choosing between Claude Code's three scheduling options — in-session /loop, Desktop scheduled tasks, and cloud Routines: where each runs, persistence, minimum interval, plus a complete daily-task example.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="Scheduled tasks: /loop, Desktop, or cloud Routines · Claude Code Learning Hub">
+<meta property="og:description" content="How to choose between /loop, Desktop scheduled tasks, and cloud Routines, with a complete daily-task example.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/scheduled-tasks.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/scheduled-tasks.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/scheduled-tasks.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/scheduled-tasks.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/scheduled-tasks.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/scheduled-tasks.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">F · End-to-end scenarios</span></p>
+  <h1>Scheduled tasks: /loop, Desktop, or cloud Routines</h1>
+  <p>Want Claude Code doing work for you every day, automatically? There are three official ways to schedule it — in-session /loop, Desktop scheduled tasks, and cloud Routines — and pick the wrong one and your task may never run at all.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">The essential difference between the three comes down to a single question: when the task runs, is your machine (and your session) around? Answer that clearly and the choice makes itself.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Choose by "does the machine need to be on": fully unattended (must run even with your machine off) → cloud <strong>Routines</strong>; needs to read/write local files, machine usually on → <strong>Desktop scheduled tasks</strong>; just watching a deployment or polling CI within the current session → <strong>/loop</strong>. <span class="badge badge-official">Official</span>The official docs' own guidance: cloud for reliable runs when your machine is away, Desktop for tasks that need local files and tools, /loop for quick in-session polling.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Pick first.</strong> <span class="badge badge-official">Official</span>Key rows from the official comparison table (the same table appears on two doc pages):
+        <div class="table-scroll"><table class="course">
+          <thead><tr><th></th><th>Cloud Routines</th><th>Desktop scheduled tasks</th><th>/loop (in-session)</th></tr></thead>
+          <tbody>
+            <tr><td>Where it runs</td><td>Anthropic's cloud</td><td>Your machine</td><td>Your machine</td></tr>
+            <tr><td>Machine must be on</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Session must be open</td><td>No</td><td>No</td><td>Yes</td></tr>
+            <tr><td>Survives restart</td><td>Yes</td><td>Yes</td><td>Recoverable with --resume until it expires</td></tr>
+            <tr><td>Can read local files</td><td>No (fresh clone each run)</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Permission prompts</td><td>None (runs autonomously)</td><td>Configurable per task</td><td>Inherits the session's</td></tr>
+            <tr><td>Minimum interval</td><td>1 hour</td><td>1 minute</td><td>1 minute</td></tr>
+          </tbody>
+        </table></div></li>
+      <li><strong>/loop (in-session):</strong> <span class="badge badge-official">Official</span><code>/loop 5m check if the deployment finished</code> reruns the prompt at a fixed interval; omit the interval and Claude picks its own wait of 1 minute to 1 hour each round. Tasks are session-scoped: open a new session and they're gone, and recurring tasks auto-expire 7 days after creation. There's anti-crowding jitter: on-the-hour tasks can fire up to 30 minutes late, so if punctuality matters, avoid <code>:00/:30</code> and write minutes like <code>3 9 * * *</code>. One-off reminders are just plain language: "remind me at 3pm to push the release branch". Manage them in natural language ("what scheduled tasks do I have?"); under the hood are the three tools CronCreate/CronList/CronDelete.</li>
+      <li><strong>Desktop scheduled tasks (local, persistent):</strong> <span class="badge badge-official">Official</span>In the Desktop sidebar: <strong>Routines → New routine → choose Local</strong>; fill in the name, description, instructions, and schedule (Manual/Hourly/Daily/Weekdays/Weekly presets; for finer granularity, have Claude set it for you); at the scheduled time it automatically opens a new session and runs. It only runs while the app is open and the computer is awake; if it sleeps through a run, it makes up the most recently missed run after waking (once only) — so write a time guardrail into the prompt (see the example below). Permissions are per task: after creating one, click <strong>Run now</strong> and set each permission prompt to "always allow" so it never gets stuck later. The task prompt lives at <code>~/.claude/scheduled-tasks/&lt;task-name&gt;/SKILL.md</code>; edit the file and it takes effect on the next run.</li>
+      <li><strong>Cloud Routines (unattended):</strong> <span class="badge badge-official">Official</span>In research preview. Create one at <a href="https://claude.ai/code/routines" rel="noopener">claude.ai/code/routines</a> or with <code>/schedule</code> in the CLI: prompt + repo + connectors get packaged into a routine that runs on Anthropic's cloud — a fresh clone of the repo each run, no permission prompts, fully autonomous. Beyond schedules, it can also be triggered by an API POST or GitHub events (PR/release). Minimum interval is 1 hour; there's a daily run cap, and runs consume subscription usage. Requires claude.ai subscription login (<code>/schedule</code> doesn't work with API key login).</li>
+      <li><strong>Prompt-writing essentials shared by all three:</strong> <span class="badge badge-official">Official</span>Scheduled tasks run autonomously with no way to ask follow-ups, so the prompt must be self-contained: exactly what to do, what success looks like, where results go. <span class="badge badge-site">Our take</span>Two more: make the task leave auditable artifacts (files/PRs/reports), not just words in a session; and a green status on a cloud routine only means the session exited cleanly, not that the task succeeded — open the transcript and check. CI-side schedules can also run on GitHub Actions cron, see <a href="/en/claude-code/tips/github-actions-integration.html">Hooking Claude Code into GitHub Actions</a>; for watching background work from your phone, see <a href="/en/claude-code/tips/background-runs-mobile-monitoring.html">Background runs and mobile monitoring</a>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <p>Complete daily-task example A — cloud version, in the CLI (requires claude.ai subscription login):</p>
+    <pre class="prompt"><code>/schedule Every day at 9am: summarize the PRs merged and issues opened in this repo over the past 24 hours,
+grouped by module, flagging high-risk changes; write the digest to reports/daily-&lt;date&gt;.md,
+commit it to a claude/-prefixed branch, and open a PR.
+Success criteria: the PR adds exactly this one file, and every conclusion in the digest cites a PR/issue number.</code></pre>
+    <p>Complete daily-task example B — local version; just say this in any Desktop session:</p>
+    <pre class="prompt"><code>Create a local scheduled task for me: runs weekdays at 09:10, working directory ~/work/my-app.
+The task: pull the latest code and run the full test suite; if anything fails, track down the cause
+and write the analysis and suggested fixes to notes/test-failures-&lt;date&gt;.md.
+Time guardrail: if this is a make-up run after the computer wakes and it's already past 5pm,
+only write a "what did I miss today" summary — no fixing.
+After creating it, Run now immediately so I can set each permission prompt to always allow.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/scheduled-tasks.md" rel="noopener">Run prompts on a schedule</a> (/loop, 7-day expiry, jitter, cron tools), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/desktop-scheduled-tasks.md" rel="noopener">Schedule recurring tasks in Claude Code Desktop</a> (creation flow, make-up runs, permissions, SKILL.md path), fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/routines.md" rel="noopener">Automate work with routines</a> (cloud routines, the three trigger types, /schedule, limits), fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: high (Routines is in research preview — behavior and limits may change; /loop details evolve with releases).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

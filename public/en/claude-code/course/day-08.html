@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D8 · Hooks · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code Hooks in depth: run your own shell commands deterministically at fixed points in the agentic loop — event types, settings.json configuration, exit codes and JSON output, plus the three canonical uses: formatting, blocking, and done-gating.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D8 · Hooks · Claude Code Learning Hub">
+<meta property="og:description" content="Hooks are deterministic code attached to fixed points in the agentic loop: event types, where the config lives, exit-code semantics and canonical uses — one lesson, covered thoroughly.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-08.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-08.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-08.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-08.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-08.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-08.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D8</p>
+  <h1>D8 · Hooks</h1>
+  <p>Turn "hopefully Claude remembers to do it" into "guaranteed to happen": a hook is your own code attached to fixed points in the agentic loop — this lesson covers the events, the configuration, the exit codes, and the three canonical uses.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">For the first seven lessons, every way you influenced Claude was "saying it to the model": CLAUDE.md, plans, Skills. Hooks take a different road — no negotiating with the model; you insert deterministically-executed shell commands directly into its execution flow. Formatting, blocking edits to sensitive files, forcing tests before finishing — all of it lives in this lesson.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p>This lesson stands squarely on two existing foundations. <a href="/en/claude-code/course/day-03.html">D3 (permission modes and sandboxing)</a> is static gatekeeping: a tool call is either "allowed or not allowed". Hooks give you a second kind of control on the same pathway: run your code before and after the call — it can block, rewrite, and feed back — and a PreToolUse hook returning deny stops even <code>bypassPermissions</code> mode, an angle permission rules can't cover. And the comparison thread left open by <a href="/en/claude-code/course/day-07.html">D7 (Skills)</a> closes here: a Skill "teaches the model how to do it", but whether it complies is ultimately the model's call; a hook "happens no matter what the model thinks".</p>
+    <p>Looking ahead, hooks keep reappearing: the tools of <a href="/en/claude-code/course/day-09.html">D9 (MCP)</a> can be matched by hooks too (<code>mcp__server__tool</code>); in <a href="/en/claude-code/course/day-13.html">D13 (Headless and CI)</a> hooks are the only reliable gatekeeper when no one is watching; and <a href="/en/claude-code/course/day-14.html">D14 (Plugins)</a> packages hooks for distribution to a whole team. Skip this lesson and all three of those are missing a piece.</p>
+    <div class="callout"><span class="callout-label">Choosing tools</span>"Should this need be a Skill, a hook, MCP, or a Subagent?" — if you still can't call it after this lesson, see the dedicated comparison page <a href="/en/claude-code/tips/skill-hook-mcp-subagent-plugin.html">Tip E1: choosing among the five extension mechanisms</a>.</div>
+
+    <h2>Core concepts, explained</h2>
+    <p><span class="badge badge-official">Official</span>A hook is a user-defined shell command (it can also be an HTTP endpoint or an LLM prompt) that Claude Code runs automatically at specific points in its lifecycle, giving you <strong>deterministic control</strong>: certain actions are guaranteed to happen, rather than pinned on the model "remembering to do them on its own". The docs also give a selection principle: anything expressible as a deterministic rule should be a command hook; for decisions needing judgment, use <code>type: "prompt"</code> (a single-turn model evaluation) or the experimental <code>type: "agent"</code> (a tool-equipped subagent check).</p>
+
+    <h3>One table to tell them apart: advice, gates, force</h3>
+    <p><span class="badge badge-site">Our take</span>Line up the mechanisms from earlier lessons side by side and hooks' position becomes clear:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Mechanism</th><th>What it is</th><th>Who executes it</th><th>Can the model ignore it?</th></tr></thead>
+      <tbody>
+        <tr><td>CLAUDE.md / Skills (D4, D7)</td><td>Instructions written for the model</td><td>The model reads them and follows</td><td>Yes — it's advice, not a constraint</td></tr>
+        <tr><td>Permission rules (D3)</td><td>Static allow / ask / deny gates</td><td>Claude Code checks the table on tool calls</td><td>No, but they can only "pass or block" — no extra actions attached</td></tr>
+        <tr><td>Hooks (this lesson)</td><td>Your code attached to lifecycle points</td><td>Claude Code runs it unconditionally</td><td>No — the model isn't even involved, and hooks can also block, rewrite, and feed back</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Where hooks plug into the agentic loop</h3>
+    <p><span class="badge badge-official">Official</span>Events fire on three rhythms: once per session (SessionStart / SessionEnd), once per turn (UserPromptSubmit, Stop), and PreToolUse / PostToolUse firing on <strong>every single tool call</strong> in the agentic loop. The diagram below shows the trunk path:</p>
+    <figure>
+      <svg viewBox="0 0 720 422" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Where hooks insert into the agentic loop: SessionStart and UserPromptSubmit lead into the loop; every tool call fires PreToolUse before and PostToolUse after; when the loop ends Stop fires; session termination fires SessionEnd">
+        <rect class="svg-box-accent" x="10" y="14" width="132" height="40" rx="8"/>
+        <text class="svg-ink" x="76" y="39" text-anchor="middle" font-size="13">SessionStart</text>
+        <line class="svg-line" x1="142" y1="34" x2="184" y2="34" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="184,29 194,34 184,39"/>
+        <rect class="svg-box-accent" x="194" y="14" width="168" height="40" rx="8"/>
+        <text class="svg-ink" x="278" y="39" text-anchor="middle" font-size="13">UserPromptSubmit</text>
+        <line class="svg-line" x1="278" y1="54" x2="278" y2="90" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="273,90 278,100 283,90"/>
+
+        <rect class="svg-line" x="10" y="100" width="460" height="220" rx="14" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text class="svg-ink-soft" x="26" y="124" font-size="12">agentic loop (every tool call passes through)</text>
+
+        <rect class="svg-box" x="40" y="140" width="160" height="44" rx="8"/>
+        <text class="svg-ink" x="120" y="167" text-anchor="middle" font-size="13">Model picks a tool call</text>
+        <rect class="svg-box-accent" x="280" y="140" width="150" height="44" rx="8"/>
+        <text class="svg-ink" x="355" y="167" text-anchor="middle" font-size="13">PreToolUse</text>
+        <rect class="svg-box" x="280" y="250" width="150" height="44" rx="8"/>
+        <text class="svg-ink" x="355" y="277" text-anchor="middle" font-size="13">Tool executes</text>
+        <rect class="svg-box-accent" x="40" y="250" width="160" height="44" rx="8"/>
+        <text class="svg-ink" x="120" y="277" text-anchor="middle" font-size="13">PostToolUse</text>
+
+        <line class="svg-line" x1="200" y1="162" x2="270" y2="162" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="270,157 280,162 270,167"/>
+        <line class="svg-line" x1="355" y1="184" x2="355" y2="240" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="350,240 355,250 360,240"/>
+        <line class="svg-line" x1="280" y1="272" x2="210" y2="272" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="210,267 200,272 210,277"/>
+        <line class="svg-line" x1="120" y1="250" x2="120" y2="194" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="115,194 120,184 125,194"/>
+
+        <line class="svg-line" x1="430" y1="162" x2="490" y2="162" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <polygon class="svg-arrow" points="490,157 500,162 490,167"/>
+        <text class="svg-ink" x="506" y="152" font-size="12">exit 2 or deny:</text>
+        <text class="svg-ink-soft" x="506" y="170" font-size="12">tool call blocked,</text>
+        <text class="svg-ink-soft" x="506" y="188" font-size="12">stderr fed back to model</text>
+
+        <line class="svg-line" x1="240" y1="320" x2="240" y2="346" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="235,346 240,356 245,346"/>
+        <text class="svg-ink-soft" x="254" y="342" font-size="12">No new tool calls; this turn's reply is done</text>
+        <rect class="svg-box-accent" x="174" y="356" width="132" height="44" rx="8"/>
+        <text class="svg-ink" x="240" y="383" text-anchor="middle" font-size="13">Stop</text>
+        <path class="svg-line" d="M 174 378 H 60 V 330" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <polygon class="svg-arrow" points="55,330 60,320 65,330"/>
+        <text class="svg-ink-soft" x="16" y="412" font-size="12">Stop hook exit 2: sent back to keep working</text>
+
+        <line class="svg-line" x1="306" y1="378" x2="550" y2="378" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="550,373 560,378 550,383"/>
+        <text class="svg-ink-soft" x="430" y="370" text-anchor="middle" font-size="12">Session ends</text>
+        <rect class="svg-box-accent" x="560" y="356" width="130" height="44" rx="8"/>
+        <text class="svg-ink" x="625" y="383" text-anchor="middle" font-size="13">SessionEnd</text>
+      </svg>
+      <figcaption>Solid accent boxes are hook events (insertion points); plain boxes are the loop itself. PreToolUse can block (the tool hasn't run yet), PostToolUse can't (it already ran — feedback only), and Stop can send a Claude that "wants to clock out" back to work.</figcaption>
+    </figure>
+
+    <h3>The events you'll actually use</h3>
+    <p><span class="badge badge-official">Official</span>The reference lists 31 events in total; below are the most commonly used. Each event accepts a <code>matcher</code> filter (tool events match on tool name, e.g. <code>Bash</code>, <code>Edit|Write</code>, regex <code>mcp__.*</code>; leave it empty to fire every time; matching is case-sensitive):</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Event</th><th>When it fires</th><th>Typical use</th></tr></thead>
+      <tbody>
+        <tr><td><code>SessionStart</code></td><td>When a session starts or resumes (matcher distinguishes <code>startup</code>/<code>resume</code>/<code>compact</code>, etc.)</td><td>Inject context; restore key info after compaction</td></tr>
+        <tr><td><code>UserPromptSubmit</code></td><td>After you submit a prompt, before Claude processes it</td><td>Validate or block prompts, attach environment info</td></tr>
+        <tr><td><code>PreToolUse</code></td><td>Before every tool call executes, <strong>can block</strong></td><td>Protect sensitive files, forbid dangerous commands</td></tr>
+        <tr><td><code>PermissionRequest</code></td><td>When Claude Code is about to show you a permission prompt</td><td>Auto-approve specific requests on your behalf</td></tr>
+        <tr><td><code>PostToolUse</code></td><td>After every successful tool call (already executed, irreversible)</td><td>Auto-format, write audit logs</td></tr>
+        <tr><td><code>Notification</code></td><td>When Claude Code sends a notification (waiting for your input, waiting for permission)</td><td>Desktop notifications so you don't have to watch the terminal</td></tr>
+        <tr><td><code>Stop</code> / <code>SubagentStop</code></td><td>When Claude (or a subagent) finishes its turn, <strong>can send it back</strong></td><td>Done-gating: no stopping while tests fail</td></tr>
+        <tr><td><code>PreCompact</code> / <code>SessionEnd</code></td><td>Before context compaction / at session termination</td><td>Back up transcripts, clean up temp files</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Where the configuration lives</h3>
+    <p><span class="badge badge-official">Official</span>Hooks are written under the <code>hooks</code> key of a settings file, nested three levels deep: <strong>event name → matcher group → handler array</strong>. Below is the official "run Prettier after edits" example; drop it into <code>.claude/settings.json</code> at the project root and it's live:</p>
+    <pre><code>{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+    <p>Which file it lives in decides its scope:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Location</th><th>Scope</th><th>Shareable</th></tr></thead>
+      <tbody>
+        <tr><td><code>~/.claude/settings.json</code></td><td>All of your projects</td><td>No, this machine only</td></tr>
+        <tr><td><code>.claude/settings.json</code></td><td>One project</td><td>Yes, commit it to the repo</td></tr>
+        <tr><td><code>.claude/settings.local.json</code></td><td>One project</td><td>No, gitignored by default</td></tr>
+        <tr><td>Enterprise managed policy settings</td><td>The whole organization</td><td>Yes, admin-controlled</td></tr>
+        <tr><td>Plugin <code>hooks/hooks.json</code></td><td>While the plugin is enabled</td><td>Yes, ships with the plugin (D14)</td></tr>
+        <tr><td>Skill / agent frontmatter</td><td>While that component is active</td><td>Yes, lives in the component file</td></tr>
+      </tbody>
+    </table></div>
+    <p>Type <code>/hooks</code> in a session to browse every hook currently in effect, by event — note this menu is <strong>read-only</strong>; to add, remove or change hooks, edit the settings JSON directly (or have Claude do it for you). To switch everything off at once, set <code>"disableAllHooks": true</code> in settings (hooks from managed settings excepted).</p>
+
+    <h3>How exit codes and output steer the flow</h3>
+    <p><span class="badge badge-official">Official</span>When an event fires, Claude Code pipes the event data as JSON into your script's stdin (including <code>session_id</code>, <code>cwd</code>, <code>hook_event_name</code>, plus <code>tool_name</code> and <code>tool_input</code> for tool events); your script talks back with its exit code:</p>
+    <div class="table-scroll"><table class="course">
+      <thead><tr><th>Exit code</th><th>Meaning</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>No objection</td><td>The action proceeds normally. For PreToolUse this is <strong>not approval</strong> — the normal permission flow still runs; stdout from UserPromptSubmit and SessionStart is injected into Claude's context</td></tr>
+        <tr><td><code>2</code></td><td>Block</td><td>The action is stopped, with stderr fed back to Claude as the reason so it can adjust. The exact effect varies by event: PreToolUse blocks the tool call, Stop prevents finishing, and PostToolUse — the tool already ran — can only feed back, not undo</td></tr>
+        <tr><td>Other</td><td>Non-blocking error</td><td><strong>The action executes anyway</strong>; a hook error notice appears in the transcript</td></tr>
+      </tbody>
+    </table></div>
+    <p>When you need finer control than "block / don't block", exit 0 and print a JSON object to stdout: PreToolUse can return <code>permissionDecision</code> as <code>"allow"</code> (skip the permission prompt), <code>"deny"</code> (block and tell Claude the <code>permissionDecisionReason</code>), or <code>"ask"</code> (hand it to the user to confirm); Stop / PostToolUse use a top-level <code>{"decision": "block", "reason": "..."}</code>. Pick one mechanism or the other: <strong>with exit 2, any JSON on stdout is ignored</strong>.</p>
+
+    <h3>Three high-frequency misconceptions</h3>
+    <ul>
+      <li><span class="badge badge-official">Official</span><strong>"exit 1 counts as failure too, so surely it blocks"</strong> — it doesn't. For most events only exit 2 blocks; exit 1 is a non-blocking error and the action executes anyway. To enforce policy, you must write <code>exit 2</code>.</li>
+      <li><span class="badge badge-official">Official</span><strong>"the hook allowed it, so we have permission"</strong> — backwards. A hook's deny is harder than any permission mode (it blocks even under <code>bypassPermissions</code>), but a hook's allow can't beat a deny rule in settings: hooks can only tighten, never loosen — D3's gates always stand.</li>
+      <li><span class="badge badge-site">Our take</span><strong>"could a Stop hook lock Claude into a work loop forever?"</strong> — the docs left a safety valve: the input includes a <code>stop_hook_active</code> field for your script to self-check, and after 8 consecutive blocks with no progress Claude Code force-ends the turn. Checking that field should be the first line of any Stop hook you write.</li>
+    </ul>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Goal: 30 minutes to configure two hooks — an audit log (PostToolUse) and a sensitive-file blocker (PreToolUse) — and watch a block happen with your own eyes. The examples parse JSON with <code>jq</code>; first confirm <code>jq --version</code> prints something (macOS: <code>brew install jq</code>).</p>
+    <ol>
+      <li>In a test project, create <code>.claude/settings.json</code> with the two hooks:
+<pre><code>{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' &gt;&gt; ~/.claude/command-log.txt"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre></li>
+      <li>Create the blocker script <code>.claude/hooks/protect-files.sh</code> (copied verbatim from the official example), and run <code>chmod +x .claude/hooks/protect-files.sh</code>:
+<pre><code>#!/bin/bash
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+PROTECTED_PATTERNS=(".env" "package-lock.json" ".git/")
+
+for pattern in "${PROTECTED_PATTERNS[@]}"; do
+  if [[ "$FILE_PATH" == *"$pattern"* ]]; then
+    echo "Blocked: $FILE_PATH matches protected pattern '$pattern'" &gt;&amp;2
+    exit 2
+  fi
+done
+
+exit 0</code></pre></li>
+      <li>Start Claude Code and type <code>/hooks</code>. Expected: one hook each under PostToolUse and PreToolUse, showing the event, matcher, source file, and command.</li>
+      <li>Trigger the log hook: have Claude run any command (say, "list the files in this directory"), then <code>cat ~/.claude/command-log.txt</code>. Expected: the file has gained the command that just ran — a successful hook shows nothing in the UI; checking the effect is how you verify.</li>
+      <li>Trigger the blocker hook: <code>touch .env</code> first, then ask Claude to "add a comment line to .env". Expected: the edit is stopped before executing, and Claude receives the Blocked reason from the script's stderr and explains to you that it changed approach or gave up.</li>
+      <li>The lazy route: the docs explicitly say you can have Claude write hooks for you. Paste the block below straight into Claude Code and let it configure and demo everything itself:</li>
+    </ol>
+    <pre class="prompt"><code>Set up two hooks for the current project, written into .claude/settings.json:
+1. PostToolUse with matcher "Bash": use jq to extract .tool_input.command and append it to ~/.claude/command-log.txt;
+2. PreToolUse with matcher "Edit|Write": call .claude/hooks/protect-files.sh, a script that checks whether the file path matches .env, package-lock.json, or .git/ — on a match, print the reason to stderr and exit 2 to block; otherwise exit 0.
+Make the script chmod +x. Once configured: first explain the three-level structure of this JSON (event → matcher → handlers), then run a test command to verify the log hook, and finally try editing .env to demonstrate a block.</code></pre>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>Without notes, you can explain the essential difference between hooks and Skills (deterministic execution vs. model discretion), and how hooks relate to D3's permission rules (deny is harder; allow can't overreach).</li>
+      <li>You can match needs to events: which event for auto-formatting? For protecting sensitive files? For "no clocking out while tests fail"? (PostToolUse / PreToolUse / Stop)</li>
+      <li>Both hands-on hooks verified: new lines in the command log; the <code>.env</code> edit blocked with Claude receiving the reason; both findable in <code>/hooks</code>.</li>
+      <li>Self-check: a PreToolUse hook script exits with exit 1 — is the tool call blocked? What about exit 0?</li>
+    </ul>
+    <div class="callout"><span class="callout-label">Self-check answer</span>Neither blocks. Only exit 2 (or exit 0 plus a JSON <code>permissionDecision: "deny"</code>) blocks; exit 1 is a non-blocking error and the action executes anyway; exit 0 means "no objection" and the call continues through the normal permission flow — which is not the same as approval. If you couldn't answer, re-read "How exit codes and output steer the flow".</div>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/hooks-guide.md">Automate actions with hooks (hooks-guide)</a> · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/hooks.md">Hooks reference (hooks)</a> · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-07.html">Previous: D7 · Skills</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-09.html">Next: D9 · MCP</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

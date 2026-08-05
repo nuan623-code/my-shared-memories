@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adversarial review · Claude Code Learning Hub</title>
+<meta name="description" content="Have a session or subagent that knows nothing about the implementation critique the diff: how to use /code-review, what goes into your own adversarial review prompt, and how to keep the reviewer from inventing problems.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/adversarial-review.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/adversarial-review.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/adversarial-review.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/adversarial-review.html">
+<meta property="og:title" content="Adversarial review · Claude Code Learning Hub">
+<meta property="og:description" content="Have another session/subagent that knows nothing about the implementation hunt for problems; how to use /code-review.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/adversarial-review.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/adversarial-review.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">A · Reliability &amp; quality</span></p>
+  <h1>Adversarial review</h1>
+  <p>The Claude that wrote the code will go easy on the code it just wrote — have a “stranger” who knows nothing about the implementation critique the diff alone, and the problems can’t hide.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Subagents are born for the “stranger” role: each subagent starts from a fresh, isolated context, can’t see your conversation history, and so knows nothing of the reasoning that went into the implementation — it can only judge the code as code. The longer Claude works unattended, the more this independent check matters.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Before counting a task as “done,” run one adversarial review: either run the built-in <code>/code-review</code> (audits the current diff for bugs in a brand-new subagent), or write your own prompt that hands a subagent your plan and has it report gaps against the diff. <span class="badge badge-official">Official</span>The official rationale: in its fresh context the reviewer sees only the diff and the criteria you supply — not the reasoning that produced the code — so it can judge the result strictly on the merits.
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>For correctness, use <code>/code-review</code>.</strong> Run it right in your working session. <span class="badge badge-official">Official</span>By default it reviews “commits ahead of upstream on the current branch + uncommitted changes”; you can also point it at a target: file paths, a PR number, a branch name, or a ref range like <code>main...my-feature</code>. The review runs as a background subagent with its own context window and doesn’t crowd your conversation; results return to the session when it finishes. Add <code>--fix</code> to apply the findings directly to the working tree, or <code>--comment</code> to post them as inline PR comments.</li>
+      <li><strong>Tune the confidence.</strong> <span class="badge badge-official">Official</span>Pass <code>/code-review</code> an effort level: low/medium reports only the most confident findings with few false positives; high through max casts a wider net and may include uncertain findings. Omit it and it uses the session’s current level.</li>
+      <li><strong>For “does it match the plan,” write your own prompt.</strong> <span class="badge badge-official">Official</span><code>/code-review</code> only hunts bugs; to verify against a SPEC/plan, the official formula has three ingredients: <em>name the work under review, name the plan to compare against, and define what counts as a finding</em>. Because the reviewer is a subagent, the gaps land straight back in the implementation session — Claude can fix and re-review on the spot, with no copying between windows on your part.</li>
+      <li><strong>Stronger isolation: a second session.</strong> <span class="badge badge-official">Official</span>The official Writer/Reviewer pattern: session A implements, session B (completely fresh context) reviews, and you paste B’s feedback back into A to fix. Same reasoning — “a fresh context won’t favor freshly written code.” <span class="badge badge-site">Our take</span>The subagent version wins on closing the loop automatically; the two-session version wins on you personally controlling what the reviewer gets to see. Important changes deserve the latter.</li>
+      <li><strong>Don’t let the reviewer set the agenda.</strong> <span class="badge badge-official">Official</span>The docs warn explicitly: a reviewer told to find problems will almost always report something, even when the work is fine; chasing every finding drifts into over-engineering (extra abstraction layers, defensive code, tests for cases that can’t happen). Constrain the prompt to “only report gaps that affect correctness or explicit requirements,” and treat everything else as optional suggestions.</li>
+      <li><strong>Mind how <code>--fix</code> interacts with rollback.</strong> <span class="badge badge-official">Official</span>Edits from a background review’s <code>--fix</code> happen outside your session’s checkpoints — <code>/rewind</code> can’t undo them; roll back with git. Details in <a href="/en/claude-code/tips/rollback-checkpoint-vs-git.html">how to roll back a bad change</a>. Also: on the GitHub side there is a hosted Code Review (research preview, Team/Enterprise plans), triggered by commenting <code>@claude review</code> on a PR; multiple agents review the whole PR and post inline comments by severity — a separate thing from the local <code>/code-review</code>.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <p>Plan-checking adversarial review (an English rendering of the official formula — swap in your own targets):</p>
+    <pre class="prompt"><code>Use a subagent to run an adversarial review of the current diff against @SPEC.md:
+do not relay any of the implementation process to it — it should see only the diff and the criteria below. Check:
+1. Is every requirement in SPEC.md actually implemented?
+2. Does every listed edge case have a corresponding test?
+3. Was anything changed outside the scope of the task?
+Report only gaps that affect correctness or explicit requirements — no style preferences.
+When the results come back, sort the findings into "must fix / optional" and show me the list before fixing anything.</code></pre>
+    <p>For pure bug-hunting, just run:</p>
+    <pre class="prompt"><code>/code-review</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/best-practices.md" target="_blank" rel="noopener">Best practices — Add an adversarial review step / Run multiple Claude sessions</a> — the fresh-context rationale, the three-ingredient review prompt, the over-engineering warning, the Writer/Reviewer pattern; fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/code-review.md" target="_blank" rel="noopener">Code Review</a> — /code-review targets and the --fix/--comment flags, effort levels, background-subagent execution, the hosted GitHub version; fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sub-agents.md" target="_blank" rel="noopener">Create custom subagents</a> — fresh isolated context, no view of conversation history, the code-reviewer example; fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility: high (tied to /code-review flags and subagent behavior; re-checked periodically).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

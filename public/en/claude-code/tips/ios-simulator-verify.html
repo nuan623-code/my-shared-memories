@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Not done until it runs in the iOS Simulator · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code Desktop's iOS Simulator pane lets Claude build, install the app, tap through it, and read the screen to verify. Write 'verified in the simulator' into the definition of done, and iOS development can truly run hands-off.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/tips/ios-simulator-verify.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/tips/ios-simulator-verify.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/tips/ios-simulator-verify.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/tips/ios-simulator-verify.html">
+<meta property="og:title" content="Not done until it runs in the iOS Simulator · Claude Code Learning Hub">
+<meta property="og:description" content="Claude Code Desktop's built-in iOS Simulator pane: Claude builds, installs the app, taps, and reads the screen to verify. Write simulator verification into the definition of done.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/tips/ios-simulator-verify.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/">Course</a>
+    <a href="/en/claude-code/tips/" aria-current="page">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/tips/ios-simulator-verify.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/tips/">Tips</a> / <span class="chip" style="background:rgba(255,255,255,.16);color:#fff">C · Design &amp; assets</span></p>
+  <h1>Not done until it runs in the iOS Simulator</h1>
+  <p>iOS code that "compiles" is still a very long way from "works" — have Claude install it in the simulator, open it, and run it through; only when verification passes is the job done.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">On this page</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code Desktop (macOS) has a built-in iOS Simulator pane: when Claude builds, installs, launches, or inspects your app, a live-streaming simulator view opens automatically next to the session, where Claude taps, reads the screen, and verifies its changes itself — you can watch and step in the whole time. This page covers how to use it, and how to turn "passes verification in the simulator" into a hard completion criterion for the task.</p>
+
+    <h2>One-line answer</h2>
+    <div class="callout">
+      <span class="callout-label">Answer</span>
+      Phrase iOS task instructions around "run it and verify" (e.g. "after building, run through onboarding in the simulator") and Claude will automatically open the iOS Simulator pane, install the app, and do its own tapping and screen-reading; then write "verified screen by screen in the simulator + report what you saw" into the definition of done, so it can't sign off on "it compiles" alone.<span class="badge badge-official">Official</span>The pane is a public beta and requires macOS + Claude Code Desktop, on Pro/Max/Team plans (not available on Enterprise).
+    </div>
+
+    <h2>Steps</h2>
+    <ol>
+      <li><strong>Get the environment ready.</strong><span class="badge badge-official">Official</span>You need: Claude Desktop v1.24012.0+, a Mac (the iOS Simulator only exists on macOS), and Xcode with the iOS platform installed — use Xcode 26.x, as the pane does not yet support Xcode 27, which replaces Simulator with Device Hub (with multiple versions installed, point back with <code>sudo xcode-select -s /Applications/Xcode-26.4.app</code>). If it complains it can't find a simulator, run <code>xcodebuild -downloadPlatform iOS</code> to install the runtime. Also, the pane only works in local sessions — cloud and SSH sessions can't reach the simulators on your Mac.</li>
+      <li><strong>Phrase the task as "run it and verify".</strong><span class="badge badge-official">Official</span>No command or setting needed — the pane opens automatically when Claude launches the app in a simulator. Official example phrasing: "Build the app and run it in the simulator to check the onboarding flow." To pick a device, just say so ("run it on the iPhone SE simulator"). The first time a given device is used, the desktop app asks for authorization once (remembered per device; taps, typing, and screenshots don't re-prompt after that). Expect: the pane opens, the app installs, and Claude starts tapping on its own.</li>
+      <li><strong>Nail down the completion criteria.</strong><span class="badge badge-site">Our take</span>Just telling it to "give it a run" isn't enough — list a verification checklist in the task: which screens, which actions, what you expect to see, and require an item-by-item report of what it saw (general principle in <a href="/en/claude-code/tips/self-verifiable-done.html">Give it checks it can run itself</a>).<span class="badge badge-official">Official</span>The docs themselves recommend that after fixing a bug or changing the UI, you have Claude relaunch the app to verify the change — a relaunch automatically reopens the pane.</li>
+      <li><strong>Share the screen, cooperatively.</strong><span class="badge badge-official">Official</span>The pane is interactive: you can tap/drag the simulator directly, Cmd+Shift+H for the home screen, Cmd+S to screenshot / Cmd+R to record (saved to the desktop). You and Claude drive the same device — to have it inspect a particular page, navigate there yourself and then ask; when the "Claude is using this device" badge shows, keep your hands off until it finishes. Each session gets its own devices (up to 4), with no cross-talk between sessions; simulators Claude started shut down automatically 10 minutes after the session exits, is archived, or disconnects.</li>
+      <li><strong>Know the boundaries.</strong><span class="badge badge-official">Official</span>There is no pane in the CLI — there Claude drives an on-screen simulator through computer use, like a human would (the <a href="/en/claude-code/tips/screenshot-diff-ui-check.html">screenshot-comparison</a> loop still applies). Physical devices are not supported — to test on a real iPhone, run it from Xcode yourself and give Claude your descriptions or screenshots. Privacy note: Claude's screenshots of the device are sent to Anthropic and stored per your session retention settings, so don't sign in to real accounts in a simulator it's using.</li>
+    </ol>
+
+    <h2>Copy-paste prompt</h2>
+    <pre class="prompt"><code>After implementing this feature, it only counts as done once it passes verification in the iOS Simulator:
+1. Build the app and launch it in the iPhone 17 simulator (if the build fails, fix it until it runs).
+2. Verify each item on this checklist, stating what you actually saw for every item:
+   - Cold start lands on the home screen, with no crash and no blank screen
+   - The new feature's entry point is visible, and the screen behind it matches the requirements
+   - Walk the main flow end to end; every transition and state along the way is correct
+   - Rotate the screen / go to the home screen and switch back; no state is lost
+3. Fix any problems you find, rebuild, and walk through the simulator again, until the whole checklist passes.
+4. At the end, report the verification result for every item and what you fixed; a completion report that only says "it compiles" is not accepted.</code></pre>
+
+    <h2>Sources &amp; last verified</h2>
+    <ul>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/desktop-ios-simulator.md" target="_blank" rel="noopener">Test iOS apps in the simulator (pane requirements, authorization, interaction, device management, boundaries)</a>, fetched 2026-08-05.</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/computer-use.md" target="_blank" rel="noopener">Computer use from the CLI (driving the iOS Simulator in CLI scenarios)</a>, fetched 2026-08-05.</li>
+      <li>Last verified: 2026-08-05 · volatility:high (the pane is in public beta; version gates, Xcode compatibility, and plan availability may all change).</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <p class="foot-nav"><a href="/en/claude-code/tips/">Back to tips index</a> · <a href="/en/claude-code/">Hub home</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>

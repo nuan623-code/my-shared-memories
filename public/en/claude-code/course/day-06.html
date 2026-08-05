@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D6 · Checkpoints, rewind and session management · Claude Code Learning Hub</title>
+<meta name="description" content="Claude Code's two safety nets: automatic checkpoints with /rewind rollback, plus session continue, resume, branching and compaction — so you can take on long tasks, undo mistakes, and pick up the next day without losing context.">
+<script>(function(){try{var t=localStorage.getItem('cc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="/claude-code/assets/shared.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-3GRX3Y2VQJ');</script>
+<meta property="og:title" content="D6 · Checkpoints, rewind and session management · Claude Code Learning Hub">
+<meta property="og:description" content="When checkpoints are created automatically, what rewind can roll back, how it splits the work with git, and session continue, resume, branching and compaction.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/en/claude-code/course/day-06.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://mingyuyang.com/en/claude-code/course/day-06.html">
+<link rel="alternate" hreflang="zh" href="https://mingyuyang.com/claude-code/course/day-06.html">
+<link rel="alternate" hreflang="en" href="https://mingyuyang.com/en/claude-code/course/day-06.html">
+<link rel="alternate" hreflang="x-default" href="https://mingyuyang.com/claude-code/course/day-06.html">
+</head>
+<body>
+<div id="cc-progress"></div>
+<header class="topbar"><div class="wrap bar">
+  <a class="brand" href="/en/claude-code/">Claude Code Learning Hub</a>
+  <nav class="topnav">
+    <a href="/en/claude-code/course/" aria-current="page">Course</a>
+    <a href="/en/claude-code/tips/">Tips</a>
+    <a href="/en/claude-code/changelog.html">Changelog</a>
+  </nav>
+  <div class="theme-switch" id="theme-switch"></div>
+  <a class="home-link" href="/claude-code/course/day-06.html">中文</a>
+  <a class="home-link" href="/en">Mingyu's Library</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="crumbs"><a href="/en/claude-code/">Hub</a> / <a href="/en/claude-code/course/">Course</a> / D6</p>
+  <h1>D6 · Checkpoints, rewind and session management</h1>
+  <p>Undo a botched step in one move, and pick up right where you left off the next day: this lesson covers automatic checkpoints and the limits of /rewind, plus session continue, resume, branching and compaction.</p>
+</div></section>
+
+<main class="wrap">
+<div class="doc-layout">
+  <nav class="toc" id="toc"><div class="toc-title">In this lesson</div></nav>
+
+  <article class="doc">
+    <p class="lede">Claude Code gives you two safety nets: in-session checkpoints (files are automatically snapshotted before every prompt, <code>/rewind</code> anytime) and cross-session management commands (continue, resume, branch, compact). Master both layers and you can hand big tasks over with confidence — because every step can be undone, and every day can be resumed.</p>
+
+    <h2>Why this lesson comes today</h2>
+    <p><a href="/en/claude-code/course/day-02.html">D2</a> covered how the context window fills up and why compaction is the survival tool; <a href="/en/claude-code/course/day-05.html">D5</a> covered planning before acting. But even with a good plan, long tasks drift mid-flight: you break something and want to take it back, want to retry down a different path, need to slim down a tight context, or can't finish today and must continue tomorrow. All of these "undo and keep-alive" abilities live in this lesson.</p>
+    <p>It also lays groundwork for later: <a href="/en/claude-code/course/day-10.html">D10 Subagents</a> will run into one of this lesson's limits again (subagent edits don't enter checkpoints), and the parallel sessions of <a href="/en/claude-code/course/day-11.html">D11 Worktrees</a> are built entirely on being fluent with a single session. Skip this lesson, and every future mishap leaves you firefighting with manual <code>git checkout</code>.</p>
+
+    <h2>Core concepts, explained</h2>
+
+    <h3>Checkpoints: an automatic snapshot before every prompt</h3>
+    <p><span class="badge badge-official">Official</span>Every time you send a prompt, Claude Code automatically creates a checkpoint before executing, recording the current code state; every change Claude makes with its own file-editing tools is tracked. Only the most recent 100 checkpoints in a session are kept; checkpoints are saved along with the session, so you can still <code>/rewind</code> after resuming an old session; sessions (checkpoints included) are deleted after 30 days by default, adjustable with the <code>cleanupPeriodDays</code> setting.</p>
+    <p><span class="badge badge-site">Our take</span>The key to understanding it is "two tracks": one is conversation history (what you and Claude have said), the other is file state (the code on disk). A checkpoint "pins" the two tracks together at each prompt; when rewinding you can roll back just one track, or both together:</p>
+    <figure>
+      <svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Checkpoint timeline: two tracks, conversation history and file state, pinned at every prompt; rewind can restore either track separately or both together">
+        <path class="svg-line" d="M610 64 C 566 16, 356 16, 312 56" stroke-width="1.5" fill="none"/>
+        <polygon class="svg-arrow" points="305,55 317,55 311,66"/>
+        <text class="svg-ink-soft" x="460" y="34" text-anchor="middle" font-size="12">Restore conversation: dialogue back to prompt 2</text>
+
+        <text class="svg-ink" x="16" y="96" font-size="14">Conversation</text>
+        <rect class="svg-box" x="102" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="150" y="96" text-anchor="middle" font-size="13">prompt 1</text>
+        <rect class="svg-box-accent" x="252" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="300" y="96" text-anchor="middle" font-size="13">prompt 2</text>
+        <rect class="svg-box" x="402" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="450" y="96" text-anchor="middle" font-size="13">prompt 3</text>
+        <rect class="svg-box" x="562" y="72" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="610" y="96" text-anchor="middle" font-size="13">current chat</text>
+        <line class="svg-line" x1="198" y1="91" x2="242" y2="91" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="242,86 252,91 242,96"/>
+        <line class="svg-line" x1="348" y1="91" x2="392" y2="91" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="392,86 402,91 392,96"/>
+        <line class="svg-line" x1="498" y1="91" x2="552" y2="91" stroke-width="1.5"/>
+        <polygon class="svg-arrow" points="552,86 562,91 552,96"/>
+
+        <line class="svg-line" x1="150" y1="110" x2="150" y2="192" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <line class="svg-line" x1="300" y1="110" x2="300" y2="192" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <line class="svg-line" x1="450" y1="110" x2="450" y2="192" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <text class="svg-ink-soft" x="158" y="156" font-size="11">checkpoint pinned</text>
+
+        <text class="svg-ink" x="16" y="216" font-size="14">File state</text>
+        <rect class="svg-box" x="102" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="150" y="216" text-anchor="middle" font-size="13">snapshot 1</text>
+        <rect class="svg-box-accent" x="252" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="300" y="216" text-anchor="middle" font-size="13">snapshot 2</text>
+        <rect class="svg-box" x="402" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="450" y="216" text-anchor="middle" font-size="13">snapshot 3</text>
+        <rect class="svg-box" x="562" y="192" width="96" height="38" rx="8"/>
+        <text class="svg-ink" x="610" y="216" text-anchor="middle" font-size="13">current files</text>
+
+        <path class="svg-line" d="M610 236 C 566 286, 356 286, 312 246" stroke-width="1.5" fill="none"/>
+        <polygon class="svg-arrow" points="306,247 318,247 312,236"/>
+        <text class="svg-ink-soft" x="460" y="298" text-anchor="middle" font-size="12">Restore code: files back to snapshot 2</text>
+        <text class="svg-ink-soft" x="360" y="326" text-anchor="middle" font-size="12">Auto-pinned before every user prompt; tracks roll back separately or together (highlight = restore target)</text>
+      </svg>
+      <figcaption>The checkpoint timeline: conversation history and file state are two independent tracks, pinned in alignment at each prompt; rewinding to prompt 2 can restore just the conversation, just the files, or both.</figcaption>
+    </figure>
+
+    <h3>The rewind menu: three restores + two summarizes</h3>
+    <p><span class="badge badge-official">Official</span>Run <code>/rewind</code>, or press <code>Esc</code> twice while the input box is empty, to open the rewind menu (with text in the input box, double-<code>Esc</code> clears the input instead; the cleared text goes into input history — press <code>↑</code> to get it back). The menu lists every prompt you've sent this session; select a point and you get six actions:</p>
+    <ul>
+      <li><strong>Restore code and conversation</strong>: code and dialogue both return to that point;</li>
+      <li><strong>Restore conversation</strong>: roll back only the dialogue, keeping the current code;</li>
+      <li><strong>Restore code</strong>: roll back only the files, keeping the dialogue;</li>
+      <li><strong>Summarize from here</strong>: compress the conversation after that point into a summary, freeing context space;</li>
+      <li><strong>Summarize up to here</strong>: compress the conversation before that point into a summary, keeping later messages;</li>
+      <li><strong>Never mind</strong>: do nothing, back to the list.</li>
+    </ul>
+    <p><span class="badge badge-official">Official</span>The two code-restore options only appear when there actually are tracked file changes after the selected checkpoint. After rewinding the conversation or choosing Summarize from here, the original text of that prompt is refilled into the input box so you can tweak it and resend. Summarizing doesn't change files on disk, and the original messages still remain in the session transcript; while a Summarize option is selected, you can type guidance under "add context (optional)" to steer what the summary keeps. Officially, summarize is positioned as "a targeted <code>/compact</code>" — staying in the same session to shrink context; to strike out and try a new approach, use <code>/branch</code> instead (below).</p>
+    <p><span class="badge badge-official">Official</span>There's also a hidden entry: if <code>/clear</code> has run in this Claude Code process, the top of the rewind menu gains a <code>/resume &lt;session-id&gt; (previous session)</code> row — pick it to return to the session as it was before <code>/clear</code> (requires v2.1.191+).</p>
+
+    <h3>Clearing up a misconception: checkpoints are not git</h3>
+    <p><span class="badge badge-site">Our take</span>The common misreading is "with rewind I don't need git anymore". In reality, checkpoints cover exactly one class of change: <em>edits Claude made in this session with its file-editing tools</em>. The four classes below are all beyond its reach — the test is to ask "was this change made by Claude, in this session, with an editing tool?":</p>
+    <ul>
+      <li><span class="badge badge-official">Official</span><strong>Bash-command changes aren't tracked</strong>: file changes caused by Claude running <code>rm file.txt</code>, <code>mv old.txt new.txt</code>, <code>cp source.txt dest.txt</code> can't be undone by rewind;</li>
+      <li><span class="badge badge-official">Official</span><strong>Subagent edits don't roll back</strong>: apart from <code>context: fork</code> skills running in the foreground, subagent edits land outside your session's checkpoints — use git to undo them;</li>
+      <li><span class="badge badge-official">Official</span><strong>Out-of-session changes aren't tracked</strong>: files you edited by hand, or that other parallel sessions edited, are generally not captured;</li>
+      <li><span class="badge badge-official">Official</span><strong>Symlink/hardlink paths don't restore</strong>: these paths are skipped during a restore with the notice <code>Restored the code, but skipped N files</code> (warning added in v2.1.216).</li>
+    </ul>
+    <p><span class="badge badge-official">Official</span>The official positioning: checkpoints are "local undo", git is "permanent history" — the former complements rather than replaces the latter. <span class="badge badge-site">Our take</span>A practical division of labor: before a big change, <code>git commit</code> a clean baseline first; while working, use rewind for quick take-backs; once you're happy with the result, let git make it permanent. For how to choose between them and which scenarios each one backstops, see <a href="/en/claude-code/tips/rollback-checkpoint-vs-git.html">Tip: Botched a change — roll back with checkpoint or git?</a>.</p>
+
+    <h3>Session lifecycle: continue, resume, fork, compact</h3>
+    <p><span class="badge badge-official">Official</span>A session is a saved conversation bound to a project directory, continuously written to a local transcript file as you chat (by default <code>~/.claude/projects/&lt;project&gt;/&lt;session-id&gt;.jsonl</code>). So quitting, a power cut, or <code>/clear</code> loses nothing:</p>
+    <div class="table-scroll">
+    <table class="course">
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude --continue</code></td><td>Pick up the most recent session in the current directory</td></tr>
+        <tr><td><code>claude --resume</code></td><td>Open the session picker (<code>Ctrl+A</code> for all projects, <code>Ctrl+W</code> for all worktrees, <code>Ctrl+B</code> to filter by branch, <code>Space</code> to preview)</td></tr>
+        <tr><td><code>claude --resume &lt;name&gt;</code></td><td>Resume directly by name; name sessions with <code>claude -n &lt;name&gt;</code>, <code>/rename</code> in-session, or <code>Ctrl+R</code> in the picker</td></tr>
+        <tr><td><code>claude --from-pr &lt;number&gt;</code></td><td>Picker shows only the sessions linked to that PR</td></tr>
+        <tr><td><code>/resume</code></td><td>Switch to another session from inside a session</td></tr>
+        <tr><td><code>/branch [name]</code> or <code>claude --continue --fork-session</code></td><td>Copy the current conversation onto a new branch line, leaving the original untouched</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><span class="badge badge-official">Official</span>A resumed session brings back: the full conversation history (tool calls included), the model in use, the agent identity, and the permission mode (though <code>plan</code> and <code>bypassPermissions</code> are never restored — the latter must be explicitly re-enabled at startup). Note that some startup configuration does <em>not</em> come back: flags like <code>--mcp-config</code>, <code>--settings</code>, <code>--plugin-dir</code>, <code>--add-dir</code> must be passed again when resuming; configuration living in <code>settings.json</code> is re-read on every startup and unaffected.</p>
+    <p><span class="badge badge-official">Official</span><code>/branch</code> prints two session IDs (the new branch and the original); the original stays in the picker, ready to return to anytime. Because the branch runs in the same process, permissions granted "for this session" remain valid, and in-flight background subagents and background bash keep running with their output flowing into the new branch; forking a separate process with <code>--fork-session</code> means granting permissions again.</p>
+
+    <h3>Long tasks without losing context: the three moves</h3>
+    <p><span class="badge badge-site">Our take</span>String this lesson's tools into one working method, matched to three typical situations:</p>
+    <ul>
+      <li><strong>Went off course</strong> → <code>/rewind</code>, choose "Restore code and conversation" back to the prompt before things broke, and use the refilled original text to rewrite the ask and resend;</li>
+      <li><strong>Context is tight but the task isn't done</strong> (D2's old problem) → use "Summarize from here" to spot-compress the long-winded debugging stretch while keeping the task brief at the top; or just <code>/compact [focus instructions]</code> — run <code>/context</code> first to see what's actually eating the space;</li>
+      <li><strong>Want to try a second approach in parallel</strong> → <code>/branch try-b</code>; if it fails, <code>/resume</code> back to the mainline — neither side contaminates the other.</li>
+    </ul>
+    <p><span class="badge badge-official">Official</span>When you resume a long session the next day (Pro/Max plans, idle roughly an hour or more and over 100,000 tokens), Claude Code first shows a dialog: "Resume from summary" compresses it into a summary on the spot before continuing (each later request is cheaper, but detail is lossy), "Resume full session as-is" loads everything (full detail, every request billed on the full history), "Don't ask me again" stops asking. This is exactly D2's cost-versus-detail trade-off replayed at session-resume time.</p>
+
+    <h2>Hands-on: doable today</h2>
+    <p>Grab a test repo (or <code>mkdir cc-d6-lab &amp;&amp; cd cc-d6-lab &amp;&amp; git init</code>), about 25 minutes end to end:</p>
+    <ol>
+      <li><strong>Create two checkpoints</strong>: start <code>claude</code>; with the first prompt, have it create <code>hello.py</code> printing a fixed message; with the second, have it switch to reading the name from a command-line argument. Expected: both rounds of edits complete.</li>
+      <li><strong>Open the rewind menu</strong>: clear the input box and press <code>Esc</code> twice (or type <code>/rewind</code>). Expected: a list of the two prompts you sent.</li>
+      <li><strong>Restore code only</strong>: select the second prompt and choose "Restore code". Expected: <code>hello.py</code> returns to version one while the conversation log stays intact — the "two tracks roll back separately" idea made tangible.</li>
+      <li><strong>Verify the blind spot</strong>: paste the prompt below; once it finishes, rewind again and choose "Restore code". Expected: <code>tracked.txt</code> is undone and disappears, <code>untracked.txt</code> stays put — bash changes don't enter checkpoints; seeing is believing:</li>
+    </ol>
+    <pre class="prompt"><code>Run a checkpoint-boundary experiment, in two separate steps:
+1. Use your file-editing tool (not bash) to create tracked.txt containing the single line "created by edit tool".
+2. Use bash's echo command to create untracked.txt containing the single line "created by bash".
+When done, tell me which method created each of the two files. Make no other changes.</code></pre>
+    <ol start="5">
+      <li><strong>Name and resume</strong>: run <code>/rename d6-lab</code>, quit Claude Code, then run <code>claude --resume d6-lab</code>. Expected: the conversation comes back in full; open the rewind menu once more to confirm the resumed session can still rewind (checkpoints are saved with the session).</li>
+      <li><strong>Open a branch</strong>: run <code>/branch try-b</code>. Expected: two session IDs printed; chat something casual on the branch, then <code>/resume d6-lab</code> back to the mainline and confirm it hasn't been contaminated.</li>
+    </ol>
+
+    <h2>How to know you've learned it</h2>
+    <ul>
+      <li>Without notes, you can state when checkpoints are created automatically, how many are kept, what they're saved with, and the four classes of changes rewind can't touch (bash, subagents, out-of-session, sym/hardlinks).</li>
+      <li>You can explain the difference between the rewind menu's three Restore and two Summarize actions, why Summarize never touches disk files, and when to use it versus <code>/compact</code> versus <code>/branch</code>.</li>
+      <li>All 6 hands-on steps completed, with the step-4 blind-spot experiment matching the prediction.</li>
+      <li>Self-check: in a session, Claude first ran <code>rm data.csv</code> via bash, then edited <code>main.py</code> with its editing tool; after <code>/rewind</code> with "Restore code", what state is each file in? (Answer: <code>main.py</code> is restored, <code>data.csv</code> doesn't come back — bash changes aren't tracked; only git can recover it.)</li>
+    </ul>
+  </article>
+</div>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <p class="updated">Last updated: 2026-08-05</p>
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/checkpointing.md">code.claude.com/docs/en/checkpointing.md</a> (checkpoint mechanics, rewind menu, limits and the split with git) · fetched 2026-08-05</li>
+      <li><span class="badge badge-official">Official</span><a href="https://code.claude.com/docs/en/sessions.md">code.claude.com/docs/en/sessions.md</a> (session resume, naming, /branch, context management and transcript storage) · fetched 2026-08-05</li>
+    </ol>
+  </div>
+  <p class="foot-nav"><a href="/en/claude-code/course/day-05.html">Previous: D5 · Plan mode and explore→plan→code</a> · <a href="/en/claude-code/course/">Back to course overview</a> · <a href="/en/claude-code/course/day-07.html">Next: D7 · Skills</a></p>
+</div></footer>
+<script src="/claude-code/assets/site.js"></script>
+</body>
+</html>
