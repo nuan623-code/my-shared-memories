@@ -100,6 +100,11 @@ npm install --no-audit --no-fund
 say "构建(npm run build)"
 npm run build
 
+# 构建会把 compatibility_date 写成本机今天;本机时区超前 UTC 时(每天 0 点后到 UTC 跨天前)
+# Cloudflare 会以「不能设未来日期」拒绝部署(错误码 10021)。统一校准为 UTC 今天。
+say "校准 compatibility_date(UTC)"
+node -e "const fs=require('fs');const f='.output/server/wrangler.json';const j=JSON.parse(fs.readFileSync(f,'utf8'));const utc=new Date().toISOString().slice(0,10);if(j.compatibility_date>utc){console.log('  '+j.compatibility_date+' → '+utc);j.compatibility_date=utc;fs.writeFileSync(f,JSON.stringify(j,null,2));}else{console.log('  '+j.compatibility_date+'(无需校准)');}"
+
 # --- 5. 部署到 Cloudflare(带重试,proxy 偶发 fetch failed) -----------------
 say "部署到 Cloudflare Workers"
 n=0

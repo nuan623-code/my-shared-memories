@@ -69,7 +69,7 @@
 | `scripts/run-sql.mjs` | 在用户 Supabase 上跑任意 SQL(Management API)。凭证 = 个人访问令牌 `sbp_...`,存仓库外 `~/.ms-supabase-token`(chmod 600);`~/.ms-supabase-admin` 的 sb_secret 只能写数据行、跑不了 SQL,别混。**有此令牌后,补丁和 Lovable 新迁移都不用再让用户去 SQL Editor 手动跑** |
 | (已删除) | `src/integrations/lovable/`、`src/lib/lovable-error-reporting.ts` |
 | `.env`(不入 git)/ `.gitignore` / `.env.example` | 用用户自己的 Supabase key |
-| `supabase/schema.sql`、`publish.sh`、`AGENTS.md` | bootstrap / 部署脚本 / 本文件 |
+| `supabase/schema.sql`、`publish.sh`、`AGENTS.md` | bootstrap / 部署脚本 / 本文件;2026-08-05 publish.sh 构建后校准 `.output/server/wrangler.json` 的 compatibility_date 为 UTC 今天(构建写本机日期,时区超前 UTC 时 Cloudflare 报 10021「未来日期」拒绝部署) |
 | `scripts/sync-static-resources.mjs` + `scripts/resources.manifest.json` | 把 `public/` 静态 HTML 自动同步进 `resources` 表(见下) |
 | `src/lib/i18n/` + `src/routes/en/` + `src/components/LanguageSwitcher.tsx` | 2026-07-28 中英双语:**URL 决定语言、SSR 阶段确定**(`/`=中文保持原 URL 不动,`/en/*`=英文)。①`lib/i18n`:`localeFromPath`/`localizedPath`、字典 `dict.ts`(只收公开界面文案,admin/auth 等自用界面保持中文)、`useT`/`useLocale`、`i18nHead`(canonical 各指各 + hreflang 自引用/双向互指/x-default;**key 必须小写 `hreflang`**,写 React 风格 `hrefLang` 会原样输出驼峰)。②路由用**显式 `routes/en/` 目录**而非 `{-$locale}` 可选参数——实测后者会让 `/任意路径` 匹配到首页,产生无限重复内容;en 路由只做薄封装,复用中文路由导出的组件与 queryOptions(为此 `articles.$slug` 组件改为接 props、`search` 改用 strict:false hook)。③`__root` 的 `<html lang>` 由 pathname 派生。④分类/子分类 `labelEn`(`catLabel(c, locale)`),工具卡 `titleEn/descEn`,资源卡对「内容语言≠界面语言」显示语言徽章。⑤**中文文章的 `/en/` 版 canonical 指回中文版**(英文外壳+中文正文属重复内容),仅原生英文内容才自成规范地址。合并冲突时保留本端 |
 | `supabase/patches/2026-07-28-i18n-lang.sql` | 2026-07-28 `resources` 加 `lang`(zh/en,CHECK 约束)与 `i18n_key`(同内容多语言版本共享,唯一索引 (i18n_key,lang));`fetchTranslations()` 按 key 查另一语言版本供 hreflang 与切换用。存量 45 条每日内容已回填 key,2 篇英文内容已标 lang=en |
