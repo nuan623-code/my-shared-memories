@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>低精度推理与 MXFP4 量化 | Low-Precision Inference & MXFP4 Quantization</title>
+<style>
+:root{
+  --bg:#faf7f2;--surface:#ffffff;--ink:#241d16;--ink-2:#4a3f33;--muted:#8a7b68;
+  --line:#e8dfd2;--accent:#c2571a;--accent-deep:#8a3c0f;--accent-soft:#fbeadd;
+  --metal:#33556b;--metal-soft:#e4edf3;--code-bg:#f6f1e9;--good:#2f7d4f;--warn-bg:#fdf3e2;--warn-line:#e8c98a;
+  --radius:14px;--shadow:0 1px 2px rgba(36,29,22,.05),0 8px 24px rgba(36,29,22,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.8;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+-webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--metal));width:0;z-index:99}
+.wrap{max-width:840px;margin:0 auto;padding:0 22px 80px}
+/* hero */
+.hero{background:
+ repeating-linear-gradient(90deg,transparent 0 39px,rgba(51,85,107,.06) 39px 40px),
+ repeating-linear-gradient(0deg,transparent 0 39px,rgba(51,85,107,.06) 39px 40px),
+ linear-gradient(160deg,#fffdf9 0%,#f7ede0 100%);
+ border-bottom:1px solid var(--line)}
+.hin{max-width:840px;margin:0 auto;padding:58px 22px 44px;position:relative}
+.kicker{display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.14em;color:var(--accent-deep);
+ background:var(--accent-soft);border:1px solid #eccaa8;border-radius:99px;padding:5px 14px;margin-bottom:16px}
+h1{font-size:clamp(27px,5.4vw,42px);line-height:1.25;margin:0 0 14px;font-weight:850;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:17.5px;color:var(--ink-2);max-width:640px;margin:0}
+#langBtn{position:absolute;top:20px;right:22px;z-index:60;cursor:pointer;border:1.5px solid var(--metal);
+ background:var(--surface);color:var(--metal);font-weight:800;font-size:13.5px;border-radius:99px;padding:7px 16px;
+ box-shadow:var(--shadow);transition:.15s}
+#langBtn:hover{background:var(--metal);color:#fff}
+/* toc */
+#toc{position:fixed;left:18px;top:90px;width:218px;max-height:74vh;overflow:auto;z-index:50;
+ background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+ border:1px solid var(--line);border-radius:var(--radius);padding:14px 8px;box-shadow:var(--shadow);font-size:13.5px}
+#toc .tt{font-weight:800;font-size:12px;letter-spacing:.1em;color:var(--muted);padding:0 10px 8px}
+#toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 10px;border-radius:8px;line-height:1.45}
+#toc a:hover{background:var(--accent-soft)}
+#toc a.on{background:var(--accent-soft);color:var(--accent-deep);font-weight:750}
+#tocBtn{display:none;position:fixed;left:16px;bottom:18px;z-index:60;width:46px;height:46px;border-radius:50%;
+ border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);font-size:19px;cursor:pointer}
+@media(max-width:1180px){
+ #toc{display:none}
+ #toc.open{display:block;top:auto;bottom:76px;left:16px}
+ #tocBtn{display:block}
+}
+section{padding-top:18px;margin-top:22px}
+h2{font-size:24px;margin:26px 0 14px;font-weight:820;letter-spacing:-.01em;border-bottom:2px solid var(--accent-soft);padding-bottom:8px}
+h2 .no{color:var(--accent);margin-right:8px;font-variant-numeric:tabular-nums}
+h3{font-size:18.5px;margin:24px 0 10px;font-weight:780}
+p{margin:0 0 14px}
+strong{font-weight:750}
+a{color:var(--accent-deep)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;margin:16px 0;box-shadow:var(--shadow)}
+.callout{border-radius:var(--radius);padding:15px 19px;margin:16px 0;font-size:15.5px}
+.callout.key{background:var(--metal-soft);border:1px solid #bfd2df}
+.callout.warn{background:var(--warn-bg);border:1px solid var(--warn-line)}
+.callout .ic{margin-right:6px}
+.def{background:var(--surface);border-left:4px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;
+ padding:14px 18px;margin:14px 0;box-shadow:var(--shadow);font-size:15.5px}
+.def b{color:var(--accent-deep)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;background:var(--surface);
+ border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+th{background:#f2ebe0;text-align:left;padding:10px 12px;font-size:13.5px;letter-spacing:.02em}
+td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:top}
+.tbl{overflow-x:auto;margin:16px 0}
+.tbl table{margin:0;min-width:560px}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:11px;padding:13px 16px;overflow-x:auto;
+ font-size:13.3px;line-height:1.6;margin:14px 0}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+p code,li code{background:var(--code-bg);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.88em}
+.steps{counter-reset:st;margin:16px 0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+ padding:14px 18px 14px 56px;margin-bottom:10px;box-shadow:var(--shadow)}
+.step::before{counter-increment:st;content:counter(st);position:absolute;left:16px;top:14px;width:28px;height:28px;
+ border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:20px 0;
+ box-shadow:var(--shadow);opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.5px;color:var(--muted);margin-top:10px;text-align:center}
+.src{font-size:13px;color:var(--muted)}
+.src a{color:var(--accent-deep)}
+ul,ol{margin:0 0 14px;padding-left:24px}
+li{margin-bottom:7px}
+footer{border-top:1px solid var(--line);margin-top:46px;padding-top:22px;font-size:13.5px;color:var(--muted)}
+footer li{margin-bottom:4px}
+@media(max-width:640px){
+ body{font-size:16px}
+ .hin{padding:50px 18px 36px}
+ #langBtn{top:14px;right:14px}
+ .wrap{padding:0 16px 60px}
+ .card,.callout{padding:14px 15px}
+ pre{font-size:12.5px}
+}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN / 中 深度学习文档 · 2026-08-05 DEEP-DIVE · 2026-08-05 低精度推理与 MXFP4 量化 :模型为什么越来越便宜 Low-Precision Inference &amp; MXFP4 …">
+<meta property="og:title" content="低精度推理与 MXFP4 量化 | Low-Precision Inference &amp; MXFP4 Quantization">
+<meta property="og:description" content="EN / 中 深度学习文档 · 2026-08-05 DEEP-DIVE · 2026-08-05 低精度推理与 MXFP4 量化 :模型为什么越来越便宜 Low-Precision Inference &amp; MXFP4 …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-05-di-jing-du-tui-li-yu-mxfp4-liang-hua.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-05-di-jing-du-tui-li-yu-mxfp4-liang-hua.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "低精度推理与 MXFP4 量化 | Low-Precision Inference & MXFP4 Quantization", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-05-di-jing-du-tui-li-yu-mxfp4-liang-hua.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-05", "dateModified": "2026-08-06"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="pbar"></div>
+<div class="hero"><div class="hin">
+  <button id="langBtn" onclick="toggleLang()">EN / 中</button>
+  <span class="kicker zh">深度学习文档 · 2026-08-05</span>
+  <span class="kicker en">DEEP-DIVE · 2026-08-05</span>
+  <h1 class="zh">低精度推理与 <em>MXFP4 量化</em>:模型为什么越来越便宜</h1>
+  <h1 class="en">Low-Precision Inference &amp; <em>MXFP4 Quantization</em>: Why Models Keep Getting Cheaper</h1>
+  <p class="lede zh">Kimi K3 用 MXFP4 权重开源、OpenAI 连续降价、Blackwell GPU 原生跑 4-bit——这一切背后是同一件事:用更少的比特存和算每个数。本文讲清 4-bit 浮点量化是什么、怎么用、什么场景敢用。</p>
+  <p class="lede en">Kimi K3 shipped open weights in MXFP4, OpenAI keeps cutting prices, and Blackwell GPUs run 4-bit natively — all driven by the same idea: store and compute every number with fewer bits. This guide explains what 4-bit floating-point quantization is, how to use it, and when it's safe to.</p>
+</div></div>
+
+<nav id="toc">
+  <div class="tt zh">目录</div><div class="tt en">CONTENTS</div>
+  <a href="#s1"><span class="zh">1 · 30 秒速览</span><span class="en">1 · 30-Second Overview</span></a>
+  <a href="#s2"><span class="zh">2 · 背景:为什么要压到 4 bit</span><span class="en">2 · Why Squeeze to 4 Bits</span></a>
+  <a href="#s3"><span class="zh">3 · 核心概念:块缩放</span><span class="en">3 · Core Idea: Block Scaling</span></a>
+  <a href="#s4"><span class="zh">4 · MXFP4 vs NVFP4</span><span class="en">4 · MXFP4 vs NVFP4</span></a>
+  <a href="#s5"><span class="zh">5 · 硬件与框架支持</span><span class="en">5 · Hardware &amp; Frameworks</span></a>
+  <a href="#s6"><span class="zh">6 · 怎么用:上手流程</span><span class="en">6 · Hands-On Workflow</span></a>
+  <a href="#s7"><span class="zh">7 · 实战案例</span><span class="en">7 · Real-World Cases</span></a>
+  <a href="#s8"><span class="zh">8 · 常见坑与限制</span><span class="en">8 · Pitfalls &amp; Limits</span></a>
+  <a href="#s9"><span class="zh">9 · 学习资源</span><span class="en">9 · Resources</span></a>
+</nav>
+<button id="tocBtn" onclick="document.getElementById('toc').classList.toggle('open')">☰</button>
+
+<div class="wrap">
+
+<section id="s1">
+  <h2 class="zh"><span class="no">1</span>30 秒速览</h2>
+  <h2 class="en"><span class="no">1</span>30-Second Overview</h2>
+  <p class="zh"><strong>量化(quantization)</strong>就是把模型里的数字用更少的比特来存:训练时常用的 BF16 每个数占 16 bit,量化到 4 bit 后,同一个模型的显存占用约为原来的 1/4。<strong>MXFP4</strong> 是开放组织 OCP(Open Compute Project)制定的 4-bit 浮点微缩放格式:每 32 个数为一块,块内共享一个 8-bit 缩放因子,平均每个数只花约 4.25 bit。NVIDIA Blackwell 一代 GPU 和 AMD MI355X 的张量核心可以<strong>原生</strong>按这种格式计算——不只是省显存,算得也更快。</p>
+  <p class="en"><strong>Quantization</strong> means storing a model's numbers with fewer bits: BF16, common in training, uses 16 bits per value; at 4 bits, the same model needs roughly 1/4 of the memory. <strong>MXFP4</strong> is the 4-bit floating-point microscaling format standardized by OCP (Open Compute Project): values are grouped into blocks of 32 that share one 8-bit scale factor, averaging about 4.25 bits per value. NVIDIA Blackwell-generation GPUs and AMD's MI355X execute this format <strong>natively</strong> in their tensor cores — so it's not just smaller, it also computes faster.</p>
+  <div class="callout key"><span class="ic">🔑</span><span class="zh">为什么现在值得学:2026 年 7 月 27 日,Moonshot 把 2.8 万亿参数的 Kimi K3 以「量化感知的 MXFP4 权重 + MXFP8 激活」形态开源——超大模型第一次以原生低精度形态发布,自托管门槛因此大降;而 OpenAI 8 月 4 日的新一轮降价,背后同样有低精度推理基础设施的成本红利。</span><span class="en">Why it matters now: on July 27, 2026, Moonshot open-sourced the 2.8-trillion-parameter Kimi K3 with quantization-aware MXFP4 weights and MXFP8 activations — the first frontier-scale model released natively in low precision, sharply lowering the bar for self-hosting. OpenAI's August 4 price cuts likewise ride on the cost dividends of low-precision inference infrastructure.</span></div>
+  <div class="figure" data-anim>
+    <svg class="zh" viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="低精度推理管线图">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a3c0f"/></marker></defs>
+      <rect x="10" y="55" width="150" height="80" rx="12" fill="#e4edf3" stroke="#33556b" stroke-width="1.5"/>
+      <text x="85" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#33556b">BF16 模型</text>
+      <text x="85" y="110" text-anchor="middle" font-size="12" fill="#4a3f33">每数 16 bit</text>
+      <line x1="160" y1="95" x2="215" y2="95" stroke="#8a3c0f" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="187" y="82" text-anchor="middle" font-size="11" fill="#8a3c0f">量化</text>
+      <rect x="220" y="55" width="170" height="80" rx="12" fill="#fbeadd" stroke="#c2571a" stroke-width="1.5"/>
+      <text x="305" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#8a3c0f">MXFP4 权重</text>
+      <text x="305" y="110" text-anchor="middle" font-size="12" fill="#4a3f33">每数约 4.25 bit</text>
+      <line x1="390" y1="95" x2="445" y2="95" stroke="#8a3c0f" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="450" y="55" width="170" height="80" rx="12" fill="#e4edf3" stroke="#33556b" stroke-width="1.5"/>
+      <text x="535" y="82" text-anchor="middle" font-size="13.5" font-weight="700" fill="#33556b">Blackwell / MI355X</text>
+      <text x="535" y="103" text-anchor="middle" font-size="12" fill="#4a3f33">FP4 张量核心</text>
+      <text x="535" y="121" text-anchor="middle" font-size="12" fill="#4a3f33">原生 4-bit 计算</text>
+      <line x1="620" y1="95" x2="675" y2="95" stroke="#8a3c0f" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="680" y="55" width="70" height="80" rx="12" fill="#eaf4ec" stroke="#2f7d4f" stroke-width="1.5"/>
+      <text x="715" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#2f7d4f">更便宜</text>
+      <text x="715" y="108" text-anchor="middle" font-size="12" fill="#2f7d4f">的 token</text>
+      <text x="380" y="170" text-anchor="middle" font-size="12.5" fill="#8a7b68">显存约 1/4 · 吞吐最高提升数倍(来源见图注)</text>
+    </svg>
+    <svg class="en" viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Low-precision inference pipeline">
+      <defs><marker id="ar-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a3c0f"/></marker></defs>
+      <rect x="10" y="55" width="150" height="80" rx="12" fill="#e4edf3" stroke="#33556b" stroke-width="1.5"/>
+      <text x="85" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#33556b">BF16 model</text>
+      <text x="85" y="110" text-anchor="middle" font-size="12" fill="#4a3f33">16 bits / value</text>
+      <line x1="160" y1="95" x2="215" y2="95" stroke="#8a3c0f" stroke-width="2" marker-end="url(#ar-e)"/>
+      <text x="187" y="82" text-anchor="middle" font-size="11" fill="#8a3c0f">quantize</text>
+      <rect x="220" y="55" width="170" height="80" rx="12" fill="#fbeadd" stroke="#c2571a" stroke-width="1.5"/>
+      <text x="305" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#8a3c0f">MXFP4 weights</text>
+      <text x="305" y="110" text-anchor="middle" font-size="12" fill="#4a3f33">~4.25 bits / value</text>
+      <line x1="390" y1="95" x2="445" y2="95" stroke="#8a3c0f" stroke-width="2" marker-end="url(#ar-e)"/>
+      <rect x="450" y="55" width="170" height="80" rx="12" fill="#e4edf3" stroke="#33556b" stroke-width="1.5"/>
+      <text x="535" y="82" text-anchor="middle" font-size="13.5" font-weight="700" fill="#33556b">Blackwell / MI355X</text>
+      <text x="535" y="103" text-anchor="middle" font-size="12" fill="#4a3f33">FP4 tensor cores</text>
+      <text x="535" y="121" text-anchor="middle" font-size="12" fill="#4a3f33">native 4-bit math</text>
+      <line x1="620" y1="95" x2="675" y2="95" stroke="#8a3c0f" stroke-width="2" marker-end="url(#ar-e)"/>
+      <rect x="680" y="55" width="70" height="80" rx="12" fill="#eaf4ec" stroke="#2f7d4f" stroke-width="1.5"/>
+      <text x="715" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#2f7d4f">cheaper</text>
+      <text x="715" y="108" text-anchor="middle" font-size="12" fill="#2f7d4f">tokens</text>
+      <text x="380" y="170" text-anchor="middle" font-size="12.5" fill="#8a7b68">~1/4 memory · up to several× throughput (see caption for sources)</text>
+    </svg>
+    <div class="fig-cap zh">低精度推理的完整链路。据 EmergentMind 汇总的研究,微缩放 FP4 在现代加速器上最高可带来约 5× 加速与 2× 显存节省(具体因模型与硬件而异)。</div>
+    <div class="fig-cap en">The full low-precision inference chain. Per research surveyed by EmergentMind, microscaling FP4 can deliver up to ~5× speedup and 2× memory savings on modern accelerators (varies by model and hardware).</div>
+  </div>
+</section>
+
+<section id="s2">
+  <h2 class="zh"><span class="no">2</span>背景:为什么非要压到 4 bit</h2>
+  <h2 class="en"><span class="no">2</span>Why Squeeze All the Way to 4 Bits</h2>
+  <p class="zh">先看痛点。大模型推理的瓶颈往往不是「算不动」,而是<strong>「搬不动」</strong>:生成每个 token 都要把全部权重从显存搬进计算单元,权重越大、搬运越慢、显卡越贵。一个 70B 参数的模型,BF16 存储要约 140 GB——单卡放不下,就得多卡并行,成本翻倍。把每个数从 16 bit 压到 4 bit,显存和搬运量都变成约 1/4:原来要 4 张卡的,现在 1 张卡可能就够。</p>
+  <p class="en">Start with the pain point. LLM inference is usually bottlenecked not by compute but by <strong>data movement</strong>: generating every token requires streaming all the weights from GPU memory into the compute units. Bigger weights mean slower transfers and pricier GPUs. A 70B-parameter model needs ~140 GB in BF16 — too big for one card, so you shard across several and multiply cost. Compressing each value from 16 bits to 4 cuts both memory and traffic to ~1/4: what took four GPUs may now fit on one.</p>
+  <p class="zh">行业于是沿着「精度阶梯」一路往下走:FP32(科学计算)→ FP16/BF16(训练标配)→ FP8(Hopper 一代推理主流)→ FP4(Blackwell 一代开始原生支持)。每下一级,单位算力翻倍、显存减半。但天下没有免费午餐——4 bit 只能表示 16 个不同的数值,直接硬压会把模型压坏。让 4 bit 变得可用的关键发明,就是下一节的<strong>块缩放(block scaling)</strong>。</p>
+  <p class="en">The industry has walked down a "precision ladder": FP32 (scientific computing) → FP16/BF16 (the training standard) → FP8 (mainstream inference on Hopper) → FP4 (natively supported starting with Blackwell). Each step down doubles effective compute and halves memory. But there's no free lunch — 4 bits can only represent 16 distinct values, and naive compression would wreck the model. The invention that makes 4 bits workable is <strong>block scaling</strong>, covered next.</p>
+  <div class="figure" data-anim>
+    <svg class="zh" viewBox="0 0 760 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="精度阶梯时间线">
+      <line x1="30" y1="120" x2="730" y2="120" stroke="#8a7b68" stroke-width="1.5"/>
+      <g><circle cx="110" cy="120" r="6" fill="#33556b"/><text x="110" y="98" text-anchor="middle" font-size="13.5" font-weight="700" fill="#33556b">FP32</text><text x="110" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">32 bit · 早期</text></g>
+      <g><circle cx="280" cy="120" r="6" fill="#33556b"/><text x="280" y="98" text-anchor="middle" font-size="13.5" font-weight="700" fill="#33556b">FP16 / BF16</text><text x="280" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">16 bit · 训练标配</text></g>
+      <g><circle cx="460" cy="120" r="6" fill="#c2571a"/><text x="460" y="98" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8a3c0f">FP8</text><text x="460" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">Hopper 推理主流</text></g>
+      <g><circle cx="640" cy="120" r="8" fill="#c2571a"/><text x="640" y="80" text-anchor="middle" font-size="14.5" font-weight="800" fill="#8a3c0f">FP4 (MXFP4/NVFP4)</text><text x="640" y="98" text-anchor="middle" font-size="11.5" fill="#4a3f33">Blackwell/MI355X 原生</text><text x="640" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">2025– · 当前前沿</text></g>
+      <text x="380" y="30" text-anchor="middle" font-size="12.5" fill="#8a7b68">每降一级:显存减半 · 单位算力约翻倍</text>
+    </svg>
+    <svg class="en" viewBox="0 0 760 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Precision ladder timeline">
+      <line x1="30" y1="120" x2="730" y2="120" stroke="#8a7b68" stroke-width="1.5"/>
+      <g><circle cx="110" cy="120" r="6" fill="#33556b"/><text x="110" y="98" text-anchor="middle" font-size="13.5" font-weight="700" fill="#33556b">FP32</text><text x="110" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">32-bit · early era</text></g>
+      <g><circle cx="280" cy="120" r="6" fill="#33556b"/><text x="280" y="98" text-anchor="middle" font-size="13.5" font-weight="700" fill="#33556b">FP16 / BF16</text><text x="280" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">16-bit · training standard</text></g>
+      <g><circle cx="460" cy="120" r="6" fill="#c2571a"/><text x="460" y="98" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8a3c0f">FP8</text><text x="460" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">Hopper inference era</text></g>
+      <g><circle cx="640" cy="120" r="8" fill="#c2571a"/><text x="640" y="80" text-anchor="middle" font-size="14.5" font-weight="800" fill="#8a3c0f">FP4 (MXFP4/NVFP4)</text><text x="640" y="98" text-anchor="middle" font-size="11.5" fill="#4a3f33">native on Blackwell/MI355X</text><text x="640" y="145" text-anchor="middle" font-size="11.5" fill="#8a7b68">2025– · current frontier</text></g>
+      <text x="380" y="30" text-anchor="middle" font-size="12.5" fill="#8a7b68">Each step down: half the memory · ~2× the compute per chip</text>
+    </svg>
+    <div class="fig-cap zh">推理精度阶梯:FP4 是当前硬件原生支持的最低精度档。图源信息综合自 Spheron 决策指南与 EmergentMind 主题页。</div>
+    <div class="fig-cap en">The inference precision ladder: FP4 is the lowest precision tier with native hardware support today. Synthesized from the Spheron decision guide and EmergentMind topic pages.</div>
+  </div>
+</section>
+
+<section id="s3">
+  <h2 class="zh"><span class="no">3</span>核心概念:块缩放让 4 bit 变得可用</h2>
+  <h2 class="en"><span class="no">3</span>Core Idea: Block Scaling Makes 4 Bits Usable</h2>
+  <p class="zh">4 bit 只有 16 个可表示的值,而神经网络权重的数值范围可能横跨好几个数量级。传统 INT4 给整个张量(可理解为一大片数字表格)定一个固定范围,遇到<strong>离群值(outlier)</strong>——个别特别大的数——就会崩:为了装下那一个大数,其他所有小数都被压得面目全非。</p>
+  <p class="en">Four bits give you only 16 representable values, while neural-network weights can span several orders of magnitude. Traditional INT4 assigns one fixed range to an entire tensor (think: one huge table of numbers), and <strong>outliers</strong> — the occasional very large value — break it: to fit that one big number, every small number gets crushed into mush.</p>
+  <p class="zh">微缩放(microscaling,MX 的含义)的解法很朴素:<strong>别给整张表定一个范围,给每一小块单独定</strong>。MXFP4 把数据切成每 32 个一块,每块配一个共享的 8-bit 缩放因子,把这块里最大的数映射到 FP4 能表示的最大值。这样每块的 4-bit 编码都「量身定制」,离群值最多祸害同块的 31 个邻居,而不是整个张量。</p>
+  <p class="en">Microscaling (the "MX") fixes this simply: <strong>don't set one range for the whole table — set one per small block</strong>. MXFP4 slices data into blocks of 32, each with a shared 8-bit scale factor that maps the block's largest magnitude to the largest FP4-representable value. Every block's 4-bit encoding is thus tailor-made; an outlier can distort at most its 31 neighbors, not the entire tensor.</p>
+  <div class="def"><span class="zh"><b>E2M1</b>:MXFP4 中每个 4-bit 数的编码方式——1 个符号位、2 个指数位、1 个尾数位。可以理解成一个「迷你科学计数法」:指数管大小档位,尾数管细节。</span><span class="en"><b>E2M1</b>: how each 4-bit value in MXFP4 is encoded — 1 sign bit, 2 exponent bits, 1 mantissa bit. Think of it as miniature scientific notation: the exponent sets the magnitude tier, the mantissa adds detail.</span></div>
+  <div class="def"><span class="zh"><b>E8M0 缩放因子</b>:每块共享的 8-bit 缩放数,8 位全是指数、没有尾数——只能表示 2 的整数次幂,但动态范围极宽。算总账:32 个数摊 8 bit,平均每数只多花 0.25 bit,所以 MXFP4 的实际成本是 4.25 bit/数。</span><span class="en"><b>E8M0 scale</b>: the block's shared 8-bit scale — all exponent, no mantissa — so it only represents powers of two, but with a very wide dynamic range. The math: 8 bits spread over 32 values adds 0.25 bits each, so MXFP4's true cost is 4.25 bits per value.</span></div>
+  <div class="figure" data-anim>
+    <svg class="zh" viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="块缩放机制图">
+      <text x="380" y="26" text-anchor="middle" font-size="14" font-weight="800" fill="#241d16">一个 MXFP4 块 = 32 个 FP4 值 + 1 个共享缩放因子</text>
+      <g>
+        <rect x="40" y="50" width="540" height="64" rx="10" fill="#fbeadd" stroke="#c2571a" stroke-width="1.5"/>
+        <text x="60" y="90" font-size="12" fill="#8a3c0f" font-weight="700">32 × E2M1</text>
+        <g fill="#c2571a" opacity=".85">
+          <rect x="150" y="66" width="24" height="32" rx="4"/><rect x="180" y="66" width="24" height="32" rx="4" opacity=".65"/><rect x="210" y="66" width="24" height="32" rx="4" opacity=".5"/><rect x="240" y="66" width="24" height="32" rx="4" opacity=".75"/><rect x="270" y="66" width="24" height="32" rx="4" opacity=".55"/><rect x="300" y="66" width="24" height="32" rx="4" opacity=".7"/><rect x="330" y="66" width="24" height="32" rx="4" opacity=".45"/><rect x="360" y="66" width="24" height="32" rx="4" opacity=".8"/><rect x="390" y="66" width="24" height="32" rx="4" opacity=".6"/><rect x="420" y="66" width="24" height="32" rx="4" opacity=".5"/>
+        </g>
+        <text x="470" y="90" font-size="16" fill="#8a3c0f">…</text>
+        <text x="520" y="90" font-size="11.5" fill="#8a3c0f">4 bit × 32</text>
+      </g>
+      <rect x="610" y="50" width="120" height="64" rx="10" fill="#e4edf3" stroke="#33556b" stroke-width="1.5"/>
+      <text x="670" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#33556b">共享缩放</text>
+      <text x="670" y="98" text-anchor="middle" font-size="12" fill="#33556b">E8M0 · 8 bit</text>
+      <line x1="670" y1="114" x2="670" y2="150" stroke="#33556b" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <line x1="670" y1="150" x2="320" y2="150" stroke="#33556b" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="495" y="143" text-anchor="middle" font-size="11.5" fill="#33556b">解码时:真实值 = FP4 值 × 缩放因子</text>
+      <text x="40" y="185" font-size="12.5" fill="#4a3f33">✔ 每块量身定标,离群值最多影响同块 31 个邻居</text>
+      <text x="40" y="210" font-size="12.5" fill="#4a3f33">✔ 平均成本 = 4 + 8/32 = 4.25 bit / 数</text>
+      <text x="40" y="235" font-size="12.5" fill="#4a3f33">✔ NVFP4 变体:块缩到 16 个数、缩放改用 FP8(E4M3),更准但开销翻倍</text>
+    </svg>
+    <svg class="en" viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Block scaling mechanism">
+      <text x="380" y="26" text-anchor="middle" font-size="14" font-weight="800" fill="#241d16">One MXFP4 block = 32 FP4 values + 1 shared scale</text>
+      <g>
+        <rect x="40" y="50" width="540" height="64" rx="10" fill="#fbeadd" stroke="#c2571a" stroke-width="1.5"/>
+        <text x="60" y="90" font-size="12" fill="#8a3c0f" font-weight="700">32 × E2M1</text>
+        <g fill="#c2571a" opacity=".85">
+          <rect x="150" y="66" width="24" height="32" rx="4"/><rect x="180" y="66" width="24" height="32" rx="4" opacity=".65"/><rect x="210" y="66" width="24" height="32" rx="4" opacity=".5"/><rect x="240" y="66" width="24" height="32" rx="4" opacity=".75"/><rect x="270" y="66" width="24" height="32" rx="4" opacity=".55"/><rect x="300" y="66" width="24" height="32" rx="4" opacity=".7"/><rect x="330" y="66" width="24" height="32" rx="4" opacity=".45"/><rect x="360" y="66" width="24" height="32" rx="4" opacity=".8"/><rect x="390" y="66" width="24" height="32" rx="4" opacity=".6"/><rect x="420" y="66" width="24" height="32" rx="4" opacity=".5"/>
+        </g>
+        <text x="470" y="90" font-size="16" fill="#8a3c0f">…</text>
+        <text x="520" y="90" font-size="11.5" fill="#8a3c0f">4 bits × 32</text>
+      </g>
+      <rect x="610" y="50" width="120" height="64" rx="10" fill="#e4edf3" stroke="#33556b" stroke-width="1.5"/>
+      <text x="670" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#33556b">shared scale</text>
+      <text x="670" y="98" text-anchor="middle" font-size="12" fill="#33556b">E8M0 · 8 bits</text>
+      <line x1="670" y1="114" x2="670" y2="150" stroke="#33556b" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <line x1="670" y1="150" x2="320" y2="150" stroke="#33556b" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="495" y="143" text-anchor="middle" font-size="11.5" fill="#33556b">decode: real value = FP4 value × scale</text>
+      <text x="40" y="185" font-size="12.5" fill="#4a3f33">✔ Per-block tailoring: an outlier hurts at most its 31 block-mates</text>
+      <text x="40" y="210" font-size="12.5" fill="#4a3f33">✔ Average cost = 4 + 8/32 = 4.25 bits / value</text>
+      <text x="40" y="235" font-size="12.5" fill="#4a3f33">✔ NVFP4 variant: 16-value blocks with FP8 (E4M3) scales — more accurate, double the overhead</text>
+    </svg>
+    <div class="fig-cap zh">块缩放机制。信息来源:OCP MX 规范解读(EmergentMind)与 Spheron 格式对比指南。</div>
+    <div class="fig-cap en">The block-scaling mechanism. Sources: OCP MX spec explainers (EmergentMind) and the Spheron format comparison guide.</div>
+  </div>
+  <p class="zh">还有一个关键概念:<strong>量化感知(quantization-aware)</strong>。事后把训好的模型压到 4 bit 叫 PTQ(post-training quantization,训练后量化),省事但可能掉精度;而在训练/后训练阶段就让模型「知道」自己将来要以 4 bit 运行,叫 QAT(quantization-aware training,量化感知训练),掉点更少。Kimi K3 和 OpenAI 的 gpt-oss 都属于后者——官方直接发布量化感知的 MXFP4 权重,拿到手就是「原生 4 bit」。</p>
+  <p class="en">One more key concept: <strong>quantization-aware</strong>. Compressing an already-trained model down to 4 bits afterward is PTQ (post-training quantization) — convenient, but it can cost accuracy. Letting the model "know" during training/post-training that it will run in 4 bits is QAT (quantization-aware training), which loses less. Kimi K3 and OpenAI's gpt-oss are both in the latter camp — the official weights ship quantization-aware in MXFP4, natively 4-bit out of the box.</p>
+</section>
+
+<section id="s4">
+  <h2 class="zh"><span class="no">4</span>两大格式:MXFP4 vs NVFP4</h2>
+  <h2 class="en"><span class="no">4</span>The Two Formats: MXFP4 vs NVFP4</h2>
+  <p class="zh">实际选型时你会遇到两个名字很像的格式。两者每个数都用 E2M1 编码,差别在块大小和缩放因子精度——别小看这两处,它们决定了你用哪套工具链、checkpoint 能在哪些硬件上跑、以及推理质量掉多少。</p>
+  <p class="en">In practice you'll meet two similar-sounding formats. Both encode each value as E2M1; they differ in block size and scale precision — and those two details determine your toolchain, which hardware your checkpoint runs on, and how much quality you lose.</p>
+  <div class="tbl"><table>
+    <thead class="zh"><tr><th>维度</th><th>OCP MXFP4(开放标准)</th><th>NVFP4(NVIDIA 方案)</th></tr></thead>
+    <thead class="en"><tr><th>Dimension</th><th>OCP MXFP4 (open standard)</th><th>NVFP4 (NVIDIA's variant)</th></tr></thead>
+    <tbody class="zh">
+      <tr><td>块大小</td><td>32 个值</td><td>16 个值(更细粒度)</td></tr>
+      <tr><td>缩放因子</td><td>E8M0(纯指数,2 的幂)</td><td>FP8 E4M3(带尾数,更精细)</td></tr>
+      <tr><td>每值开销</td><td>+0.25 bit</td><td>+0.5 bit(缩放开销 2 倍)</td></tr>
+      <tr><td>硬件支持</td><td>NVIDIA Blackwell + AMD MI355X</td><td>仅 NVIDIA Blackwell</td></tr>
+      <tr><td>精度倾向</td><td>配 MR-GPTQ 校准后接近 FP8</td><td>一般更准,尤其复杂推理任务</td></tr>
+      <tr><td>选它的理由</td><td>跨平台可移植(N/A 卡混用时唯一选择)</td><td>纯 N 卡部署的默认选择,官方预量化 checkpoint 多</td></tr>
+    </tbody>
+    <tbody class="en">
+      <tr><td>Block size</td><td>32 values</td><td>16 values (finer granularity)</td></tr>
+      <tr><td>Scale factor</td><td>E8M0 (pure exponent, powers of 2)</td><td>FP8 E4M3 (with mantissa, finer)</td></tr>
+      <tr><td>Overhead per value</td><td>+0.25 bits</td><td>+0.5 bits (2× scale overhead)</td></tr>
+      <tr><td>Hardware</td><td>NVIDIA Blackwell + AMD MI355X</td><td>NVIDIA Blackwell only</td></tr>
+      <tr><td>Accuracy tendency</td><td>Close to FP8 with MR-GPTQ calibration</td><td>Generally more accurate, esp. complex reasoning</td></tr>
+      <tr><td>Why pick it</td><td>Cross-platform portability (the only option in mixed NVIDIA/AMD fleets)</td><td>Default for NVIDIA-only deployments; many official pre-quantized checkpoints</td></tr>
+    </tbody>
+  </table></div>
+  <p class="zh">直觉解释:NVFP4 的块更小(16 vs 32),意味着每个缩放因子只需迁就 16 个数的分布,离群值「祸害面」减半;缩放因子带尾数也让映射更贴合。代价是缩放存储开销翻倍。据 Spheron 的对比指南,在同等校准质量下 NVFP4 一般精度更好;但 MXFP4 配上 <strong>MR-GPTQ</strong>(ICLR 2026 提出的校准方法,量化前先做分块 Hadamard 旋转,把离群值「摊平」到块内所有通道)后,差距大部分被抹平。</p>
+  <p class="en">Intuition: NVFP4's smaller blocks (16 vs 32) mean each scale only has to accommodate 16 values, halving an outlier's blast radius; a mantissa-bearing scale also fits distributions more tightly. The cost is double the scale-storage overhead. Per Spheron's comparison guide, NVFP4 is generally more accurate at equal calibration quality — but MXFP4 with <strong>MR-GPTQ</strong> (an ICLR 2026 calibration method that applies block-wise Hadamard rotations before quantizing, spreading outliers across all channels in a block) closes most of the gap.</p>
+  <div class="callout key"><span class="ic">⚖️</span><span class="zh">吞吐上两者没有差别:在 Blackwell 上,MXFP4 与 NVFP4 走同一套 FP4 张量核心,硬件路径完全相同。选型是「精度 + 工具链 + 可移植性」的决策,不是速度决策。(来源:Spheron 决策指南)</span><span class="en">Throughput is a tie: on Blackwell, MXFP4 and NVFP4 execute through the same FP4 tensor cores — identical hardware path. Format choice is an accuracy + toolchain + portability decision, not a speed decision. (Source: Spheron decision guide)</span></div>
+</section>
+
+<section id="s5">
+  <h2 class="zh"><span class="no">5</span>硬件与框架支持一览</h2>
+  <h2 class="en"><span class="no">5</span>Hardware &amp; Framework Support</h2>
+  <p class="zh">FP4 是「硬件绑定」的技术:没有 FP4 张量核心的 GPU 享受不到加速。这是选型时最先要查的一条。</p>
+  <p class="en">FP4 is hardware-bound: without FP4 tensor cores, a GPU gets none of the speedup. Check this first.</p>
+  <div class="tbl"><table>
+    <thead class="zh"><tr><th>GPU</th><th>NVFP4</th><th>MXFP4</th><th>说明</th></tr></thead>
+    <thead class="en"><tr><th>GPU</th><th>NVFP4</th><th>MXFP4</th><th>Notes</th></tr></thead>
+    <tbody class="zh">
+      <tr><td>NVIDIA B200 / B300</td><td>✅</td><td>✅</td><td>Blackwell 数据中心卡,192/288 GB HBM3e</td></tr>
+      <tr><td>RTX 5090 / RTX PRO 6000</td><td>✅</td><td>✅</td><td>消费/工作站级 Blackwell,32/96 GB</td></tr>
+      <tr><td>AMD Instinct MI355X</td><td>❌</td><td>✅</td><td>经 ROCm 7.x MFMA 指令,288 GB HBM3e</td></tr>
+      <tr><td>NVIDIA H100 / H200</td><td>❌</td><td>❌</td><td>Hopper 最高到 FP8;4-bit 只能用 AWQ/GPTQ INT4</td></tr>
+      <tr><td>NVIDIA A100</td><td>❌</td><td>❌</td><td>Ampere 最高 INT8</td></tr>
+    </tbody>
+    <tbody class="en">
+      <tr><td>NVIDIA B200 / B300</td><td>✅</td><td>✅</td><td>Blackwell datacenter, 192/288 GB HBM3e</td></tr>
+      <tr><td>RTX 5090 / RTX PRO 6000</td><td>✅</td><td>✅</td><td>Consumer/workstation Blackwell, 32/96 GB</td></tr>
+      <tr><td>AMD Instinct MI355X</td><td>❌</td><td>✅</td><td>Via ROCm 7.x MFMA instructions, 288 GB HBM3e</td></tr>
+      <tr><td>NVIDIA H100 / H200</td><td>❌</td><td>❌</td><td>Hopper tops out at FP8; use AWQ/GPTQ INT4 for 4-bit</td></tr>
+      <tr><td>NVIDIA A100</td><td>❌</td><td>❌</td><td>Ampere tops out at INT8</td></tr>
+    </tbody>
+  </table></div>
+  <p class="zh">框架侧:<strong>TensorRT-LLM</strong>(v0.17+)对两种格式全支持,数据中心追求极限吞吐首选;<strong>vLLM</strong> 全支持 MXFP4,NVFP4 支持加载预量化 checkpoint(MoE 模型需设 <code>VLLM_USE_FLASHINFER_MOE_FP4=1</code>);<strong>SGLang</strong> 两者全支持;量化工具用 <strong>nvidia-modelopt</strong>(两种格式的 PTQ 都支持)或更轻量的 <strong>llm-compressor</strong>(vLLM 官方配套)。注意 <code>bitsandbytes</code> 的 NF4 是另一种无关格式,别混淆。(来源:Spheron 框架支持表,2026-06)</p>
+  <p class="en">On the framework side: <strong>TensorRT-LLM</strong> (v0.17+) fully supports both formats — first choice for max datacenter throughput; <strong>vLLM</strong> fully supports MXFP4 and loads pre-quantized NVFP4 checkpoints (MoE models need <code>VLLM_USE_FLASHINFER_MOE_FP4=1</code>); <strong>SGLang</strong> supports both; for quantizing, use <strong>nvidia-modelopt</strong> (PTQ for both formats) or the lighter <strong>llm-compressor</strong> (vLLM's companion tool). Note that <code>bitsandbytes</code> NF4 is an unrelated format — don't confuse them. (Source: Spheron framework support table, June 2026)</p>
+</section>
+
+<section id="s6">
+  <h2 class="zh"><span class="no">6</span>怎么用:从零到上线的五步</h2>
+  <h2 class="en"><span class="no">6</span>Hands-On: Five Steps from Zero to Serving</h2>
+  <p class="zh">以下流程与代码整理自 Spheron 部署指南与 vLLM/llm-compressor 官方文档,适用于「拿一个开源模型,量化后用 vLLM 提供服务」的典型场景。</p>
+  <p class="en">The workflow and code below are adapted from the Spheron deployment guide and the vLLM/llm-compressor docs, for the typical "take an open model, quantize it, serve with vLLM" scenario.</p>
+  <div class="steps">
+    <div class="step"><span class="zh"><strong>确认硬件与运行时。</strong>用 <code>nvidia-smi</code> 确认是 Blackwell 卡(计算能力 10.0);选定服务框架:极限吞吐用 TensorRT-LLM,灵活性和 HF 生态兼容用 vLLM。</span><span class="en"><strong>Confirm hardware and runtime.</strong> Check with <code>nvidia-smi</code> that you're on Blackwell (compute capability 10.0); pick a serving framework: TensorRT-LLM for max throughput, vLLM for flexibility and HF ecosystem compatibility.</span></div>
+    <div class="step"><span class="zh"><strong>先找官方预量化 checkpoint,能不自己量化就不自己量化。</strong>在 Hugging Face 搜 <code>nvidia/</code> 命名空间下带 <code>-NVFP4</code>/<code>-FP4</code> 后缀的版本(如 <code>nvidia/Llama-3.3-70B-Instruct-NVFP4</code>、<code>nvidia/DeepSeek-R1-NVFP4</code>),这些经过官方校准验证,拿来即用。</span><span class="en"><strong>Look for an official pre-quantized checkpoint first — avoid DIY if you can.</strong> Search Hugging Face's <code>nvidia/</code> namespace for <code>-NVFP4</code>/<code>-FP4</code> suffixes (e.g. <code>nvidia/Llama-3.3-70B-Instruct-NVFP4</code>, <code>nvidia/DeepSeek-R1-NVFP4</code>) — production-calibrated and ready to load.</span></div>
+    <div class="step"><span class="zh"><strong>没有现成的,再用 ModelOpt 自己量化</strong>(校准集用 512–1024 条与你业务同领域的样本):</span><span class="en"><strong>If none exists, quantize with ModelOpt yourself</strong> (use 512–1024 domain-matched calibration samples):</span>
+<pre>pip install "nvidia-modelopt[all]>=0.17"</pre>
+<pre>import modelopt.torch.quantization as mtq
+from transformers import AutoModelForCausalLM
+
+model = AutoModelForCausalLM.from_pretrained(
+    "meta-llama/Llama-3.1-70B-Instruct", torch_dtype="auto")
+
+# NVFP4(纯 N 卡推荐 / NVIDIA-only):
+mtq.quantize(model, mtq.NVFP4_DEFAULT_CFG,
+             forward_loop=calibration_dataloader)
+# MXFP4 OCP(跨平台 / cross-platform):
+# mtq.quantize(model, mtq.MXFP4_DEFAULT_CFG,
+#              forward_loop=calibration_dataloader)
+
+mtq.export_hf_checkpoint(model, output_dir="./quantized-nvfp4")</pre></div>
+    <div class="step"><span class="zh"><strong>用 vLLM 起服务。</strong>稠密模型直接跑;MoE 模型加环境变量:</span><span class="en"><strong>Serve with vLLM.</strong> Dense models run directly; MoE models need the env var:</span>
+<pre># 稠密 / dense:
+vllm serve nvidia/Llama-3.3-70B-Instruct-NVFP4 \
+  --tensor-parallel-size 1 --gpu-memory-utilization 0.90
+
+# MoE(Llama 4 Scout、DeepSeek R1 等):
+VLLM_USE_FLASHINFER_MOE_FP4=1 vllm serve \
+  nvidia/Llama-4-Scout-17B-16E-Instruct-FP4 \
+  --tensor-parallel-size 1 --gpu-memory-utilization 0.90</pre></div>
+    <div class="step"><span class="zh"><strong>上线前评测。</strong>用 lm-evaluation-harness 跑 MMLU、GSM8K、HumanEval,与 BF16 基线对比;Spheron 指南建议 MMLU 退化超过 1.5% 就换 FP8 或用 QAT 补救,推理密集型任务应设更严阈值。</span><span class="en"><strong>Evaluate before rollout.</strong> Run MMLU, GSM8K, HumanEval via lm-evaluation-harness against your BF16 baseline; the Spheron guide suggests switching to FP8 or applying QAT if MMLU degrades more than 1.5%, with a tighter threshold for reasoning-heavy workloads.</span></div>
+  </div>
+</section>
+
+<section id="s7">
+  <h2 class="zh"><span class="no">7</span>实战案例:谁在用原生 4 bit</h2>
+  <h2 class="en"><span class="no">7</span>Real-World Cases: Who Ships Native 4-Bit</h2>
+  <h3 class="zh">Kimi K3:第一个原生 MXFP4 的前沿开源旗舰</h3>
+  <h3 class="en">Kimi K3: The First Frontier Open Model Native in MXFP4</h3>
+  <p class="zh">2026 年 7 月 27 日,Moonshot 开源 Kimi K3:MoE 架构,2.8 万亿总参数、每 token 激活 1040 亿(896 个路由专家取 16 个 + 2 个共享专家),上下文 1,048,576 token。关键在发布形态:<strong>量化感知的 MXFP4 权重 + MXFP8 激活</strong>,并在发布当天就带上了 vLLM 的生产级支持(含其 Kimi Delta Attention 混合线性注意力)。据 Northflank 与 Hugging Face 社区分析,这让「自托管一个 2.8T 旗舰」从不可想象变成一件贵但可执行的事——权重体积和显存需求都因 4-bit 大约砍到 BF16 方案的四分之一量级。</p>
+  <p class="en">On July 27, 2026, Moonshot open-sourced Kimi K3: an MoE with 2.8 trillion total parameters, 104 billion active per token (16 of 896 routed experts plus 2 shared), and a 1,048,576-token context window. The release format is the point: <strong>quantization-aware MXFP4 weights with MXFP8 activations</strong>, with production-ready vLLM support (including its Kimi Delta Attention hybrid linear attention) on day one. Per analyses from Northflank and the Hugging Face community, this turned "self-hosting a 2.8T flagship" from unthinkable into expensive-but-doable — weight size and VRAM needs land at roughly a quarter of what BF16 would demand.</p>
+  <h3 class="zh">gpt-oss 与 NVIDIA 官方 checkpoint 生态</h3>
+  <h3 class="en">gpt-oss and NVIDIA's Official Checkpoint Ecosystem</h3>
+  <p class="zh">OpenAI 2025 年发布的开源模型 gpt-oss 同样采用 MXFP4(社区分析称其显存占用较 BF16 减少过半),是 MXFP4 走向主流的早期标志。另一条线是 NVIDIA 在 Hugging Face <code>nvidia/</code> 命名空间维护的预量化 NVFP4 checkpoint(Llama 3.x、DeepSeek-R1、Llama 4 Scout 等),Mistral Large 3 的 NVFP4 checkpoint 则由 llm-compressor 产出——「官方压好、直接部署」正在成为大模型分发的新常态。</p>
+  <p class="en">OpenAI's 2025 open-weight gpt-oss models also used MXFP4 (community analyses report a memory cut of more than half vs BF16), an early landmark in MXFP4 going mainstream. The other track is NVIDIA's pre-quantized NVFP4 checkpoints on Hugging Face under <code>nvidia/</code> (Llama 3.x, DeepSeek-R1, Llama 4 Scout, etc.), with Mistral Large 3's NVFP4 checkpoint produced via llm-compressor — "officially quantized, deploy as-is" is becoming the new normal for model distribution.</p>
+  <div class="callout key"><span class="ic">💡</span><span class="zh">怎么理解这个趋势:模型厂商把量化从「用户下载后的自选动作」前移到「训练阶段就设计好的发布形态」。对使用者,这意味着精度损失更可控(官方做了 QAT)、部署链路更短;对行业,这是 token 价格持续下降的供给侧原因之一。</span><span class="en">How to read the trend: vendors are moving quantization from "something users do after downloading" to "a release format designed in during training." For users, that means more controlled accuracy loss (the vendor did QAT) and a shorter deployment path; for the industry, it's one supply-side driver of ever-cheaper tokens.</span></div>
+</section>
+
+<section id="s8">
+  <h2 class="zh"><span class="no">8</span>常见坑与限制</h2>
+  <h2 class="en"><span class="no">8</span>Pitfalls &amp; Limits</h2>
+  <div class="callout warn"><span class="ic">⚠️</span><span class="zh"><strong>复杂推理任务掉点更明显。</strong>4-bit 的量化噪声会在长推理链中逐步累积,数学、多步逻辑、代码生成受影响大于日常对话。Spheron 指南明确提醒:FP4 不是 FP8 的无条件替代品,重推理场景务必先跑自己的任务评测再上线。</span><span class="en"><strong>Complex reasoning degrades more.</strong> 4-bit quantization noise compounds through long reasoning chains; math, multi-step logic, and code generation suffer more than casual conversation. The Spheron guide is explicit: FP4 is not an unconditional FP8 substitute — benchmark your own tasks before shipping reasoning-heavy workloads.</span></div>
+  <div class="callout warn"><span class="ic">⚠️</span><span class="zh"><strong>没有 Blackwell 就没有加速。</strong>H100/H200/A100 没有 FP4 张量核心;在这些卡上想要 4-bit,应改用 AWQ/GPTQ 等 INT4 方案(只省显存,不走 FP4 硬件加速)。</span><span class="en"><strong>No Blackwell, no speedup.</strong> H100/H200/A100 lack FP4 tensor cores; on those GPUs, use INT4 schemes like AWQ/GPTQ instead (memory savings only, no FP4 hardware acceleration).</span></div>
+  <div class="callout warn"><span class="ic">⚠️</span><span class="zh"><strong>格式不能事后随意互换。</strong>NVFP4 checkpoint 不能跑在 AMD 卡上;混合 N/A 卡集群只能统一用 MXFP4。选格式要在量化之前定,而不是部署时再想。</span><span class="en"><strong>Formats aren't interchangeable after the fact.</strong> NVFP4 checkpoints won't run on AMD hardware; mixed NVIDIA/AMD fleets must standardize on MXFP4. Pick the format before quantizing, not at deploy time.</span></div>
+  <div class="callout warn"><span class="ic">⚠️</span><span class="zh"><strong>警惕「精确数字」。</strong>各来源的精度对比多为方向性结论,具体困惑度/跑分因模型、校准集、任务而异。Spheron 自己也声明「不要依赖任何来源(包括本文)的具体数字做生产决策」——请以自测为准。本文同样遵循这一原则,方向性结论均已注明来源。</span><span class="en"><strong>Beware "exact numbers."</strong> Published accuracy comparisons are mostly directional; concrete perplexity/benchmark figures vary by model, calibration set, and task. Spheron itself warns against relying on specific figures from any source (including its own post) for production decisions — trust your own evals. This document follows the same principle; directional claims are attributed to their sources.</span></div>
+  <div class="callout warn"><span class="ic">⚠️</span><span class="zh"><strong>校准质量决定成败。</strong>PTQ 的校准集要与业务领域匹配(512–1024 条);MXFP4 想追平 NVFP4 需要 MR-GPTQ 这类旋转校准。随手用默认校准集量化,是社区反馈中掉点的最常见原因之一。</span><span class="en"><strong>Calibration quality makes or breaks it.</strong> PTQ calibration sets should match your domain (512–1024 samples); MXFP4 needs rotation-based calibration like MR-GPTQ to rival NVFP4. Quantizing with a throwaway default calibration set is among the most common causes of quality loss reported by the community.</span></div>
+</section>
+
+<section id="s9">
+  <h2 class="zh"><span class="no">9</span>学习资源清单</h2>
+  <h2 class="en"><span class="no">9</span>Learning Resources</h2>
+  <ul class="zh">
+    <li><a href="https://www.spheron.network/blog/nvfp4-vs-mxfp4-gpu-cloud-4bit-quantization-guide/">NVFP4 vs MXFP4 决策指南(Spheron,2026-06)</a>——本文格式对比与部署流程的主要来源,含完整硬件/框架矩阵。</li>
+    <li><a href="https://www.spheron.network/blog/mxfp4-microscaling-quantization-gpu-cloud/">MXFP4 微缩放量化深入(Spheron)</a>——MR-GPTQ 校准工作流详解。</li>
+    <li><a href="https://www.emergentmind.com/topics/microscaling-fp4-mxfp4">MXFP4 主题页(EmergentMind)</a>——追踪相关论文的入口。</li>
+    <li><a href="https://docs.vllm.ai/projects/llm-compressor/en/latest/examples/quantization_w4a4_fp4/">llm-compressor FP4 量化示例(vLLM 官方文档)</a>——W4A4 NVFP4 的官方可运行示例。</li>
+    <li><a href="https://huggingface.co/moonshotai/Kimi-K3">Kimi K3 模型卡(Hugging Face)</a> 与 <a href="https://northflank.com/blog/what-is-kimi-k3-self-hosting">Kimi K3 自托管指南(Northflank)</a>——原生 MXFP4 发布的第一手案例。</li>
+    <li><a href="https://medium.com/@hugmanskj/mastering-gpt-oss-mxfp4-microscaling-fp4-6-6-3e2dc09e0f24">gpt-oss 的 MXFP4 解析(Medium)</a>——早期主流化案例的社区拆解。</li>
+  </ul>
+  <ul class="en">
+    <li><a href="https://www.spheron.network/blog/nvfp4-vs-mxfp4-gpu-cloud-4bit-quantization-guide/">NVFP4 vs MXFP4 Decision Guide (Spheron, June 2026)</a> — primary source for this document's format comparison and deployment workflow, with full hardware/framework matrices.</li>
+    <li><a href="https://www.spheron.network/blog/mxfp4-microscaling-quantization-gpu-cloud/">MXFP4 Microscaling Deep Dive (Spheron)</a> — detailed MR-GPTQ calibration workflow.</li>
+    <li><a href="https://www.emergentmind.com/topics/microscaling-fp4-mxfp4">MXFP4 topic page (EmergentMind)</a> — entry point for tracking related papers.</li>
+    <li><a href="https://docs.vllm.ai/projects/llm-compressor/en/latest/examples/quantization_w4a4_fp4/">llm-compressor FP4 example (official vLLM docs)</a> — runnable official W4A4 NVFP4 example.</li>
+    <li><a href="https://huggingface.co/moonshotai/Kimi-K3">Kimi K3 model card (Hugging Face)</a> and the <a href="https://northflank.com/blog/what-is-kimi-k3-self-hosting">Kimi K3 self-hosting guide (Northflank)</a> — the first-hand case of a native MXFP4 release.</li>
+    <li><a href="https://medium.com/@hugmanskj/mastering-gpt-oss-mxfp4-microscaling-fp4-6-6-3e2dc09e0f24">gpt-oss MXFP4 explainer (Medium)</a> — community breakdown of the early mainstream case.</li>
+  </ul>
+</section>
+
+<footer>
+  <p class="zh"><strong>调研时间:2026-08-05。</strong>低精度推理生态迭代很快(硬件、框架版本、可用 checkpoint 都在变),关键决策请以官方最新文档与自测评估为准。本文方向性结论均注明来源;未经交叉验证的单源信息已按「据 XX 称」措辞降级。</p>
+  <p class="en"><strong>Researched: 2026-08-05.</strong> The low-precision inference ecosystem moves fast (hardware, framework versions, and available checkpoints all change) — base key decisions on current official docs and your own evals. Directional claims are attributed; single-source items are hedged as "per XX."</p>
+  <p class="zh"><strong>来源清单:</strong></p>
+  <p class="en"><strong>Source list:</strong></p>
+  <ul class="zh">
+    <li>Spheron:NVFP4 vs MXFP4 决策指南 — https://www.spheron.network/blog/nvfp4-vs-mxfp4-gpu-cloud-4bit-quantization-guide/(2026-06-13,已读全文)</li>
+    <li>EmergentMind:MXFP4 / Microscaling FP4 主题页 — https://www.emergentmind.com/topics/microscaling-fp4-mxfp4</li>
+    <li>Northflank:Kimi K3 benchmarks 与自托管 — https://northflank.com/blog/what-is-kimi-k3-self-hosting</li>
+    <li>VentureBeat:Moonshot 发布 Kimi K3 — https://venturebeat.com/technology/chinas-moonshot-ai-releases-kimi-k3-the-largest-open-source-model-ever-rivaling-top-u-s-systems</li>
+    <li>Hugging Face:moonshotai/Kimi-K3 模型库与社区博客 — https://huggingface.co/moonshotai/Kimi-K3</li>
+    <li>kie.ai:What Is Kimi K3 — https://kie.ai/blog/what-is-kimi-k3</li>
+    <li>vLLM llm-compressor 文档:FP4 量化示例 — https://docs.vllm.ai/projects/llm-compressor/en/latest/examples/quantization_w4a4_fp4/</li>
+    <li>Medium(hugmanskj):gpt-oss MXFP4 解析 — https://medium.com/@hugmanskj/mastering-gpt-oss-mxfp4-microscaling-fp4-6-6-3e2dc09e0f24</li>
+  </ul>
+  <ul class="en">
+    <li>Spheron: NVFP4 vs MXFP4 decision guide — https://www.spheron.network/blog/nvfp4-vs-mxfp4-gpu-cloud-4bit-quantization-guide/ (2026-06-13, full text read)</li>
+    <li>EmergentMind: MXFP4 / Microscaling FP4 topic pages — https://www.emergentmind.com/topics/microscaling-fp4-mxfp4</li>
+    <li>Northflank: Kimi K3 benchmarks &amp; self-hosting — https://northflank.com/blog/what-is-kimi-k3-self-hosting</li>
+    <li>VentureBeat: Moonshot releases Kimi K3 — https://venturebeat.com/technology/chinas-moonshot-ai-releases-kimi-k3-the-largest-open-source-model-ever-rivaling-top-u-s-systems</li>
+    <li>Hugging Face: moonshotai/Kimi-K3 repo &amp; community blog — https://huggingface.co/moonshotai/Kimi-K3</li>
+    <li>kie.ai: What Is Kimi K3 — https://kie.ai/blog/what-is-kimi-k3</li>
+    <li>vLLM llm-compressor docs: FP4 quantization example — https://docs.vllm.ai/projects/llm-compressor/en/latest/examples/quantization_w4a4_fp4/</li>
+    <li>Medium (hugmanskj): gpt-oss MXFP4 explainer — https://medium.com/@hugmanskj/mastering-gpt-oss-mxfp4-microscaling-fp4-6-6-3e2dc09e0f24</li>
+  </ul>
+</footer>
+</div>
+<script>
+(function(){
+  var KEY='mxfp4-doc-lang';
+  function getSaved(){try{return localStorage.getItem(KEY)}catch(e){return null}}
+  function save(v){try{localStorage.setItem(KEY,v)}catch(e){}}
+  function apply(lang){
+    document.body.setAttribute('data-lang',lang);
+    document.documentElement.setAttribute('lang',lang==='zh'?'zh-CN':'en');
+    var b=document.getElementById('langBtn');
+    if(b) b.textContent = lang==='zh' ? 'EN / 中' : '中 / EN';
+    reviveFigures();
+  }
+  window.toggleLang=function(){
+    var next=document.body.getAttribute('data-lang')==='zh'?'en':'zh';
+    save(next); apply(next);
+  };
+  var init=getSaved();
+  if(!init){ init=(navigator.language||'').toLowerCase().indexOf('zh')===0?'zh':'en'; }
+
+  /* progress bar */
+  var pbar=document.getElementById('pbar');
+  function onScroll(){
+    var h=document.documentElement;
+    var max=h.scrollHeight-h.clientHeight;
+    pbar.style.width=(max>0?(h.scrollTop/max)*100:0)+'%';
+    highlightToc();
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+
+  /* toc highlight */
+  var tocLinks=[].slice.call(document.querySelectorAll('#toc a'));
+  var sections=tocLinks.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+  function highlightToc(){
+    var y=window.scrollY+140, cur=0;
+    sections.forEach(function(s,i){ if(s && s.offsetTop<=y) cur=i; });
+    tocLinks.forEach(function(a,i){ a.classList.toggle('on',i===cur); });
+  }
+  tocLinks.forEach(function(a){a.addEventListener('click',function(){
+    var t=document.getElementById('toc'); if(t.classList.contains('open')) t.classList.remove('open');
+  })});
+
+  /* figure entrance animation */
+  var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+  var io=null;
+  if('IntersectionObserver' in window && !reduced){
+    io=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.15});
+  }
+  function reviveFigures(){
+    figs.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      if(reduced||!io){ f.classList.add('in'); return; }
+      var r=f.getBoundingClientRect();
+      if(r.top<window.innerHeight && r.bottom>0){ f.classList.add('in'); io.unobserve(f); }
+      else io.observe(f);
+    });
+  }
+  apply(init);
+  onScroll();
+})();
+</script>
+</body>
+</html>
