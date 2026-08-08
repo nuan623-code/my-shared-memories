@@ -1,18 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HomePage, resourcesQO } from "../index";
+import { DailyPage } from "../daily";
+import { resourcesQO } from "../index";
 import { i18nHead } from "@/lib/i18n/head";
 
-export const Route = createFileRoute("/en/")({
+export const Route = createFileRoute("/en/daily")({
   head: () =>
     i18nHead({
-      path: "/",
+      path: "/daily",
       locale: "en",
-      title: "Mingyu's Library — One AI topic, explained every day",
+      title: "Daily updates — Mingyu's Library",
       description:
-        "A daily AI briefing, a daily deep dive and a Claude Code course — three threads updated every day, plus long-form notes and tools.",
+        "Three threads published automatically every day: an AI briefing, a deep dive on one topic, and a Claude Code course.",
     }),
   loader: ({ context }) => context.queryClient.ensureQueryData(resourcesQO),
-  component: HomePage,
+  component: DailyPage,
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-2xl p-8 text-center text-sm text-muted-foreground">
       Failed to load: {error.message}

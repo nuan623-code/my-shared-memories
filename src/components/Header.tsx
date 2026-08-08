@@ -8,18 +8,22 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLocale, useT } from "@/lib/i18n/use-t";
 
 
-// 导航项按当前语言指向对应前缀,英文页里点导航不会掉回中文站
+// 导航项按当前语言指向对应前缀,英文页里点导航不会掉回中文站。
+// 2026-08-08 重构阶段1:导航对应内容三分法(每日更新/文章/工具);
+// 碎片(/notes)暂无内容,移出导航但路由保留,等有内容再回来。
 const NAV = {
   zh: [
     { to: "/" as const, key: "nav.home" as const },
-    { to: "/resources" as const, key: "nav.resources" as const },
-    { to: "/notes" as const, key: "nav.notes" as const },
+    { to: "/daily" as const, key: "nav.daily" as const },
+    { to: "/resources" as const, key: "nav.articles" as const },
+    { to: "/tools" as const, key: "nav.tools" as const },
     { to: "/about" as const, key: "nav.about" as const },
   ],
   en: [
     { to: "/en" as const, key: "nav.home" as const },
-    { to: "/en/resources" as const, key: "nav.resources" as const },
-    { to: "/en/notes" as const, key: "nav.notes" as const },
+    { to: "/en/daily" as const, key: "nav.daily" as const },
+    { to: "/en/resources" as const, key: "nav.articles" as const },
+    { to: "/en/tools" as const, key: "nav.tools" as const },
     { to: "/en/about" as const, key: "nav.about" as const },
   ],
 };

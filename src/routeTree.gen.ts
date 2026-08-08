@@ -9,12 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
+import { Route as DailyRouteImport } from './routes/daily'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -23,9 +25,11 @@ import { Route as EnIndexRouteImport } from './routes/en/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as ResourcesSlugRouteImport } from './routes/resources.$slug'
+import { Route as EnToolsRouteImport } from './routes/en/tools'
 import { Route as EnSearchRouteImport } from './routes/en/search'
 import { Route as EnResourcesRouteImport } from './routes/en/resources'
 import { Route as EnNotesRouteImport } from './routes/en/notes'
+import { Route as EnDailyRouteImport } from './routes/en/daily'
 import { Route as EnAboutRouteImport } from './routes/en/about'
 import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -33,6 +37,11 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as EnArticlesSlugRouteImport } from './routes/en/articles.$slug'
 import { Route as ApiOgArticlesSlugRouteImport } from './routes/api.og.articles.$slug'
 
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -61,6 +70,11 @@ const NotesRoute = NotesRouteImport.update({
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
   id: '/llms.txt',
   path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DailyRoute = DailyRouteImport.update({
+  id: '/daily',
+  path: '/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -102,6 +116,11 @@ const ResourcesSlugRoute = ResourcesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ResourcesRoute,
 } as any)
+const EnToolsRoute = EnToolsRouteImport.update({
+  id: '/en/tools',
+  path: '/en/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EnSearchRoute = EnSearchRouteImport.update({
   id: '/en/search',
   path: '/en/search',
@@ -115,6 +134,11 @@ const EnResourcesRoute = EnResourcesRouteImport.update({
 const EnNotesRoute = EnNotesRouteImport.update({
   id: '/en/notes',
   path: '/en/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnDailyRoute = EnDailyRouteImport.update({
+  id: '/en/daily',
+  path: '/en/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnAboutRoute = EnAboutRouteImport.update({
@@ -152,19 +176,23 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/daily': typeof DailyRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tools': typeof ToolsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/en/about': typeof EnAboutRoute
+  '/en/daily': typeof EnDailyRoute
   '/en/notes': typeof EnNotesRoute
   '/en/resources': typeof EnResourcesRoute
   '/en/search': typeof EnSearchRoute
+  '/en/tools': typeof EnToolsRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
@@ -176,19 +204,23 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/daily': typeof DailyRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tools': typeof ToolsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/en/about': typeof EnAboutRoute
+  '/en/daily': typeof EnDailyRoute
   '/en/notes': typeof EnNotesRoute
   '/en/resources': typeof EnResourcesRoute
   '/en/search': typeof EnSearchRoute
+  '/en/tools': typeof EnToolsRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles': typeof ArticlesIndexRoute
@@ -202,19 +234,23 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/daily': typeof DailyRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tools': typeof ToolsRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/en/about': typeof EnAboutRoute
+  '/en/daily': typeof EnDailyRoute
   '/en/notes': typeof EnNotesRoute
   '/en/resources': typeof EnResourcesRoute
   '/en/search': typeof EnSearchRoute
+  '/en/tools': typeof EnToolsRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
@@ -228,19 +264,23 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/daily'
     | '/llms.txt'
     | '/notes'
     | '/resources'
     | '/robots.txt'
     | '/search'
     | '/sitemap.xml'
+    | '/tools'
     | '/account'
     | '/admin'
     | '/articles/$slug'
     | '/en/about'
+    | '/en/daily'
     | '/en/notes'
     | '/en/resources'
     | '/en/search'
+    | '/en/tools'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles/'
@@ -252,19 +292,23 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/daily'
     | '/llms.txt'
     | '/notes'
     | '/resources'
     | '/robots.txt'
     | '/search'
     | '/sitemap.xml'
+    | '/tools'
     | '/account'
     | '/admin'
     | '/articles/$slug'
     | '/en/about'
+    | '/en/daily'
     | '/en/notes'
     | '/en/resources'
     | '/en/search'
+    | '/en/tools'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles'
@@ -277,19 +321,23 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/auth'
+    | '/daily'
     | '/llms.txt'
     | '/notes'
     | '/resources'
     | '/robots.txt'
     | '/search'
     | '/sitemap.xml'
+    | '/tools'
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/articles/$slug'
     | '/en/about'
+    | '/en/daily'
     | '/en/notes'
     | '/en/resources'
     | '/en/search'
+    | '/en/tools'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles/'
@@ -303,17 +351,21 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  DailyRoute: typeof DailyRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   NotesRoute: typeof NotesRoute
   ResourcesRoute: typeof ResourcesRouteWithChildren
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ToolsRoute: typeof ToolsRoute
   ArticlesSlugRoute: typeof ArticlesSlugRoute
   EnAboutRoute: typeof EnAboutRoute
+  EnDailyRoute: typeof EnDailyRoute
   EnNotesRoute: typeof EnNotesRoute
   EnResourcesRoute: typeof EnResourcesRoute
   EnSearchRoute: typeof EnSearchRoute
+  EnToolsRoute: typeof EnToolsRoute
   UUsernameRoute: typeof UUsernameRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
   EnIndexRoute: typeof EnIndexRoute
@@ -323,6 +375,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -363,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/llms.txt'
       fullPath: '/llms.txt'
       preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daily': {
+      id: '/daily'
+      path: '/daily'
+      fullPath: '/daily'
+      preLoaderRoute: typeof DailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -421,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResourcesSlugRouteImport
       parentRoute: typeof ResourcesRoute
     }
+    '/en/tools': {
+      id: '/en/tools'
+      path: '/en/tools'
+      fullPath: '/en/tools'
+      preLoaderRoute: typeof EnToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/en/search': {
       id: '/en/search'
       path: '/en/search'
@@ -440,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/en/notes'
       fullPath: '/en/notes'
       preLoaderRoute: typeof EnNotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en/daily': {
+      id: '/en/daily'
+      path: '/en/daily'
+      fullPath: '/en/daily'
+      preLoaderRoute: typeof EnDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/en/about': {
@@ -517,17 +597,21 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  DailyRoute: DailyRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   NotesRoute: NotesRoute,
   ResourcesRoute: ResourcesRouteWithChildren,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ToolsRoute: ToolsRoute,
   ArticlesSlugRoute: ArticlesSlugRoute,
   EnAboutRoute: EnAboutRoute,
+  EnDailyRoute: EnDailyRoute,
   EnNotesRoute: EnNotesRoute,
   EnResourcesRoute: EnResourcesRoute,
   EnSearchRoute: EnSearchRoute,
+  EnToolsRoute: EnToolsRoute,
   UUsernameRoute: UUsernameRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
   EnIndexRoute: EnIndexRoute,

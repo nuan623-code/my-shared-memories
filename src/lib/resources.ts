@@ -61,6 +61,13 @@ export async function fetchResourceBySlug(slug: string): Promise<Resource | null
   return data as Resource | null;
 }
 
+/** 资源的站内跳转地址:站内文章走阅读器外壳,其余用自身 url(2026-08-08 从首页抽出共享) */
+export function resourceHref(r: Resource): string {
+  if (r.type === "article" && r.slug) return `/articles/${r.slug}`;
+  if (r.url) return r.url;
+  return "/resources";
+}
+
 /** 中文完整日期,如 2026年7月6日 */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "";
