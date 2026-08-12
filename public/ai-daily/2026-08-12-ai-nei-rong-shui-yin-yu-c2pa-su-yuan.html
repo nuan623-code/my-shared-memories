@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 内容水印与 C2PA 溯源 | AI Content Watermarking &amp; C2PA Provenance</title>
+<style>
+:root{
+  --paper:#faf6ef;--card:#fffdf8;--ink:#2b241a;--ink2:#54493a;--muted:#8a7d6b;
+  --seal:#b5402a;--seal-deep:#8c2f1e;--seal-soft:#f7e3dc;
+  --teal:#1e6b63;--teal-soft:#dff0ec;--gold:#b98a2f;--gold-soft:#f6ecd6;
+  --line:#e6ddcd;--radius:14px;--shadow:0 1px 2px rgba(60,45,20,.06),0 8px 26px rgba(60,45,20,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.85;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--seal),var(--gold));width:0;z-index:99}
+.wrap{max-width:840px;margin:0 auto;padding:0 22px 80px}
+/* hero */
+.hero{background:
+ radial-gradient(circle at 88% 12%,rgba(181,64,42,.10),transparent 42%),
+ radial-gradient(circle at 8% 90%,rgba(30,107,99,.10),transparent 45%),
+ linear-gradient(175deg,#fffdf8 0%,#f5eddd 100%);
+ border-bottom:1px solid var(--line)}
+.hin{max-width:840px;margin:0 auto;padding:64px 22px 46px;position:relative}
+.kicker{display:inline-block;font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--seal-deep);
+ background:var(--seal-soft);border:1px solid #e8c4b8;border-radius:99px;padding:5px 14px;margin-bottom:16px}
+h1{font-size:clamp(27px,5.4vw,42px);line-height:1.28;margin:0 0 14px;font-weight:850;letter-spacing:-.015em}
+h1 .mark{color:var(--seal)}
+.lede{font-size:17.5px;color:var(--ink2);max-width:660px;margin:0}
+.date-tag{margin-top:18px;font-size:13.5px;color:var(--muted)}
+/* lang switch */
+#langbtn{position:fixed;top:14px;right:14px;z-index:100;border:1.5px solid var(--seal);background:var(--card);
+ color:var(--seal-deep);font-weight:800;font-size:13.5px;border-radius:99px;padding:7px 15px;cursor:pointer;
+ box-shadow:var(--shadow);font-family:inherit}
+#langbtn:hover{background:var(--seal);color:#fff}
+/* toc */
+#toc{position:fixed;left:18px;top:90px;width:212px;background:rgba(255,253,248,.82);backdrop-filter:blur(10px);
+ -webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:var(--radius);padding:14px 8px;
+ box-shadow:var(--shadow);z-index:60;max-height:74vh;overflow:auto}
+#toc b{display:block;font-size:12.5px;color:var(--muted);letter-spacing:.1em;padding:0 10px 6px}
+#toc a{display:block;font-size:13.5px;color:var(--ink2);text-decoration:none;padding:5px 10px;border-radius:8px;line-height:1.45}
+#toc a:hover{background:var(--gold-soft)}
+#toc a.on{background:var(--seal-soft);color:var(--seal-deep);font-weight:700}
+#tocbtn{display:none;position:fixed;left:14px;bottom:16px;z-index:70;width:46px;height:46px;border-radius:50%;
+ border:1.5px solid var(--line);background:var(--card);font-size:19px;box-shadow:var(--shadow);cursor:pointer}
+@media(max-width:1280px){
+ #toc{display:none}
+ #toc.open{display:block;top:auto;bottom:72px;max-height:56vh}
+ #tocbtn{display:block}
+}
+/* sections */
+section{margin-top:54px}
+h2{font-size:24px;margin:0 0 6px;font-weight:820;letter-spacing:-.01em;padding-top:10px}
+h2 .no{color:var(--seal);font-variant-numeric:tabular-nums;margin-right:8px}
+h3{font-size:18.5px;margin:30px 0 6px;font-weight:780}
+p{margin:12px 0}
+a{color:var(--teal);text-decoration-color:rgba(30,107,99,.4)}
+code{background:#f1ead9;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.88em;
+ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:#2e271d;color:#f3ead8;border-radius:12px;padding:16px 18px;overflow:auto;font-size:13.8px;line-height:1.65;
+ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre code{background:none;border:none;color:inherit;padding:0}
+/* components */
+.def{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--seal);border-radius:var(--radius);
+ padding:16px 20px;margin:18px 0;box-shadow:var(--shadow)}
+.def b.term{color:var(--seal-deep)}
+.callout{border-radius:var(--radius);padding:15px 19px;margin:18px 0;font-size:15.8px}
+.callout.key{background:var(--teal-soft);border:1px solid #bcd9d2}
+.callout.warn{background:#fbeee7;border:1px solid #ecc9b8}
+.callout.quote{background:var(--gold-soft);border:1px solid #e5d3a8;font-style:normal}
+.callout b.cap{display:block;margin-bottom:4px}
+.steps{counter-reset:st;margin:18px 0;padding:0;list-style:none}
+.steps li{position:relative;padding:10px 14px 10px 52px;background:var(--card);border:1px solid var(--line);
+ border-radius:12px;margin-bottom:9px;box-shadow:var(--shadow)}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:14px;top:12px;width:26px;height:26px;
+ border-radius:50%;background:var(--seal);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14.8px;background:var(--card);border-radius:var(--radius);
+ overflow:hidden;box-shadow:var(--shadow)}
+th{background:#efe7d4;text-align:left;padding:10px 12px;font-size:13.8px;letter-spacing:.03em}
+td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:top}
+.tblwrap{overflow-x:auto;margin:18px 0}
+.tblwrap table{margin:0;min-width:560px}
+/* figures */
+.figure{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 14px 10px;
+ margin:22px 0;box-shadow:var(--shadow);opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.5px;color:var(--muted);text-align:center;padding:8px 10px 6px;line-height:1.6}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}}
+.glossary dt{font-weight:800;color:var(--seal-deep);margin-top:12px}
+.glossary dd{margin:2px 0 0 0;color:var(--ink2);font-size:15.5px}
+footer{margin-top:64px;border-top:1px solid var(--line);padding-top:22px;font-size:13.8px;color:var(--muted)}
+footer ul{padding-left:18px;margin:8px 0}
+footer li{margin:4px 0;word-break:break-all}
+@media(max-width:640px){
+ body{font-size:16px}
+ .hin{padding:52px 18px 36px}
+ .wrap{padding:0 16px 60px}
+ section{margin-top:44px}
+ #langbtn{top:10px;right:10px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN ☰ 深度学习文档 · 2026-08-12 DEEP DIVE · 2026-08-12 AI 内容 水印 与 C2PA 溯源:机器怎么给自己的作品盖章 AI Content Watermarking &amp; C2PA…">
+<meta property="og:title" content="AI 内容水印与 C2PA 溯源 | AI Content Watermarking &amp;amp; C2PA Provenance">
+<meta property="og:description" content="EN ☰ 深度学习文档 · 2026-08-12 DEEP DIVE · 2026-08-12 AI 内容 水印 与 C2PA 溯源:机器怎么给自己的作品盖章 AI Content Watermarking &amp; C2PA…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-12-ai-nei-rong-shui-yin-yu-c2pa-su-yuan.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-12-ai-nei-rong-shui-yin-yu-c2pa-su-yuan.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "AI 内容水印与 C2PA 溯源 | AI Content Watermarking &amp; C2PA Provenance", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-12-ai-nei-rong-shui-yin-yu-c2pa-su-yuan.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-12", "dateModified": "2026-08-12"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="pbar"></div>
+<button id="langbtn" aria-label="switch language">EN</button>
+<nav id="toc" aria-label="TOC">
+  <b>目录 · CONTENTS</b>
+  <a href="#s1"><span class="zh">① 30 秒速览</span><span class="en">① 30-Second Overview</span></a>
+  <a href="#s2"><span class="zh">② 背景:为什么是现在</span><span class="en">② Why Now</span></a>
+  <a href="#s3"><span class="zh">③ 核心机制:两种标记</span><span class="en">③ Two Marking Mechanisms</span></a>
+  <a href="#s4"><span class="zh">④ 怎么用:嵌入与检测</span><span class="en">④ How to Use &amp; Detect</span></a>
+  <a href="#s5"><span class="zh">⑤ 使用场景</span><span class="en">⑤ Use Cases</span></a>
+  <a href="#s6"><span class="zh">⑥ 对比与选型</span><span class="en">⑥ Comparison</span></a>
+  <a href="#s7"><span class="zh">⑦ 局限与常见坑</span><span class="en">⑦ Limits &amp; Pitfalls</span></a>
+  <a href="#s8"><span class="zh">⑧ 学习资源</span><span class="en">⑧ Resources</span></a>
+</nav>
+<button id="tocbtn" aria-label="toggle TOC">☰</button>
+
+<div class="hero"><div class="hin">
+  <span class="kicker zh">深度学习文档 · 2026-08-12</span>
+  <span class="kicker en">DEEP DIVE · 2026-08-12</span>
+  <h1 class="zh">AI 内容<span class="mark">水印</span>与 <span class="mark">C2PA</span> 溯源:机器怎么给自己的作品盖章</h1>
+  <h1 class="en">AI Content <span class="mark">Watermarking</span> &amp; <span class="mark">C2PA</span> Provenance: How Machines Stamp Their Own Work</h1>
+  <p class="lede zh">本周 Anthropic 宣布给 Claude 全线输出加隐形文本水印与文件签名,EU AI Act 的机器可读标记义务也已生效。这份文档讲清:水印在技术上怎么做、怎么检测、能信到什么程度。</p>
+  <p class="lede en">This week Anthropic announced invisible text watermarks and signed file provenance across all Claude outputs, just as the EU AI Act's machine-readable marking obligations took effect. This guide explains how marking works technically, how detection works, and how much you can trust it.</p>
+  <div class="date-tag zh">调研时间:2026-08-12 · 中英双语 · 右上角切换</div>
+  <div class="date-tag en">Researched: 2026-08-12 · Bilingual · Toggle at top right</div>
+</div></div>
+
+<div class="wrap">
+
+<section id="s1">
+  <h2 class="zh"><span class="no">①</span>30 秒速览</h2>
+  <h2 class="en"><span class="no">①</span>30-Second Overview</h2>
+  <p class="zh">「AI 内容标记」要解决的问题一句话就能说清:<b>内容满天飞之后,怎么知道一段文字、一张图有没有 AI 参与?</b>目前业界的主流答案不是「事后猜」(训练一个分类器判断像不像 AI 写的),而是「事前盖章」——在内容生成的那一刻,就把机器可读的标记埋进去。盖章有两条技术路线:</p>
+  <p class="en">The problem "AI content marking" solves can be stated in one sentence: <b>once AI content is everywhere, how do you tell whether a given text or image involved AI?</b> The industry's mainstream answer today is not "guess after the fact" (training a classifier to judge whether something reads like AI) but "stamp at creation time" — embedding machine-readable marks the moment content is generated. There are two technical routes:</p>
+  <div class="def zh"><b class="term">统计式文本水印(statistical text watermark)</b>:生成文字时,悄悄微调模型选词的概率,使产出的用词序列携带一个人眼看不出、但检测算法能统计出来的「偏好模式」。复制粘贴不掉,轻度编辑可能还在。代表:Google 的 SynthID-Text(已开源)、Anthropic 本周宣布的 Claude 文本水印。</div>
+  <div class="def en"><b class="term">Statistical text watermark</b>: while generating text, the model's word-choice probabilities are subtly tweaked so the resulting token sequence carries a "preference pattern" invisible to human readers but statistically detectable by an algorithm. It survives copy-paste and may persist through light editing. Examples: Google's SynthID-Text (open-sourced) and the Claude text watermark Anthropic announced this week.</div>
+  <div class="def zh"><b class="term">C2PA 溯源元数据(provenance metadata)</b>:给图片等文件附上一份经密码学签名的「履历」(manifest),记录它由谁、用什么工具生成或处理过;任何后续篡改都会让签名失效。C2PA 是内容来源与真实性联盟(Coalition for Content Provenance and Authenticity)制定的开放标准,OpenAI、Anthropic、Adobe 等均已采用。</div>
+  <div class="def en"><b class="term">C2PA provenance metadata</b>: files such as images get a cryptographically signed "résumé" (a manifest) recording who produced or processed them and with what tool; any later tampering invalidates the signature. C2PA is an open standard from the Coalition for Content Provenance and Authenticity, adopted by OpenAI, Anthropic, Adobe and others.</div>
+  <figure class="figure zh" data-anim>
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI 内容标记全景图">
+      <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#8a7d6b" stroke-width="1.6"/></marker></defs>
+      <rect x="20" y="88" width="130" height="66" rx="12" fill="#dff0ec" stroke="#1e6b63"/>
+      <text x="85" y="116" text-anchor="middle" font-size="14" font-weight="700" fill="#1e6b63">模型生成</text>
+      <text x="85" y="136" text-anchor="middle" font-size="12" fill="#54493a">文本 / 图片</text>
+      <rect x="205" y="30" width="150" height="66" rx="12" fill="#f7e3dc" stroke="#b5402a"/>
+      <text x="280" y="56" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8c2f1e">文本:统计水印</text>
+      <text x="280" y="76" text-anchor="middle" font-size="11.5" fill="#54493a">微调选词概率</text>
+      <rect x="205" y="146" width="150" height="66" rx="12" fill="#f6ecd6" stroke="#b98a2f"/>
+      <text x="280" y="172" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a5a17">文件:C2PA 签名</text>
+      <text x="280" y="192" text-anchor="middle" font-size="11.5" fill="#54493a">附签名 manifest</text>
+      <rect x="415" y="88" width="130" height="66" rx="12" fill="#fffdf8" stroke="#8a7d6b" stroke-dasharray="4 3"/>
+      <text x="480" y="116" text-anchor="middle" font-size="14" font-weight="700" fill="#54493a">内容流通</text>
+      <text x="480" y="136" text-anchor="middle" font-size="12" fill="#8a7d6b">复制 / 转发 / 编辑</text>
+      <rect x="590" y="88" width="115" height="66" rx="12" fill="#2e271d"/>
+      <text x="647" y="116" text-anchor="middle" font-size="14" font-weight="700" fill="#f3ead8">检测工具</text>
+      <text x="647" y="136" text-anchor="middle" font-size="12" fill="#cbbd9f">统计检验 / 验签</text>
+      <path d="M150 108 L200 70" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M150 134 L200 172" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M355 63 L440 92" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M355 179 L440 150" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M545 121 L585 121" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+    </svg>
+    <figcaption class="fig-cap">生成时盖章 → 流通中携带 → 事后可检验:AI 内容标记的完整链路</figcaption>
+  </figure>
+  <figure class="figure en" data-anim>
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI content marking overview">
+      <defs><marker id="ar-e" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#8a7d6b" stroke-width="1.6"/></marker></defs>
+      <rect x="20" y="88" width="130" height="66" rx="12" fill="#dff0ec" stroke="#1e6b63"/>
+      <text x="85" y="116" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e6b63">Generation</text>
+      <text x="85" y="136" text-anchor="middle" font-size="11.5" fill="#54493a">text / images</text>
+      <rect x="205" y="30" width="150" height="66" rx="12" fill="#f7e3dc" stroke="#b5402a"/>
+      <text x="280" y="56" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8c2f1e">Text: stat. watermark</text>
+      <text x="280" y="76" text-anchor="middle" font-size="11" fill="#54493a">tweak token probs</text>
+      <rect x="205" y="146" width="150" height="66" rx="12" fill="#f6ecd6" stroke="#b98a2f"/>
+      <text x="280" y="172" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5a17">Files: C2PA signing</text>
+      <text x="280" y="192" text-anchor="middle" font-size="11" fill="#54493a">signed manifest</text>
+      <rect x="415" y="88" width="130" height="66" rx="12" fill="#fffdf8" stroke="#8a7d6b" stroke-dasharray="4 3"/>
+      <text x="480" y="116" text-anchor="middle" font-size="13" font-weight="700" fill="#54493a">Distribution</text>
+      <text x="480" y="136" text-anchor="middle" font-size="11.5" fill="#8a7d6b">copy / share / edit</text>
+      <rect x="590" y="88" width="115" height="66" rx="12" fill="#2e271d"/>
+      <text x="647" y="116" text-anchor="middle" font-size="13" font-weight="700" fill="#f3ead8">Detection</text>
+      <text x="647" y="136" text-anchor="middle" font-size="11" fill="#cbbd9f">stats test / verify</text>
+      <path d="M150 108 L200 70" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <path d="M150 134 L200 172" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <path d="M355 63 L440 92" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <path d="M355 179 L440 150" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <path d="M545 121 L585 121" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+    </svg>
+    <figcaption class="fig-cap">Stamp at generation → carried through distribution → verifiable afterwards: the full marking pipeline</figcaption>
+  </figure>
+  <div class="callout key zh"><b class="cap">🔑 一句话立场</b>水印回答的是「这段内容<b>有没有经过某个模型</b>」,而不是「这段内容<b>是不是 AI 写的思想</b>」——Anthropic 官方也明确强调这一点。理解这个边界,是用好这项技术的前提。</div>
+  <div class="callout key en"><b class="cap">🔑 The one-line caveat</b>A watermark answers "did this content <b>pass through a given model</b>," not "is this content <b>an AI's ideas</b>" — a distinction Anthropic itself explicitly stresses. Understanding that boundary is the prerequisite for using this technology well.</div>
+</section>
+
+<section id="s2">
+  <h2 class="zh"><span class="no">②</span>背景与动机:为什么是 2026 年 8 月</h2>
+  <h2 class="en"><span class="no">②</span>Background: Why August 2026</h2>
+  <p class="zh">水印研究早就有(Google 2024 年就把 SynthID-Text 开源并内建进 Gemini),但让它从「可选项」变成「必答题」的,是欧盟的监管时间表。EU AI Act 第 50 条要求:生成合成音频、图片、视频、文本的 AI 系统提供方,必须确保输出以<b>机器可读的方式被标记、且可被检测为 AI 生成</b>。这一义务 2026 年 8 月 2 日起适用;2026 年 5 月的 AI Omnibus 临时协议给已上市的存量系统宽限到 2026 年 12 月 2 日。2026 年 7 月 8–9 日,欧盟委员会与 AI Board 认定《AI 生成内容 Code of Practice》为合规的认可路径——签署它就是履行第 50(2)、(4)、(5) 条的官方通道。</p>
+  <p class="en">Watermarking research is not new — Google open-sourced SynthID-Text back in 2024 and built it into Gemini. What turned it from optional into mandatory is the EU's regulatory clock. Article 50 of the EU AI Act requires providers of AI systems that generate synthetic audio, image, video or text to ensure outputs are <b>marked in a machine-readable format and detectable as AI-generated</b>. The obligation applies from August 2, 2026; the May 2026 AI Omnibus provisional agreement grants systems already on the market a grace period until December 2, 2026. On July 8–9, 2026, the European Commission and the AI Board assessed the Code of Practice on AI-generated content as adequate — signing it is the recognised route to complying with Articles 50(2), (4) and (5).</p>
+  <p class="zh">Anthropic 随即签署了这份 Code of Practice,并在 8 月 10 日前后公布具体做法:2026 年 8 月 2 日起在欧盟上线的新 Claude 模型自带标记能力,并且<b>不设地域开关——全球全产品统一生效</b>(API、Claude 应用、Claude Code、Cowork、Claude Tag);存量旧模型也在改造中。这让它成为第一家把「模型层文本水印 + 文件签名」全球默认开启的头部厂商,也是本周这个话题升温的直接原因。</p>
+  <p class="en">Anthropic promptly signed that Code of Practice and, around August 10, published its concrete approach: new Claude models launching in the EU on or after August 2, 2026 ship with marking built in, and there is <b>no regional switch — it applies globally across all products</b> (API, the Claude apps, Claude Code, Cowork, Claude Tag); existing older models are being retrofitted. That makes Anthropic the first major lab to enable model-level text watermarking plus file signing globally by default — and the direct reason this topic heated up this week.</p>
+  <figure class="figure zh" data-anim>
+    <svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="时间线">
+      <line x1="40" y1="95" x2="690" y2="95" stroke="#8a7d6b" stroke-width="2"/>
+      <g font-size="12" fill="#54493a">
+        <circle cx="85" cy="95" r="7" fill="#1e6b63"/>
+        <text x="85" y="66" text-anchor="middle" font-weight="700">2024</text>
+        <text x="85" y="128" text-anchor="middle">SynthID-Text</text>
+        <text x="85" y="145" text-anchor="middle">开源</text>
+        <circle cx="255" cy="95" r="7" fill="#b98a2f"/>
+        <text x="255" y="66" text-anchor="middle" font-weight="700">2026-07-08/09</text>
+        <text x="255" y="128" text-anchor="middle">CoP 被认定为</text>
+        <text x="255" y="145" text-anchor="middle">合规认可路径</text>
+        <circle cx="420" cy="95" r="8" fill="#b5402a"/>
+        <text x="420" y="66" text-anchor="middle" font-weight="700">2026-08-02</text>
+        <text x="420" y="128" text-anchor="middle">Art.50 标记义务</text>
+        <text x="420" y="145" text-anchor="middle">开始适用</text>
+        <circle cx="545" cy="95" r="7" fill="#8c2f1e"/>
+        <text x="545" y="66" text-anchor="middle" font-weight="700">2026-08-10</text>
+        <text x="545" y="128" text-anchor="middle">Anthropic 公布</text>
+        <text x="545" y="145" text-anchor="middle">全球水印方案</text>
+        <circle cx="660" cy="95" r="7" fill="#54493a"/>
+        <text x="660" y="66" text-anchor="middle" font-weight="700">2026-12-02</text>
+        <text x="660" y="128" text-anchor="middle">存量系统</text>
+        <text x="660" y="145" text-anchor="middle">宽限期截止</text>
+      </g>
+    </svg>
+    <figcaption class="fig-cap">从研究到义务:AI 内容标记的关键时间点(来源见文末清单)</figcaption>
+  </figure>
+  <figure class="figure en" data-anim>
+    <svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="timeline">
+      <line x1="40" y1="95" x2="690" y2="95" stroke="#8a7d6b" stroke-width="2"/>
+      <g font-size="11.5" fill="#54493a">
+        <circle cx="85" cy="95" r="7" fill="#1e6b63"/>
+        <text x="85" y="66" text-anchor="middle" font-weight="700">2024</text>
+        <text x="85" y="128" text-anchor="middle">SynthID-Text</text>
+        <text x="85" y="145" text-anchor="middle">open-sourced</text>
+        <circle cx="255" cy="95" r="7" fill="#b98a2f"/>
+        <text x="255" y="66" text-anchor="middle" font-weight="700">2026-07-08/09</text>
+        <text x="255" y="128" text-anchor="middle">CoP assessed</text>
+        <text x="255" y="145" text-anchor="middle">adequate</text>
+        <circle cx="420" cy="95" r="8" fill="#b5402a"/>
+        <text x="420" y="66" text-anchor="middle" font-weight="700">2026-08-02</text>
+        <text x="420" y="128" text-anchor="middle">Art. 50 marking</text>
+        <text x="420" y="145" text-anchor="middle">duty applies</text>
+        <circle cx="545" cy="95" r="7" fill="#8c2f1e"/>
+        <text x="545" y="66" text-anchor="middle" font-weight="700">2026-08-10</text>
+        <text x="545" y="128" text-anchor="middle">Anthropic global</text>
+        <text x="545" y="145" text-anchor="middle">watermark plan</text>
+        <circle cx="660" cy="95" r="7" fill="#54493a"/>
+        <text x="660" y="66" text-anchor="middle" font-weight="700">2026-12-02</text>
+        <text x="660" y="128" text-anchor="middle">grace period</text>
+        <text x="660" y="145" text-anchor="middle">ends</text>
+      </g>
+    </svg>
+    <figcaption class="fig-cap">From research to obligation: key dates for AI content marking (sources listed in footer)</figcaption>
+  </figure>
+  <div class="callout quote zh"><b class="cap">📌 各家姿态并不一致</b>Google 走「开源水印」路线(SynthID 内建 Gemini);Anthropic 走「全球默认开启」;而据 The Decoder 报道,OpenAI 握有一个准确率约 99.9% 的 ChatGPT 文本检测器约两年而未发布——顾虑包括翻译/改写可轻易绕过、对特定人群的误伤,以及可能影响自身业务。同一义务下,厂商策略差异本身就是观察点。</div>
+  <div class="callout quote en"><b class="cap">📌 Labs are not aligned</b>Google took the open-source route (SynthID built into Gemini); Anthropic went "globally on by default"; and according to The Decoder, OpenAI has been sitting on a ChatGPT text detector with roughly 99.9% accuracy for about two years without releasing it — citing concerns that translation or rewriting defeats it easily, that it could stigmatize certain groups, and likely its own business exposure. Under the same legal duty, the divergence in vendor strategy is itself worth watching.</div>
+</section>
+<section id="s3">
+  <h2 class="zh"><span class="no">③</span>核心机制:两种「盖章」各自怎么工作</h2>
+  <h2 class="en"><span class="no">③</span>Core Mechanics: How Each "Stamp" Works</h2>
+
+  <h3 class="zh">3.1 统计式文本水印:在选词概率里藏信号</h3>
+  <h3 class="en">3.1 Statistical text watermarks: hiding a signal in token probabilities</h3>
+  <p class="zh">先补一个背景:大模型写字的方式是「一个 token 一个 token 地接龙」——每一步,模型给词表里所有候选词打一个概率分,然后从高概率里挑一个。水印的切入点就在这一步:<b>在不明显改变文意和质量的前提下,按一个只有水印方知道的伪随机规则,悄悄给部分候选词「加一点点分」</b>。单看任何一个词,毫无异常;但连续几百个词累积下来,「被加分的词出现得偏多」这个统计偏差就检测得出来。</p>
+  <p class="en">First, some background: LLMs write token by token — at each step the model scores every candidate token with a probability, then samples one of the likely options. The watermark hooks in exactly there: <b>following a pseudo-random rule known only to the watermarker, it quietly gives certain candidate tokens a tiny boost, without noticeably changing meaning or quality</b>. Any single word looks perfectly normal; but across a few hundred tokens, the statistical bias — "boosted tokens show up slightly too often" — becomes detectable.</p>
+  <p class="zh">Google 官方文档描述 SynthID-Text 的具体做法叫 <b>Tournament Sampling(锦标赛采样)</b>:候选 token 先经过随机水印函数打分「打比赛」,胜者胜出成为输出;整个过程生成开销极小,且尽量不损伤文本质量。检测时,拿着同一套水印函数对文本重新打分,统计「胜者模式」出现的强度,给出置信度分数。</p>
+  <p class="en">Google's official docs describe SynthID-Text's specific method as <b>Tournament Sampling</b>: candidate tokens are scored by random watermarking functions and "compete", with the winner emitted as output; the process adds minimal generation overhead and is designed to preserve text quality. At detection time, the same watermarking functions re-score the text and measure how strongly the "winner pattern" appears, yielding a confidence score.</p>
+  <figure class="figure zh" data-anim>
+    <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="文本水印机制">
+      <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#8a7d6b" stroke-width="1.6"/></marker></defs>
+      <text x="20" y="30" font-size="13.5" font-weight="700" fill="#54493a">生成第 N 个词时:</text>
+      <rect x="20" y="46" width="180" height="120" rx="12" fill="#fffdf8" stroke="#e6ddcd"/>
+      <g font-size="12.5" fill="#54493a">
+        <text x="36" y="72">候选词与原始概率</text>
+        <text x="36" y="96">「方案」 0.31</text>
+        <text x="36" y="118">「办法」 0.28</text>
+        <text x="36" y="140">「思路」 0.22</text>
+      </g>
+      <rect x="255" y="46" width="200" height="120" rx="12" fill="#f7e3dc" stroke="#b5402a"/>
+      <g font-size="12.5" fill="#54493a">
+        <text x="271" y="72" font-weight="700" fill="#8c2f1e">水印函数悄悄加分</text>
+        <text x="271" y="96">「方案」 0.31</text>
+        <text x="271" y="118">「办法」 0.28 <tspan fill="#b5402a" font-weight="700">+ε ✓</tspan></text>
+        <text x="271" y="140">「思路」 0.22</text>
+      </g>
+      <rect x="510" y="46" width="190" height="120" rx="12" fill="#dff0ec" stroke="#1e6b63"/>
+      <g font-size="12.5" fill="#54493a">
+        <text x="526" y="72" font-weight="700" fill="#1e6b63">输出「办法」</text>
+        <text x="526" y="96">单词看不出异常;</text>
+        <text x="526" y="118">数百词累积后,</text>
+        <text x="526" y="140">偏好模式可检出</text>
+      </g>
+      <path d="M200 106 L250 106" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar2)"/>
+      <path d="M455 106 L505 106" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar2)"/>
+      <text x="360" y="225" text-anchor="middle" font-size="13" fill="#8a7d6b">检测 = 用同一套水印函数重新打分,统计偏差强度 → 置信度</text>
+    </svg>
+    <figcaption class="fig-cap">统计式文本水印原理示意(机制依据 Google SynthID 官方文档;Anthropic 未公开 Claude 水印算法细节)</figcaption>
+  </figure>
+  <figure class="figure en" data-anim>
+    <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="text watermark mechanism">
+      <defs><marker id="ar2-e" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#8a7d6b" stroke-width="1.6"/></marker></defs>
+      <text x="20" y="30" font-size="13.5" font-weight="700" fill="#54493a">Generating token N:</text>
+      <rect x="20" y="46" width="180" height="120" rx="12" fill="#fffdf8" stroke="#e6ddcd"/>
+      <g font-size="12.5" fill="#54493a">
+        <text x="36" y="72">candidates &amp; probs</text>
+        <text x="36" y="96">"approach" 0.31</text>
+        <text x="36" y="118">"method" 0.28</text>
+        <text x="36" y="140">"idea" 0.22</text>
+      </g>
+      <rect x="255" y="46" width="200" height="120" rx="12" fill="#f7e3dc" stroke="#b5402a"/>
+      <g font-size="12.5" fill="#54493a">
+        <text x="271" y="72" font-weight="700" fill="#8c2f1e">watermark fn boosts</text>
+        <text x="271" y="96">"approach" 0.31</text>
+        <text x="271" y="118">"method" 0.28 <tspan fill="#b5402a" font-weight="700">+ε ✓</tspan></text>
+        <text x="271" y="140">"idea" 0.22</text>
+      </g>
+      <rect x="510" y="46" width="190" height="120" rx="12" fill="#dff0ec" stroke="#1e6b63"/>
+      <g font-size="12.5" fill="#54493a">
+        <text x="526" y="72" font-weight="700" fill="#1e6b63">emit "method"</text>
+        <text x="526" y="96">one word: normal;</text>
+        <text x="526" y="118">over 100s of tokens</text>
+        <text x="526" y="140">the bias is detectable</text>
+      </g>
+      <path d="M200 106 L250 106" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar2-e)"/>
+      <path d="M455 106 L505 106" stroke="#8a7d6b" stroke-width="1.6" fill="none" marker-end="url(#ar2-e)"/>
+      <text x="360" y="225" text-anchor="middle" font-size="13" fill="#8a7d6b">Detection = re-score with the same watermark functions, measure bias strength → confidence</text>
+    </svg>
+    <figcaption class="fig-cap">How statistical text watermarking works (mechanism per Google's SynthID docs; Anthropic has not published Claude's algorithm details)</figcaption>
+  </figure>
+  <div class="callout warn zh"><b class="cap">⚠️ 注意区分</b>Anthropic 只说明了 Claude 文本水印的<b>性质</b>(模型层嵌入、不影响可读性、复制粘贴后保留、「部分编辑后可能保留」),没有公开算法。上图的概率微调机制是这一类水印的通用原理(以 SynthID 公开文档为据),不代表 Claude 的具体实现。</div>
+  <div class="callout warn en"><b class="cap">⚠️ A distinction to keep</b>Anthropic has only described the <b>properties</b> of Claude's text watermark (model-level, no impact on readability, survives copy-paste, "may persist through some editing") — not the algorithm. The probability-tweaking mechanism above is the generic principle of this watermark family (per SynthID's public docs), not necessarily Claude's exact implementation.</div>
+
+  <h3 class="zh">3.2 C2PA:给文件配一份防篡改「履历」</h3>
+  <h3 class="en">3.2 C2PA: a tamper-evident "résumé" for files</h3>
+  <p class="zh">文本水印藏在内容本身里;C2PA 则相反——信息不藏,<b>明着附在文件上,但用密码学签名保证它没被动过</b>。一个 C2PA manifest(清单)记录:内容由什么工具生成/处理、何时、经过哪些编辑动作;签发方用私钥签名。任何人都可以用公开工具验签:签名有效,说明履历可信且文件未被篡改;文件被改过而履历没更新,验签就会失败。Anthropic 对 Claude 产出的 .svg/.png/.jpg 附 C2PA 元数据,含义是「Claude 处理过这个文件」,并可发现后续篡改。</p>
+  <p class="en">A text watermark hides inside the content itself; C2PA is the opposite — the information is not hidden but <b>openly attached to the file, with cryptographic signatures guaranteeing it hasn't been altered</b>. A C2PA manifest records what tool generated or processed the content, when, and what edits occurred; the issuer signs it with a private key. Anyone can verify with public tools: a valid signature means the record is trustworthy and the file untampered; if the file was modified without updating the manifest, verification fails. Anthropic attaches C2PA metadata to Claude-produced .svg/.png/.jpg files, meaning "Claude processed this file," with later tampering detectable.</p>
+  <div class="callout key zh"><b class="cap">🔑 互补关系,不是二选一</b>两条路线正好覆盖对方的失效面:统计水印能扛复制粘贴和格式转换,但会被彻底改写削弱;C2PA 携带丰富上下文信息,但一张截图、一次重新保存就能把元数据剥掉。所以 Anthropic 文本用水印、文件用 C2PA,一人一岗。</div>
+  <div class="callout key en"><b class="cap">🔑 Complementary, not either-or</b>The two routes cover each other's failure modes: statistical watermarks survive copy-paste and format changes but degrade under thorough rewriting; C2PA carries rich context but is stripped by a single screenshot or re-save. Hence Anthropic uses watermarks for text and C2PA for files — each on its own post.</div>
+
+  <dl class="glossary zh">
+    <dt>术语小抄</dt>
+    <dd><b>watermark(水印)</b>:嵌入内容本身的隐蔽标记;<b>manifest(清单)</b>:C2PA 附在文件上的签名履历;<b>provenance(溯源)</b>:内容从生成到现在经历了什么的可验证记录;<b>post-hoc detector(事后检测器)</b>:不依赖任何预埋标记、纯靠文风统计判断是否 AI 生成的分类器(如 Pangram)。</dd>
+  </dl>
+  <dl class="glossary en">
+    <dt>Cheat sheet</dt>
+    <dd><b>Watermark</b>: a covert mark embedded in the content itself. <b>Manifest</b>: the signed record C2PA attaches to a file. <b>Provenance</b>: a verifiable history of what content went through since creation. <b>Post-hoc detector</b>: a classifier (e.g. Pangram) that judges AI-ness purely from stylistic statistics, with no pre-embedded mark.</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2 class="zh"><span class="no">④</span>怎么用:嵌入与检测的实操现状</h2>
+  <h2 class="en"><span class="no">④</span>Hands-On: Embedding &amp; Detection Today</h2>
+  <p class="zh">按「你是谁」分三种视角看实操:</p>
+  <p class="en">Three practical viewpoints, depending on who you are:</p>
+  <ol class="steps zh">
+    <li><b>Claude 用户 / 集成 Claude 的开发者</b>:什么都不用配——水印在模型层自动嵌入,API、Claude Code、Cowork 全覆盖;经 AWS Bedrock、Google Cloud、Microsoft Foundry 调用时文本水印同样生效(文件签名元数据云平台未必支持)。要注意的是合规责任:Anthropic 明确说,把 Claude 集成进自家产品的开发者需要自行判断 Article 50 的哪些义务适用于自己的服务。检测工具与技术文档 Anthropic 承诺发布但暂无时间表——在那之前,第三方还无法把 Claude 水印检测接进自己的合规管线。</li>
+    <li><b>想给自家模型加水印的工程师</b>:SynthID-Text 已开源,并已集成进 Hugging Face Transformers 生态——生成时传入水印配置(基于你自己的密钥),检测时用配套的 detector 类训练/加载检测器。具体 API 以 <a href="https://ai.google.dev/responsible/docs/safeguards/synthid">Google 官方文档</a>与 Transformers 当前版本文档为准(接口迭代快,此处不贴可能过时的代码)。</li>
+    <li><b>想验证一张图有没有 C2PA 履历的人</b>:用 C2PA 官方生态的 Content Credentials 验证工具(网页版可直接拖文件),或 c2patool 命令行读取并验签 manifest。签名有效即履历可信;没有 manifest 只能说明「没有履历」,不能说明「不是 AI 生成」。</li>
+  </ol>
+  <ol class="steps en">
+    <li><b>Claude users / developers integrating Claude</b>: nothing to configure — the watermark is embedded at the model level, covering the API, Claude Code, and Cowork; text watermarks also apply via AWS Bedrock, Google Cloud, and Microsoft Foundry (signed file metadata may not be supported on those platforms). Mind the compliance angle: Anthropic states that developers integrating Claude into their own products must determine which Article 50 obligations apply to their services. Anthropic has promised detection tools and technical docs but given no date — until then, third parties cannot wire Claude-watermark detection into their own compliance pipelines.</li>
+    <li><b>Engineers watermarking their own models</b>: SynthID-Text is open source and integrated into the Hugging Face Transformers ecosystem — pass a watermarking config (keyed by your own secret) at generation time, and use the companion detector class for detection. Consult <a href="https://ai.google.dev/responsible/docs/safeguards/synthid">Google's official docs</a> and current Transformers docs for exact APIs (they iterate fast; we avoid pasting potentially stale code).</li>
+    <li><b>Anyone verifying whether an image has a C2PA record</b>: use the Content Credentials verify tool from the C2PA ecosystem (the web version accepts drag-and-drop), or the c2patool CLI to read and verify manifests. A valid signature means a trustworthy record; a missing manifest only means "no record," not "not AI-generated."</li>
+  </ol>
+  <div class="callout warn zh"><b class="cap">⚠️ 解读检测结果的四条纪律(Anthropic 官方口径)</b>① 检出水印 ≠ Claude 撰写——人们大量用 Claude 润色、翻译、总结自己的文字,产物同样带水印;② 未检出 ≠ 人写——模型可能早于水印上线、文本被重度编辑或翻译过、片段太短不够统计、或元数据被格式转换/截图剥离;③ 短文本不可靠;④ 把水印当「AI 参与过的线索」,不要当「作者身份的证据」。</div>
+  <div class="callout warn en"><b class="cap">⚠️ Four rules for reading detection results (Anthropic's own framing)</b>① Watermark found ≠ Claude authored it — people routinely use Claude to polish, translate or summarize their own writing, and the output still carries the mark; ② No watermark ≠ human-written — the model may predate watermarking, the text may have been heavily edited or translated, the passage may be too short for reliable statistics, or metadata was stripped by conversion/screenshot; ③ short texts are unreliable; ④ treat a watermark as "evidence of AI involvement," never as "proof of authorship."</div>
+</section>
+
+<section id="s5">
+  <h2 class="zh"><span class="no">⑤</span>使用场景:谁在乎这个章</h2>
+  <h2 class="en"><span class="no">⑤</span>Use Cases: Who Cares About the Stamp</h2>
+  <p class="zh"><b>企业合规</b>:在欧盟提供或部署生成式 AI 的公司,8 月 2 日起就在 Article 50 义务之下(存量宽限到 12 月 2 日)。用带内置标记的模型(Claude、Gemini)等于把「机器可读标记」这项工程外包给了模型厂商,但「可检测性」与下游披露义务仍需自查。<b>教育</b>:检测手段更可靠意味着误判减少——过去纯统计检测器的误伤已导致过错误的作弊指控;但学校同样要消化「水印 ≠ 代写」这一层含义。<b>出版与平台</b>:第三方检测器(如 Pangram 这类黑盒统计检测)结果难以解释;若接入厂商公开的水印检测,信号可靠性将显著高于纯风格判断。<b>公众信息生态</b>:C2PA 履历给新闻图片、官方素材提供了「查验来源」的基础设施,配合浏览器/平台的展示层才能真正触达普通读者。</p>
+  <p class="en"><b>Enterprise compliance</b>: companies providing or deploying generative AI in the EU fall under Article 50 from August 2 (grace until December 2 for existing systems). Using models with built-in marking (Claude, Gemini) effectively outsources the "machine-readable marking" engineering to the model vendor — but detectability and downstream disclosure duties still need your own review. <b>Education</b>: more reliable detection means fewer false positives — purely statistical detectors have already led to wrongful cheating accusations; schools must equally digest that "watermark ≠ ghost-written." <b>Publishing &amp; platforms</b>: third-party black-box detectors (like Pangram) produce hard-to-explain results; wiring in vendor-published watermark detection would give a signal far more reliable than style guessing. <b>The public information ecosystem</b>: C2PA records give news photos and official assets an infrastructure for source verification — but only display layers in browsers/platforms will bring it to ordinary readers.</p>
+  <div class="callout quote zh"><b class="cap">🧭 一个现实的商业张力</b>The Decoder 指出:Claude 因文风自然而深受学生与知识工作者欢迎,更可靠的检测可能反而让部分用户却步——水印策略与商业利益之间存在真实的张力,这也是 OpenAI 迟迟不发布检测器的原因之一。</div>
+  <div class="callout quote en"><b class="cap">🧭 A real commercial tension</b>The Decoder notes that Claude is popular with students and knowledge workers precisely because its prose reads naturally; more reliable detection could deter some of those users. The tension between watermark policy and business interest is real — and one reason OpenAI has withheld its own detector.</div>
+</section>
+<section id="s6">
+  <h2 class="zh"><span class="no">⑥</span>对比与选型:水印、C2PA、事后检测器</h2>
+  <h2 class="en"><span class="no">⑥</span>Comparison: Watermark vs C2PA vs Post-hoc Detectors</h2>
+  <div class="tblwrap zh"><table>
+    <tr><th>维度</th><th>统计式文本水印</th><th>C2PA 溯源元数据</th><th>事后检测器(无预埋标记)</th></tr>
+    <tr><td>原理</td><td>生成时微调选词概率,埋统计信号</td><td>文件附密码学签名的履历清单</td><td>纯靠文风/统计特征分类</td></tr>
+    <tr><td>扛复制粘贴</td><td>✅ 可以</td><td>❌ 纯文本复制即丢失(它管文件)</td><td>✅(不依赖标记)</td></tr>
+    <tr><td>扛改写/翻译</td><td>⚠️ 轻度编辑或可保留;彻底改写、翻译后大幅削弱(研究显示一轮 LLM 改写可把检出率压到 0.3 以下)</td><td>❌ 截图/重存即剥离</td><td>⚠️ 同样易被改写绕过</td></tr>
+    <tr><td>误判特性</td><td>信号明确、可解释;但「检出 ≠ 撰写」</td><td>验签结果确定;「无履历 ≠ 非 AI」</td><td>黑盒、难解释,有误伤真人的记录</td></tr>
+    <tr><td>前提</td><td>模型方合作(生成时就得埋)</td><td>工具链支持签发与验证</td><td>无需任何合作,拿来就测</td></tr>
+    <tr><td>代表</td><td>SynthID-Text、Claude 水印</td><td>C2PA / Content Credentials(OpenAI、Anthropic、Adobe)</td><td>Pangram、各类「AI 检测」网站</td></tr>
+  </table></div>
+  <div class="tblwrap en"><table>
+    <tr><th>Dimension</th><th>Statistical text watermark</th><th>C2PA provenance metadata</th><th>Post-hoc detector (no mark)</th></tr>
+    <tr><td>Principle</td><td>Tweak token probabilities at generation to bury a statistical signal</td><td>Attach a cryptographically signed manifest to the file</td><td>Classify purely from stylistic/statistical features</td></tr>
+    <tr><td>Survives copy-paste</td><td>✅ Yes</td><td>❌ Lost on plain-text copy (it governs files)</td><td>✅ (needs no mark)</td></tr>
+    <tr><td>Survives rewrite/translation</td><td>⚠️ May persist through light edits; heavily degraded by thorough rewriting or translation (research shows one round of LLM paraphrasing pushes detection below 0.3)</td><td>❌ Stripped by screenshot/re-save</td><td>⚠️ Equally defeated by rewriting</td></tr>
+    <tr><td>Error profile</td><td>Clear, explainable signal; but "detected ≠ authored"</td><td>Verification is definitive; "no record ≠ not AI"</td><td>Black-box, hard to explain; documented false accusations of humans</td></tr>
+    <tr><td>Prerequisite</td><td>Model vendor cooperation (must embed at generation)</td><td>Toolchain support for signing &amp; verification</td><td>None — works on any text</td></tr>
+    <tr><td>Examples</td><td>SynthID-Text, Claude's watermark</td><td>C2PA / Content Credentials (OpenAI, Anthropic, Adobe)</td><td>Pangram and various "AI detector" sites</td></tr>
+  </table></div>
+  <p class="zh"><b>选型直觉</b>:你能控制生成端(自家模型/用大厂 API)→ 用预埋标记,可靠性最高;你只拿到一段来路不明的文字 → 只能用事后检测器,且必须把结果当概率线索而非证据;你要的是「文件履历可审计」→ C2PA 是唯一标准答案。</p>
+  <p class="en"><b>Rules of thumb</b>: if you control the generation side (your own model, or a major vendor's API) → use pre-embedded marks, the most reliable option; if all you have is text of unknown origin → a post-hoc detector is your only tool, and its output must be treated as a probabilistic hint, not evidence; if what you need is an auditable file history → C2PA is the only standard answer.</p>
+</section>
+
+<section id="s7">
+  <h2 class="zh"><span class="no">⑦</span>局限与常见坑</h2>
+  <h2 class="en"><span class="no">⑦</span>Limits &amp; Pitfalls</h2>
+  <p class="zh">这一节把「官方承认的限制」与「研究揭示的攻击面」分开说。</p>
+  <p class="en">This section separates vendor-acknowledged limits from research-demonstrated attack surfaces.</p>
+  <div class="callout warn zh"><b class="cap">官方承认的限制</b>Anthropic:重度编辑、翻译、格式转换可能完全剥离标记;短文本检测不可靠;水印表明「AI 参与」而非「AI 撰写」。Google(SynthID 文档):对事实型回答水印施展空间小(不改变准确性的前提下没多少「加分」余地);彻底改写或跨语言翻译会大幅降低检测置信度。</div>
+  <div class="callout warn en"><b class="cap">Vendor-acknowledged limits</b>Anthropic: heavy editing, translation, or format conversion can strip the marks entirely; short texts detect unreliably; a watermark indicates AI involvement, not AI authorship. Google (SynthID docs): watermarking has little room on factual responses (few "boosts" are possible without hurting accuracy); thorough rewrites or cross-language translation greatly reduce detector confidence.</div>
+  <div class="callout warn zh"><b class="cap">研究揭示的攻击面</b>对抗评测(arXiv 2407.04794)显示:仅一轮 ChatGPT 改写就能把当时被测的各主流水印方案检出率压到 0.3 以下——「用一个 LLM 洗掉另一个 LLM 的水印」是现实威胁。针对 SynthID 的理论与实证分析(arXiv 2603.03410)确认其在改写攻击下有「中等程度」性能退化;还有工作展示了更隐蔽的攻击(如 PRNG 劫持,arXiv 2605.28632)。结论:水印提高了伪装成本,但对有心人不构成硬防线。</div>
+  <div class="callout warn en"><b class="cap">Research-demonstrated attacks</b>Adversarial evaluations (arXiv 2407.04794) show a single round of ChatGPT paraphrasing pushed detection of all mainstream watermark schemes tested below 0.3 — "using one LLM to launder another LLM's watermark" is a practical threat. Theoretical and empirical analysis of SynthID (arXiv 2603.03410) confirms moderate degradation under paraphrase attacks; other work demonstrates stealthier attacks such as PRNG hijacking (arXiv 2605.28632). Bottom line: watermarks raise the cost of disguise but are no hard wall against a determined adversary.</div>
+  <ol class="steps zh">
+    <li><b>坑:把「检出水印」当作弊铁证</b>。学生用 Claude 润色自己写的论文,产物照样带水印。机构如果据此直接处罚,重演的就是旧检测器时代的冤案——把水印检出当「启动人工核查」的触发器,而不是判决书。</li>
+    <li><b>坑:把「未检出」当人写证明</b>。改写、翻译、截图都能洗掉标记;「没有章」永远不等于「没经过机器」。</li>
+    <li><b>坑:合规只做一半</b>。用了带标记的模型只覆盖 Article 50 的机器可读标记义务;交互披露(告知用户在和 AI 对话)、deepfake 标注等义务仍需产品侧自行落实。</li>
+    <li><b>坑:现在就想接 Claude 水印检测</b>。Anthropic 的第三方检测文档尚未发布(截至调研时),合规管线目前还接不了;SynthID 的检测则已可用。</li>
+  </ol>
+  <ol class="steps en">
+    <li><b>Pitfall: treating a detected watermark as proof of cheating</b>. A student who polishes their own essay with Claude gets watermarked output all the same. Institutions that punish on that basis alone will replay the wrongful-accusation era of legacy detectors — use detection as a trigger for human review, not a verdict.</li>
+    <li><b>Pitfall: treating "not detected" as proof of human authorship</b>. Rewriting, translation and screenshots all launder the marks; "no stamp" never means "no machine involved."</li>
+    <li><b>Pitfall: doing only half of compliance</b>. Using a marking-enabled model covers only Article 50's machine-readable marking duty; interaction disclosure (telling users they're talking to an AI) and deepfake labeling remain your product's responsibility.</li>
+    <li><b>Pitfall: wiring up Claude watermark detection today</b>. Anthropic's third-party detection docs are not yet published (as of this research date), so compliance pipelines can't integrate it yet; SynthID detection, by contrast, is available now.</li>
+  </ol>
+</section>
+
+<section id="s8">
+  <h2 class="zh"><span class="no">⑧</span>学习资源</h2>
+  <h2 class="en"><span class="no">⑧</span>Resources</h2>
+  <p class="zh">按「先官方后解读、先入门后对抗」排序:</p>
+  <p class="en">Ordered official-first, intro-before-adversarial:</p>
+  <ol class="steps zh">
+    <li><a href="https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content">Anthropic:How Claude marks AI-generated content</a> —— 一手来源,水印性质、适用范围与局限的官方口径。</li>
+    <li><a href="https://ai.google.dev/responsible/docs/safeguards/synthid">Google:SynthID 官方文档</a> —— 唯一公开算法细节的生产级文本水印,含 Tournament Sampling 与检测器用法。</li>
+    <li><a href="https://artificialintelligenceact.eu/article/50/">EU AI Act Article 50 原文</a> 与 <a href="https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act">欧盟委员会 FAQ</a> —— 合规义务的权威依据。</li>
+    <li><a href="https://c2pa.org/">C2PA 官方站</a> —— 标准规范与 Content Credentials 生态入口。</li>
+    <li><a href="https://arxiv.org/pdf/2407.04794">对抗评测:Watermarked Machine-Generated Texts Under Adversarial Attacks</a> 与 <a href="https://arxiv.org/html/2603.03410v2">SynthID 理论分析</a> —— 想知道水印极限在哪,读这两篇。</li>
+  </ol>
+  <ol class="steps en">
+    <li><a href="https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content">Anthropic: How Claude marks AI-generated content</a> — the primary source for the watermark's properties, scope and limits.</li>
+    <li><a href="https://ai.google.dev/responsible/docs/safeguards/synthid">Google: official SynthID docs</a> — the only production text watermark with published algorithm details, including Tournament Sampling and detector usage.</li>
+    <li><a href="https://artificialintelligenceact.eu/article/50/">EU AI Act Article 50 text</a> and the <a href="https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act">European Commission FAQ</a> — the authoritative basis for the legal duties.</li>
+    <li><a href="https://c2pa.org/">C2PA official site</a> — the spec and the Content Credentials ecosystem entry point.</li>
+    <li><a href="https://arxiv.org/pdf/2407.04794">Adversarial evaluation: Watermarked Machine-Generated Texts Under Adversarial Attacks</a> and the <a href="https://arxiv.org/html/2603.03410v2">SynthID theoretical analysis</a> — read these to know where watermarks break.</li>
+  </ol>
+</section>
+
+<footer>
+  <p class="zh"><b>调研时间:2026-08-12。</b>本文档基于当日公开来源整理;Anthropic 水印为本周新发布,细节(尤其第三方检测工具)可能快速变化,请以官方最新文档为准。检出/未检出水印均不构成作者身份的证据,涉及处分、法律等严肃场景请人工核查。</p>
+  <p class="en"><b>Researched: 2026-08-12.</b> Compiled from public sources as of this date; Anthropic's watermark shipped this week and details (especially third-party detection tools) may change quickly — defer to the latest official docs. Neither a detected nor an undetected watermark constitutes proof of authorship; for disciplinary or legal contexts, verify with human review.</p>
+  <p class="zh"><b>来源清单</b>:</p>
+  <p class="en"><b>Source list</b>:</p>
+  <ul class="zh">
+    <li>Anthropic 官方说明:How Claude marks AI-generated content — https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content</li>
+    <li>The Decoder(2026-08-11):Anthropic watermarks all Claude outputs globally — https://the-decoder.com/anthropic-watermarks-all-claude-outputs-globally-with-marks-that-may-persist-through-some-editing/</li>
+    <li>Google SynthID 官方文档 — https://ai.google.dev/responsible/docs/safeguards/synthid</li>
+    <li>EU AI Act Article 50 与欧盟委员会 FAQ — https://artificialintelligenceact.eu/article/50/ 、https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act</li>
+    <li>ReedSmith 解读:CoP 充分性认定与 Article 50 指南(含 2026-12-02 宽限期)— https://www.reedsmith.com/our-insights/blogs/viewpoints/102nbz0/transparency-obligations-for-ai-generated-content-the-code-of-practice-adequacy/</li>
+    <li>arXiv 2407.04794(对抗攻击下的水印评测)、arXiv 2603.03410(SynthID 理论与实证分析)、arXiv 2605.28632(PRNG 劫持攻击)</li>
+    <li>TechStartups(2026-08-11)每日汇总(Anthropic 水印条目)— https://techstartups.com/2026/08/11/top-tech-news-today-august-11-2026-anthropic-intel-meta-openai-nvidia-unitree-more/</li>
+  </ul>
+  <ul class="en">
+    <li>Anthropic official article: How Claude marks AI-generated content — https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content</li>
+    <li>The Decoder (2026-08-11): Anthropic watermarks all Claude outputs globally — https://the-decoder.com/anthropic-watermarks-all-claude-outputs-globally-with-marks-that-may-persist-through-some-editing/</li>
+    <li>Google SynthID official docs — https://ai.google.dev/responsible/docs/safeguards/synthid</li>
+    <li>EU AI Act Article 50 and the European Commission FAQ — https://artificialintelligenceact.eu/article/50/ , https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act</li>
+    <li>ReedSmith analysis: CoP adequacy decision and Article 50 guidelines (incl. the 2026-12-02 grace period) — https://www.reedsmith.com/our-insights/blogs/viewpoints/102nbz0/transparency-obligations-for-ai-generated-content-the-code-of-practice-adequacy/</li>
+    <li>arXiv 2407.04794 (watermarks under adversarial attack), arXiv 2603.03410 (SynthID theoretical &amp; empirical analysis), arXiv 2605.28632 (PRNG hijacking attack)</li>
+    <li>TechStartups (2026-08-11) daily roundup (Anthropic watermark item) — https://techstartups.com/2026/08/11/top-tech-news-today-august-11-2026-anthropic-intel-meta-openai-nvidia-unitree-more/</li>
+  </ul>
+</footer>
+</div>
+
+<script>
+(function(){
+  /* language toggle */
+  var body=document.body,btn=document.getElementById('langbtn'),htm=document.documentElement;
+  function setLang(l){
+    body.setAttribute('data-lang',l);
+    htm.setAttribute('lang', l==='zh'?'zh-CN':'en');
+    btn.textContent = l==='zh' ? 'EN' : '中';
+    try{localStorage.setItem('wm-doc-lang',l);}catch(e){}
+    /* display:none elements never fire IntersectionObserver: re-observe pending figures,
+       and instantly reveal those already in viewport */
+    requestAnimationFrame(function(){
+      figs.forEach(function(f){
+        if(f.classList.contains('in'))return;
+        var r=f.getBoundingClientRect();
+        if(r.top < innerHeight && r.bottom > 0 && r.width>0){ f.classList.add('in'); }
+        else if(io){ io.observe(f); }
+      });
+    });
+  }
+  var initial='zh';
+  try{
+    var saved=localStorage.getItem('wm-doc-lang');
+    if(saved==='zh'||saved==='en'){ initial=saved; }
+    else{ initial=(navigator.language||'zh').toLowerCase().indexOf('zh')===0?'zh':'en'; }
+  }catch(e){}
+  btn.addEventListener('click',function(){ setLang(body.getAttribute('data-lang')==='zh'?'en':'zh'); });
+
+  /* figure entrance animation */
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.15});
+    figs.forEach(function(f){ io.observe(f); });
+  }else{
+    figs.forEach(function(f){ f.classList.add('in'); });
+  }
+  setLang(initial);
+
+  /* progress bar */
+  var pbar=document.getElementById('pbar');
+  function onScroll(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+    pbar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    /* toc highlight */
+    var cur=null;
+    secs.forEach(function(s){ if(s.getBoundingClientRect().top<130) cur=s.id; });
+    links.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href')==='#'+cur); });
+  }
+  var secs=[].slice.call(document.querySelectorAll('section[id]'));
+  var links=[].slice.call(document.querySelectorAll('#toc a'));
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+  /* mobile toc */
+  var toc=document.getElementById('toc'),tbtn=document.getElementById('tocbtn');
+  tbtn.addEventListener('click',function(){ toc.classList.toggle('open'); });
+  links.forEach(function(a){ a.addEventListener('click',function(){ toc.classList.remove('open'); }); });
+})();
+</script>
+</body>
+</html>
