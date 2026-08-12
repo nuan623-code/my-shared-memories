@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>编码 Agent 的自主验证闭环 | Self-Verifying Coding Agents</title>
+<style>
+:root{--bg:#0e1512;--panel:#16211c;--panel2:#1c2a23;--ink:#e8f0ea;--sub:#9db5a8;--ac:#4ade80;--ac2:#fbbf24;--line:#2a3d33;--code:#0a100d}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;line-height:1.75;font-size:16px}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 80px}
+header.hero{padding:56px 0 32px;border-bottom:1px solid var(--line);position:relative}
+.kicker{color:var(--ac);font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px}
+h1{font-size:clamp(26px,5vw,40px);line-height:1.25;font-weight:800}
+.sub{color:var(--sub);margin-top:14px;max-width:640px}
+#langBtn{position:fixed;top:14px;right:14px;z-index:50;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:7px 16px;font-size:14px;cursor:pointer}
+#langBtn:hover{border-color:var(--ac)}
+nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:32px 0}
+nav.toc b{display:block;margin-bottom:8px;color:var(--ac)}
+nav.toc a{display:block;color:var(--sub);text-decoration:none;padding:4px 0;font-size:15px}
+nav.toc a:hover{color:var(--ac)}
+section{margin-top:48px}
+h2{font-size:24px;padding-left:12px;border-left:4px solid var(--ac);margin-bottom:16px}
+h3{font-size:18px;color:var(--ac2);margin:22px 0 8px}
+p{margin:12px 0;color:var(--ink)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0}
+.callout{background:var(--panel2);border-left:4px solid var(--ac2);border-radius:8px;padding:14px 18px;margin:16px 0;color:var(--ink)}
+code{background:var(--code);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;color:#a7f3d0}
+pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto;margin:14px 0}
+pre code{background:none;border:none;padding:0;color:#d1fae5}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px}
+th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--ac)}
+figure{margin:24px 0;opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+figure.in{opacity:1;transform:none}
+figure svg{width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+figcaption{color:var(--sub);font-size:13.5px;margin-top:8px;text-align:center}
+a{color:var(--ac)}
+.src li{margin:8px 0;color:var(--sub);font-size:14px;word-break:break-all}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);color:var(--sub);font-size:13.5px}
+@media(max-width:600px){body{font-size:15px}.wrap{padding:0 14px 60px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 深度学习文档 · 2026-08-06 Deep Dive · 2026-08-06 编码 Agent 的自主验证闭环 Self-Verifying Coding Agents Meta Muse Code 把「自…">
+<meta property="og:title" content="编码 Agent 的自主验证闭环 | Self-Verifying Coding Agents">
+<meta property="og:description" content="EN 深度学习文档 · 2026-08-06 Deep Dive · 2026-08-06 编码 Agent 的自主验证闭环 Self-Verifying Coding Agents Meta Muse Code 把「自…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-06-bian-ma-agent-zi-zhu-yan-zheng-bi-huan.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-06-bian-ma-agent-zi-zhu-yan-zheng-bi-huan.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "编码 Agent 的自主验证闭环 | Self-Verifying Coding Agents", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-06-bian-ma-agent-zi-zhu-yan-zheng-bi-huan.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-06", "dateModified": "2026-08-12"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="langBtn" onclick="toggleLang()">EN</button>
+<div class="wrap">
+
+<header class="hero">
+<div class="kicker zh">深度学习文档 · 2026-08-06</div>
+<div class="kicker en">Deep Dive · 2026-08-06</div>
+<h1 class="zh">编码 Agent 的自主验证闭环</h1>
+<h1 class="en">Self-Verifying Coding Agents</h1>
+<p class="sub zh">Meta Muse Code 把「自动验证结果」当主打卖点,OpenAI 把 Auto-review 降价 10 倍,Claude Code 用 hooks 建关卡——本文讲清:模型怎么发现自己写错了,验证器(verifier)怎么设计,以及闭环在哪里会失效。</p>
+<p class="sub en">Meta's Muse Code leads with "automatically verifies results," OpenAI cut Auto-review costs 10x, and Claude Code builds gates with hooks. This doc explains how a model catches its own mistakes, how to design verifiers, and where the loop breaks down.</p>
+</header>
+
+<nav class="toc">
+<b class="zh">目录</b><b class="en">Contents</b>
+<a href="#s1"><span class="zh">1. 是什么:从「生成」到「生成-验证-修复」</span><span class="en">1. What: from generate to generate-verify-repair</span></a>
+<a href="#s2"><span class="zh">2. 为什么现在:三家大厂同月押注验证</span><span class="en">2. Why now: three vendors bet on verification in the same month</span></a>
+<a href="#s3"><span class="zh">3. 闭环架构:验证信号从哪来</span><span class="en">3. Loop architecture: where the signal comes from</span></a>
+<a href="#s4"><span class="zh">4. 四类验证器与分层关卡</span><span class="en">4. Four verifier types and layered gates</span></a>
+<a href="#s5"><span class="zh">5. 上手实践:在 Claude Code 里搭一个闭环</span><span class="en">5. Hands-on: build a loop in Claude Code</span></a>
+<a href="#s6"><span class="zh">6. 局限与常见坑</span><span class="en">6. Limits and common pitfalls</span></a>
+<a href="#src"><span class="zh">7. 来源清单</span><span class="en">7. Sources</span></a>
+</nav>
+
+<section id="s1">
+<h2 class="zh">1. 是什么:从「生成」到「生成-验证-修复」</h2>
+<h2 class="en">1. What: from generate to generate-verify-repair</h2>
+<p class="zh">早期编码助手的形态是「一次生成」:你提需求,它出代码,对不对由你判断。自主验证闭环(self-verification loop)把「判断对不对」也交给系统:模型每产出一步,就有一个<b>验证器(verifier)</b>——测试、编译器、linter、另一个模型——给出通过/不通过的信号;不通过就带着错误信息回炉修复,直到通过或达到重试上限。</p>
+<p class="en">Early coding assistants were one-shot: you ask, it emits code, and correctness is your problem. A self-verification loop hands the correctness check back to the system: after each step, a <b>verifier</b> — tests, a compiler, a linter, or another model — returns pass/fail; on failure the model retries with the error message in context, until it passes or hits a retry cap.</p>
+<div class="callout zh">核心洞察:LLM 生成是概率性的,但很多验证是<b>确定性</b>的(测试要么过要么不过)。把概率性的生成套在确定性的验证里,整体可靠性由验证器决定,而不是由模型「手感」决定。</div>
+<div class="callout en">Key insight: LLM generation is probabilistic, but much verification is <b>deterministic</b> (a test either passes or it doesn't). Wrapping probabilistic generation inside deterministic checks makes overall reliability a property of the verifier, not of the model's mood.</div>
+</section>
+
+<section id="s2">
+<h2 class="zh">2. 为什么现在:三家大厂同月押注验证</h2>
+<h2 class="en">2. Why now: three vendors bet on verification in the same month</h2>
+<div class="card zh">
+<p><b>Meta · Muse Code(8月6日)</b>:基于 Muse Spark 1.2 的编程助手,官方卖点明确写着「写代码、修 bug、<b>自动验证结果</b>、管理复杂项目」——验证从工程技巧升格为产品主打。</p>
+<p><b>OpenAI · Auto-review(8月4日)</b>:ChatGPT 应用与 Codex CLI 的 Auto-review 升级到 GPT-5.6 Luna 并叠加降价,成本降约 10 倍——「让第二个模型审代码」变得几乎免费。</p>
+<p><b>Anthropic · Claude Code</b>:hooks(在工具调用前后插入确定性检查)、测试关卡、截图对比等机制早已内建,官方最佳实践长期强调「给 Claude 一个能自己跑的验证目标」。</p>
+</div>
+<div class="card en">
+<p><b>Meta · Muse Code (Aug 6)</b>: a coding assistant on Muse Spark 1.2 whose headline pitch literally reads "writes code, fixes bugs, <b>automatically verifies results</b>, manages complex projects" — verification promoted from technique to flagship feature.</p>
+<p><b>OpenAI · Auto-review (Aug 4)</b>: Auto-review in the ChatGPT app and Codex CLI upgraded to GPT-5.6 Luna with new pricing, roughly 10x cheaper — having a second model review your code is now nearly free.</p>
+<p><b>Anthropic · Claude Code</b>: hooks (deterministic checks before/after tool calls), test gates, and screenshot comparison have long been built in; official best practices consistently stress "give Claude a verification target it can run itself."</p>
+</div>
+<p class="zh">三条路线殊途同归:编码 Agent 的竞争焦点已经从「能不能写出来」转向「能不能自证正确」。原因也直白——模型无人值守跑得越久,人工检查每一步就越不现实,验证必须自动化。</p>
+<p class="en">Three routes, one destination: the competitive frontier has shifted from "can it write the code" to "can it prove the code right." The reason is plain — the longer agents run unattended, the less feasible human review of every step becomes, so verification has to be automated.</p>
+</section>
+
+<section id="s3">
+<h2 class="zh">3. 闭环架构:验证信号从哪来</h2>
+<h2 class="en">3. Loop architecture: where the signal comes from</h2>
+<p class="zh">一个完整闭环有四个环节:<b>生成 → 执行 → 验证 → 反馈</b>。关键设计点在于:验证信号必须是「可执行获得的」——模型自己声称做完了不算数,要有外部世界(测试进程、编译器、浏览器截图)给出的证据。</p>
+<p class="en">A full loop has four stages: <b>generate → execute → verify → feed back</b>. The critical design point: the verification signal must be <em>obtainable by execution</em> — the model claiming it's done doesn't count; evidence must come from the outside world (a test process, a compiler, a browser screenshot).</p>
+<figure class="zh"><svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4ade80"/></marker></defs>
+<rect x="40" y="60" width="150" height="60" rx="10" fill="#1c2a23" stroke="#4ade80"/><text x="115" y="86" fill="#e8f0ea" font-size="15" text-anchor="middle">生成</text><text x="115" y="106" fill="#9db5a8" font-size="11" text-anchor="middle">写代码 / 改代码</text>
+<rect x="270" y="60" width="150" height="60" rx="10" fill="#1c2a23" stroke="#4ade80"/><text x="345" y="86" fill="#e8f0ea" font-size="15" text-anchor="middle">执行</text><text x="345" y="106" fill="#9db5a8" font-size="11" text-anchor="middle">跑测试 / 编译 / 启动</text>
+<rect x="500" y="60" width="150" height="60" rx="10" fill="#1c2a23" stroke="#fbbf24"/><text x="575" y="86" fill="#e8f0ea" font-size="15" text-anchor="middle">验证器</text><text x="575" y="106" fill="#9db5a8" font-size="11" text-anchor="middle">通过 / 不通过</text>
+<line x1="190" y1="90" x2="266" y2="90" stroke="#4ade80" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="420" y1="90" x2="496" y2="90" stroke="#4ade80" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M575 120 L575 210 L115 210 L115 124" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+<text x="345" y="200" fill="#fbbf24" font-size="13" text-anchor="middle">不通过:错误信息回流上下文,带证据重试</text>
+<path d="M650 90 L680 90" stroke="#4ade80" stroke-width="2" marker-end="url(#arr)"/><text x="662" y="70" fill="#4ade80" font-size="12" text-anchor="middle">通过</text>
+<text x="350" y="270" fill="#9db5a8" font-size="12" text-anchor="middle">重试上限:防止无限循环烧 token(常见 3-5 次后升级给人)</text>
+</svg><figcaption>图 1 · 生成-执行-验证-反馈闭环</figcaption></figure>
+<figure class="en"><svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr-e" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4ade80"/></marker></defs>
+<rect x="40" y="60" width="150" height="60" rx="10" fill="#1c2a23" stroke="#4ade80"/><text x="115" y="86" fill="#e8f0ea" font-size="15" text-anchor="middle">Generate</text><text x="115" y="106" fill="#9db5a8" font-size="11" text-anchor="middle">write / edit code</text>
+<rect x="270" y="60" width="150" height="60" rx="10" fill="#1c2a23" stroke="#4ade80"/><text x="345" y="86" fill="#e8f0ea" font-size="15" text-anchor="middle">Execute</text><text x="345" y="106" fill="#9db5a8" font-size="11" text-anchor="middle">tests / compile / run</text>
+<rect x="500" y="60" width="150" height="60" rx="10" fill="#1c2a23" stroke="#fbbf24"/><text x="575" y="86" fill="#e8f0ea" font-size="15" text-anchor="middle">Verifier</text><text x="575" y="106" fill="#9db5a8" font-size="11" text-anchor="middle">pass / fail</text>
+<line x1="190" y1="90" x2="266" y2="90" stroke="#4ade80" stroke-width="2" marker-end="url(#arr-e)"/>
+<line x1="420" y1="90" x2="496" y2="90" stroke="#4ade80" stroke-width="2" marker-end="url(#arr-e)"/>
+<path d="M575 120 L575 210 L115 210 L115 124" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr-e)"/>
+<text x="345" y="200" fill="#fbbf24" font-size="13" text-anchor="middle">Fail: error output flows back, retry with evidence</text>
+<path d="M650 90 L680 90" stroke="#4ade80" stroke-width="2" marker-end="url(#arr-e)"/><text x="662" y="70" fill="#4ade80" font-size="12" text-anchor="middle">pass</text>
+<text x="350" y="270" fill="#9db5a8" font-size="12" text-anchor="middle">Retry cap: prevents infinite token-burning loops (escalate to human after 3-5)</text>
+</svg><figcaption>Fig. 1 · The generate-execute-verify-feedback loop</figcaption></figure>
+</section>
+
+<section id="s4">
+<h2 class="zh">4. 四类验证器与分层关卡</h2>
+<h2 class="en">4. Four verifier types and layered gates</h2>
+<table class="zh">
+<tr><th>类型</th><th>例子</th><th>信号质量</th><th>成本</th></tr>
+<tr><td>静态检查</td><td>lint、类型检查、编译</td><td>确定性,秒级,但只抓「形」的错</td><td>极低</td></tr>
+<tr><td>动态测试</td><td>单元/集成测试、e2e</td><td>确定性,抓行为错误;质量取决于测试覆盖</td><td>低-中</td></tr>
+<tr><td>感知验证</td><td>截图对比、无障碍树检查</td><td>抓 UI/视觉错误,规则难写,常配视觉模型判断</td><td>中</td></tr>
+<tr><td>模型评审</td><td>Auto-review、LLM-as-Judge</td><td>覆盖面广(风格/安全/边界情况),但本身概率性</td><td>中-高</td></tr>
+</table>
+<table class="en">
+<tr><th>Type</th><th>Examples</th><th>Signal quality</th><th>Cost</th></tr>
+<tr><td>Static checks</td><td>lint, type check, compile</td><td>Deterministic, seconds; catches errors of form only</td><td>Very low</td></tr>
+<tr><td>Dynamic tests</td><td>unit / integration / e2e</td><td>Deterministic, catches behavioral bugs; only as good as coverage</td><td>Low-mid</td></tr>
+<tr><td>Perceptual checks</td><td>screenshot diff, accessibility tree</td><td>Catches UI/visual bugs; rules are hard to write, often paired with a vision model</td><td>Mid</td></tr>
+<tr><td>Model review</td><td>Auto-review, LLM-as-Judge</td><td>Broad coverage (style/security/edge cases) but itself probabilistic</td><td>Mid-high</td></tr>
+</table>
+<p class="zh">工程上把四类排成<b>漏斗</b>:便宜且确定的在前(lint→测试),贵且概率性的在后(截图→模型评审)。前面拦下 80% 的低级错误,后面的昂贵验证只处理漏网之鱼。OpenAI 把 Auto-review 降价 10 倍的意义就在这:漏斗最贵的一层突然便宜了,整条漏斗可以更激进地全量启用。</p>
+<p class="en">In practice you arrange the four as a <b>funnel</b>: cheap deterministic checks first (lint→tests), expensive probabilistic ones last (screenshots→model review). The front catches 80% of trivial errors; the costly layers only see what slips through. That's why OpenAI's 10x Auto-review price cut matters: the most expensive funnel layer just got cheap enough to run on everything.</p>
+<figure class="zh"><svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#fbbf24"/></marker></defs>
+<polygon points="60,40 640,40 560,100 140,100" fill="#1c2a23" stroke="#4ade80"/><text x="350" y="75" fill="#e8f0ea" font-size="14" text-anchor="middle">① lint / 类型 / 编译(秒级,全量)</text>
+<polygon points="140,105 560,105 500,160 200,160" fill="#1c2a23" stroke="#4ade80"/><text x="350" y="137" fill="#e8f0ea" font-size="14" text-anchor="middle">② 单元 / 集成测试</text>
+<polygon points="200,165 500,165 455,215 245,215" fill="#1c2a23" stroke="#fbbf24"/><text x="350" y="195" fill="#e8f0ea" font-size="13" text-anchor="middle">③ 截图对比 / e2e</text>
+<polygon points="245,220 455,220 420,255 280,255" fill="#2a2313" stroke="#fbbf24"/><text x="350" y="243" fill="#fbbf24" font-size="12" text-anchor="middle">④ 模型评审</text>
+<text x="640" y="150" fill="#9db5a8" font-size="12" text-anchor="end">↓ 越往下越贵</text>
+</svg><figcaption>图 2 · 验证漏斗:便宜确定的在前,昂贵概率的在后</figcaption></figure>
+<figure class="en"><svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr2-e" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#fbbf24"/></marker></defs>
+<polygon points="60,40 640,40 560,100 140,100" fill="#1c2a23" stroke="#4ade80"/><text x="350" y="75" fill="#e8f0ea" font-size="14" text-anchor="middle">① lint / types / compile (seconds, everything)</text>
+<polygon points="140,105 560,105 500,160 200,160" fill="#1c2a23" stroke="#4ade80"/><text x="350" y="137" fill="#e8f0ea" font-size="14" text-anchor="middle">② unit / integration tests</text>
+<polygon points="200,165 500,165 455,215 245,215" fill="#1c2a23" stroke="#fbbf24"/><text x="350" y="195" fill="#e8f0ea" font-size="13" text-anchor="middle">③ screenshot diff / e2e</text>
+<polygon points="245,220 455,220 420,255 280,255" fill="#2a2313" stroke="#fbbf24"/><text x="350" y="243" fill="#fbbf24" font-size="12" text-anchor="middle">④ model review</text>
+<text x="640" y="150" fill="#9db5a8" font-size="12" text-anchor="end">↓ costlier further down</text>
+</svg><figcaption>Fig. 2 · The verification funnel: cheap-deterministic first, expensive-probabilistic last</figcaption></figure>
+</section>
+
+<section id="s5">
+<h2 class="zh">5. 上手实践:在 Claude Code 里搭一个闭环</h2>
+<h2 class="en">5. Hands-on: build a loop in Claude Code</h2>
+<h3 class="zh">第一步:给它一个能自己跑的目标</h3>
+<h3 class="en">Step 1: give it a target it can run itself</h3>
+<pre><code># CLAUDE.md
+## 验证纪律 / Verification discipline
+- 每次修改后必须运行:npm run lint && npm test
+- 测试不过不允许宣布任务完成
+- UI 改动需截图对比 docs/design/ 下的设计稿</code></pre>
+<h3 class="zh">第二步:用 hook 把关卡变成强制</h3>
+<h3 class="en">Step 2: make the gate mandatory with a hook</h3>
+<p class="zh">CLAUDE.md 是「请求」,hook 是「强制」。PostToolUse hook 在每次文件修改后自动跑检查,失败信息直接回流给模型:</p>
+<p class="en">CLAUDE.md is a request; a hook is enforcement. A PostToolUse hook runs checks after every file edit and pipes failures straight back to the model:</p>
+<pre><code>// .claude/settings.json
+{"hooks": {"PostToolUse": [{
+  "matcher": "Edit|Write",
+  "hooks": [{"type": "command",
+    "command": "npm run lint --silent || echo 'LINT FAILED — fix before proceeding'"}]
+}]}}</code></pre>
+<h3 class="zh">第三步:让第二个模型当评审</h3>
+<h3 class="en">Step 3: add a second model as reviewer</h3>
+<pre><code># 任务完成前派一个 subagent 独立评审
+&gt; 用一个 subagent 以评审者身份重新读这次 diff:
+&gt; 找边界条件、错误处理缺失和安全问题,输出问题清单;
+&gt; 若清单非空,先修复再重新评审。</code></pre>
+<p class="zh">评审者不该看到实现者的推理过程——独立上下文才能避免「自己查自己」的确认偏误,这正是 subagent 隔离上下文的价值。</p>
+<p class="en">The reviewer shouldn't see the implementer's reasoning — an independent context avoids the confirmation bias of grading your own homework, which is exactly what subagent context isolation buys you.</p>
+</section>
+
+<section id="s6">
+<h2 class="zh">6. 局限与常见坑</h2>
+<h2 class="en">6. Limits and common pitfalls</h2>
+<div class="card zh">
+<p><b>坑 1 · 面向测试作弊(reward hacking)</b>:验证器成了优化目标,模型可能改测试、写死返回值来「通过」。对策:hook 禁止修改测试文件;评审模型专查「实现是否绕过了测试意图」。</p>
+<p><b>坑 2 · 验证器覆盖不足产生假安全感</b>:测试全绿不等于正确,只等于「没触发已写的断言」。对策:把「为新逻辑补测试」写进任务定义,让覆盖率关卡也进漏斗。</p>
+<p><b>坑 3 · 无限重试烧钱</b>:失败-重试循环没有上限时,一个死结能烧掉一晚上预算。对策:3-5 次重试后强制停下、汇总失败证据升级给人。</p>
+<p><b>坑 4 · 把概率性验证当确定性用</b>:模型评审会漏报误报,不能作为唯一关卡,只能作为漏斗末端的补充层。</p>
+</div>
+<div class="card en">
+<p><b>Pitfall 1 · Gaming the verifier (reward hacking)</b>: once the verifier is the objective, the model may edit tests or hard-code returns to "pass." Counter: hooks that forbid touching test files; a reviewer model that checks whether the implementation dodges test intent.</p>
+<p><b>Pitfall 2 · False confidence from thin coverage</b>: all-green tests only mean "no written assertion fired," not "correct." Counter: make "add tests for new logic" part of the task definition and gate on coverage too.</p>
+<p><b>Pitfall 3 · Unbounded retries burn money</b>: without a cap, one deadlock can eat a night's budget. Counter: hard-stop after 3-5 retries, summarize failure evidence, escalate to a human.</p>
+<p><b>Pitfall 4 · Treating probabilistic checks as deterministic</b>: model review has false negatives and positives; it's a supplementary last funnel layer, never the only gate.</p>
+</div>
+<div class="callout zh">一句话带走:编码 Agent 的可靠性上限不在模型,而在你给它的验证器。写好一个能自动跑的「怎么算对」,比换更强的模型更划算。</div>
+<div class="callout en">One-line takeaway: a coding agent's reliability ceiling lives in your verifiers, not the model. A runnable definition of "what counts as correct" beats upgrading to a bigger model.</div>
+</section>
+
+<section id="src">
+<h2 class="zh">7. 来源清单</h2>
+<h2 class="en">7. Sources</h2>
+<ul class="src zh">
+<li>Meta Muse Code 发布报道(Tech Startups, 2026-08-06):https://techstartups.com/2026/08/06/top-tech-news-today-august-6-2026-google-meta-openai-robinhood-tencent-unitree-more/</li>
+<li>OpenAI Auto-review 升级与降价(Releasebot / OpenAI News, 2026-08-04):https://releasebot.io/updates/openai 、https://openai.com/news/</li>
+<li>Claude Code hooks 官方文档:https://code.claude.com/docs/en/hooks</li>
+<li>Claude Code 最佳实践(Anthropic Engineering):https://www.anthropic.com/engineering/claude-code-best-practices</li>
+<li>ToolScope / SMART 等工具使用论文(VoltAgent 论文精选):https://github.com/VoltAgent/awesome-ai-agent-papers</li>
+</ul>
+<ul class="src en">
+<li>Meta Muse Code launch coverage (Tech Startups, 2026-08-06): https://techstartups.com/2026/08/06/top-tech-news-today-august-6-2026-google-meta-openai-robinhood-tencent-unitree-more/</li>
+<li>OpenAI Auto-review upgrade & price cut (Releasebot / OpenAI News, 2026-08-04): https://releasebot.io/updates/openai , https://openai.com/news/</li>
+<li>Claude Code hooks documentation: https://code.claude.com/docs/en/hooks</li>
+<li>Claude Code best practices (Anthropic Engineering): https://www.anthropic.com/engineering/claude-code-best-practices</li>
+<li>ToolScope / SMART tool-use papers (VoltAgent curated list): https://github.com/VoltAgent/awesome-ai-agent-papers</li>
+</ul>
+</section>
+
+<footer>
+<p class="zh">补发生成于 2026-08-12(对应日期 2026-08-06)· 本文基于公开搜索结果整理,单源信息请以原文为准 · AI Daily 深度学习系列</p>
+<p class="en">Backfilled on 2026-08-12 (for 2026-08-06) · Compiled from public search results; verify single-source claims against originals · AI Daily deep-dive series</p>
+</footer>
+</div>
+<script>
+(function(){
+  var lang='zh';
+  try{lang=localStorage.getItem('aidaily-lang')||((navigator.language||'zh').toLowerCase().indexOf('zh')===0?'zh':'en');}catch(e){}
+  setLang(lang);
+  function setLang(l){
+    document.body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang',l==='zh'?'zh-CN':'en');
+    document.getElementById('langBtn').textContent=l==='zh'?'EN':'中';
+    try{localStorage.setItem('aidaily-lang',l);}catch(e){}
+    requestAnimationFrame(reveal);
+  }
+  window.toggleLang=function(){setLang(document.body.getAttribute('data-lang')==='zh'?'en':'zh');};
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.15});
+  function reveal(){
+    document.querySelectorAll('figure').forEach(function(f){
+      if(f.classList.contains('in'))return;
+      var r=f.getBoundingClientRect();
+      if(r.height>0&&r.top<innerHeight&&r.bottom>0){f.classList.add('in');}
+      else{io.observe(f);}
+    });
+  }
+  reveal();
+})();
+</script>
+</body>
+</html>
