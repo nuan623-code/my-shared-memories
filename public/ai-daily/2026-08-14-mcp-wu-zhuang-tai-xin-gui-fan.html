@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP 无状态新规范 2026-07-28 | MCP Goes Stateless: The 2026-07-28 Spec</title>
+<style>
+:root{
+  --bg:#f3f6f5;--surface:#ffffff;--ink:#15262b;--ink-2:#33484f;--muted:#5f757c;
+  --line:#d7e2e0;--accent:#0d7a67;--accent-deep:#085546;--accent-soft:#e2f2ee;
+  --warm:#c07a1c;--warm-soft:#faf0df;--code-bg:#f0f4f3;--code-ink:#123f38;
+  --radius:14px;--shadow:0 1px 2px rgba(21,38,43,.05),0 8px 24px rgba(21,38,43,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.8;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+-webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),#3aa88f);width:0;z-index:99}
+#langBtn{position:fixed;top:14px;right:14px;z-index:98;border:1.5px solid var(--accent);
+background:var(--surface);color:var(--accent-deep);font-weight:750;font-size:13.5px;
+padding:7px 15px;border-radius:99px;cursor:pointer;box-shadow:var(--shadow)}
+#langBtn:hover{background:var(--accent-soft)}
+/* hero */
+.hero{background:
+ linear-gradient(180deg,rgba(13,122,103,.06),rgba(13,122,103,0) 70%),
+ repeating-linear-gradient(90deg,transparent 0 39px,rgba(13,122,103,.07) 39px 40px),
+ repeating-linear-gradient(0deg,transparent 0 39px,rgba(13,122,103,.07) 39px 40px),#fbfdfc;
+border-bottom:1px solid var(--line)}
+.hin{max-width:840px;margin:0 auto;padding:64px 22px 44px}
+.kicker{display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.14em;color:var(--accent-deep);
+background:var(--accent-soft);border:1px solid #b8ddd3;padding:5px 13px;border-radius:99px;margin-bottom:16px}
+h1{font-size:clamp(27px,5.6vw,42px);line-height:1.28;margin:0 0 14px;font-weight:830;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--accent)}
+.lead{font-size:17.5px;color:var(--ink-2);max-width:660px;margin:0}
+.meta{margin-top:20px;font-size:13px;color:var(--muted)}
+/* layout */
+.page{max-width:840px;margin:0 auto;padding:10px 22px 80px}
+section{margin:44px 0 0}
+h2{font-size:clamp(21px,3.6vw,27px);margin:0 0 6px;font-weight:800;letter-spacing:-.01em;
+padding-top:14px;border-top:3px solid var(--accent);display:block}
+h2 .no{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:8px}
+h3{font-size:18.5px;margin:26px 0 6px;font-weight:750}
+p{margin:12px 0}
+a{color:var(--accent-deep)}
+strong{font-weight:750}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.88em;
+background:var(--code-bg);color:var(--code-ink);padding:2px 6px;border-radius:6px}
+pre{background:#10221f;color:#d8ece7;border-radius:11px;padding:15px 17px;overflow-x:auto;
+font-size:13.2px;line-height:1.6;margin:14px 0;border:1px solid #1d3a34}
+pre code{background:none;color:inherit;padding:0;font-size:inherit}
+.srcnote{font-size:12.5px;color:var(--muted);margin-top:-8px}
+/* toc */
+#tocBtn{position:fixed;left:14px;top:14px;z-index:97;display:none;border:1.5px solid var(--line);
+background:var(--surface);border-radius:10px;font-size:18px;padding:5px 11px;cursor:pointer;box-shadow:var(--shadow)}
+nav#toc{position:fixed;left:18px;top:80px;width:212px;z-index:96;
+background:rgba(255,255,255,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+border:1px solid var(--line);border-radius:var(--radius);padding:13px 8px;box-shadow:var(--shadow);
+max-height:calc(100vh - 120px);overflow:auto}
+nav#toc .tt{font-size:11.5px;font-weight:800;letter-spacing:.12em;color:var(--muted);margin:0 10px 7px}
+nav#toc a{display:block;font-size:13px;color:var(--ink-2);text-decoration:none;
+padding:5px 10px;border-radius:8px;line-height:1.45}
+nav#toc a:hover{background:var(--accent-soft)}
+nav#toc a.on{background:var(--accent-soft);color:var(--accent-deep);font-weight:750}
+@media(max-width:1330px){
+  nav#toc{display:none;left:14px;top:64px}
+  nav#toc.open{display:block}
+  #tocBtn{display:block}
+}
+/* components */
+.callout{border-radius:var(--radius);padding:15px 18px;margin:16px 0;border:1px solid;font-size:15.8px}
+.callout .cl-t{font-weight:800;display:block;margin-bottom:4px}
+.callout.key{background:var(--accent-soft);border-color:#b8ddd3;color:var(--accent-deep)}
+.callout.warn{background:var(--warm-soft);border-color:#ecd4ad;color:#7c4d0d}
+.callout.quote{background:#fff;border-color:var(--line);color:var(--ink-2);font-style:normal}
+.def{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);
+border-radius:var(--radius);padding:16px 19px;margin:16px 0;box-shadow:var(--shadow)}
+.def .d1{font-weight:800;color:var(--accent-deep)}
+.def .d2{margin:6px 0 0}
+.steps{counter-reset:st;margin:16px 0;padding:0;list-style:none}
+.steps li{position:relative;padding:0 0 14px 44px;margin:0}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:0;top:2px;
+width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;
+font-size:14px;display:flex;align-items:center;justify-content:center}
+.steps li::after{content:"";position:absolute;left:13.5px;top:34px;bottom:2px;width:1.5px;background:var(--line)}
+.steps li:last-child::after{display:none}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.8px;background:var(--surface);
+border-radius:11px;overflow:hidden;box-shadow:var(--shadow)}
+th{background:#e9f2ef;color:var(--accent-deep);text-align:left;font-size:13.5px;letter-spacing:.02em}
+th,td{padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.tblwrap{overflow-x:auto;margin:16px 0}
+.tblwrap table{margin:0;min-width:560px}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+padding:18px 14px 10px;margin:20px 0;box-shadow:var(--shadow);opacity:0;transform:translateY(14px);
+transition:opacity .7s ease,transform .7s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--muted);text-align:center;padding:8px 10px 6px}
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+padding:6px 19px;margin:16px 0;box-shadow:var(--shadow)}
+.glossary dt{font-weight:800;color:var(--accent-deep);margin-top:12px}
+.glossary dd{margin:2px 0 12px;color:var(--ink-2);font-size:15.5px}
+footer{max-width:840px;margin:0 auto;padding:30px 22px 60px;border-top:1px solid var(--line);
+color:var(--muted);font-size:13.5px}
+footer ol{padding-left:20px}
+footer li{margin:5px 0}
+@media(max-width:640px){
+  body{font-size:16px}
+  .hin{padding:56px 18px 34px}
+  .page{padding:6px 16px 60px}
+  th,td{padding:8px 9px}
+}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN ☰ 协议升级 · AGENT 基建 PROTOCOL UPGRADE · AGENT INFRA MCP 无状态新规范 2026-07-28 :自远程化以来最大的一次重构 MCP Goes Stateless: t…">
+<meta property="og:title" content="MCP 无状态新规范 2026-07-28 | MCP Goes Stateless: The 2026-07-28 Spec">
+<meta property="og:description" content="EN ☰ 协议升级 · AGENT 基建 PROTOCOL UPGRADE · AGENT INFRA MCP 无状态新规范 2026-07-28 :自远程化以来最大的一次重构 MCP Goes Stateless: t…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-14-mcp-wu-zhuang-tai-xin-gui-fan.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-14-mcp-wu-zhuang-tai-xin-gui-fan.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "MCP 无状态新规范 2026-07-28 | MCP Goes Stateless: The 2026-07-28 Spec", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-14-mcp-wu-zhuang-tai-xin-gui-fan.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-14", "dateModified": "2026-08-14"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="pbar"></div>
+<button id="langBtn" aria-label="switch language">EN</button>
+<button id="tocBtn" aria-label="table of contents">☰</button>
+
+<nav id="toc">
+  <p class="tt"><span class="zh">目录</span><span class="en">CONTENTS</span></p>
+  <a href="#s1"><span class="zh">1 · 30 秒速览</span><span class="en">1 · In 30 Seconds</span></a>
+  <a href="#s2"><span class="zh">2 · 背景:会话税</span><span class="en">2 · Why: The Session Tax</span></a>
+  <a href="#s3"><span class="zh">3 · 无状态核心</span><span class="en">3 · The Stateless Core</span></a>
+  <a href="#s4"><span class="zh">4 · MRTR 多轮请求</span><span class="en">4 · MRTR</span></a>
+  <a href="#s5"><span class="zh">5 · 基础设施红利</span><span class="en">5 · Infrastructure Wins</span></a>
+  <a href="#s6"><span class="zh">6 · 扩展、授权与弃用</span><span class="en">6 · Extensions, Auth, Deprecations</span></a>
+  <a href="#s7"><span class="zh">7 · 迁移指南与常见坑</span><span class="en">7 · Migration &amp; Pitfalls</span></a>
+  <a href="#s8"><span class="zh">8 · 争议:MCP 只是 HTTP?</span><span class="en">8 · Debate: Just HTTP Now?</span></a>
+  <a href="#s9"><span class="zh">9 · 学习资源</span><span class="en">9 · Resources</span></a>
+</nav>
+
+<div class="hero"><div class="hin">
+  <span class="kicker zh">协议升级 · AGENT 基建</span><span class="kicker en">PROTOCOL UPGRADE · AGENT INFRA</span>
+  <h1 class="zh">MCP 无状态新规范<br><em>2026-07-28</em>:自远程化以来最大的一次重构</h1>
+  <h1 class="en">MCP Goes Stateless:<br>the <em>2026-07-28</em> spec, its biggest revision yet</h1>
+  <p class="lead zh">握手没了,会话 ID 没了,MCP 从「有状态双向协议」变成「请求/响应无状态协议」。这份文档讲清:为什么要改、改了什么、怎么迁移、哪里有坑。</p>
+  <p class="lead en">The handshake is gone, the session ID is gone: MCP has turned from a stateful bidirectional protocol into a stateless request/response protocol. This document covers why it changed, what changed, how to migrate, and where the traps are.</p>
+  <p class="meta zh">调研时间:2026-08-14 · 基于 MCP 官方博客、官方规范与社区迁移指南 · 术语保留英文原名</p>
+  <p class="meta en">Researched: 2026-08-14 · Based on the official MCP blog, the specification, and community migration guides</p>
+</div></div>
+
+<div class="page">
+
+<section id="s1">
+  <h2 class="zh"><span class="no">1</span>30 秒速览</h2>
+  <h2 class="en"><span class="no">1</span>In 30 Seconds</h2>
+  <p class="zh">MCP(Model Context Protocol,让 AI 应用接入外部工具和数据的开放协议)在 2026 年 7 月 28 日发布了新版规范。官方数据:Tier 1 SDK 每月下载量已接近 5 亿次,TypeScript 与 Python SDK 累计均破 10 亿次——这已经是 Agent 生态的水电煤。这次升级做了一件核心的事:<strong>把协议核心改成无状态(stateless)</strong>,即服务器不再需要记住「这个客户端之前和我说过什么」,每个请求自带全部上下文。</p>
+  <p class="en">MCP (Model Context Protocol — the open protocol that connects AI applications to external tools and data) shipped a new specification on July 28, 2026. Official numbers: Tier 1 SDKs see close to half a billion downloads per month, with both the TypeScript and Python SDKs past 1 billion total — this is the plumbing of the agent ecosystem. The release does one central thing: <strong>it makes the protocol core stateless</strong> — servers no longer need to remember "what this client said to me before"; every request carries its full context.</p>
+  <div class="callout key">
+    <span class="cl-t zh">一句话版本</span><span class="cl-t en">The one-liner</span>
+    <span class="zh">以前的 MCP 服务器像「有会员卡的理发店」:先办卡(initialize 握手)、认卡(session ID)、只能找同一个理发师。新版像「快餐店点单」:每张订单写清全部要求,哪个柜台空闲哪个接单——于是可以随便加柜台(水平扩容)。</span>
+    <span class="en">Old MCP servers were like a hair salon with membership cards: register first (the initialize handshake), present your card (session ID), and always see the same stylist. The new MCP is fast-food ordering: every ticket states the full order, and any free counter can take it — so you can add counters at will (horizontal scaling).</span>
+  </div>
+  <p class="zh">八个要点:①核心无状态,initialize 握手与 <code>Mcp-Session-Id</code> 移除;②协议版本与客户端能力随每个请求放进 <code>_meta</code>,可选的 <code>server/discover</code> 按需查询服务器能力;③跨调用状态改用「显式 handle」(工具返回一个 ID,后续调用传回来);④新增 HTTP 头 <code>Mcp-Method</code> / <code>Mcp-Name</code>,网关不解析 JSON 就能路由;⑤交互式调用改用 MRTR(多轮请求);⑥扩展框架转正,Tasks、MCP Apps 成为正式扩展;⑦Roots、Sampling、协议 Logging 弃用(至少保留 12 个月);⑧授权加固,DCR 弃用、转向 CIMD。</p>
+  <p class="en">Eight takeaways: ① stateless core — the initialize handshake and <code>Mcp-Session-Id</code> are removed; ② protocol version and client capabilities travel in <code>_meta</code> on every request, with an optional <code>server/discover</code> call for up-front capability discovery; ③ cross-call state moves to explicit handles (a tool returns an ID; later calls pass it back); ④ new HTTP headers <code>Mcp-Method</code> / <code>Mcp-Name</code> let gateways route without parsing JSON; ⑤ interactive calls use MRTR (Multi Round-Trip Requests); ⑥ a formal extensions framework, with Tasks and MCP Apps as official extensions; ⑦ Roots, Sampling, and protocol Logging are deprecated (kept for at least 12 months); ⑧ authorization hardening — DCR deprecated in favor of CIMD.</p>
+</section>
+
+<section id="s2">
+  <h2 class="zh"><span class="no">2</span>背景与动机:远程 MCP 的「会话税」</h2>
+  <h2 class="en"><span class="no">2</span>Why: Remote MCP and the "Session Tax"</h2>
+  <p class="zh">MCP 诞生于 2024 年底,最初的典型场景是桌面应用在本机拉起一个子进程,通过标准输入输出(stdio)通信。在这个世界里,「先握手、再基于连接维持一个会话」几乎没有成本——反正就一条连接、一个进程。</p>
+  <p class="en">MCP was born in late 2024. Its original setting was a desktop app launching a local subprocess and talking over standard input/output (stdio). In that world, "shake hands first, then keep a per-connection session" cost almost nothing — there was one connection and one process anyway.</p>
+  <p class="zh">远程 MCP 改变了经济账。服务器发一个 <code>Mcp-Session-Id</code>,客户端每次请求都带上它;只要服务器往会话里存了任何东西,后续请求就必须落到同一台实例,或者所有实例共享一个会话存储。于是水平扩容意味着:粘性路由(sticky routing)、共享状态、以及一个「懂 MCP」的网关。社区迁移指南把这叫作「为了维持协议会话而交的分布式系统税」。更麻烦的是,各家实现对 session 的语义理解并不一致——有的每个聊天开一个会话,有的一个用户共享一个,有的进程崩溃就直接丢弃——把应用逻辑建在这上面本来就脆弱。</p>
+  <p class="en">Remote MCP changed the economics. The server would issue an <code>Mcp-Session-Id</code> and the client returned it with every request; the moment a server stored anything against that session, follow-up requests had to reach the same instance — or every instance had to share a session store. Horizontal scaling then meant sticky routing, shared state, and a gateway that "understood MCP." Community migration guides call this the distributed-systems tax paid just to keep protocol sessions alive. Worse, implementations never agreed on session semantics — one client opened a session per chat, another shared one per user, a third dropped it on any crash — so application logic built on sessions was fragile from the start.</p>
+
+  <div class="figure zh" data-anim>
+    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="旧架构需要粘性路由,新架构任意实例可接请求">
+      <defs><marker id="arZ" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5f757c"/></marker>
+      <marker id="arZg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0d7a67"/></marker></defs>
+      <text x="180" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#33484f">旧:有状态(2025-11-25 及之前)</text>
+      <text x="540" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#085546">新:无状态(2026-07-28 起)</text>
+      <line x1="360" y1="14" x2="360" y2="290" stroke="#d7e2e0" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <rect x="110" y="44" width="140" height="34" rx="8" fill="#eef2f1" stroke="#5f757c"/>
+      <text x="180" y="66" text-anchor="middle" font-size="12.5" fill="#33484f">客户端(带 Session-Id)</text>
+      <rect x="100" y="112" width="160" height="34" rx="8" fill="#fff" stroke="#c07a1c"/>
+      <text x="180" y="134" text-anchor="middle" font-size="12.5" fill="#7c4d0d">粘性负载均衡器</text>
+      <line x1="180" y1="78" x2="180" y2="110" stroke="#5f757c" stroke-width="1.5" marker-end="url(#arZ)"/>
+      <rect x="52" y="188" width="76" height="32" rx="8" fill="#fff" stroke="#5f757c"/>
+      <text x="90" y="209" text-anchor="middle" font-size="12" fill="#33484f">实例 A ★</text>
+      <rect x="142" y="188" width="76" height="32" rx="8" fill="#f6f8f7" stroke="#d7e2e0"/>
+      <text x="180" y="209" text-anchor="middle" font-size="12" fill="#9fb0b5">实例 B</text>
+      <rect x="232" y="188" width="76" height="32" rx="8" fill="#f6f8f7" stroke="#d7e2e0"/>
+      <text x="270" y="209" text-anchor="middle" font-size="12" fill="#9fb0b5">实例 C</text>
+      <line x1="140" y1="146" x2="95 " y2="186" stroke="#5f757c" stroke-width="1.5" marker-end="url(#arZ)"/>
+      <rect x="70" y="248" width="220" height="30" rx="8" fill="#faf0df" stroke="#ecd4ad"/>
+      <text x="180" y="268" text-anchor="middle" font-size="12" fill="#7c4d0d">会话必须一直落在实例 A(或共享存储)</text>
+      <rect x="470" y="44" width="140" height="34" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="540" y="66" text-anchor="middle" font-size="12.5" fill="#085546">客户端(请求自带上下文)</text>
+      <rect x="460" y="112" width="160" height="34" rx="8" fill="#fff" stroke="#0d7a67"/>
+      <text x="540" y="134" text-anchor="middle" font-size="12.5" fill="#085546">普通轮询负载均衡器</text>
+      <line x1="540" y1="78" x2="540" y2="110" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arZg)"/>
+      <rect x="412" y="188" width="76" height="32" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="450" y="209" text-anchor="middle" font-size="12" fill="#085546">实例 A</text>
+      <rect x="502" y="188" width="76" height="32" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="540" y="209" text-anchor="middle" font-size="12" fill="#085546">实例 B</text>
+      <rect x="592" y="188" width="76" height="32" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="630" y="209" text-anchor="middle" font-size="12" fill="#085546">实例 C</text>
+      <line x1="500" y1="146" x2="455" y2="186" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arZg)"/>
+      <line x1="540" y1="146" x2="540" y2="186" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arZg)"/>
+      <line x1="580" y1="146" x2="625" y2="186" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arZg)"/>
+      <rect x="430" y="248" width="220" height="30" rx="8" fill="#e2f2ee" stroke="#b8ddd3"/>
+      <text x="540" y="268" text-anchor="middle" font-size="12" fill="#085546">任何请求可落任何实例,无需共享会话</text>
+    </svg>
+    <p class="fig-cap">旧架构的「会话税」 vs 新架构的普通负载均衡(依据 MCP 官方博客绘制)</p>
+  </div>
+  <div class="figure en" data-anim>
+    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Old architecture needs sticky routing; new architecture lets any instance take any request">
+      <defs><marker id="arE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5f757c"/></marker>
+      <marker id="arEg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0d7a67"/></marker></defs>
+      <text x="180" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#33484f">Old: stateful (≤ 2025-11-25)</text>
+      <text x="540" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#085546">New: stateless (2026-07-28+)</text>
+      <line x1="360" y1="14" x2="360" y2="290" stroke="#d7e2e0" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <rect x="110" y="44" width="140" height="34" rx="8" fill="#eef2f1" stroke="#5f757c"/>
+      <text x="180" y="66" text-anchor="middle" font-size="12.5" fill="#33484f">Client (Session-Id)</text>
+      <rect x="100" y="112" width="160" height="34" rx="8" fill="#fff" stroke="#c07a1c"/>
+      <text x="180" y="134" text-anchor="middle" font-size="12.5" fill="#7c4d0d">Sticky load balancer</text>
+      <line x1="180" y1="78" x2="180" y2="110" stroke="#5f757c" stroke-width="1.5" marker-end="url(#arE)"/>
+      <rect x="52" y="188" width="76" height="32" rx="8" fill="#fff" stroke="#5f757c"/>
+      <text x="90" y="209" text-anchor="middle" font-size="12" fill="#33484f">Node A ★</text>
+      <rect x="142" y="188" width="76" height="32" rx="8" fill="#f6f8f7" stroke="#d7e2e0"/>
+      <text x="180" y="209" text-anchor="middle" font-size="12" fill="#9fb0b5">Node B</text>
+      <rect x="232" y="188" width="76" height="32" rx="8" fill="#f6f8f7" stroke="#d7e2e0"/>
+      <text x="270" y="209" text-anchor="middle" font-size="12" fill="#9fb0b5">Node C</text>
+      <line x1="140" y1="146" x2="95" y2="186" stroke="#5f757c" stroke-width="1.5" marker-end="url(#arE)"/>
+      <rect x="70" y="248" width="220" height="30" rx="8" fill="#faf0df" stroke="#ecd4ad"/>
+      <text x="180" y="268" text-anchor="middle" font-size="12" fill="#7c4d0d">Session pinned to Node A (or shared store)</text>
+      <rect x="470" y="44" width="140" height="34" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="540" y="66" text-anchor="middle" font-size="12.5" fill="#085546">Client (self-contained)</text>
+      <rect x="460" y="112" width="160" height="34" rx="8" fill="#fff" stroke="#0d7a67"/>
+      <text x="540" y="134" text-anchor="middle" font-size="12.5" fill="#085546">Plain round-robin LB</text>
+      <line x1="540" y1="78" x2="540" y2="110" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arEg)"/>
+      <rect x="412" y="188" width="76" height="32" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="450" y="209" text-anchor="middle" font-size="12" fill="#085546">Node A</text>
+      <rect x="502" y="188" width="76" height="32" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="540" y="209" text-anchor="middle" font-size="12" fill="#085546">Node B</text>
+      <rect x="592" y="188" width="76" height="32" rx="8" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="630" y="209" text-anchor="middle" font-size="12" fill="#085546">Node C</text>
+      <line x1="500" y1="146" x2="455" y2="186" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arEg)"/>
+      <line x1="540" y1="146" x2="540" y2="186" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arEg)"/>
+      <line x1="580" y1="146" x2="625" y2="186" stroke="#0d7a67" stroke-width="1.5" marker-end="url(#arEg)"/>
+      <rect x="430" y="248" width="220" height="30" rx="8" fill="#e2f2ee" stroke="#b8ddd3"/>
+      <text x="540" y="268" text-anchor="middle" font-size="12" fill="#085546">Any request can land on any instance</text>
+    </svg>
+    <p class="fig-cap">The "session tax" of the old architecture vs plain load balancing in the new one (drawn from the official MCP blog)</p>
+  </div>
+
+  <p class="zh">官方对新方向的概括是「按需付费的复杂度」(pay-as-you-go complexity):核心请求模型保持精简,状态、UI、长任务这些能力只在应用需要时通过扩展加回来。社区已经开始把这次升级俗称为「MCP v2」——官方按日期给规范定版,并没有 v2 这个名字,但这个说法足见变化之大。</p>
+  <p class="en">The official framing for the new direction is "pay-as-you-go complexity": keep the core request model lean, and add state, UI, or long-running work back through extensions only where an application needs them. Developers have taken to calling this release "MCP v2" — officially the spec is versioned by date and there is no v2, but the nickname says a lot about the size of the change.</p>
+</section>
+
+<section id="s3">
+  <h2 class="zh"><span class="no">3</span>无状态核心:握手没了,状态去哪了</h2>
+  <h2 class="en"><span class="no">3</span>The Stateless Core: No Handshake — So Where Does State Go?</h2>
+  <p class="zh">旧协议里,一切从 <code>initialize</code> / <code>initialized</code> 握手开始:客户端先自报家门,服务器回协议版本和能力清单,之后的请求都挂在这条「关系」上。新协议里(依据 SEP-2575 / SEP-2567),<strong>每个请求都是自包含的</strong>:协议版本、客户端身份、客户端能力全部放进请求的 <code>_meta</code> 字段随行;想提前了解服务器能力,调一个新增的 <code>server/discover</code> RPC 即可——但它不是必须的。</p>
+  <p class="en">In the legacy protocol everything started with the <code>initialize</code> / <code>initialized</code> handshake: the client introduced itself, the server replied with protocol version and capabilities, and all later requests hung off that relationship. In the modern protocol (per SEP-2575 / SEP-2567), <strong>every request is self-contained</strong>: protocol version, client identity, and client capabilities travel in the request's <code>_meta</code> field. A client that wants capabilities up front can call the new <code>server/discover</code> RPC — but it is optional.</p>
+  <pre><code>POST /mcp HTTP/1.1
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: search
+
+{"jsonrpc":"2.0","id":1,"method":"tools/call",
+ "params":{"name":"search","arguments":{"q":"otters"},
+ "_meta":{"io.modelcontextprotocol/clientInfo":{"name":"my-app","version":"1.0"}}}}</code></pre>
+  <p class="srcnote zh">示例来自 MCP 官方博客(2026-07-28);实际开发请使用 SDK 生成的类型,不要手写这个结构。</p>
+  <p class="srcnote en">Example from the official MCP blog (2026-07-28); in real code, use your SDK's generated types rather than hand-writing this shape.</p>
+
+  <h3 class="zh">应用状态改用「显式 handle」</h3>
+  <h3 class="en">Application state moves to explicit handles</h3>
+  <p class="zh">去掉协议会话不等于你的应用不能有状态。官方推荐的替代模式朴素到有点无聊:<strong>工具返回一个 ID,后续调用把它当参数传回来</strong>。比如购物车工具第一次调用返回 <code>basket_id: "bsk_a1b2c3"</code>,之后的 <code>add_item</code> 显式带上这个 ID。官方博客说,实践中这比藏在传输层里的会话状态效果更好——模型「看得见」这个 handle,能自己在多个工具间穿针引线。</p>
+  <p class="en">Removing protocol sessions doesn't mean your application can't have state. The officially recommended replacement is deliberately boring: <strong>a tool returns an ID, and later calls pass it back as an argument</strong>. A cart tool's first call returns <code>basket_id: "bsk_a1b2c3"</code>; subsequent <code>add_item</code> calls carry that ID explicitly. The official blog notes this works better in practice than session state hidden in the transport — the model can see the handle and thread it between tools.</p>
+  <p class="zh">显式状态还更有表达力:设想一个编排 Agent 带三个调研子 Agent,它们该共用同一个购物车、但各自需要独立的浏览器上下文。会话模式下你只能「全共享」或「全隔离」二选一;handle 模式下,编排者可以共享一个 <code>basket_id</code>、同时发三个不同的 <code>browser_id</code>。handle 还能跨对话续用、交给子 Agent、同时保持两份文档打开——这些都是隐藏会话做不到的。</p>
+  <p class="en">Explicit state is also more expressive. Picture an orchestrator with three research subagents: they should share one shopping cart but each needs an isolated browser context. Under sessions you had to pick between sharing everything and isolating everything; with handles, the orchestrator shares one <code>basket_id</code> while issuing three different <code>browser_id</code> values. Handles can also survive into later conversations, be handed to subagents, or keep two documents active at once — none of which hidden session state allowed.</p>
+  <div class="callout warn">
+    <span class="cl-t zh">安全提醒:handle 是能力凭证,不是「随便一个字符串」</span>
+    <span class="cl-t en">Security note: a handle is a capability, not "just a string"</span>
+    <span class="zh">handle 会出现在对话记录、日志、prompt 和子 Agent 上下文里。社区迁移指南(MCPJam,2026-07-31)给出的底线:handle 要不可猜测、绑定到认证主体与租户、<strong>每次调用都重新鉴权</strong>、有过期与可恢复的报错;无认证场景下 handle 事实上是 bearer token,至少 128 位安全熵。永远不要把「拿着 handle」当成「有权使用它」。</span>
+    <span class="en">Handles show up in transcripts, logs, prompts, and subagent context. The community migration guide (MCPJam, 2026-07-31) sets the floor: make handles unguessable, bind them to the authenticated principal and tenant, <strong>re-authorize on every call</strong>, give them expiry and recoverable errors; where an unauthenticated handle effectively acts as a bearer token, use at least 128 bits of secure entropy. Never treat possession of a handle as proof of authorization.</span>
+  </div>
+  <p class="zh">原来挂在 <code>initialize</code> 上的逻辑(预热缓存、建限流桶、加载租户配置)也要搬家:进程级的放进程启动或首次使用时懒加载;用户级的从认证后的请求上下文来;持久状态给显式 ID。另一个别忽视的点:无状态化之后,<strong>幂等性(idempotency,重复执行不产生重复效果)必须自己做</strong>——写操作提交了但 HTTP 响应丢了、客户端重试,没有去重就会发布两次。对不可逆的工具,官方社区建议接受 <code>idempotency_key</code> 参数并存储结果去重。</p>
+  <p class="en">Logic that used to hang off <code>initialize</code> (cache warming, rate-limit buckets, tenant config) needs a new home: process-wide things move to process startup or lazy first use; user context comes from authenticated request state; durable state gets explicit IDs. And don't skip this one: with statelessness, <strong>idempotency (repeat execution must not repeat the effect) is your job</strong> — if a write commits but the HTTP response is lost and the client retries, you publish twice without deduplication. For irreversible tools, the community guidance is to accept an <code>idempotency_key</code> argument and return the stored result on repeats.</p>
+</section>
+
+<section id="s4">
+  <h2 class="zh"><span class="no">4</span>MRTR:一次工具调用,拆成多个请求</h2>
+  <h2 class="en"><span class="no">4</span>MRTR: One Tool Call, Multiple Requests</h2>
+  <p class="zh">老问题:工具执行到一半需要用户输入(确认、补一个参数)怎么办?旧协议靠一条常开的双向流,让服务器反向发请求(elicitation / sampling)。无状态协议里这条流没了,取而代之的是 <strong>MRTR(Multi Round-Trip Requests,多轮往返请求,SEP-2322)</strong>:服务器返回 <code>resultType: "input_required"</code> 和它需要的问题清单,客户端拿到用户答案后,<strong>带着 <code>inputResponses</code> 重发原调用</strong>。一次逻辑操作,跨了两个(或多个)独立的 HTTP 请求。</p>
+  <p class="en">The old question: what if a tool needs user input mid-call (a confirmation, a missing parameter)? Legacy MCP relied on a held-open bidirectional stream so the server could send requests back (elicitation / sampling). That stream is gone. In its place: <strong>MRTR (Multi Round-Trip Requests, SEP-2322)</strong> — the server returns <code>resultType: "input_required"</code> plus the questions it needs answered, and the client <strong>retries the original call with the answers attached in <code>inputResponses</code></strong>. One logical operation now spans two (or more) independent HTTP requests.</p>
+
+  <div class="figure zh" data-anim>
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MRTR 流程:调用、input_required、带答案重试、完成">
+      <defs><marker id="mrZ" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0d7a67"/></marker></defs>
+      <rect x="30" y="40" width="120" height="40" rx="10" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="90" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#085546">客户端</text>
+      <rect x="570" y="40" width="120" height="40" rx="10" fill="#fff" stroke="#0d7a67"/>
+      <text x="630" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#085546">服务器</text>
+      <line x1="90" y1="80" x2="90" y2="235" stroke="#d7e2e0" stroke-width="1.5"/>
+      <line x1="630" y1="80" x2="630" y2="235" stroke="#d7e2e0" stroke-width="1.5"/>
+      <line x1="95" y1="105" x2="620" y2="105" stroke="#0d7a67" stroke-width="1.8" marker-end="url(#mrZ)"/>
+      <text x="360" y="97" text-anchor="middle" font-size="12.5" fill="#33484f">① tools/call publish_post</text>
+      <line x1="625" y1="140" x2="100" y2="140" stroke="#c07a1c" stroke-width="1.8" marker-end="url(#mrZ)"/>
+      <text x="360" y="132" text-anchor="middle" font-size="12.5" fill="#7c4d0d">② resultType:"input_required" +「确认发布吗?」</text>
+      <rect x="34" y="152" width="112" height="26" rx="7" fill="#faf0df" stroke="#ecd4ad"/>
+      <text x="90" y="169" text-anchor="middle" font-size="11.5" fill="#7c4d0d">用户思考 5 秒…</text>
+      <line x1="95" y1="200" x2="620" y2="200" stroke="#0d7a67" stroke-width="1.8" marker-end="url(#mrZ)"/>
+      <text x="360" y="192" text-anchor="middle" font-size="12.5" fill="#33484f">③ 重发原调用 + inputResponses(答案)</text>
+      <line x1="625" y1="228" x2="100" y2="228" stroke="#0d7a67" stroke-width="1.8" marker-end="url(#mrZ)"/>
+      <text x="360" y="221" text-anchor="middle" font-size="12.5" fill="#085546">④ resultType:"complete" ✓(可落在另一台实例)</text>
+    </svg>
+    <p class="fig-cap">MRTR:服务器「要输入」不再靠反向长连接,而是让客户端带答案重试(依据 SEP-2322 绘制)</p>
+  </div>
+  <div class="figure en" data-anim>
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MRTR flow: call, input_required, retry with answers, complete">
+      <defs><marker id="mrE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0d7a67"/></marker></defs>
+      <rect x="30" y="40" width="120" height="40" rx="10" fill="#e2f2ee" stroke="#0d7a67"/>
+      <text x="90" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#085546">Client</text>
+      <rect x="570" y="40" width="120" height="40" rx="10" fill="#fff" stroke="#0d7a67"/>
+      <text x="630" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#085546">Server</text>
+      <line x1="90" y1="80" x2="90" y2="235" stroke="#d7e2e0" stroke-width="1.5"/>
+      <line x1="630" y1="80" x2="630" y2="235" stroke="#d7e2e0" stroke-width="1.5"/>
+      <line x1="95" y1="105" x2="620" y2="105" stroke="#0d7a67" stroke-width="1.8" marker-end="url(#mrE)"/>
+      <text x="360" y="97" text-anchor="middle" font-size="12.5" fill="#33484f">① tools/call publish_post</text>
+      <line x1="625" y1="140" x2="100" y2="140" stroke="#c07a1c" stroke-width="1.8" marker-end="url(#mrE)"/>
+      <text x="360" y="132" text-anchor="middle" font-size="12.5" fill="#7c4d0d">② resultType:"input_required" + "Confirm publish?"</text>
+      <rect x="24" y="152" width="132" height="26" rx="7" fill="#faf0df" stroke="#ecd4ad"/>
+      <text x="90" y="169" text-anchor="middle" font-size="11.5" fill="#7c4d0d">user thinks for 5s…</text>
+      <line x1="95" y1="200" x2="620" y2="200" stroke="#0d7a67" stroke-width="1.8" marker-end="url(#mrE)"/>
+      <text x="360" y="192" text-anchor="middle" font-size="12.5" fill="#33484f">③ retry original call + inputResponses</text>
+      <line x1="625" y1="228" x2="100" y2="228" stroke="#0d7a67" stroke-width="1.8" marker-end="url(#mrE)"/>
+      <text x="360" y="221" text-anchor="middle" font-size="12.5" fill="#085546">④ resultType:"complete" ✓ (may land on another instance)</text>
+    </svg>
+    <p class="fig-cap">MRTR: "the server needs input" no longer requires a reverse long-lived connection — the client retries with answers (drawn from SEP-2322)</p>
+  </div>
+
+  <p class="zh">真实落地的例子:Supabase 在官方博客的合作方评价中说,他们的 MCP 服务器本来就是无状态部署,以前想做 elicitation(执行前和用户确认,比如「新建项目要花这些钱,确认吗」「这个查询会删数据,确认吗」)一直做不了,MRTR 直接解锁了这件事。</p>
+  <p class="en">A concrete adopter: in the release's partner quotes, Supabase notes its MCP server always ran stateless, which made elicitation (confirming with the user before acting — "this new project will cost X, proceed?", "this query deletes data, confirm?") impossible before; MRTR unlocks exactly that.</p>
+  <div class="callout warn">
+    <span class="cl-t zh">可观测性的隐形坑</span><span class="cl-t en">The hidden observability trap</span>
+    <span class="zh">一次逻辑操作现在对应多个 JSON-RPC ID。如果监控按「一个 ID = 一次工具调用」统计,MRTR 会让它把 1 次操作记成 2 次、把 6 秒的端到端耗时记成 1 秒、还丢掉中间人等待的 5 秒。正确做法:在客户端/宿主侧铸造「逻辑操作 ID」贯穿重试,并分开记录服务器处理时长、等待外部输入时长、端到端时长。(来源:MCPJam 迁移指南)</span>
+    <span class="en">One logical operation now maps to multiple JSON-RPC IDs. Monitoring that assumes "one ID = one tool call" will count 1 operation as 2, report a 6-second end-to-end operation as 1 second of work, and lose the 5 seconds of human decision time. The fix: mint a logical-operation ID in the client/host telemetry, carry it across retries, and track server-processing, external-wait, and end-to-end durations separately. (Source: MCPJam migration guide)</span>
+  </div>
+</section>
+
+<section id="s5">
+  <h2 class="zh"><span class="no">5</span>基础设施红利:路由、缓存、追踪</h2>
+  <h2 class="en"><span class="no">5</span>Infrastructure Wins: Routing, Caching, Tracing</h2>
+  <p class="zh">这次升级里最讨运维喜欢的三件事,都指向同一个方向:<strong>让 MCP 流量变成「普通的 HTTP 流量」</strong>,现有的网关、CDN、WAF、追踪系统直接可用。</p>
+  <p class="en">The three changes operators like most all point the same way: <strong>make MCP traffic behave like ordinary HTTP traffic</strong>, so existing gateways, CDNs, WAFs, and tracing systems just work.</p>
+  <dl class="glossary zh">
+    <dt>头路由(SEP-2243)</dt>
+    <dd>Streamable HTTP 请求必须带 <code>Mcp-Method</code>(镜像 JSON-RPC 方法名),<code>tools/call</code> / <code>resources/read</code> / <code>prompts/get</code> 还要带 <code>Mcp-Name</code>。网关不解析 JSON 请求体就能按工具路由、按工具限流、按操作记指标。代价是一条新的校验边界:头和体不一致必须拒绝(HTTP 400 + <code>HeaderMismatch</code> 错误码 -32020),否则网关按头授权、后端按体执行,就是一个协议混淆漏洞。</dd>
+    <dt>可缓存的列表(SEP-2549)</dt>
+    <dd><code>tools/list</code> 等响应带上 <code>ttlMs</code>(可缓存多久)和 <code>cacheScope</code>(public / private)。工具目录不再随连接变化,编排器给多个子 Agent 复用同一份目录,省流量也省 token。服务器要按确定性顺序返回工具;用户相关的目录绝不能标 public。</dd>
+    <dt>W3C Trace Context</dt>
+    <dd><code>_meta</code> 里规范化传递 <code>traceparent</code> / <code>tracestate</code> / <code>baggage</code>,一次 Agent 动作可以进同一条 OpenTelemetry 兼容的分布式追踪。注意 baggage 不是杂物袋:限制大小、白名单键名、不放凭证。</dd>
+  </dl>
+  <dl class="glossary en">
+    <dt>Header routing (SEP-2243)</dt>
+    <dd>Streamable HTTP requests must carry <code>Mcp-Method</code> (mirroring the JSON-RPC method); <code>tools/call</code> / <code>resources/read</code> / <code>prompts/get</code> also carry <code>Mcp-Name</code>. Gateways can route per tool, rate-limit per tool, and record operation metrics without parsing JSON bodies. The price is a new validation boundary: header/body disagreement must be rejected (HTTP 400 + <code>HeaderMismatch</code>, -32020) — a gateway that authorizes on the header while the backend executes the body is a protocol-confusion bypass.</dd>
+    <dt>Cacheable list results (SEP-2549)</dt>
+    <dd>Responses to <code>tools/list</code> and friends carry <code>ttlMs</code> (freshness) and <code>cacheScope</code> (public / private). Tool catalogs no longer vary per connection, so an orchestrator can reuse one catalog across subagents — saving both wire traffic and tokens. Servers should return tools in deterministic order; never mark a user-specific catalog public.</dd>
+    <dt>W3C Trace Context</dt>
+    <dd><code>traceparent</code> / <code>tracestate</code> / <code>baggage</code> now propagate through <code>_meta</code> in a standardized way, so one agent action can join a single OpenTelemetry-compatible trace. Baggage is not a junk drawer: bound its size, allowlist keys, keep credentials out.</dd>
+  </dl>
+  <div class="callout key">
+    <span class="cl-t zh">生态信号</span><span class="cl-t en">Ecosystem signal</span>
+    <span class="zh">发布当天的站台名单说明了这次升级的分量:AWS(Bedrock AgentCore 已支持并贡献了 Tasks 扩展)、Cloudflare(Agents SDK day-zero 支持)、Google Cloud、Microsoft Foundry、Netlify、Figma、Supabase、PostHog、honeycomb.io(称其月度交互查询近 20% 已来自 Agent)。工具侧 FastMCP 4.0 宣布一等支持;框架 mcp-use 称新 SDK v2 让其包体积缩小约 83%、快 25%(单方数据,未独立核实)。</span>
+    <span class="en">The day-one endorsement list shows the release's weight: AWS (supported in Bedrock AgentCore; contributed the Tasks extension), Cloudflare (day-zero Agents SDK support), Google Cloud, Microsoft Foundry, Netlify, Figma, Supabase, PostHog, and honeycomb.io (which says nearly 20% of its monthly interactive queries now come from agents). On the tooling side, FastMCP 4.0 announced first-class support; the mcp-use framework reports the new SDK v2 cut its package size by ~83% and made it 25% faster (vendor's own numbers, not independently verified).</span>
+  </div>
+</section>
+
+<section id="s6">
+  <h2 class="zh"><span class="no">6</span>扩展框架、授权加固与弃用清单</h2>
+  <h2 class="en"><span class="no">6</span>Extensions, Auth Hardening, Deprecations</h2>
+  <h3 class="zh">扩展成为一等公民</h3>
+  <h3 class="en">Extensions become first-class</h3>
+  <p class="zh">MCP 正式确立扩展框架:扩展有命名空间标识、通过能力协商启用、独立演进版本。两个核心官方扩展:<strong>MCP Apps</strong>(2026 年 1 月 26 日成为首个官方扩展,本次并入正式框架)让服务器提供交互式 HTML 界面,宿主在沙箱 iframe 里渲染;<strong>Tasks</strong>(<code>io.modelcontextprotocol/tasks</code>)承载长任务——一次 <code>tools/call</code> 可以返回一个 task handle,客户端用 <code>tasks/get</code> 轮询、<code>tasks/update</code> 更新、<code>tasks/cancel</code> 协作取消;<code>tasks/list</code> 已移除。曾用 2025-11-25 实验版 Tasks 的注意:这是「真正的移植」,不是改个 import。长任务还要自己做配额、过期清理、幂等创建——否则「创建便宜、执行昂贵」的任务就是一个现成的 DoS 原语。</p>
+  <p class="en">MCP now has a formal extensions framework: namespaced identifiers, capability-negotiated activation, independent versioning. Two central official extensions: <strong>MCP Apps</strong> (the first official extension since January 26, 2026, now folded into the formal framework) lets a server ship an interactive HTML UI that the host renders in a sandboxed iframe; <strong>Tasks</strong> (<code>io.modelcontextprotocol/tasks</code>) carries long-running work — a <code>tools/call</code> can return a task handle which the client drives via <code>tasks/get</code> (polling), <code>tasks/update</code>, and cooperative <code>tasks/cancel</code>; <code>tasks/list</code> is removed. If you built on the experimental 2025-11-25 Tasks: this is a real port, not an import rename. Long-running work also needs quotas, expiry/cleanup, and idempotent creation — otherwise "cheap to request, expensive to run" tasks are a ready-made DoS primitive.</p>
+  <h3 class="zh">授权:把 OAuth 的坑填掉几个</h3>
+  <h3 class="en">Authorization: closing OAuth gaps</h3>
+  <p class="zh">授权是实现者花时间最多的地方,这次的加固包括:客户端必须校验授权响应的 <code>iss</code> 参数(RFC 9207,堵住授权服务器混淆漏洞,SEP-2468);客户端凭证绑定签发它的 issuer,不得跨授权服务器复用(SEP-2352);DCR(Dynamic Client Registration,动态客户端注册)正式弃用,转向 <strong>CIMD</strong>(Client ID Metadata Documents:client ID 就是一个指向元数据文档的 URL,授权服务器自己去读,免去逐个注册)——DCR 向后兼容仍可用,但未来版本会移除。</p>
+  <p class="en">Authorization is where implementers spend the most integration time. This round hardens it: clients must validate the <code>iss</code> parameter in authorization responses (RFC 9207, closing an authorization-server mix-up hole, SEP-2468); client credentials are bound to the issuer that minted them and can't be reused across authorization servers (SEP-2352); and DCR (Dynamic Client Registration) is formally deprecated in favor of <strong>CIMD</strong> (Client ID Metadata Documents — the client ID is a URL pointing to a metadata document the authorization server reads itself, avoiding per-server registration). DCR keeps working for backward compatibility but will be removed in a future version.</p>
+  <h3 class="zh">弃用清单(至少保留 12 个月)</h3>
+  <h3 class="en">The deprecation list (kept ≥ 12 months)</h3>
+  <div class="tblwrap zh"><table>
+    <tr><th>弃用项</th><th>原来的角色</th><th>推荐去向</th></tr>
+    <tr><td><strong>Roots</strong></td><td>客户端提供会话级操作边界(如工作目录)</td><td>工具参数、资源 URI 或服务器配置显式传递;客户端给的路径不等于授权,服务器仍要校验</td></tr>
+    <tr><td><strong>Sampling</strong></td><td>服务器「借用」客户端的模型做生成</td><td>服务器直连模型供应商,或改为显式 MRTR 输入流程——这是最贵的一项弃用:凭证、推理成本、数据合规都转到服务器运营方</td></tr>
+    <tr><td><strong>协议 Logging</strong></td><td>服务器向客户端流式发结构化日志</td><td>stdio 用 stderr;生产环境用 OpenTelemetry 与常规日志系统</td></tr>
+    <tr><td><strong>HTTP+SSE 旧传输</strong></td><td>早期远程传输</td><td>Streamable HTTP(此项走单独的较短下线窗口)</td></tr>
+  </table></div>
+  <div class="tblwrap en"><table>
+    <tr><th>Deprecated</th><th>Previous role</th><th>Recommended direction</th></tr>
+    <tr><td><strong>Roots</strong></td><td>Client supplies session-scoped operating boundaries (e.g. a working directory)</td><td>Pass scope explicitly via tool arguments, resource URIs, or server config; a client-supplied path is not authorization — validate server-side</td></tr>
+    <tr><td><strong>Sampling</strong></td><td>Server "borrows" the client's model for generation</td><td>Direct provider integration, or explicit MRTR input flows — the most expensive deprecation: credentials, inference cost, and data compliance shift to the server operator</td></tr>
+    <tr><td><strong>Protocol Logging</strong></td><td>Server streams structured logs to the client</td><td>stderr for stdio; OpenTelemetry plus normal logging in production</td></tr>
+    <tr><td><strong>Legacy HTTP+SSE transport</strong></td><td>The early remote transport</td><td>Streamable HTTP (this one has its own, shorter removal window)</td></tr>
+  </table></div>
+  <p class="zh">另外几处线上变化容易踩空:资源不存在的错误码从自定义 <code>-32002</code> 改为标准 <code>-32602</code>;协议错误分配了 <code>-32020~-32099</code> 区间(-32020 HeaderMismatch、-32021 MissingRequiredClientCapability、-32022 UnsupportedProtocolVersion);工具 schema 升级到完整 JSON Schema 2020-12(支持 <code>oneOf</code> / <code>$ref</code> 等);独立的 HTTP GET 通知流被 <code>subscriptions/listen</code> 订阅流取代,SSE 断流不可续传(<code>Last-Event-ID</code> 不再提供重投递)——这又回到「写操作要自己做幂等」。</p>
+  <p class="en">A few wire-level changes are easy to trip on: the resource-not-found error moves from custom <code>-32002</code> to standard <code>-32602</code>; the <code>-32020…-32099</code> range is now reserved for MCP errors (-32020 HeaderMismatch, -32021 MissingRequiredClientCapability, -32022 UnsupportedProtocolVersion); tool schemas move to full JSON Schema 2020-12 (<code>oneOf</code>, <code>$ref</code>, etc.); and the standalone HTTP GET notification stream is replaced by a <code>subscriptions/listen</code> subscription stream, with SSE resumability gone (<code>Last-Event-ID</code> no longer redelivers) — which again means mutations need application-level idempotency.</p>
+</section>
+
+<section id="s7">
+  <h2 class="zh"><span class="no">7</span>迁移指南与常见坑</h2>
+  <h2 class="en"><span class="no">7</span>Migration Guide &amp; Common Pitfalls</h2>
+  <p class="zh">先说结论:<strong>没有任何东西在 7 月 28 日当天坏掉</strong>。旧客户端和旧服务器可以继续用旧协议对话。断裂只发生在「跨代」:只会新协议的一方遇到只会旧协议的一方。官方版本文档定义三类实现:Legacy(用 initialize 握手,2025-11-25 及之前)、Modern(用逐请求元数据,2026-07-28 起)、Dual-era(两代都支持)。要兼容两代,客户端得主动探测对端年代:stdio 上先探 <code>server/discover</code>,超时或不认识就回退 legacy initialize;HTTP 上看 400 响应体是不是「可识别的 modern 错误」再决定回退——注意 401/403/429 不能当作「对面是旧服务器」的证据。</p>
+  <p class="en">First, the punchline: <strong>nothing broke on July 28</strong>. Legacy clients and servers keep talking legacy MCP to each other. The break is cross-era: a modern-only side meeting a legacy-only side. The official versioning docs define three categories: Legacy (initialize handshake, 2025-11-25 and earlier), Modern (per-request metadata, 2026-07-28+), and Dual-era (supports both). To bridge eras, a client must actively detect the other side: over stdio, probe <code>server/discover</code> and fall back to legacy initialize on timeout or unrecognized errors; over HTTP, inspect whether a 400 body is a recognized modern error before falling back — and never treat 401/403/429 as evidence of a legacy server.</p>
+  <ol class="steps zh">
+    <li><strong>搜代码找依赖。</strong><code>rg 'Mcp-Session-Id|sessionIdGenerator|initialize|initialized' .</code>——逐条审查:哪些是协议上下文(协议现在自带),哪些该进请求中间件,哪些要落持久存储。</li>
+    <li><strong>把跨调用状态改成显式 handle。</strong>绑定主体与租户、每次调用重新鉴权、加过期与可恢复错误。</li>
+    <li><strong>给不可逆工具加幂等键。</strong>并测试「提交后超时重试」的行为;MRTR 续传与 Tasks 更新也要做重放保护。</li>
+    <li><strong>升级 SDK 并显式启用新协议。</strong>TypeScript / Python / Go / C# 四个 Tier 1 SDK 已支持,Rust beta。注意:<strong>新大版本 ≠ 默认走新协议</strong>——TypeScript v2 里 modern 行为是 opt-in 的,默认 <code>Client.connect()</code> 仍可能走旧握手。迁移期钉死 SDK 版本。</li>
+    <li><strong>审计整条 HTTP 链路。</strong>CDN、WAF、网关、反向代理、服务网格逐跳确认 <code>Mcp-*</code> 头存活;头名不区分大小写但值区分,会「规范化大小写」的代理能悄悄弄坏它。</li>
+    <li><strong>四层测试。</strong>单测应用行为 → 官方 conformance 测试套件 → 用 mcp-spec-check 探生产端点 → 拿真实客户端和模型跑评测(协议对了不代表模型会选对工具)。</li>
+  </ol>
+  <ol class="steps en">
+    <li><strong>Search your code for dependencies.</strong> <code>rg 'Mcp-Session-Id|sessionIdGenerator|initialize|initialized' .</code> — review every hit: some is protocol context (now carried by the protocol), some belongs in request middleware, some must move to durable storage.</li>
+    <li><strong>Convert cross-call state to explicit handles.</strong> Bind to principal and tenant, re-authorize per call, add expiry and recoverable errors.</li>
+    <li><strong>Add idempotency keys to irreversible tools.</strong> Test timeout-after-commit retries; apply replay protection to MRTR continuations and Task updates too.</li>
+    <li><strong>Upgrade the SDK and opt in explicitly.</strong> The TypeScript / Python / Go / C# Tier 1 SDKs support 2026-07-28 (Rust in beta). Careful: <strong>a new major version ≠ modern-by-default</strong> — in TypeScript v2, modern behavior is opt-in and a default <code>Client.connect()</code> can still perform the legacy handshake. Pin exact SDK versions during migration.</li>
+    <li><strong>Audit the whole HTTP path.</strong> CDN, WAF, gateway, reverse proxy, service mesh — confirm <code>Mcp-*</code> headers survive every hop; header names are case-insensitive but their values are case-sensitive, so case-normalizing proxies can silently corrupt them.</li>
+    <li><strong>Test at four levels.</strong> Unit-test app behavior → the official conformance suite → probe deployed endpoints with mcp-spec-check → run real clients and models (protocol correctness doesn't mean the model picks the right tool).</li>
+  </ol>
+  <div class="tblwrap zh"><table>
+    <tr><th>你是谁</th><th>紧迫度与动作</th></tr>
+    <tr><td>本地 stdio 服务器作者</td><td>低——从容升级 SDK 即可,很多场景只是版本更新</td></tr>
+    <tr><td>远程 HTTP 服务器作者</td><td>高——立刻审计会话、状态、头、鉴权与部署,这是真正的架构迁移</td></tr>
+    <tr><td>客户端 / 宿主作者</td><td>高——优先做年代探测、discover、MRTR、鉴权与缓存</td></tr>
+    <tr><td>网关 / 平台</td><td>中高——测头校验、路由、追踪与混合版本共存</td></tr>
+    <tr><td>用了实验版 Tasks / Sampling</td><td>Tasks 当成真移植做;Sampling 要当产品与合规决策来规划</td></tr>
+  </table></div>
+  <div class="tblwrap en"><table>
+    <tr><th>You build…</th><th>Urgency &amp; action</th></tr>
+    <tr><td>A local stdio server</td><td>Low — upgrade deliberately; often just an SDK bump</td></tr>
+    <tr><td>A remote HTTP server</td><td>High — audit sessions, state, headers, auth, deployment now; this is a real architectural migration</td></tr>
+    <tr><td>A client / host</td><td>High — prioritize era detection, discovery, MRTR, auth, caching</td></tr>
+    <tr><td>A gateway / platform</td><td>Medium-high — test header validation, routing, tracing, mixed versions</td></tr>
+    <tr><td>Experimental Tasks / Sampling users</td><td>Treat Tasks as a real port; treat Sampling as a product &amp; compliance decision</td></tr>
+  </table></div>
+  <div class="callout warn">
+    <span class="cl-t zh">高频坑位速查</span><span class="cl-t en">Quick pitfall reference</span>
+    <span class="zh">① SDK 升了但没显式 opt-in,以为自己已经是 modern;② 观测系统按 JSON-RPC ID 计数,MRTR 后指标翻倍、时延失真;③ 网关按头授权、后端按体执行(必须校验头体一致);④ 把 <code>_meta</code> 里客户端自报的身份当认证结果(它是不可信输入);⑤ 硬编码 <code>-32002</code> 的断言没改;⑥ 在应用代码里读 <code>resultType</code>(TS v2 SDK 会在返回前消费掉它,不可移植);⑦ 指望 SSE 断线续传(已移除)。</span>
+    <span class="en">① Upgraded the SDK but never opted in — you think you're modern, you're not; ② observability counts JSON-RPC IDs, so MRTR doubles metrics and distorts latency; ③ gateway authorizes on headers while the backend executes the body (must validate header/body agreement); ④ trusting client-self-reported identity in <code>_meta</code> as authenticated context (it's untrusted input); ⑤ leftover hard-coded <code>-32002</code> assertions; ⑥ reading <code>resultType</code> in app code (the TS v2 SDK consumes it before returning — not portable); ⑦ expecting SSE resumability (removed).</span>
+  </div>
+</section>
+
+<section id="s8">
+  <h2 class="zh"><span class="no">8</span>争议:MCP 现在不就是 HTTP 吗?</h2>
+  <h2 class="en"><span class="no">8</span>The Debate: Isn't MCP Just HTTP Now?</h2>
+  <p class="zh">这是社区(如 r/mcp 的讨论)对这次发布最尖锐、也最合理的质疑:既然远程 MCP 现在长得像普通 HTTP 服务,为什么不直接暴露普通 API?社区迁移指南给出的诚实回答是:<strong>有时候确实应该用普通 API</strong>——如果只是一个应用调一个已知服务、不需要动态的 Agent 集成。MCP 的价值在 HTTP 之上:面向 Agent 的工具发现、统一的 tool/resource/prompt schema、宿主-客户端-服务器的通用角色、授权发现、能力与扩展协商、MCP Apps、Tasks,以及一份宿主可以统一套上审批与策略控制的集成契约。把传输层变「无聊」正是目的:协调工作在协议层解决一次,而不是每个集成重新发明。</p>
+  <p class="en">This is the sharpest — and fairest — community pushback (see the r/mcp discussion): if remote MCP now looks like a conventional HTTP service, why not just expose a normal API? The honest answer from the migration guides: <strong>sometimes you should</strong> — if one application calls one known service and doesn't need dynamic agent integration. MCP earns its keep above HTTP: agent-oriented tool discovery, uniform tool/resource/prompt schemas, common host/client/server roles, authorization discovery, capability and extension negotiation, MCP Apps, Tasks, and a single integration contract that hosts can wrap in approval and policy controls. Making the transport boring is the point: solve the coordination problem once at the protocol level instead of reinventing it per integration.</p>
+  <p class="zh">另一处真实分歧是 Sampling 弃用:支持者认为服务器直连模型供应商能自主控制模型选择与评测;反对者指出这把凭证、推理账单、数据处理责任和企业模型政策全压到了服务器运营方头上。官方立场是把它当「产品、安全与计费决策」而非机械迁移——若只是需要用户输入,MRTR 往往是更好的替代。</p>
+  <p class="en">The other live disagreement is the Sampling deprecation: proponents say direct provider integration gives server authors control over model choice and evals; critics note it shifts credentials, inference bills, data-handling duties, and enterprise model policy onto server operators. The official stance: treat it as a product, security, and billing decision, not a mechanical migration — and where you merely need user input, MRTR is often the better replacement.</p>
+  <div class="callout quote">
+    <span class="cl-t zh">官方视角</span><span class="cl-t en">In their words</span>
+    <span class="zh">「这是自远程 MCP 发布一年多以来最重要的一个版本……吸收了过去 18 个月的全部经验,为 MCP 的未来提供了坚实地基。」——David Soria Parra,MCP 联合发明人(官方发布博客)</span>
+    <span class="en">"The new release is MCP's most important since remote MCP first launched over a year ago. It … takes all the lessons learned over the last 18 months to provide a robust foundation for MCP's future." — David Soria Parra, MCP co-inventor (official release blog)</span>
+  </div>
+</section>
+
+<section id="s9">
+  <h2 class="zh"><span class="no">9</span>学习资源</h2>
+  <h2 class="en"><span class="no">9</span>Resources</h2>
+  <ul class="zh">
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28">规范正文(2026-07-28)</a> · <a href="https://modelcontextprotocol.io/specification/2026-07-28/changelog">完整 changelog</a></li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">官方发布博客</a>(本文主要一手来源)· <a href="https://blog.modelcontextprotocol.io/posts/sdk-betas-2026-07-28/">SDK beta 说明</a></li>
+    <li>SDK:<a href="https://github.com/modelcontextprotocol/typescript-sdk">TypeScript</a> · <a href="https://github.com/modelcontextprotocol/python-sdk">Python</a> · <a href="https://github.com/modelcontextprotocol/go-sdk">Go</a> · <a href="https://github.com/modelcontextprotocol/csharp-sdk">C#</a></li>
+    <li>测试:<a href="https://github.com/modelcontextprotocol/conformance">官方 conformance 框架</a> · <a href="https://github.com/Roee-Tsur/mcp-spec-check">mcp-spec-check</a>(线上端点体检)</li>
+    <li>深度迁移指南:<a href="https://mcpjam.substack.com/p/mcp-2026-07-28-goes-stateless-what">MCPJam:What Breaks and How to Migrate</a>(含逐项 checklist)· <a href="https://appwrite.io/blog/post/mcp-goes-stateless-in-the-2026-07-28-specification">Appwrite 解读</a> · <a href="https://composio.dev/content/mcp-2026-07-28-update-statelessness-apps-auth">Composio 解读</a></li>
+  </ul>
+  <ul class="en">
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28">The specification (2026-07-28)</a> · <a href="https://modelcontextprotocol.io/specification/2026-07-28/changelog">full changelog</a></li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">Official release blog</a> (primary source for this document) · <a href="https://blog.modelcontextprotocol.io/posts/sdk-betas-2026-07-28/">SDK beta notes</a></li>
+    <li>SDKs: <a href="https://github.com/modelcontextprotocol/typescript-sdk">TypeScript</a> · <a href="https://github.com/modelcontextprotocol/python-sdk">Python</a> · <a href="https://github.com/modelcontextprotocol/go-sdk">Go</a> · <a href="https://github.com/modelcontextprotocol/csharp-sdk">C#</a></li>
+    <li>Testing: <a href="https://github.com/modelcontextprotocol/conformance">official conformance framework</a> · <a href="https://github.com/Roee-Tsur/mcp-spec-check">mcp-spec-check</a> (deployed-endpoint probe)</li>
+    <li>Deep migration guides: <a href="https://mcpjam.substack.com/p/mcp-2026-07-28-goes-stateless-what">MCPJam: What Breaks and How to Migrate</a> (with per-item checklists) · <a href="https://appwrite.io/blog/post/mcp-goes-stateless-in-the-2026-07-28-specification">Appwrite's take</a> · <a href="https://composio.dev/content/mcp-2026-07-28-update-statelessness-apps-auth">Composio's take</a></li>
+  </ul>
+</section>
+
+</div>
+
+<footer>
+  <p class="zh"><strong>调研时间:2026-08-14。</strong>本文事实以 MCP 官方发布博客与规范为一手来源,迁移细节与坑位参考 MCPJam 迁移指南(2026-07-31)等社区资料,均于正文标注;协议仍在快速演进,实现前请以官方最新规范为准。厂商自述的性能数字(如 mcp-use 的 83%/25%)未独立核实。</p>
+  <p class="en"><strong>Researched: 2026-08-14.</strong> Facts are drawn primarily from the official MCP release blog and specification, with migration details and pitfalls from community sources such as the MCPJam migration guide (2026-07-31), attributed inline. The protocol is evolving quickly — consult the latest official spec before implementing. Vendor-reported performance numbers (e.g. mcp-use's 83%/25%) are not independently verified.</p>
+  <ol class="zh">
+    <li><a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">The 2026-07-28 Specification — MCP 官方博客(2026-07-28)</a></li>
+    <li><a href="https://mcpjam.substack.com/p/mcp-2026-07-28-goes-stateless-what">MCP 2026-07-28 Goes Stateless — MCPJam(2026-07-31)</a></li>
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28">MCP Specification 2026-07-28</a></li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/sdk-betas-2026-07-28/">Beta SDKs for the 2026-07-28 RC — MCP 官方博客</a></li>
+    <li><a href="https://appwrite.io/blog/post/mcp-goes-stateless-in-the-2026-07-28-specification">What's new in the MCP 2026-07-28 specification — Appwrite</a></li>
+    <li><a href="https://composio.dev/content/mcp-2026-07-28-update-statelessness-apps-auth">The MCP 2026-07-28 Update — Composio</a></li>
+  </ol>
+  <ol class="en">
+    <li><a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">The 2026-07-28 Specification — official MCP blog (2026-07-28)</a></li>
+    <li><a href="https://mcpjam.substack.com/p/mcp-2026-07-28-goes-stateless-what">MCP 2026-07-28 Goes Stateless — MCPJam (2026-07-31)</a></li>
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28">MCP Specification 2026-07-28</a></li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/sdk-betas-2026-07-28/">Beta SDKs for the 2026-07-28 RC — official MCP blog</a></li>
+    <li><a href="https://appwrite.io/blog/post/mcp-goes-stateless-in-the-2026-07-28-specification">What's new in the MCP 2026-07-28 specification — Appwrite</a></li>
+    <li><a href="https://composio.dev/content/mcp-2026-07-28-update-statelessness-apps-auth">The MCP 2026-07-28 Update — Composio</a></li>
+  </ol>
+</footer>
+
+<script>
+(function(){
+  var body=document.body, htmlEl=document.documentElement, btn=document.getElementById('langBtn');
+  function apply(lang){
+    body.setAttribute('data-lang',lang);
+    htmlEl.setAttribute('lang',lang==='zh'?'zh-CN':'en');
+    btn.textContent=lang==='zh'?'EN':'中';
+    try{localStorage.setItem('mcp0728-lang',lang);}catch(e){}
+    reveal();
+  }
+  var saved=null;
+  try{saved=localStorage.getItem('mcp0728-lang');}catch(e){}
+  if(!saved){saved=(navigator.language||'zh').toLowerCase().indexOf('zh')===0?'zh':'en';}
+  btn.addEventListener('click',function(){apply(body.getAttribute('data-lang')==='zh'?'en':'zh');});
+
+  // progress bar
+  var pbar=document.getElementById('pbar');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    pbar.style.width=(h>0?(window.scrollY/h*100):0)+'%';
+    highlight();
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+
+  // toc
+  var toc=document.getElementById('toc'), tocBtn=document.getElementById('tocBtn');
+  tocBtn.addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A')toc.classList.remove('open');});
+  var links=[].slice.call(toc.querySelectorAll('a'));
+  var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function highlight(){
+    var cur=0;
+    for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].getBoundingClientRect().top<130)cur=i;}
+    links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+  }
+
+  // figure entrance animation
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var io=null;
+  if('IntersectionObserver' in window&&!reduce){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});
+    },{threshold:.15});
+  }
+  function reveal(){
+    var figs=[].slice.call(document.querySelectorAll('.figure'));
+    figs.forEach(function(f){
+      var visible=f.offsetParent!==null;
+      if(!visible)return;
+      if(reduce||!io){f.classList.add('in');return;}
+      var r=f.getBoundingClientRect();
+      if(r.top<window.innerHeight&&r.bottom>0){f.classList.add('in');}
+      else if(!f.classList.contains('in')){io.observe(f);}
+    });
+  }
+  apply(saved);
+  onScroll();
+})();
+</script>
+</body>
+</html>
