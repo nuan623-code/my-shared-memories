@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>同态加密与隐私保护 AI 推理:读懂 Google HEIR | Homomorphic Encryption &amp; Private AI Inference: Understanding Google HEIR</title>
+<style>
+/* ── 主题气质:密码学 / 精密 / 隐秘 / 编译器 —— 深青墨 + 琥珀 ── */
+:root{
+  --bg:#f4f7f6; --paper:#ffffff; --ink:#0f2725; --ink2:#2c4a47; --muted:#63807c;
+  --line:#d5e3e0; --line2:#e8f0ee;
+  --teal:#0d6b63; --teal-d:#08423e; --teal-soft:#e2f2ef; --teal-mid:#3f9a90;
+  --amber:#b7791f; --amber-soft:#fdf3e0; --amber-d:#8a5a12;
+  --rose:#a13a4a; --rose-soft:#fdeef0;
+  --code-bg:#08302d; --code-ink:#cfe9e4;
+  --r:14px; --shadow:0 1px 2px rgba(8,44,40,.05),0 8px 26px rgba(8,44,40,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.82;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Georgia,serif;
+  -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Georgia,"Times New Roman",serif}
+
+/* progress */
+#prog{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--teal),var(--teal-mid),var(--amber))}
+
+/* lang toggle */
+#langbtn{position:fixed;top:14px;right:14px;z-index:70;border:1.5px solid var(--teal);
+  background:rgba(255,255,255,.92);backdrop-filter:blur(8px);color:var(--teal-d);
+  font-size:13px;font-weight:800;letter-spacing:.04em;padding:7px 14px;border-radius:99px;cursor:pointer;
+  box-shadow:0 2px 10px rgba(8,44,40,.12)}
+#langbtn:hover{background:var(--teal);color:#fff}
+
+/* hero: 网格 + 大字 + 留白(非深色渐变) */
+header.hero{background:var(--paper);border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+header.hero::before{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(var(--line2) 1px,transparent 1px),linear-gradient(90deg,var(--line2) 1px,transparent 1px);
+  background-size:34px 34px;mask-image:radial-gradient(ellipse 80% 70% at 72% 30%,#000 10%,transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 70% at 72% 30%,#000 10%,transparent 75%)}
+.hin{position:relative;max-width:860px;margin:0 auto;padding:70px 24px 48px}
+.kicker{display:inline-block;font-size:12px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--teal-d);background:var(--teal-soft);border:1px solid #bcdfd9;padding:5px 13px;border-radius:99px}
+h1{font-size:clamp(28px,6vw,46px);line-height:1.22;margin:18px 0 12px;font-weight:840;letter-spacing:-.022em}
+h1 .hl{background:linear-gradient(transparent 62%,#f6e0b0 62%)}
+.lede{font-size:clamp(16px,2.4vw,19px);color:var(--ink2);margin:0;max-width:46em}
+.meta{margin-top:22px;font-size:13.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.meta b{color:var(--teal-d)}
+.pill{border:1px solid var(--line);background:#fff;border-radius:99px;padding:3px 11px}
+
+/* layout */
+.shell{max-width:860px;margin:0 auto;padding:0 24px 90px}
+nav#toc{position:fixed;left:max(14px,calc(50vw - 640px));top:96px;width:196px;z-index:50;
+  background:rgba(255,255,255,.78);backdrop-filter:blur(14px);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px 12px;font-size:13.2px;box-shadow:var(--shadow);max-height:74vh;overflow:auto}
+nav#toc b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+nav#toc a{display:block;color:var(--ink2);text-decoration:none;padding:5px 8px;border-radius:7px;line-height:1.45}
+nav#toc a:hover{background:var(--teal-soft);color:var(--teal-d)}
+nav#toc a.on{background:var(--teal);color:#fff;font-weight:700}
+#tocToggle{display:none}
+@media(max-width:1180px){
+  nav#toc{left:12px;top:auto;bottom:64px;width:min(240px,72vw);transform:translateX(-115%);transition:transform .26s}
+  nav#toc.open{transform:none}
+  #tocToggle{display:block;position:fixed;left:12px;bottom:14px;z-index:55;width:44px;height:44px;border-radius:50%;
+    border:1.5px solid var(--teal);background:#fff;color:var(--teal-d);font-size:19px;cursor:pointer;box-shadow:var(--shadow)}
+}
+
+section{padding:44px 0 8px;scroll-margin-top:26px}
+h2{font-size:clamp(21px,3.6vw,27px);margin:0 0 6px;font-weight:800;letter-spacing:-.015em;line-height:1.34}
+h2::before{content:"";display:block;width:42px;height:4px;border-radius:3px;background:var(--teal);margin-bottom:14px}
+h3{font-size:18.5px;margin:30px 0 6px;font-weight:780;color:var(--teal-d)}
+h4{font-size:16px;margin:20px 0 4px;font-weight:750;color:var(--ink2)}
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px;padding-left:22px}
+li{margin-bottom:7px}
+a{color:var(--teal)}
+strong{font-weight:760;color:var(--teal-d)}
+.sec-lead{color:var(--muted);font-size:15px;margin:-2px 0 20px;font-style:italic}
+
+/* components */
+.def{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--teal);
+  border-radius:var(--r);padding:18px 22px;margin:20px 0;box-shadow:var(--shadow)}
+.def .term{font-weight:830;font-size:17.5px;color:var(--teal-d);margin-bottom:4px}
+.def .plain{color:var(--ink2)}
+.def .strict{font-size:14.6px;color:var(--muted);border-top:1px dashed var(--line);margin-top:11px;padding-top:10px}
+
+.callout{border-radius:var(--r);padding:15px 20px;margin:20px 0;font-size:16px}
+.callout.key{background:var(--teal-soft);border:1px solid #b9ded8}
+.callout.warn{background:var(--amber-soft);border:1px solid #f0dcb4}
+.callout.bad{background:var(--rose-soft);border:1px solid #f2ccd2}
+.callout .ct{font-weight:820;display:block;margin-bottom:3px}
+.callout.key .ct{color:var(--teal-d)} .callout.warn .ct{color:var(--amber-d)} .callout.bad .ct{color:var(--rose)}
+
+.analogy{background:linear-gradient(180deg,#fffdf7,#fdf6e8);border:1px dashed #e3ceA0;border-radius:var(--r);
+  padding:16px 20px;margin:20px 0}
+.analogy .ct{font-weight:820;color:var(--amber-d);display:block;margin-bottom:3px}
+
+.steps{counter-reset:s;list-style:none;padding:0;margin:20px 0}
+.steps li{counter-increment:s;position:relative;padding:13px 16px 13px 52px;background:var(--paper);
+  border:1px solid var(--line);border-radius:11px;margin-bottom:10px;box-shadow:var(--shadow)}
+.steps li::before{content:counter(s);position:absolute;left:15px;top:13px;width:25px;height:25px;border-radius:50%;
+  background:var(--teal);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center}
+.steps li b{display:block;color:var(--teal-d);margin-bottom:2px}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
+.stat .n{font-size:23px;font-weight:850;color:var(--teal);line-height:1.2;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13.3px;color:var(--muted);margin-top:3px;line-height:1.5}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:15px 18px;overflow-x:auto;
+  font-size:13.4px;line-height:1.62;margin:15px 0;border:1px solid #0d3b37}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+p code,li code,td code{background:var(--teal-soft);color:var(--teal-d);padding:1px 6px;border-radius:5px;font-size:.9em}
+.codecap{font-size:12.8px;color:var(--muted);margin:-9px 0 16px}
+
+.tablewrap{overflow-x:auto;margin:20px 0}
+table{border-collapse:collapse;width:100%;background:var(--paper);border-radius:var(--r);overflow:hidden;
+  box-shadow:var(--shadow);font-size:15.2px;min-width:520px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line2);vertical-align:top}
+th{background:var(--teal-d);color:#e8f5f2;font-weight:750;font-size:14px;letter-spacing:.02em}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:#fafcfb}
+
+.glossary{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:6px 20px;margin:20px 0;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:800;color:var(--teal-d);margin-top:13px;font-size:15.6px}
+.glossary dd{margin:2px 0 11px;color:var(--ink2);font-size:15.4px}
+
+details.rephrase{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:11px 17px;margin:16px 0}
+details.rephrase summary{cursor:pointer;font-weight:750;color:var(--teal);font-size:15px}
+details.rephrase p{margin:10px 0 2px;color:var(--ink2);font-size:15.4px}
+
+.figure{margin:26px 0;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  padding:18px 16px 12px;box-shadow:var(--shadow);opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.4px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.6}
+.figure .dash{stroke-dasharray:var(--dl,400);stroke-dashoffset:var(--dl,400);transition:stroke-dashoffset 1.1s ease .25s}
+.figure.in .dash{stroke-dashoffset:0}
+@media(prefers-reduced-motion:reduce){
+  .figure{opacity:1;transform:none;transition:none}
+  .figure .dash{stroke-dashoffset:0;transition:none}
+}
+
+.srclist{font-size:14.4px;color:var(--ink2)}
+.srclist li{margin-bottom:9px;line-height:1.6}
+footer{border-top:1px solid var(--line);margin-top:54px;padding:30px 0 10px;color:var(--muted);font-size:14px}
+footer a{color:var(--teal)}
+.disc{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:13px 17px;font-size:14px;margin:16px 0}
+
+@media(max-width:620px){
+  body{font-size:16px}
+  .hin{padding:54px 20px 38px}
+  .shell{padding:0 20px 80px}
+  section{padding:34px 0 6px}
+  pre{font-size:12.4px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN ☰ 深度学习文档 · 2026-08-17 Deep Dive · 2026-08-17 当服务器 看不见你的数据 也能推理:同态加密与 Google HEIR Inference When the Server …">
+<meta property="og:title" content="同态加密与隐私保护 AI 推理:读懂 Google HEIR | Homomorphic Encryption &amp;amp; Private AI Inference: Understanding Google HEIR">
+<meta property="og:description" content="EN ☰ 深度学习文档 · 2026-08-17 Deep Dive · 2026-08-17 当服务器 看不见你的数据 也能推理:同态加密与 Google HEIR Inference When the Server …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-17-tong-tai-jia-mi-yu-yin-si-bao-hu-tui-li.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-17-tong-tai-jia-mi-yu-yin-si-bao-hu-tui-li.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "同态加密与隐私保护 AI 推理:读懂 Google HEIR | Homomorphic Encryption &amp; Private AI Inference: Understanding Google HEIR", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-17-tong-tai-jia-mi-yu-yin-si-bao-hu-tui-li.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-17", "dateModified": "2026-08-17"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="prog"></div>
+<button id="langbtn" type="button">EN</button>
+<button id="tocToggle" type="button" aria-label="目录">☰</button>
+
+<header class="hero"><div class="hin">
+  <span class="kicker zh">深度学习文档 · 2026-08-17</span>
+  <span class="kicker en">Deep Dive · 2026-08-17</span>
+  <h1 class="zh">当服务器<span class="hl">看不见你的数据</span>也能推理:同态加密与 Google HEIR</h1>
+  <h1 class="en">Inference When the Server <span class="hl">Never Sees Your Data</span>: Homomorphic Encryption and Google HEIR</h1>
+  <p class="lede zh">2026 年 8 月 14 日,Google 开源了 HEIR —— 一个能把普通模型自动改写成「在密文上跑」的编译器。这份文档讲清楚:它到底做了什么、怎么上手、什么场景值得用、以及为什么它仍然很慢。</p>
+  <p class="lede en">On August 14, 2026, Google open-sourced HEIR — a compiler that rewrites ordinary models so they run directly on ciphertexts. This document covers what it actually does, how to get started, where it's worth using, and why it is still slow.</p>
+  <div class="meta zh"><span class="pill">调研时间:<b>2026-08-17</b></span><span class="pill">覆盖:是什么 / 怎么用 / 什么场景 / 和谁比 / 有什么坑</span><span class="pill">全部事实标注来源</span></div>
+  <div class="meta en"><span class="pill">Researched: <b>2026-08-17</b></span><span class="pill">Covers: what / how / where / vs. alternatives / pitfalls</span><span class="pill">Every claim sourced</span></div>
+</div></header>
+
+<nav id="toc">
+  <b class="zh">目录</b><b class="en">Contents</b>
+  <a href="#tldr"><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></a>
+  <a href="#why"><span class="zh">1. 为什么需要它</span><span class="en">1. Why it exists</span></a>
+  <a href="#concepts"><span class="zh">2. 核心概念</span><span class="en">2. Core concepts</span></a>
+  <a href="#howto"><span class="zh">3. 怎么用 HEIR</span><span class="en">3. How to use HEIR</span></a>
+  <a href="#pipeline"><span class="zh">4. 编译管线拆解</span><span class="en">4. Inside the pipeline</span></a>
+  <a href="#cases"><span class="zh">5. 落地场景</span><span class="en">5. Real applications</span></a>
+  <a href="#compare"><span class="zh">6. 和 TEE / MPC 比</span><span class="en">6. vs. TEE / MPC / ZK</span></a>
+  <a href="#pitfalls"><span class="zh">7. 坑与限制</span><span class="en">7. Pitfalls and limits</span></a>
+  <a href="#glossary"><span class="zh">8. 术语表</span><span class="en">8. Glossary</span></a>
+  <a href="#resources"><span class="zh">9. 学习资源</span><span class="en">9. Resources</span></a>
+  <a href="#sources"><span class="zh">来源清单</span><span class="en">Sources</span></a>
+</nav>
+
+<div class="shell">
+
+<!-- ══════ TLDR ══════ -->
+<section id="tldr">
+  <h2 class="zh">30 秒速览</h2>
+  <h2 class="en">The 30-second version</h2>
+
+  <p class="zh">今天几乎所有云端 AI 都有一个默认前提:<strong>你得先把明文数据交给服务器</strong>。同态加密(Homomorphic Encryption,简称 HE)推翻了这个前提——它让服务器能在<strong>加密后的数据</strong>上直接做计算,算完返回一个加密结果,只有你手上的密钥能解开。整个过程中服务器从没见过明文。</p>
+  <p class="en">Nearly all cloud AI today assumes one thing: <strong>you hand the server your plaintext data first</strong>. Homomorphic encryption (HE) removes that assumption — the server computes directly on <strong>encrypted</strong> data, returns an encrypted result, and only your key can open it. The server never sees plaintext at any point.</p>
+
+  <p class="zh">这不是新想法,但一直卡在两件事上:<strong>太慢</strong>,以及<strong>太难写</strong>。Google 的 HEIR 攻的是第二件。Google 官方博客(2026-08-14)的说法是:「手工把一个现有程序高效改造成同态加密版本,需要一支密码学团队」;HEIR 的目标是让你「用 Python 写程序,标注哪些类型是 secret,剩下的交给 HEIR 编译」。</p>
+  <p class="en">This isn't a new idea, but it has been stuck on two problems: <strong>it's too slow</strong>, and <strong>it's too hard to write</strong>. Google's HEIR attacks the second. As Google's blog put it (2026-08-14): "manually converting an existing program to use homomorphic encryption efficiently requires a team of cryptographers." HEIR's pitch is that you "write a program in Python, annotate the types to mark which are secret, and HEIR will compile the rest."</p>
+
+  <figure class="figure zh">
+    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三种数据处理路线的对比:明文上云、纯本地推理、密文推理">
+      <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#3f9a90"/></marker></defs>
+      <text x="360" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2725">同一个需求,三条路线</text>
+      <!-- row 1 -->
+      <rect x="24" y="46" width="672" height="70" rx="10" fill="#fdeef0" stroke="#f2ccd2"/>
+      <text x="40" y="70" font-size="13" font-weight="700" fill="#a13a4a">① 明文上云(今天的默认)</text>
+      <rect x="300" y="58" width="88" height="30" rx="7" fill="#fff" stroke="#e0b8bf"/><text x="344" y="78" text-anchor="middle" font-size="12" fill="#0f2725">明文数据</text>
+      <line class="dash" style="--dl:60" x1="394" y1="73" x2="446" y2="73" stroke="#a13a4a" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="452" y="58" width="96" height="30" rx="7" fill="#fff" stroke="#e0b8bf"/><text x="500" y="78" text-anchor="middle" font-size="12" fill="#0f2725">云端模型</text>
+      <text x="40" y="96" font-size="11.5" fill="#63807c">能力最强,但服务器完整看到你的数据 · 泄露 / 合规风险</text>
+      <text x="600" y="78" font-size="18">👁️</text>
+      <!-- row 2 -->
+      <rect x="24" y="124" width="672" height="70" rx="10" fill="#fdf3e0" stroke="#f0dcb4"/>
+      <text x="40" y="148" font-size="13" font-weight="700" fill="#8a5a12">② 纯本地推理</text>
+      <rect x="300" y="136" width="88" height="30" rx="7" fill="#fff" stroke="#e3ceA0"/><text x="344" y="156" text-anchor="middle" font-size="12" fill="#0f2725">明文数据</text>
+      <line class="dash" style="--dl:60" x1="394" y1="151" x2="446" y2="151" stroke="#b7791f" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="452" y="136" width="96" height="30" rx="7" fill="#fff" stroke="#e3ceA0"/><text x="500" y="156" text-anchor="middle" font-size="12" fill="#0f2725">本机模型</text>
+      <text x="40" y="174" font-size="11.5" fill="#63807c">数据不出门,但受限于本机算力;把模型发到端上又会泄露模型 IP</text>
+      <text x="600" y="156" font-size="18">📵</text>
+      <!-- row 3 -->
+      <rect x="24" y="202" width="672" height="82" rx="10" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="40" y="226" font-size="13" font-weight="700" fill="#08423e">③ 密文推理(HE / HEIR)</text>
+      <rect x="248" y="214" width="80" height="30" rx="7" fill="#fff" stroke="#a7d4cd"/><text x="288" y="234" text-anchor="middle" font-size="12" fill="#0f2725">🔒 密文</text>
+      <line class="dash" style="--dl:50" x1="334" y1="229" x2="378" y2="229" stroke="#0d6b63" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="384" y="214" width="112" height="30" rx="7" fill="#fff" stroke="#a7d4cd"/><text x="440" y="234" text-anchor="middle" font-size="12" fill="#0f2725">云端密文计算</text>
+      <line class="dash" style="--dl:50" x1="502" y1="229" x2="546" y2="229" stroke="#0d6b63" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="552" y="214" width="96" height="30" rx="7" fill="#fff" stroke="#a7d4cd"/><text x="600" y="234" text-anchor="middle" font-size="12" fill="#0f2725">🔑 本地解密</text>
+      <text x="40" y="264" font-size="11.5" fill="#2c4a47">服务器算得出结果,但全程看不见明文 —— 代价是慢 10³–10⁵ 倍</text>
+      <text x="660" y="234" font-size="18">🙈</text>
+    </svg>
+    <div class="fig-cap">图 1:同一个「云端推理」需求的三条路线。密文推理把「能力 vs 隐私」的取舍,换成了「隐私 vs 成本」的取舍。</div>
+  </figure>
+
+  <figure class="figure en">
+    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison of three routes: plaintext to cloud, on-device inference, encrypted inference">
+      <defs><marker id="ar-e" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#3f9a90"/></marker></defs>
+      <text x="360" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2725">One need, three routes</text>
+      <rect x="24" y="46" width="672" height="70" rx="10" fill="#fdeef0" stroke="#f2ccd2"/>
+      <text x="40" y="70" font-size="13" font-weight="700" fill="#a13a4a">1. Plaintext to cloud (today's default)</text>
+      <rect x="300" y="58" width="88" height="30" rx="7" fill="#fff" stroke="#e0b8bf"/><text x="344" y="78" text-anchor="middle" font-size="12" fill="#0f2725">plaintext</text>
+      <line class="dash" style="--dl:60" x1="394" y1="73" x2="446" y2="73" stroke="#a13a4a" stroke-width="2" marker-end="url(#ar-e)"/>
+      <rect x="452" y="58" width="96" height="30" rx="7" fill="#fff" stroke="#e0b8bf"/><text x="500" y="78" text-anchor="middle" font-size="12" fill="#0f2725">cloud model</text>
+      <text x="40" y="96" font-size="11.5" fill="#63807c">Most capable, but the server sees everything · breach and compliance risk</text>
+      <text x="600" y="78" font-size="18">👁️</text>
+      <rect x="24" y="124" width="672" height="70" rx="10" fill="#fdf3e0" stroke="#f0dcb4"/>
+      <text x="40" y="148" font-size="13" font-weight="700" fill="#8a5a12">2. On-device only</text>
+      <rect x="300" y="136" width="88" height="30" rx="7" fill="#fff" stroke="#e3ceA0"/><text x="344" y="156" text-anchor="middle" font-size="12" fill="#0f2725">plaintext</text>
+      <line class="dash" style="--dl:60" x1="394" y1="151" x2="446" y2="151" stroke="#b7791f" stroke-width="2" marker-end="url(#ar-e)"/>
+      <rect x="452" y="136" width="96" height="30" rx="7" fill="#fff" stroke="#e3ceA0"/><text x="500" y="156" text-anchor="middle" font-size="12" fill="#0f2725">local model</text>
+      <text x="40" y="174" font-size="11.5" fill="#63807c">Data stays home, but device compute limits you; shipping the model leaks its IP</text>
+      <text x="600" y="156" font-size="18">📵</text>
+      <rect x="24" y="202" width="672" height="82" rx="10" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="40" y="226" font-size="13" font-weight="700" fill="#08423e">3. Encrypted inference (HE / HEIR)</text>
+      <rect x="248" y="214" width="80" height="30" rx="7" fill="#fff" stroke="#a7d4cd"/><text x="288" y="234" text-anchor="middle" font-size="12" fill="#0f2725">🔒 ciphertext</text>
+      <line class="dash" style="--dl:50" x1="334" y1="229" x2="378" y2="229" stroke="#0d6b63" stroke-width="2" marker-end="url(#ar-e)"/>
+      <rect x="384" y="214" width="112" height="30" rx="7" fill="#fff" stroke="#a7d4cd"/><text x="440" y="234" text-anchor="middle" font-size="12" fill="#0f2725">compute on ciphertext</text>
+      <line class="dash" style="--dl:50" x1="502" y1="229" x2="546" y2="229" stroke="#0d6b63" stroke-width="2" marker-end="url(#ar-e)"/>
+      <rect x="552" y="214" width="96" height="30" rx="7" fill="#fff" stroke="#a7d4cd"/><text x="600" y="234" text-anchor="middle" font-size="12" fill="#0f2725">🔑 decrypt locally</text>
+      <text x="40" y="264" font-size="11.5" fill="#2c4a47">The server produces a result without ever seeing plaintext — at 10³–10⁵× the cost</text>
+      <text x="660" y="234" font-size="18">🙈</text>
+    </svg>
+    <div class="fig-cap">Fig. 1 — Three routes to the same "cloud inference" need. Encrypted inference swaps a capability-vs-privacy trade-off for a privacy-vs-cost one.</div>
+  </figure>
+
+  <div class="callout key">
+    <span class="ct zh">一句话</span>
+    <span class="ct en">In one line</span>
+    <span class="zh">HEIR 是一个基于 MLIR 的开源 FHE 编译器工具链,由 Google 维护,目标是成为「FHE 领域的行业标准编译器」。它不是让 FHE 变快的魔法,而是把「写 FHE 程序」这件事从密码学工程降级成编译器配置。</span>
+    <span class="en">HEIR is an MLIR-based open-source FHE compiler toolchain maintained by Google, aiming to be "the industry-standard compiler for FHE." It is not magic that makes FHE fast; it demotes "writing an FHE program" from cryptography engineering to compiler configuration.</span>
+  </div>
+</section>
+
+<!-- ══════ WHY ══════ -->
+<section id="why">
+  <h2 class="zh">1. 为什么需要它:端到端加密留下的那个洞</h2>
+  <h2 class="en">1. Why it exists: the hole left by end-to-end encryption</h2>
+  <p class="sec-lead zh">先讲痛点,再讲定义。</p>
+  <p class="sec-lead en">Motivation first, definitions later.</p>
+
+  <p class="zh">Google 的博客把问题说得很直接:标准的端到端加密其实是一笔<strong>交易</strong>——用户数据能防住数据泄露,但服务提供方也因此<strong>没法再提供任何依赖这份数据的功能</strong>,比如垃圾邮件检测、病毒检测。</p>
+  <p class="en">Google's post states the problem plainly: standard end-to-end encryption is a <strong>trade-off</strong> — user data is protected from breaches, but the service provider then <strong>cannot provide any feature that depends on that data</strong>, such as spam or virus detection.</p>
+
+  <p class="zh">那把计算搬到本地呢?博客也否掉了:本地处理「受限于本地设备的能力,以及服务方 IP 的敏感度」——把专有模型发到设备上,就有<strong>模型被窃取</strong>的风险。所以这是一个三方为难的局面:数据敏感、算力在云上、模型也是资产。</p>
+  <p class="en">What about moving compute to the device? The post rules that out too: local processing is "limited by the capabilities of the local device and the sensitivity of the service provider's IP" — shipping a proprietary model to a device <strong>risks leaking the model</strong>. So it is a three-way bind: the data is sensitive, the compute is in the cloud, and the model is itself an asset.</p>
+
+  <div class="analogy">
+    <span class="ct zh">类比:委托冲印底片</span>
+    <span class="ct en">Analogy: developing a film negative</span>
+    <p class="zh">你要把一卷底片送去冲印店。传统做法是把底片交出去——店员看得到每一张照片。同态加密相当于:你把底片装进一个<strong>特制暗盒</strong>,店员的机器能隔着盒子完成冲印的每一道工序,取出来的成品还在盒子里,只有你手上的钥匙能打开。店员全程知道自己在「冲印」,但从没看过任何一张画面。</p>
+    <p class="en">You send a roll of film to a lab. Normally you hand over the negatives — the technician sees every frame. Homomorphic encryption is like sealing the roll in a <strong>special light-tight box</strong>: the lab's machine performs every step of development through the box, and the finished prints come out still inside it, openable only with your key. The technician knows they were developing film, but never saw a single frame.</p>
+  </div>
+
+  <p class="zh">这件事对哪些行业最要紧?博客点名了<strong>医疗和金融</strong>——这些领域「对风险更加厌恶,而且严格的法规限制了机构之间的数据共享」。这正是密文推理的价值所在:它不是让现有产品更快,而是让某些<strong>本来根本不可能上云的工作负载</strong>变得可能。</p>
+  <p class="en">Which industries care most? The post names <strong>healthcare and finance</strong> — sectors that are "even more averse to these risks," where "strict regulations limit data sharing across institutions." That is where the value sits: encrypted inference doesn't make existing products faster, it makes certain workloads <strong>that could never have gone to the cloud at all</strong> possible.</p>
+
+  <div class="callout key">
+    <span class="ct zh">关键转换</span><span class="ct en">The key reframing</span>
+    <span class="zh">博客里最值得记住的一句:同态加密「有不小的成本开销,但它把『能力 / 隐私』的取舍,转换成了一个<strong>成本问题</strong>。而同态加密的成本正在快速下降。」——这是判断这条路线是否值得押注的核心论点。</span>
+    <span class="en">The most quotable line: homomorphic encryption "has a nontrivial cost overhead, [but] it shifts the capability/privacy trade-off to a question of cost. And the cost of homomorphic encryption is rapidly decreasing." That single reframing is the whole bet.</span>
+  </div>
+</section>
+
+<!-- ══════ CONCEPTS ══════ -->
+<section id="concepts">
+  <h2 class="zh">2. 核心概念:噪声、bootstrapping,和为什么非线性这么贵</h2>
+  <h2 class="en">2. Core concepts: noise, bootstrapping, and why nonlinearity is expensive</h2>
+  <p class="sec-lead zh">理解这三件事,就能理解 FHE 的全部成本结构。</p>
+  <p class="sec-lead en">Understand these three things and you understand FHE's entire cost structure.</p>
+
+  <div class="def">
+    <div class="term zh">同态加密(Homomorphic Encryption, HE)</div>
+    <div class="term en">Homomorphic Encryption (HE)</div>
+    <div class="plain zh">一种加密方式,它的特别之处是:<strong>对密文做运算,等价于对明文做同样的运算</strong>。你加密 3 和 5 得到两坨乱码,把这两坨乱码相加得到第三坨乱码,解密出来正好是 8。服务器全程只碰乱码。</div>
+    <div class="plain en">An encryption scheme with one special property: <strong>computing on ciphertexts is equivalent to computing on the underlying plaintexts</strong>. Encrypt 3 and 5, get two blobs; add the blobs, get a third blob; decrypt it and you get exactly 8. The server only ever touched blobs.</div>
+    <div class="strict zh">「Fully(全)同态加密」FHE 指的是加法和乘法都支持、且可以任意次组合——因为任何计算原则上都能拆成加法和乘法,所以理论上什么都能算。</div>
+    <div class="strict en">"Fully" homomorphic encryption (FHE) means both addition and multiplication are supported and can be composed arbitrarily — since any computation can in principle be decomposed into additions and multiplications, anything is computable in theory.</div>
+  </div>
+
+  <h3 class="zh">2.1 噪声:每做一次运算,密文就「脏」一点</h3>
+  <h3 class="en">2.1 Noise: every operation makes the ciphertext a bit dirtier</h3>
+  <p class="zh">这是 FHE 最反直觉、也最决定成本的一点。为了保证安全性,加密时会往密文里掺入<strong>随机噪声</strong>。问题是:每做一次同态运算,噪声都会变大——而且乘法比加法涨得凶得多。研究文献的描述是:噪声在若干次运算后会<strong>指数级增长</strong>,一旦超过阈值,解密出来的就是垃圾。</p>
+  <p class="en">This is FHE's most counter-intuitive property and the one that sets its cost. For security, encryption mixes <strong>random noise</strong> into the ciphertext. The catch: every homomorphic operation grows that noise — and multiplication grows it far faster than addition. The literature describes noise as increasing <strong>exponentially</strong> after several operations; past a threshold, decryption returns garbage.</p>
+
+  <div class="def">
+    <div class="term zh">Bootstrapping(自举)</div>
+    <div class="term en">Bootstrapping</div>
+    <div class="plain zh">给一个「脏了」的密文做清洗,把噪声降回低水平,让它还能继续参与运算。文献里的说法是:bootstrapping 用来降低密文中因多次运算而指数增长的噪声,<strong>刷新</strong>密文,使解密不会因失控的噪声而出错。</div>
+    <div class="plain en">A refresh operation that scrubs a "dirty" ciphertext back to a low noise level so it can keep being computed on. As the literature puts it: bootstrapping reduces the noise that grows exponentially after several operations, <strong>refreshing</strong> ciphertexts so decryption is not corrupted by uncontrolled noise.</div>
+    <div class="strict zh">代价:bootstrapping 是 FHE 里最昂贵的单个操作。整个 FHE 编译优化领域,很大一部分工作就是在算「什么时候必须 bootstrap、能不能少 bootstrap 几次」。</div>
+    <div class="strict en">The cost: bootstrapping is the single most expensive operation in FHE. A large slice of the entire FHE compiler-optimization field is about computing when a bootstrap is unavoidable and how to need fewer of them.</div>
+  </div>
+
+  <figure class="figure zh">
+    <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="噪声随运算增长并被 bootstrapping 重置的循环图">
+      <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#0d6b63"/></marker></defs>
+      <text x="360" y="22" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2725">噪声预算:FHE 程序真正的「油箱」</text>
+      <!-- axes -->
+      <line x1="60" y1="210" x2="680" y2="210" stroke="#63807c" stroke-width="1.4"/>
+      <line x1="60" y1="52" x2="60" y2="210" stroke="#63807c" stroke-width="1.4"/>
+      <text x="34" y="58" font-size="11" fill="#63807c">噪声</text>
+      <text x="646" y="230" font-size="11" fill="#63807c">运算次数 →</text>
+      <!-- danger line -->
+      <line x1="60" y1="70" x2="680" y2="70" stroke="#a13a4a" stroke-width="1.6" stroke-dasharray="6 5"/>
+      <text x="586" y="64" font-size="11" font-weight="700" fill="#a13a4a">解密失败阈值</text>
+      <!-- saw pattern -->
+      <path class="dash" style="--dl:900" d="M60,205 L120,190 L170,160 L205,100 L205,196 L255,182 L300,152 L336,96 L336,196 L392,180 L440,150 L478,94 L478,196 L540,178 L596,142 L640,88"
+            fill="none" stroke="#0d6b63" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ar2)"/>
+      <!-- bootstrap markers -->
+      <circle cx="205" cy="148" r="13" fill="#fdf3e0" stroke="#b7791f" stroke-width="1.6"/><text x="205" y="153" text-anchor="middle" font-size="12">♻️</text>
+      <circle cx="336" cy="146" r="13" fill="#fdf3e0" stroke="#b7791f" stroke-width="1.6"/><text x="336" y="151" text-anchor="middle" font-size="12">♻️</text>
+      <circle cx="478" cy="145" r="13" fill="#fdf3e0" stroke="#b7791f" stroke-width="1.6"/><text x="478" y="150" text-anchor="middle" font-size="12">♻️</text>
+      <text x="230" y="128" font-size="11" fill="#8a5a12">bootstrap</text>
+      <!-- labels -->
+      <text x="90" y="180" font-size="11" fill="#2c4a47">加法:涨得慢</text>
+      <text x="150" y="128" font-size="11" fill="#2c4a47">乘法:涨得快</text>
+      <text x="60" y="248" font-size="11.5" fill="#63807c">每次 bootstrap 把噪声压回低位,但它是 FHE 里最贵的单个操作 —— 编译器的核心任务之一就是让这些 ♻️ 尽可能少。</text>
+    </svg>
+    <div class="fig-cap">图 2:噪声预算模型。曲线爬向红线代表密文即将不可解密;♻️ 是 bootstrapping 把噪声重置回去。</div>
+  </figure>
+
+  <figure class="figure en">
+    <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Noise growing with operations and being reset by bootstrapping">
+      <defs><marker id="ar2-e" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#0d6b63"/></marker></defs>
+      <text x="360" y="22" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2725">Noise budget: the real fuel tank of an FHE program</text>
+      <line x1="60" y1="210" x2="680" y2="210" stroke="#63807c" stroke-width="1.4"/>
+      <line x1="60" y1="52" x2="60" y2="210" stroke="#63807c" stroke-width="1.4"/>
+      <text x="26" y="58" font-size="11" fill="#63807c">noise</text>
+      <text x="620" y="230" font-size="11" fill="#63807c">operations →</text>
+      <line x1="60" y1="70" x2="680" y2="70" stroke="#a13a4a" stroke-width="1.6" stroke-dasharray="6 5"/>
+      <text x="556" y="64" font-size="11" font-weight="700" fill="#a13a4a">decryption failure threshold</text>
+      <path class="dash" style="--dl:900" d="M60,205 L120,190 L170,160 L205,100 L205,196 L255,182 L300,152 L336,96 L336,196 L392,180 L440,150 L478,94 L478,196 L540,178 L596,142 L640,88"
+            fill="none" stroke="#0d6b63" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ar2-e)"/>
+      <circle cx="205" cy="148" r="13" fill="#fdf3e0" stroke="#b7791f" stroke-width="1.6"/><text x="205" y="153" text-anchor="middle" font-size="12">♻️</text>
+      <circle cx="336" cy="146" r="13" fill="#fdf3e0" stroke="#b7791f" stroke-width="1.6"/><text x="336" y="151" text-anchor="middle" font-size="12">♻️</text>
+      <circle cx="478" cy="145" r="13" fill="#fdf3e0" stroke="#b7791f" stroke-width="1.6"/><text x="478" y="150" text-anchor="middle" font-size="12">♻️</text>
+      <text x="230" y="128" font-size="11" fill="#8a5a12">bootstrap</text>
+      <text x="86" y="180" font-size="11" fill="#2c4a47">addition: slow growth</text>
+      <text x="150" y="128" font-size="11" fill="#2c4a47">multiplication: fast growth</text>
+      <text x="60" y="248" font-size="11.5" fill="#63807c">Each bootstrap resets noise, but it is the costliest single FHE operation — minimising those ♻️ marks is a core compiler job.</text>
+    </svg>
+    <div class="fig-cap">Fig. 2 — The noise budget model. The curve climbing toward the red line means the ciphertext is about to become undecryptable; ♻️ marks a bootstrap that resets it.</div>
+  </figure>
+
+  <h3 class="zh">2.2 为什么神经网络在 FHE 下特别难</h3>
+  <h3 class="en">2.2 Why neural networks are especially hard under FHE</h3>
+  <p class="zh">FHE 天生擅长加法和乘法,而神经网络里的<strong>矩阵乘法</strong>恰好就是这两样——这部分其实还好。真正的麻烦是<strong>非线性激活</strong>:ReLU、Softmax、GELU 这些函数没法用有限次加乘直接表达。</p>
+  <p class="en">FHE is natively good at addition and multiplication, and a neural network's <strong>matrix multiplications</strong> are exactly that — so that part is manageable. The real trouble is <strong>nonlinear activations</strong>: ReLU, Softmax, GELU cannot be expressed directly with a finite number of adds and multiplies.</p>
+  <p class="zh">通行做法是用<strong>高次多项式去逼近</strong>它们。但多项式次数越高,乘法链就越深,噪声涨得越猛,越早需要 bootstrapping。研究文献总结得很精炼:FHE 与 Transformer 架构相冲突——「僵硬的密文打包要求昂贵的旋转操作,而非线性所需的深层多项式电路又迫使昂贵的 bootstrapping」。</p>
+  <p class="en">The standard workaround is to <strong>approximate them with high-degree polynomials</strong>. But higher degree means a deeper multiplication chain, faster noise growth, and an earlier bootstrap. The literature puts it crisply: FHE clashes with transformer architectures, where "rigid ciphertext packing demands expensive rotations, and deep polynomial circuits for nonlinearities necessitate costly bootstrapping."</p>
+
+  <details class="rephrase">
+    <summary class="zh">换个说法:为什么 ReLU 这么麻烦?</summary>
+    <summary class="en">Put differently: why is ReLU such a headache?</summary>
+    <p class="zh">ReLU 的定义是「大于 0 就保留,小于 0 就归零」——它需要<strong>比较</strong>。而密文里的数你根本看不见,没法比较。于是只能画一条尽量像 ReLU 的光滑曲线去替代它,而画得越像,曲线的多项式次数就越高,计算就越贵。在 HEIR 的 MLIR 输入里,这个取舍是明写出来的一个参数:<code>degree = 6</code>,配合 <code>lower</code> / <code>upper</code> 指定逼近的取值范围。</p>
+    <p class="en">ReLU says "keep it if positive, zero it if negative" — that requires a <strong>comparison</strong>. Inside a ciphertext you cannot see the value, so you cannot compare. The fix is to draw a smooth curve that resembles ReLU, and the closer the resemblance, the higher the polynomial degree and the higher the cost. In HEIR's MLIR input this trade-off is an explicit parameter: <code>degree = 6</code>, alongside <code>lower</code> / <code>upper</code> bounds for the approximation range.</p>
+  </details>
+
+  <h3 class="zh">2.3 打包(packing):一次算一批,把成本摊薄</h3>
+  <h3 class="en">2.3 Packing: batch many values into one ciphertext to amortise cost</h3>
+  <p class="zh">既然单次密文运算这么贵,自然的优化是:<strong>一个密文里塞很多个数,一次运算同时算完</strong>——这就是 SIMD 打包。CKKS 方案「在近似实数上计算,配合大量 SIMD 打包,使它成为机器学习和统计场景的首选方案」。</p>
+  <p class="en">Since a single ciphertext operation is so costly, the natural optimisation is to <strong>pack many values into one ciphertext and process them in a single operation</strong> — SIMD packing. CKKS "computes on approximate real numbers with heavy SIMD packing, making it the scheme of choice for machine learning and statistics."</p>
+  <p class="zh">代价是:数据在密文的哪个「槽位」(slot)上,就变成了一个需要优化的问题。要把两个不在同一槽位的数加起来,得先做<strong>旋转(rotation)</strong>把它们对齐,而旋转本身也不便宜。HEIR 把这件事抽象成了「布局(layout)」,并用整数集合库(ISL)做多面体优化来选最优布局——这是它区别于手写 FHE 代码的核心价值之一。</p>
+  <p class="en">The cost: which "slot" a value sits in becomes an optimisation problem of its own. Adding two values in different slots requires a <strong>rotation</strong> to align them first, and rotations are not cheap either. HEIR abstracts this as a "layout" and uses the Integer Set Library for polyhedral optimisation over layouts — one of its core advantages over hand-written FHE code.</p>
+</section>
+
+<!-- ══════ HOWTO ══════ -->
+<section id="howto">
+  <h2 class="zh">3. 怎么用 HEIR:三条入口,从最轻的开始</h2>
+  <h2 class="en">3. How to use HEIR: three entry points, lightest first</h2>
+  <p class="sec-lead zh">以下命令与代码全部来自 HEIR 官方 Getting Started 文档(该页最后更新:2026-08-11)。</p>
+  <p class="sec-lead en">All commands and code below come from HEIR's official Getting Started page (last updated 2026-08-11).</p>
+
+  <div class="callout warn">
+    <span class="ct zh">先看清项目当前状态</span><span class="ct en">Know the project's current state first</span>
+    <span class="zh">官方文档明确写着:HEIR 团队<strong>仍在开发</strong>某些工作流(比如把预编译的 torch 模型转到指定后端)的端到端二进制;<strong>目前</strong>的用法是通过 <code>heir-opt</code>(跑编译 pass)和 <code>heir-translate</code>(后端代码生成)这两个「大杂烩」二进制。另外,预构建的 nightly 二进制官方说明是「用于测试编译器 pass,<strong>不用于生产</strong>」。</span>
+    <span class="en">The docs say plainly that the HEIR team is <strong>still working</strong> on an end-to-end binary for certain workflows (such as converting pre-compiled torch models to a specific backend); <strong>in the meantime</strong> you use the "kitchen sink" binaries <code>heir-opt</code> (compiler passes) and <code>heir-translate</code> (backend codegen). The prebuilt nightly binary is also explicitly "intended for testing compiler passes and <strong>not for production use</strong>."</span>
+  </div>
+
+  <h3 class="zh">入口 A:pip 装,用 Python 装饰器(最快上手)</h3>
+  <h3 class="en">Entry A: pip install and use the Python decorator (fastest)</h3>
+  <p class="zh">官方发布了 Python 包 <code>heir_py</code>,里面带 <code>heir-opt</code> 和 <code>heir-translate</code> 二进制,还可选带前后端:</p>
+  <p class="en">There is an official Python package, <code>heir_py</code>, which bundles the <code>heir-opt</code> and <code>heir-translate</code> binaries and optionally front- and backends:</p>
+<pre><code>python -m venv venv
+source venv/bin/activate
+
+pip install "heir_py[python,openfhe]"
+
+heir-opt --help
+heir-translate --help</code></pre>
+  <div class="codecap zh">来源:HEIR Getting Started · Via pip</div>
+  <div class="codecap en">Source: HEIR Getting Started · Via pip</div>
+
+  <p class="zh">装好支持的后端(如 OpenFHE)后,就能用装饰器写「密文函数」。注意 <code>Secret[I64]</code> —— 这就是官方说的「标注哪些类型是 secret」:</p>
+  <p class="en">With a supported backend installed (e.g. OpenFHE), you can write an encrypted function with a decorator. Note <code>Secret[I64]</code> — this is the "annotate the types to mark which are secret" part:</p>
+<pre><code>from heir import compile
+from heir.mlir import I64, Secret
+
+@compile()  # defaults to scheme="bgv", OpenFHE backend, and debug=False
+def func(x: Secret[I64], y: Secret[I64]):
+    sum = x + y
+    diff = x - y
+    mul = x * y
+    expression = sum * diff + mul
+    deadcode = expression * mul
+    return expression
+
+func.setup()
+enc_x = func.encrypt_x(7)
+enc_y = func.encrypt_y(8)
+result_enc = func.eval(enc_x, enc_y)
+result = func.decrypt_result(result_enc)</code></pre>
+  <div class="codecap zh">来源:HEIR Getting Started · Via pip。默认使用 BGV 方案 + OpenFHE 后端。</div>
+  <div class="codecap en">Source: HEIR Getting Started · Via pip. Defaults to the BGV scheme with the OpenFHE backend.</div>
+
+  <div class="callout warn">
+    <span class="ct zh">两个官方注意事项</span><span class="ct en">Two official caveats</span>
+    <span class="zh">① 必须<strong>自己装 OpenFHE</strong>——因为 Python 前端会调用 C++ 编译器编译 HEIR 生成的代码并链接 OpenFHE,而 OpenFHE 的安装是随系统而异的(比如 OpenMP 配置)。② 文档写明:<strong>除 OpenFHE 外的后端支持仍在推进中</strong>。</span>
+    <span class="en">(1) You must <strong>install OpenFHE yourself</strong> — the Python frontend invokes a C++ compiler on HEIR-generated code and links against OpenFHE, and that installation is system-specific (e.g. OpenMP configuration). (2) The docs state that <strong>support for backends besides OpenFHE is in progress</strong>.</span>
+  </div>
+
+  <h3 class="zh">入口 B:直接跑编译管线(看清中间发生了什么)</h3>
+  <h3 class="en">Entry B: run the compiler pipeline directly (see what actually happens)</h3>
+  <p class="zh">官方的 <code>dot-product</code> 例子最能说明 HEIR 在做什么。输入是一段 MLIR,注意参数上的 <code>{secret.secret}</code> 标注——这就是全部的「加密声明」:</p>
+  <p class="en">The official <code>dot-product</code> example is the clearest illustration. The input is MLIR; note the <code>{secret.secret}</code> annotation on the arguments — that is the entire "encryption declaration":</p>
+<pre><code>func.func @dot_product(%arg0: tensor&lt;8xi16&gt; {secret.secret},
+                       %arg1: tensor&lt;8xi16&gt; {secret.secret}) -&gt; i16 {
+  %c0 = arith.constant 0 : index
+  %c0_si16 = arith.constant 0 : i16
+  %0 = affine.for %arg2 = 0 to 8 iter_args(%iter = %c0_si16) -&gt; (i16) {
+    %1 = tensor.extract %arg0[%arg2] : tensor&lt;8xi16&gt;
+    %2 = tensor.extract %arg1[%arg2] : tensor&lt;8xi16&gt;
+    %3 = arith.muli %1, %2 : i16
+    %4 = arith.addi %iter, %3 : i16
+    affine.yield %4 : i16
+  }
+  return %0 : i16
+}</code></pre>
+  <div class="codecap zh">来源:HEIR 仓库 <code>tests/Examples/common/dot_product_8.mlir</code></div>
+  <div class="codecap en">Source: HEIR repo, <code>tests/Examples/common/dot_product_8.mlir</code></div>
+
+  <ol class="steps">
+    <li class="zh"><b>编译成 scheme 层 IR</b>把普通程序降级成 BGV 方案的密文操作,再转成 OpenFHE 出口方言。<pre><code>heir-opt \
+  --mlir-to-bgv='min-slot-count=8' \
+  --scheme-to-openfhe='entry-function=dot_product' \
+  dot_product_8.mlir &gt; output.mlir</code></pre></li>
+    <li class="zh"><b>生成后端代码</b>用 <code>heir-translate</code> 产出 OpenFHE 的 C++ 头文件和实现。<pre><code>heir-translate --emit-openfhe-pke-header \
+  --openfhe-include-type=source-relative output.mlir &gt; heir_output.h
+heir-translate --emit-openfhe-pke \
+  --openfhe-include-type=source-relative output.mlir &gt; heir_output.cpp</code></pre></li>
+    <li class="zh"><b>像普通 OpenFHE 程序一样编译运行</b>生成的文件里除了主函数,还自动带了 <code>__encrypt__argN</code> / <code>__decrypt__result0</code> / <code>__generate_crypto_context</code> / <code>__configure_crypto_context</code> 这几个客户端辅助函数。官方示例的运行结果是 <code>Expected: 240 / Actual: 240</code>。</li>
+  </ol>
+  <ol class="steps">
+    <li class="en"><b>Compile to scheme-level IR.</b>Lower the ordinary program to BGV ciphertext operations, then to the OpenFHE exit dialect.<pre><code>heir-opt \
+  --mlir-to-bgv='min-slot-count=8' \
+  --scheme-to-openfhe='entry-function=dot_product' \
+  dot_product_8.mlir &gt; output.mlir</code></pre></li>
+    <li class="en"><b>Emit backend code.</b>Use <code>heir-translate</code> to produce the OpenFHE C++ header and implementation.<pre><code>heir-translate --emit-openfhe-pke-header \
+  --openfhe-include-type=source-relative output.mlir &gt; heir_output.h
+heir-translate --emit-openfhe-pke \
+  --openfhe-include-type=source-relative output.mlir &gt; heir_output.cpp</code></pre></li>
+    <li class="en"><b>Build and run it like any OpenFHE program.</b>Besides the main function, the generated files include client helpers: <code>__encrypt__argN</code>, <code>__decrypt__result0</code>, <code>__generate_crypto_context</code> and <code>__configure_crypto_context</code>. The official example prints <code>Expected: 240 / Actual: 240</code>.</li>
+  </ol>
+
+  <p class="zh">最能说明「编译器在替你想事情」的是生成出来的 C++:一个朴素的循环点积,被编译成了<strong>旋转-归约(rotate-and-reduce)</strong>模式——先做一次密文乘法和 relinearize,然后按 4、2、1 三次旋转累加,而不是老老实实循环 8 次。这正是手写 FHE 代码时需要密码学经验才能想到的优化。</p>
+  <p class="en">The clearest sign that the compiler is thinking for you is the generated C++: a naive loop-based dot product compiles into a <strong>rotate-and-reduce</strong> pattern — one ciphertext multiply plus relinearize, then rotations by 4, 2 and 1 with accumulation, rather than eight literal loop iterations. That is exactly the optimisation that hand-written FHE code needs cryptography experience to find.</p>
+<pre><code>const auto&amp; v4  = v0-&gt;EvalMultNoRelin(v1, v2);
+const auto&amp; v5  = v0-&gt;Relinearize(v4);
+const auto&amp; v6  = v0-&gt;EvalRotate(v5, 4);
+const auto&amp; v7  = v0-&gt;EvalAdd(v5, v6);
+const auto&amp; v8  = v0-&gt;EvalRotate(v7, 2);
+const auto&amp; v9  = v0-&gt;EvalAdd(v7, v8);
+const auto&amp; v10 = v0-&gt;EvalRotate(v9, 1);
+const auto&amp; v11 = v0-&gt;EvalAdd(v9, v10);</code></pre>
+  <div class="codecap zh">来源:HEIR Getting Started 生成的 <code>heir_output.cpp</code> 节选(rotate-and-reduce 模式)</div>
+  <div class="codecap en">Source: excerpt from the generated <code>heir_output.cpp</code> in HEIR's Getting Started (rotate-and-reduce pattern)</div>
+
+  <h3 class="zh">入口 C:bazel + rules_heir(工程化集成)</h3>
+  <h3 class="en">Entry C: bazel + rules_heir (engineering integration)</h3>
+  <p class="zh">如果项目用 bazel,官方推荐 <a href="https://registry.bazel.build/modules/rules_heir/">rules_heir</a>,它把连接 HEIR 与应用的大量细节藏了起来。核心是一个 <code>heir_lattigo_lib</code> 宏,把 <code>heir-opt</code> / <code>heir-translate</code> 的 flag 写在 BUILD 文件里:</p>
+  <p class="en">If your project uses bazel, the docs recommend <a href="https://registry.bazel.build/modules/rules_heir/">rules_heir</a>, which hides most of the wiring between HEIR and your application. The core is a <code>heir_lattigo_lib</code> macro that puts the <code>heir-opt</code> / <code>heir-translate</code> flags in your BUILD file:</p>
+<pre><code>heir_lattigo_lib(
+    name = "hello_world",
+    go_library_name = "helloworld",
+    heir_opt_flags = [
+        "--annotate-module=backend=lattigo scheme=ckks",
+        "--mlir-to-ckks=min-slot-count=2048 first-mod-bits=0",
+        "--scheme-to-lattigo",
+    ],
+    mlir_src = "hello_world.mlir",
+    split_preprocessing = False,
+)</code></pre>
+  <div class="codecap zh">来源:HEIR Getting Started · Using bazel and rules_heir(此例走 CKKS 方案 + Lattigo 后端)</div>
+  <div class="codecap en">Source: HEIR Getting Started · Using bazel and rules_heir (this example uses the CKKS scheme with the Lattigo backend)</div>
+
+  <details class="rephrase">
+    <summary class="zh">从源码构建 / 用 nightly 二进制</summary>
+    <summary class="en">Building from source / using the nightly binary</summary>
+    <p class="zh">从源码构建只需 Git 和 bazelisk,其余依赖(C++/Go/Rust 编译器、Python 解释器)全由 bazel 管理:<code>git clone git@github.com:google/heir.git &amp;&amp; cd heir</code>,然后 <code>bazel build -c opt @heir//tools:heir-opt</code>。注意 Linux 上<strong>不能用 root 身份</strong>跑 bazel。想省事就下 nightly 二进制(记住:仅供测试,不用于生产):<code>wget -O heir-opt https://github.com/google/heir/releases/download/nightly/heir-opt-manylinux_2_28_x86_64</code>。</p>
+    <p class="en">Building from source needs only Git and bazelisk; bazel manages everything else (C++/Go/Rust compilers, Python interpreter): <code>git clone git@github.com:google/heir.git &amp;&amp; cd heir</code>, then <code>bazel build -c opt @heir//tools:heir-opt</code>. Note that on Linux your user must <strong>not</strong> be root. For a shortcut, grab the nightly binary (testing only, not production): <code>wget -O heir-opt https://github.com/google/heir/releases/download/nightly/heir-opt-manylinux_2_28_x86_64</code>.</p>
+  </details>
+</section>
+
+<!-- ══════ PIPELINE ══════ -->
+<section id="pipeline">
+  <h2 class="zh">4. 编译管线拆解:一个 PyTorch 模型是怎么变成密文程序的</h2>
+  <h2 class="en">4. Inside the pipeline: how a PyTorch model becomes an encrypted program</h2>
+  <p class="sec-lead zh">这一节的内容来自 HEIR 官方设计文档「ML with HEIR」及其对应论文 arXiv:2508.11095。</p>
+  <p class="sec-lead en">This section draws on HEIR's official design page "ML with HEIR" and its companion paper, arXiv:2508.11095.</p>
+
+  <p class="zh">HEIR 的 ML 前端把 <strong>PyTorch、TensorFlow、ONNX</strong> 三条路,分别经由 <code>torch-mlir</code>、<code>onnx-mlir</code>、<code>StableHLO</code> 汇聚到一个统一的入口层:MLIR 的 <code>linalg</code> 方言。文档解释了为什么选 linalg——这个抽象层级<strong>刚好能匹配 ML 的 kernel 操作</strong>做优化。</p>
+  <p class="en">HEIR's ML frontend funnels <strong>PyTorch, TensorFlow and ONNX</strong> — via <code>torch-mlir</code>, <code>onnx-mlir</code> and <code>StableHLO</code> respectively — into a single entry level: MLIR's <code>linalg</code> dialect. The docs explain the choice: that abstraction level is <strong>the one at which ML kernel operations can be matched</strong> for optimisation.</p>
+
+  <figure class="figure zh">
+    <svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HEIR 分层编译管线:从 ML 框架到硬件后端">
+      <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#3f9a90"/></marker></defs>
+      <text x="360" y="22" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2725">HEIR 的分层结构:每一层解决一类问题</text>
+      <!-- L1 -->
+      <rect x="60" y="40" width="600" height="42" rx="9" fill="#fdf3e0" stroke="#f0dcb4"/>
+      <text x="76" y="59" font-size="12.5" font-weight="700" fill="#8a5a12">前端</text>
+      <text x="76" y="75" font-size="11.5" fill="#63807c">PyTorch · TensorFlow · ONNX  →  torch-mlir / onnx-mlir / StableHLO</text>
+      <line class="dash" style="--dl:24" x1="360" y1="84" x2="360" y2="98" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3)"/>
+      <!-- L2 -->
+      <rect x="60" y="104" width="600" height="42" rx="9" fill="#fff" stroke="#d5e3e0"/>
+      <text x="76" y="123" font-size="12.5" font-weight="700" fill="#0d6b63">标准 MLIR(入口层)</text>
+      <text x="76" y="139" font-size="11.5" fill="#63807c">func · linalg · tensor · arith · affine   —— 在这里做规范化与非线性简化</text>
+      <line class="dash" style="--dl:24" x1="360" y1="148" x2="360" y2="162" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3)"/>
+      <!-- L3 -->
+      <rect x="60" y="168" width="600" height="42" rx="9" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="76" y="187" font-size="12.5" font-weight="700" fill="#08423e">密文算术层</text>
+      <text x="76" y="203" font-size="11.5" fill="#2c4a47">secret · tensor_ext · mgmt · polynomial · comb   —— 布局、kernel、噪声管理都在这层决定</text>
+      <line class="dash" style="--dl:24" x1="360" y1="212" x2="360" y2="226" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3)"/>
+      <!-- L4 -->
+      <rect x="60" y="232" width="600" height="42" rx="9" fill="#fff" stroke="#d5e3e0"/>
+      <text x="76" y="251" font-size="12.5" font-weight="700" fill="#0d6b63">方案 API 层</text>
+      <text x="76" y="267" font-size="11.5" fill="#63807c">lwe · bgv · ckks · cggi   —— 选定加密方案与参数</text>
+      <line class="dash" style="--dl:24" x1="240" y1="276" x2="240" y2="292" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3)"/>
+      <line class="dash" style="--dl:24" x1="480" y1="276" x2="480" y2="292" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3)"/>
+      <!-- L5 two exits -->
+      <rect x="60" y="298" width="280" height="62" rx="9" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="76" y="317" font-size="12.5" font-weight="700" fill="#08423e">出口 ①:库方言</text>
+      <text x="76" y="333" font-size="11.5" fill="#2c4a47">lattigo · openfhe · tfhe_rust · jaxite</text>
+      <text x="76" y="349" font-size="10.8" fill="#63807c">快速原型、易集成;难做跨操作融合</text>
+      <rect x="380" y="298" width="280" height="62" rx="9" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="396" y="317" font-size="12.5" font-weight="700" fill="#08423e">出口 ②:低层 IR</text>
+      <text x="396" y="333" font-size="11.5" fill="#2c4a47">polynomial · rns · mod_arith → llvm / scifr</text>
+      <text x="396" y="349" font-size="10.8" fill="#63807c">适合长期、稳健的硬件集成</text>
+      <text x="360" y="386" text-anchor="middle" font-size="11.5" fill="#63807c">后端覆盖 CPU / GPU / FPGA / ASIC / 光子计算 —— 合作方包括 Belfort、Niobium、Cornami、Optalysys</text>
+    </svg>
+    <div class="fig-cap">图 3:HEIR 的分层编译结构。关键设计是「一个中间表示、多个出口」——同一份程序可以落到库 API,也可以落到硬件加速器。</div>
+  </figure>
+
+  <figure class="figure en">
+    <svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HEIR layered compilation pipeline from ML frameworks to hardware backends">
+      <defs><marker id="ar3-e" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#3f9a90"/></marker></defs>
+      <text x="360" y="22" text-anchor="middle" font-size="15" font-weight="700" fill="#0f2725">HEIR's layers: each solves one class of problem</text>
+      <rect x="60" y="40" width="600" height="42" rx="9" fill="#fdf3e0" stroke="#f0dcb4"/>
+      <text x="76" y="59" font-size="12.5" font-weight="700" fill="#8a5a12">Frontend</text>
+      <text x="76" y="75" font-size="11.5" fill="#63807c">PyTorch · TensorFlow · ONNX  →  torch-mlir / onnx-mlir / StableHLO</text>
+      <line class="dash" style="--dl:24" x1="360" y1="84" x2="360" y2="98" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3-e)"/>
+      <rect x="60" y="104" width="600" height="42" rx="9" fill="#fff" stroke="#d5e3e0"/>
+      <text x="76" y="123" font-size="12.5" font-weight="700" fill="#0d6b63">Standard MLIR (entry level)</text>
+      <text x="76" y="139" font-size="11.5" fill="#63807c">func · linalg · tensor · arith · affine — canonicalisation and nonlinearity reduction happen here</text>
+      <line class="dash" style="--dl:24" x1="360" y1="148" x2="360" y2="162" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3-e)"/>
+      <rect x="60" y="168" width="600" height="42" rx="9" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="76" y="187" font-size="12.5" font-weight="700" fill="#08423e">Secret arithmetic</text>
+      <text x="76" y="203" font-size="11.5" fill="#2c4a47">secret · tensor_ext · mgmt · polynomial · comb — layouts, kernels and noise are decided here</text>
+      <line class="dash" style="--dl:24" x1="360" y1="212" x2="360" y2="226" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3-e)"/>
+      <rect x="60" y="232" width="600" height="42" rx="9" fill="#fff" stroke="#d5e3e0"/>
+      <text x="76" y="251" font-size="12.5" font-weight="700" fill="#0d6b63">Scheme APIs</text>
+      <text x="76" y="267" font-size="11.5" fill="#63807c">lwe · bgv · ckks · cggi — scheme and parameter selection</text>
+      <line class="dash" style="--dl:24" x1="240" y1="276" x2="240" y2="292" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3-e)"/>
+      <line class="dash" style="--dl:24" x1="480" y1="276" x2="480" y2="292" stroke="#3f9a90" stroke-width="2" marker-end="url(#ar3-e)"/>
+      <rect x="60" y="298" width="280" height="62" rx="9" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="76" y="317" font-size="12.5" font-weight="700" fill="#08423e">Exit 1: library dialects</text>
+      <text x="76" y="333" font-size="11.5" fill="#2c4a47">lattigo · openfhe · tfhe_rust · jaxite</text>
+      <text x="76" y="349" font-size="10.8" fill="#63807c">Fast prototyping, easy integration; limits cross-op fusion</text>
+      <rect x="380" y="298" width="280" height="62" rx="9" fill="#e2f2ef" stroke="#b9ded8"/>
+      <text x="396" y="317" font-size="12.5" font-weight="700" fill="#08423e">Exit 2: low-level IRs</text>
+      <text x="396" y="333" font-size="11.5" fill="#2c4a47">polynomial · rns · mod_arith → llvm / scifr</text>
+      <text x="396" y="349" font-size="10.8" fill="#63807c">Suited to longer-term, robust hardware integration</text>
+      <text x="360" y="386" text-anchor="middle" font-size="11.5" fill="#63807c">Backends span CPU / GPU / FPGA / ASIC / photonics — partners include Belfort, Niobium, Cornami, Optalysys</text>
+    </svg>
+    <div class="fig-cap">Fig. 3 — HEIR's layered compilation structure. The key design is "one IR, multiple exits": the same program can land on a library API or on a hardware accelerator.</div>
+  </figure>
+
+  <h3 class="zh">编译时你需要配置什么</h3>
+  <h3 class="en">What you configure at compile time</h3>
+  <p class="zh">官方文档列出的「编译配置」项恰好是一份很好的心智清单——它们就是 FHE 部署里真正要做的决策:</p>
+  <p class="en">The "compilation configuration" list in the docs doubles as a good mental checklist — these are the decisions an FHE deployment actually involves:</p>
+  <ul class="zh">
+    <li><strong>后端与方案选择</strong>(如 OpenFHE + CKKS)</li>
+    <li><strong>哪些输入是 secret</strong>,用标注指定</li>
+    <li><strong>非线性激活的逼近次数</strong>(前面说的 <code>degree</code>)</li>
+    <li><strong>取值范围界限</strong>,来自模型元数据(<code>lower</code> / <code>upper</code>)</li>
+    <li><strong>用户控制的 kernel 选择</strong>(如 <code>kernel = "diagonal"</code>)</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Backend and scheme selection</strong> (e.g. OpenFHE + CKKS)</li>
+    <li><strong>Which inputs are secret</strong>, set by annotation</li>
+    <li><strong>Approximation degree</strong> for nonlinear activations (the <code>degree</code> above)</li>
+    <li><strong>Range bounds</strong> taken from model metadata (<code>lower</code> / <code>upper</code>)</li>
+    <li><strong>User-controlled kernel selection</strong> (e.g. <code>kernel = "diagonal"</code>)</li>
+  </ul>
+
+<pre><code>module attributes {backend.openfhe, scheme.ckks} {
+  func.func @mnist(%input: tensor&lt;784&gt; {secret.secret}) -&gt; tensor&lt;10&gt; {
+    %matrix1 = arith.constant dense&lt;...&gt; : tensor&lt;512x784&gt;
+    %0 = linalg.matvec ins(%matrix1, %input) {kernel = "diagonal"}
+    %1 = arith.addf %0, %bias1
+    %2 = arith.maximumf %1, %cst {degree = 6, lower = -15.0, upper = 12}
+    ...
+  }
+}</code></pre>
+  <div class="codecap zh">来源:HEIR「ML with HEIR」设计文档中的 MNIST 示例(节选)。<code>degree = 6</code> 就是 ReLU 的多项式逼近次数。</div>
+  <div class="codecap en">Source: the MNIST example (excerpt) in HEIR's "ML with HEIR" design page. <code>degree = 6</code> is the polynomial approximation degree for ReLU.</div>
+
+  <h3 class="zh">布局优化:HEIR 最有技术含量的一层</h3>
+  <h3 class="en">Layout optimisation: HEIR's most technically distinctive layer</h3>
+  <p class="zh">前面提到「数据在哪个槽位」是个优化问题。HEIR 的做法是把布局形式化为一个<strong>部分函数</strong>:从明文张量的索引集合,映射到一串密文槽位的索引集合,用 Presburger 关系和拟仿射公式表达。然后用整数集合库(ISL)做多面体分析,来计算 kernel 简化或批处理的槽位利用率。</p>
+  <p class="en">Recall that "which slot holds which value" is an optimisation problem. HEIR formalises a layout as a <strong>partial function</strong> from the index set of a cleartext tensor to the index set of a list of ciphertext slots, expressed with Presburger relations and quasi-affine formulas. It then runs polyhedral analysis via the Integer Set Library to compute kernel simplifications and slot utilisation for batching.</p>
+  <p class="zh">优化流程分三步:<strong>Propagate</strong>(前向分析,给 IR 传播默认布局与 kernel)→ <strong>Optimize</strong>(用成本模型选最优 kernel,最小化布局转换)→ <strong>Simplify</strong>(反向遍历,把布局转换提升到编码阶段)。</p>
+  <p class="en">The flow has three stages: <strong>Propagate</strong> (forward analysis seeds the IR with default layouts and kernels) → <strong>Optimize</strong> (cost models pick kernels that minimise cost and layout conversions) → <strong>Simplify</strong> (a backwards traversal hoists layout conversions into encodings).</p>
+  <div class="callout key">
+    <span class="ct zh">和 Transformer 有关的一条</span><span class="ct en">One line that matters for transformers</span>
+    <span class="zh">文档提到 HEIR 已经集成了 <strong>bicyclic 与 tricyclic 布局</strong>,用于「以最优乘法深度计算并行多头自注意力的批量矩阵乘法」。也就是说:密文 Transformer 推理在 HEIR 里是<strong>正在推进的研究方向</strong>,而不是已经可用的生产能力。</span>
+    <span class="en">The docs note that HEIR has integrated <strong>bicyclic and tricyclic layouts</strong> for "batched matrix multiplication for parallelized multi-head self-attention with optimal multiplicative depth." Read that as: encrypted transformer inference is an <strong>active research direction</strong> inside HEIR, not a shipping production capability.</span>
+  </div>
+</section>
+
+<!-- ══════ CASES ══════ -->
+<section id="cases">
+  <h2 class="zh">5. 落地场景:Google 放出的四个 demo</h2>
+  <h2 class="en">5. Real applications: the four demos Google shipped</h2>
+  <p class="sec-lead zh">这四个例子都用 HEIR 编译,官方给出的延迟数据基于<strong>单线程 CPU</strong>。</p>
+  <p class="sec-lead en">All four were compiled with HEIR; the official latency figures are for a <strong>single-threaded CPU</strong>.</p>
+
+  <div class="tablewrap zh">
+    <table>
+      <thead><tr><th>场景</th><th>解决什么问题</th><th>合作方</th></tr></thead>
+      <tbody>
+        <tr><td><b>深度学习推荐模型(DLRM)</b></td><td>提供私密内容推荐——云服务能推荐,却看不到用户特征</td><td>Belfort Labs、LG、纽约大学</td></tr>
+        <tr><td><b>信用卡欺诈检测</b></td><td>在不暴露交易明文的前提下判断是否欺诈</td><td>Niobium、hardshell.ai</td></tr>
+        <tr><td><b>入侵检测(Kitsune 系统)</b></td><td>对加密网络流量做异常检测,服务方看不到数据包内容</td><td>Niobium</td></tr>
+        <tr><td><b>唤醒词检测</b></td><td>让音频触发的 AI Agent 识别唤醒词,同时保护录音隐私</td><td>Belfort Labs</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tablewrap en">
+    <table>
+      <thead><tr><th>Application</th><th>What it solves</th><th>Partners</th></tr></thead>
+      <tbody>
+        <tr><td><b>Deep Learning Recommendation Model (DLRM)</b></td><td>Private content recommendations — the service recommends without seeing user features</td><td>Belfort Labs, LG, New York University</td></tr>
+        <tr><td><b>Credit card fraud detection</b></td><td>Judge whether a transaction is fraudulent without exposing it in the clear</td><td>Niobium, hardshell.ai</td></tr>
+        <tr><td><b>Threat intrusion (Kitsune)</b></td><td>Anomaly detection over encrypted network traffic without revealing packet contents</td><td>Niobium</td></tr>
+        <tr><td><b>Hotword detection</b></td><td>Let an audio-triggered AI agent recognise hotwords while protecting the recordings</td><td>Belfort Labs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="zh">注意这四个的共同点:<strong>模型都不大,输出都很小</strong>——一个推荐分数、一个欺诈标签、一个异常判定、一个「是/否唤醒」。这不是巧合,而是 FHE 当前成本结构决定的选型逻辑:<strong>输入敏感、模型不深、输出是个标量或短向量</strong>的任务,是这条路线的甜点区。</p>
+  <p class="en">Note what these four share: <strong>the models are small and the outputs are tiny</strong> — a recommendation score, a fraud flag, an anomaly verdict, a yes/no wake decision. That is not coincidence but the selection logic FHE's current cost structure imposes: tasks with <strong>sensitive inputs, shallow models, and a scalar or short-vector output</strong> are the sweet spot.</p>
+
+  <div class="callout key">
+    <span class="ct zh">对 Agent 开发者的直接含义</span><span class="ct en">Direct implication for agent developers</span>
+    <span class="zh">四个 demo 里的唤醒词检测,官方措辞是「可以让一个音频触发的 AI Agent 识别唤醒词,同时保护音频录音的隐私」。这是一个具体信号:密文推理最先能进入 Agent 栈的位置,是<strong>常驻监听、隐私最敏感、但模型最小</strong>的那一环,而不是主推理链路。</span>
+    <span class="en">Google frames the hotword demo as something that "could allow an audio-triggered AI agent to recognize hotwords while protecting the privacy of the audio recordings." That's a concrete signal: the first place encrypted inference enters an agent stack is the <strong>always-listening, most privacy-sensitive, smallest-model</strong> link — not the main reasoning path.</span>
+  </div>
+
+  <h3 class="zh">生态状况:它已经是一个研究平台</h3>
+  <h3 class="en">Ecosystem: it is already a research platform</h3>
+  <p class="zh">官方博客提到:自 2023 年宣布意向以来,HEIR 已与开发 FHE 硬件加速器的公司合作,包括 <strong>Belfort、Niobium、Cornami、Optalysys</strong>;学术侧的合作包括佐治亚理工、卡内基梅隆、UC 圣塔芭芭拉、伊利诺伊理工、普渡、爱丁堡大学、清华大学等。截至发文,已有<strong>四篇同行评审论文</strong>基于 HEIR 完成,更多在准备中。</p>
+  <p class="en">Google's post notes that since announcing its intentions in 2023, HEIR has partnered with FHE hardware-accelerator companies including <strong>Belfort, Niobium, Cornami and Optalysys</strong>, and with academic groups at Georgia Tech, Carnegie Mellon, UC Santa Barbara, Illinois Institute of Technology, Purdue, the University of Edinburgh and Tsinghua University. As of publication, <strong>four peer-reviewed publications</strong> were built on HEIR, with more in preparation.</p>
+</section>
+
+<!-- ══════ COMPARE ══════ -->
+<section id="compare">
+  <h2 class="zh">6. 和谁比:FHE、TEE、MPC、ZK 各自的位置</h2>
+  <h2 class="en">6. How it compares: FHE vs. TEE vs. MPC vs. ZK</h2>
+  <p class="sec-lead zh">这一节的判断来自第三方分析文章,属于<strong>社区观点</strong>而非官方结论,请据此权衡。</p>
+  <p class="sec-lead en">This section reflects third-party analysis — <strong>community opinion</strong> rather than official conclusions. Weigh accordingly.</p>
+
+  <div class="tablewrap zh">
+    <table>
+      <thead><tr><th>技术</th><th>信任谁</th><th>性能量级</th><th>适合什么</th></tr></thead>
+      <tbody>
+        <tr><td><b>FHE</b>(本文主角)</td><td>只信数学。安全性是<strong>纯密码学</strong>的,不依赖硬件厂商</td><td>据分析文章,面临 10⁶× 量级的减速挑战;另有测算称即使精心设计电路,FHE 运算仍比明文慢 10³–10⁵ 倍</td><td>硬件信任<strong>不可接受</strong>的场景;跨机构、强监管行业</td></tr>
+        <tr><td><b>TEE</b>(可信执行环境)</td><td>信芯片厂商(Intel / AMD / NVIDIA)</td><td>据分析,开销在<strong>个位数百分比</strong>;NVIDIA 2023 年把 TEE 扩展到 GPU</td><td>被称为大规模机密工作负载的「务实默认选项」</td></tr>
+        <tr><td><b>MPC</b>(安全多方计算)</td><td>信「参与方不合谋」</td><td>主要瓶颈是<strong>通信开销</strong></td><td>多方各持一部分输入、要联合计算的场景</td></tr>
+        <tr><td><b>ZK</b>(零知识证明)</td><td>信数学</td><td>据称已可用于生产</td><td>选择性披露、可验证计算——注意它解决的是「证明」不是「保密计算」</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tablewrap en">
+    <table>
+      <thead><tr><th>Technology</th><th>Who you trust</th><th>Performance order</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td><b>FHE</b> (this article)</td><td>Only mathematics. Guarantees are <strong>purely cryptographic</strong>, not hardware-dependent</td><td>Analyses cite a ~10⁶× slowdown challenge; other estimates put carefully engineered FHE at 10³–10⁵× slower than cleartext</td><td>Cases where hardware trust is <strong>unacceptable</strong>; cross-institution, heavily regulated sectors</td></tr>
+        <tr><td><b>TEE</b> (trusted execution environment)</td><td>Chip vendors (Intel / AMD / NVIDIA)</td><td>Reported <strong>single-digit-percent</strong> overhead; NVIDIA extended TEE to GPUs in 2023</td><td>Described as the "pragmatic default" for large confidential workloads</td></tr>
+        <tr><td><b>MPC</b> (secure multiparty computation)</td><td>That the parties do not collude</td><td>Main bottleneck is <strong>communication overhead</strong></td><td>Several parties each hold part of the input and must compute jointly</td></tr>
+        <tr><td><b>ZK</b> (zero-knowledge proofs)</td><td>Mathematics</td><td>Reported production-ready</td><td>Selective disclosure and verifiable compute — note it solves <em>proving</em>, not confidential computation</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct zh">为什么「纯密码学保证」不只是学术洁癖</span><span class="ct en">Why "purely cryptographic" is not just academic purity</span>
+    <span class="zh">TEE 的安全性依赖硬件不被攻破。据报道,2025 年 10 月研究者公布了 <strong>TEE.fail</strong> 和 <strong>WireTap</strong> 两种物理攻击,用廉价电子元件在 CPU 与内存之间插入 interposer 就能提取加密密钥。⚠️ 此条来自第三方分析文章,建议查阅原始研究再下结论。但它说明了 FHE 与 TEE 的根本差异:<strong>FHE 的安全性不会因为攻击者能物理接触服务器而失效</strong>。</span>
+    <span class="en">A TEE's security depends on the hardware not being broken. Reportedly, in October 2025 researchers disclosed <strong>TEE.fail</strong> and <strong>WireTap</strong>, physical attacks that place a cheap interposer between CPU and memory to extract encryption keys. ⚠️ This comes from third-party analysis; consult the original research before drawing conclusions. Still, it illustrates the fundamental difference: <strong>FHE's guarantees do not collapse just because an attacker gains physical access to the server</strong>.</span>
+  </div>
+
+  <p class="zh">一篇分析文章给出的选型框架很实用,归结为四个问题:<strong>谁绝对不能看到这份数据?需要的是「验证」还是「计算」?被隐藏的工作负载有多大?有几方持有输入?</strong>把这四个问题回答清楚,技术选型基本就定了。</p>
+  <p class="en">One analysis offers a practical selection framework built on four questions: <strong>who must not see the data; is the need verification or computation; how big is the hidden workload; and how many parties hold inputs?</strong> Answer those four and the technology choice largely falls out.</p>
+
+  <div class="stats zh">
+    <div class="stat"><div class="n">10³–10⁵×</div><div class="l">精心设计电路后,FHE 相对明文计算的典型慢速倍数(据第三方测算)</div></div>
+    <div class="stat"><div class="n">2–10 秒</div><div class="l">优化 CKKS + 批处理下,1 万条记录的加密逻辑回归推理耗时(据第三方基准)</div></div>
+    <div class="stat"><div class="n">&gt;75%</div><div class="l">Gartner 预测:到 2029 年,不可信基础设施上超此比例的操作将使用机密计算</div></div>
+  </div>
+  <div class="stats en">
+    <div class="stat"><div class="n">10³–10⁵×</div><div class="l">Typical FHE slowdown vs. cleartext even with carefully engineered circuits (third-party estimate)</div></div>
+    <div class="stat"><div class="n">2–10 s</div><div class="l">Encrypted logistic-regression inference over 10,000 records with optimised CKKS and batching (third-party benchmark)</div></div>
+    <div class="stat"><div class="n">&gt;75%</div><div class="l">Gartner's forecast: share of operations on untrusted infrastructure using confidential computing by 2029</div></div>
+  </div>
+</section>
+
+<!-- ══════ PITFALLS ══════ -->
+<section id="pitfalls">
+  <h2 class="zh">7. 坑与限制:上手前必须知道的</h2>
+  <h2 class="en">7. Pitfalls and limits: know these before you start</h2>
+
+  <div class="callout bad">
+    <span class="ct zh">① 别指望跑 LLM</span><span class="ct en">1. Don't expect to run an LLM</span>
+    <span class="zh">这是最需要泼冷水的一条。研究文献明确指出:FHE 与 Transformer 架构相冲突;非线性函数在推理中「本质上就比线性函数计算昂贵、内存需求大」,需要用高次多项式逼近。密文 Transformer/LLM 推理目前仍集中在<strong>学术论文层面</strong>(如 ELLMo、Cachemir、Tricycle 等),不是可以直接部署的能力。</span>
+    <span class="en">This is the one that most needs cold water. The literature is explicit: FHE clashes with transformer architectures, and nonlinear functions are "by nature computationally expensive and memory demanding compared to linear functions," requiring high-degree polynomial approximation. Encrypted transformer/LLM inference remains largely at the <strong>research-paper stage</strong> (ELLMo, Cachemir, Tricycle and others), not a deployable capability.</span>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct zh">② 官方工具链尚未「一键化」</span><span class="ct en">2. The toolchain is not yet one-click</span>
+    <span class="zh">HEIR 官方的愿景是「一键方案,让非专家把加密推理放进生产应用」——注意这是<strong>愿景</strong>。当下的现实是:端到端二进制仍在开发中,你需要手动串 <code>heir-opt</code> 与 <code>heir-translate</code>;OpenFHE 之外的后端支持仍在推进;nightly 二进制明确标注不用于生产。</span>
+    <span class="en">HEIR's stated vision is "a one-click solution to enable non-experts to incorporate encrypted inference into production applications" — note that this is a <strong>vision</strong>. Today: the end-to-end binary is still being built, you wire <code>heir-opt</code> and <code>heir-translate</code> by hand, backends beyond OpenFHE are in progress, and the nightly binary is explicitly not for production.</span>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct zh">③ CKKS 是「近似」计算</span><span class="ct en">3. CKKS is approximate arithmetic</span>
+    <span class="zh">CKKS 方案的定位是「在<strong>近似</strong>实数上计算」。这意味着结果本身带有可控的数值误差——官方 dot-product 示例的 Go 测试就设了 <code>errorThreshold = 0.0001</code> 来做断言。做决策系统时,这个误差必须纳入设计,不能假设精确相等。</span>
+    <span class="en">CKKS is defined as computing "on <strong>approximate</strong> real numbers." Results carry a controlled numerical error — HEIR's own Go test for the dot-product example asserts with <code>errorThreshold = 0.0001</code>. If you build a decision system on it, that error must be part of the design; do not assume exact equality.</span>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct zh">④ 性能高度依赖「电路形状」</span><span class="ct en">4. Performance depends heavily on circuit shape</span>
+    <span class="zh">据第三方分析:FHE 在「工作负载被设计成最大化并行度、最小化电路深度」时表现最好;满足这些条件时,安全计算的开销才接近实际可用的企业 SLA。反过来说——把一个没为 FHE 设计过的模型直接丢进去,拿到的性能数字大概率毫无参考价值。</span>
+    <span class="en">Per third-party analysis, FHE performs best when workloads are structured to maximise parallelism and minimise circuit depth; only under those conditions does the overhead approach practical enterprise SLAs. The corollary: throwing a model that was never designed for FHE at the compiler will produce performance numbers that tell you nothing useful.</span>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct zh">⑤ 别忘了它保护的是「输入」,不是全部</span><span class="ct en">5. It protects the input, not everything</span>
+    <span class="zh">密文推理保护的是<strong>用户输入数据</strong>不被服务器看到。它本身不解决模型侧的问题——比如模型权重的保密(权重在服务端仍是明文)、结果被反推(通过多次查询推断模型或数据),以及元数据泄露(请求时间、频率、密文大小)。做威胁建模时要把这几项分开考虑。</span>
+    <span class="en">Encrypted inference protects <strong>the user's input</strong> from the server. It does not by itself address model-side concerns — weight confidentiality (weights remain in the clear server-side), inference attacks that reconstruct the model or data through repeated queries, or metadata leakage (request timing, frequency, ciphertext size). Keep these separate in your threat model.</span>
+  </div>
+</section>
+
+<!-- ══════ GLOSSARY ══════ -->
+<section id="glossary">
+  <h2 class="zh">8. 术语表</h2>
+  <h2 class="en">8. Glossary</h2>
+  <div class="glossary zh"><dl>
+    <dt>FHE(Fully Homomorphic Encryption)</dt><dd>全同态加密。支持在密文上做任意次加法和乘法组合的加密方案。</dd>
+    <dt>CKKS</dt><dd>一种 FHE 方案,在<strong>近似实数</strong>上计算,配合大量 SIMD 打包,是机器学习和统计场景的首选。HEIR 中对应 <code>ckks</code> 方言。</dd>
+    <dt>BGV</dt><dd>另一种 FHE 方案,面向整数运算。HEIR 的 Python 装饰器默认就用它。</dd>
+    <dt>CGGI</dt><dd>面向布尔电路 / 小整数的 FHE 方案家族,HEIR 中对应 <code>cggi</code> 方言,常见于 FPGA 加速器集成。</dd>
+    <dt>Bootstrapping</dt><dd>刷新密文、把累积噪声降回低水平的操作,是 FHE 中最昂贵的单个操作。</dd>
+    <dt>Slot / Packing</dt><dd>一个密文里可以装多个明文值,每个位置叫一个 slot;把数据摆进 slot 的过程叫 packing,能让一次运算同时处理一批数据。</dd>
+    <dt>Rotation(旋转)</dt><dd>把密文里各 slot 的值整体循环移位的操作,用来对齐不同 slot 上的数据。不便宜。</dd>
+    <dt>Relinearization</dt><dd>密文乘法会让密文「变大」(维度上升),relinearize 把它压回标准形态。</dd>
+    <dt>MLIR</dt><dd>LLVM 生态里的多层中间表示框架。HEIR 整个建立在 MLIR 上,「方言(dialect)」就是 MLIR 里定义一组操作的单位。</dd>
+    <dt>OpenFHE / Lattigo</dt><dd>两个主流开源 FHE 库,HEIR 可以把程序编译成调用它们的代码(分别是 C++ 和 Go)。</dd>
+  </dl></div>
+  <div class="glossary en"><dl>
+    <dt>FHE (Fully Homomorphic Encryption)</dt><dd>An encryption scheme supporting arbitrary compositions of addition and multiplication on ciphertexts.</dd>
+    <dt>CKKS</dt><dd>An FHE scheme that computes on <strong>approximate real numbers</strong> with heavy SIMD packing — the scheme of choice for ML and statistics. HEIR exposes it as the <code>ckks</code> dialect.</dd>
+    <dt>BGV</dt><dd>Another FHE scheme, oriented to integer arithmetic. It is the default for HEIR's Python decorator.</dd>
+    <dt>CGGI</dt><dd>A family of FHE schemes for boolean circuits and small integers; HEIR's <code>cggi</code> dialect, common in FPGA accelerator integrations.</dd>
+    <dt>Bootstrapping</dt><dd>Refreshing a ciphertext to push accumulated noise back down — the single most expensive FHE operation.</dd>
+    <dt>Slot / packing</dt><dd>A ciphertext can hold many plaintext values; each position is a slot. Packing arranges data into slots so one operation processes a whole batch.</dd>
+    <dt>Rotation</dt><dd>Cyclically shifting the values across a ciphertext's slots, used to align data sitting in different slots. Not cheap.</dd>
+    <dt>Relinearization</dt><dd>Ciphertext multiplication inflates the ciphertext (its dimension grows); relinearization compresses it back to standard form.</dd>
+    <dt>MLIR</dt><dd>The multi-level intermediate representation framework in the LLVM ecosystem. HEIR is built entirely on MLIR; a "dialect" is MLIR's unit for defining a set of operations.</dd>
+    <dt>OpenFHE / Lattigo</dt><dd>Two mainstream open-source FHE libraries; HEIR can compile programs into code calling them (C++ and Go respectively).</dd>
+  </dl></div>
+</section>
+
+<!-- ══════ RESOURCES ══════ -->
+<section id="resources">
+  <h2 class="zh">9. 学习资源</h2>
+  <h2 class="en">9. Resources</h2>
+  <ul class="zh">
+    <li><strong>官方站点</strong>:<a href="https://heir.dev/">heir.dev</a> —— 文档、设计说明、方言与 pass 列表</li>
+    <li><strong>上手文档</strong>:<a href="https://heir.dev/docs/getting_started/">Getting Started</a>(本文命令均出自此页,最后更新 2026-08-11)</li>
+    <li><strong>ML 专题设计文档</strong>:<a href="https://heir.dev/docs/design/ml_with_heir/">ML with HEIR</a> —— 前端、管线、硬件集成与研究方向</li>
+    <li><strong>论文</strong>:<a href="https://arxiv.org/abs/2508.11095">HEIR: A Universal Compiler for Homomorphic Encryption(arXiv:2508.11095)</a></li>
+    <li><strong>代码</strong>:<a href="https://github.com/google/heir">github.com/google/heir</a>;新人可从 <code>good first issue</code> 和 <code>contributions welcome</code> 标签入手</li>
+    <li><strong>示例代码</strong>:<a href="https://github.com/google/fully-homomorphic-encryption">google/fully-homomorphic-encryption</a> —— 官方博客四个 demo 的源码所在</li>
+    <li><strong>社区</strong>:HEIR 有定期工作组会议与 office hours,录像在 <a href="https://www.youtube.com/@HEIRCompiler">HEIR YouTube 频道</a>;FHE 生态社区在 <a href="https://discord.com/invite/fhe-org">fhe.org Discord</a></li>
+    <li><strong>MLIR 入门</strong>:如果 MLIR 语法陌生,官方推荐 <a href="https://mlir.llvm.org/docs/LangRef/">MLIR LangRef</a></li>
+  </ul>
+  <ul class="en">
+    <li><strong>Official site</strong>: <a href="https://heir.dev/">heir.dev</a> — docs, design notes, dialect and pass listings</li>
+    <li><strong>Getting Started</strong>: <a href="https://heir.dev/docs/getting_started/">the quickstart</a> (every command here comes from this page; last updated 2026-08-11)</li>
+    <li><strong>ML design page</strong>: <a href="https://heir.dev/docs/design/ml_with_heir/">ML with HEIR</a> — frontend, pipeline, hardware integrations, research directions</li>
+    <li><strong>Paper</strong>: <a href="https://arxiv.org/abs/2508.11095">HEIR: A Universal Compiler for Homomorphic Encryption (arXiv:2508.11095)</a></li>
+    <li><strong>Code</strong>: <a href="https://github.com/google/heir">github.com/google/heir</a>; newcomers can start from the <code>good first issue</code> and <code>contributions welcome</code> labels</li>
+    <li><strong>Demo sources</strong>: <a href="https://github.com/google/fully-homomorphic-encryption">google/fully-homomorphic-encryption</a> — where the blog's four demos live</li>
+    <li><strong>Community</strong>: HEIR holds regular working-group meetings and office hours, recorded on the <a href="https://www.youtube.com/@HEIRCompiler">HEIR YouTube channel</a>; the wider FHE community is on the <a href="https://discord.com/invite/fhe-org">fhe.org Discord</a></li>
+    <li><strong>MLIR primer</strong>: if the MLIR syntax is unfamiliar, the docs point to the <a href="https://mlir.llvm.org/docs/LangRef/">MLIR LangRef</a></li>
+  </ul>
+</section>
+
+<!-- ══════ SOURCES ══════ -->
+<section id="sources">
+  <h2 class="zh">来源清单</h2>
+  <h2 class="en">Sources</h2>
+  <div class="disc zh"><strong>可信度说明:</strong>本文关于 HEIR 功能、用法、demo、合作方的所有陈述,均来自 Google 官方博客(2026-08-14)与 HEIR 官方文档。关于 FHE 性能倍数、FHE/TEE/MPC/ZK 对比、TEE 物理攻击、Gartner 预测的陈述,来自第三方分析文章,已在正文中标注为「据分析 / 据报道」,<strong>未经官方一手来源交叉确认</strong>,请以原始研究为准。关于 Transformer 下 FHE 困难的陈述来自学术论文摘要。</div>
+  <div class="disc en"><strong>Confidence note:</strong> Every statement about HEIR's capabilities, usage, demos and partners comes from Google's official blog (2026-08-14) and HEIR's official documentation. Statements about FHE slowdown factors, the FHE/TEE/MPC/ZK comparison, TEE physical attacks and the Gartner forecast come from third-party analyses, are marked "reportedly / per analysis" in the text, and have <strong>not been cross-confirmed against primary sources</strong> — consult the original research. Claims about FHE's difficulty under transformers come from academic paper abstracts.</div>
+  <ol class="srclist zh">
+    <li>Jeremy Kun,「How Google is Making Private AI Practical with Homomorphic Encryption」,Google Blog,2026-08-14 —— <a href="https://blog.google/security/how-google-is-making-private-ai-practical-with-homomorphic-encryption/">blog.google</a>(官方一手)</li>
+    <li>HEIR 官方站点首页(What is HEIR / Why HEIR / Project Goals)—— <a href="https://heir.dev/">heir.dev</a>(官方一手)</li>
+    <li>HEIR 官方文档「Getting Started」,最后更新 2026-08-11 —— <a href="https://heir.dev/docs/getting_started/">heir.dev/docs/getting_started</a>(官方一手,本文所有命令与代码来源)</li>
+    <li>HEIR 官方设计文档「ML with HEIR」,最后更新 2026-03-10 —— <a href="https://heir.dev/docs/design/ml_with_heir/">heir.dev/docs/design/ml_with_heir</a>(官方一手)</li>
+    <li>「HEIR: A Universal Compiler for Homomorphic Encryption」,arXiv:2508.11095 —— <a href="https://arxiv.org/pdf/2508.11095">arxiv.org</a></li>
+    <li>google/heir 代码仓库 —— <a href="https://github.com/google/heir">github.com/google/heir</a></li>
+    <li>「ZK vs FHE vs MPC vs TEE: How to Choose in 2026」,Wavect —— <a href="https://wavect.io/blog/zk-vs-fhe-vs-mpc-vs-tee/">wavect.io</a>(第三方分析)</li>
+    <li>「Is FHE Still Too Slow? Homomorphic Encryption Benchmarks 2026」,Duality —— <a href="https://dualitytech.com/blog/homomorphic-encryption-performance-2026/">dualitytech.com</a>(第三方基准)</li>
+    <li>「Confidential computing decoded: TEEs vs FHE」,Optalysys —— <a href="https://optalysys.com/resource/confidential-computing-decoded-tees-vs-fhe/">optalysys.com</a>(第三方,注意 Optalysys 是 HEIR 合作方,立场非中立)</li>
+    <li>「ELLMo: Packing- and Depth-Aware Encrypted Transformer Inference」,IACR ePrint 2026/198 —— <a href="https://eprint.iacr.org/2026/198">eprint.iacr.org</a></li>
+    <li>「FHE-Agent: Automating CKKS Configuration for Practical Encrypted Inference via an LLM-Guided Agentic Framework」—— <a href="https://arxiv.org/html/2511.18653">arxiv.org</a></li>
+    <li>「Google releases open-source tool to run AI on encrypted data」,Northeast Times,2026-08-15 —— <a href="https://northeasttimes.com/2026/08/15/google-releases-open-source-tool-to-run-ai-on-encrypted-data/">northeasttimes.com</a>(媒体报道)</li>
+  </ol>
+  <ol class="srclist en">
+    <li>Jeremy Kun, "How Google is Making Private AI Practical with Homomorphic Encryption," Google Blog, 2026-08-14 — <a href="https://blog.google/security/how-google-is-making-private-ai-practical-with-homomorphic-encryption/">blog.google</a> (primary, official)</li>
+    <li>HEIR official homepage (What is HEIR / Why HEIR / Project Goals) — <a href="https://heir.dev/">heir.dev</a> (primary, official)</li>
+    <li>HEIR docs, "Getting Started," last updated 2026-08-11 — <a href="https://heir.dev/docs/getting_started/">heir.dev/docs/getting_started</a> (primary; source of every command and code snippet here)</li>
+    <li>HEIR design docs, "ML with HEIR," last updated 2026-03-10 — <a href="https://heir.dev/docs/design/ml_with_heir/">heir.dev/docs/design/ml_with_heir</a> (primary, official)</li>
+    <li>"HEIR: A Universal Compiler for Homomorphic Encryption," arXiv:2508.11095 — <a href="https://arxiv.org/pdf/2508.11095">arxiv.org</a></li>
+    <li>google/heir source repository — <a href="https://github.com/google/heir">github.com/google/heir</a></li>
+    <li>"ZK vs FHE vs MPC vs TEE: How to Choose in 2026," Wavect — <a href="https://wavect.io/blog/zk-vs-fhe-vs-mpc-vs-tee/">wavect.io</a> (third-party analysis)</li>
+    <li>"Is FHE Still Too Slow? Homomorphic Encryption Benchmarks 2026," Duality — <a href="https://dualitytech.com/blog/homomorphic-encryption-performance-2026/">dualitytech.com</a> (third-party benchmark)</li>
+    <li>"Confidential computing decoded: TEEs vs FHE," Optalysys — <a href="https://optalysys.com/resource/confidential-computing-decoded-tees-vs-fhe/">optalysys.com</a> (third-party; note Optalysys is a HEIR partner and not a neutral source)</li>
+    <li>"ELLMo: Packing- and Depth-Aware Encrypted Transformer Inference," IACR ePrint 2026/198 — <a href="https://eprint.iacr.org/2026/198">eprint.iacr.org</a></li>
+    <li>"FHE-Agent: Automating CKKS Configuration for Practical Encrypted Inference via an LLM-Guided Agentic Framework" — <a href="https://arxiv.org/html/2511.18653">arxiv.org</a></li>
+    <li>"Google releases open-source tool to run AI on encrypted data," Northeast Times, 2026-08-15 — <a href="https://northeasttimes.com/2026/08/15/google-releases-open-source-tool-to-run-ai-on-encrypted-data/">northeasttimes.com</a> (press coverage)</li>
+  </ol>
+</section>
+
+<footer>
+  <p class="zh">调研时间:<strong>2026-08-17</strong>。FHE 与 HEIR 都是快速迭代中的领域,命令、参数、后端支持范围请以 <a href="https://heir.dev/docs/">HEIR 官方最新文档</a>为准。本文由每日 AI 简报自动化任务生成,主题选自当日情报。</p>
+  <p class="en">Researched on <strong>2026-08-17</strong>. FHE and HEIR are both fast-moving; for commands, flags and backend coverage, defer to the <a href="https://heir.dev/docs/">latest official HEIR documentation</a>. Generated by a daily AI briefing automation; the topic was selected from that day's intelligence.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var body=document.body, btn=document.getElementById('langbtn'), html=document.documentElement;
+  function apply(l){
+    body.setAttribute('data-lang',l);
+    html.setAttribute('lang', l==='zh'?'zh-CN':'en');
+    btn.textContent = (l==='zh')?'EN':'中';
+    try{localStorage.setItem('heir-doc-lang',l);}catch(e){}
+    refreshFigures();
+  }
+  var init=null;
+  try{init=localStorage.getItem('heir-doc-lang');}catch(e){}
+  if(!init){ init = (navigator.language||'en').toLowerCase().indexOf('zh')===0 ? 'zh' : 'en'; }
+  btn.addEventListener('click',function(){ apply(body.getAttribute('data-lang')==='zh'?'en':'zh'); });
+
+  /* progress bar */
+  var prog=document.getElementById('prog');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=(h>0?(window.scrollY/h*100):0)+'%';
+    var best=null;
+    document.querySelectorAll('section[id]').forEach(function(s){
+      if(s.getBoundingClientRect().top<=140) best=s.id;
+    });
+    document.querySelectorAll('#toc a').forEach(function(a){
+      a.classList.toggle('on', a.getAttribute('href')==='#'+best);
+    });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+
+  /* figure entrance animation */
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.14});
+  }
+  function refreshFigures(){
+    document.querySelectorAll('.figure').forEach(function(f){
+      if(f.classList.contains('in')) return;
+      if(getComputedStyle(f).display==='none') return;
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight && r.bottom > 0){ f.classList.add('in'); return; }
+      if(io) io.observe(f);
+    });
+  }
+
+  /* toc toggle (narrow screens) */
+  var tt=document.getElementById('tocToggle'), toc=document.getElementById('toc');
+  tt.addEventListener('click',function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click',function(e){ if(e.target.tagName==='A') toc.classList.remove('open'); });
+
+  apply(init);
+  onScroll();
+})();
+</script>
+</body>
+</html>
