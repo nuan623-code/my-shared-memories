@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 身份与授权模型 | Agent Identity and Authorization</title>
+<style>
+:root{
+  --bg:#f4f7f6; --surface:#ffffff; --surface-2:#eef4f2;
+  --ink:#0e2320; --ink-2:#2e4a46; --muted:#5f7b76;
+  --line:#d3e2de; --line-2:#b9d2cc;
+  --accent:#0e6f68; --accent-2:#129087; --accent-soft:#e0f0ed; --accent-deep:#08423e;
+  --warn:#a4590d; --warn-soft:#fdf1e0; --warn-line:#efd0a4;
+  --amber:#c8871a;
+  --code-bg:#0e2320; --code-ink:#d9ece8;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(14,35,32,.05),0 8px 26px rgba(14,35,32,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.82;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-size:17px}
+
+/* progress */
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--amber));z-index:120;transition:width .1s linear}
+
+/* lang switch */
+#lang{position:fixed;top:14px;right:16px;z-index:130;display:flex;background:rgba(255,255,255,.82);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid var(--line-2);
+  border-radius:99px;overflow:hidden;box-shadow:var(--shadow);font-size:13.5px;font-weight:700}
+#lang button{border:0;background:transparent;color:var(--muted);padding:7px 15px;cursor:pointer;font:inherit;letter-spacing:.02em}
+#lang button[aria-pressed="true"]{background:var(--accent);color:#fff}
+
+/* toc */
+#toc{position:fixed;top:50%;left:18px;transform:translateY(-50%);z-index:110;width:214px;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow);
+  max-height:78vh;overflow-y:auto}
+#toc .tt{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:0 0 9px;padding-left:8px}
+#toc a{display:block;color:var(--ink-2);text-decoration:none;font-size:13.5px;line-height:1.45;
+  padding:6px 9px;border-radius:8px;border-left:2.5px solid transparent;margin-bottom:1px}
+#toc a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+#toc a.act{background:var(--accent-soft);color:var(--accent-deep);border-left-color:var(--accent);font-weight:700}
+#tocBtn{display:none;position:fixed;left:14px;bottom:18px;z-index:130;width:46px;height:46px;border-radius:50%;
+  border:1.5px solid var(--line-2);background:rgba(255,255,255,.9);font-size:19px;cursor:pointer;box-shadow:var(--shadow)}
+
+.wrap{max-width:790px;margin:0 auto;padding:0 22px 90px}
+
+/* hero */
+header.hero{background:
+  radial-gradient(1100px 340px at 12% -12%, #d6ece7 0%, rgba(214,236,231,0) 62%),
+  radial-gradient(760px 300px at 92% 4%, #fdeed6 0%, rgba(253,238,214,0) 60%),
+  linear-gradient(180deg,#fbfdfc 0%, var(--bg) 100%);
+  border-bottom:1px solid var(--line);margin-bottom:34px;position:relative;overflow:hidden}
+header.hero::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:46px 46px;opacity:.28;mask-image:linear-gradient(180deg,rgba(0,0,0,.5),transparent 72%);
+  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.5),transparent 72%);pointer-events:none}
+.hin{max-width:790px;margin:0 auto;padding:74px 22px 44px;position:relative;z-index:1}
+.kicker{display:inline-block;font-size:11.5px;font-weight:850;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--accent-deep);background:var(--accent-soft);border:1px solid var(--line-2);padding:5px 13px;border-radius:99px;margin-bottom:16px}
+h1{font-size:clamp(28px,6vw,45px);line-height:1.2;margin:0 0 14px;font-weight:860;letter-spacing:-.025em}
+h1 em{font-style:normal;color:var(--accent);position:relative}
+h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.09em;height:.28em;background:rgba(200,135,26,.24);z-index:-1}
+.lede{font-size:18.5px;color:var(--ink-2);margin:0 0 20px;max-width:63ch}
+.meta{font-size:13.5px;color:var(--muted);border-top:1px dashed var(--line-2);padding-top:14px}
+
+/* sections */
+section{margin:0 0 52px;scroll-margin-top:22px}
+h2{font-size:clamp(21px,3.6vw,27px);margin:0 0 8px;font-weight:820;letter-spacing:-.015em;line-height:1.32}
+h2 .num{color:var(--accent-2);font-variant-numeric:tabular-nums;margin-right:9px;font-weight:850}
+h3{font-size:18.5px;margin:30px 0 8px;font-weight:780;color:var(--accent-deep)}
+p{margin:0 0 15px}
+.dek{color:var(--muted);font-size:15px;margin:-2px 0 20px;border-left:2.5px solid var(--line-2);padding-left:12px}
+ul,ol{margin:0 0 15px;padding-left:22px}
+li{margin-bottom:8px}
+b,strong{font-weight:750;color:var(--accent-deep)}
+a{color:var(--accent)}
+
+/* components */
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:var(--radius);padding:18px 20px;margin:20px 0;box-shadow:var(--shadow)}
+.def .term{font-size:17px;font-weight:820;color:var(--accent-deep);margin:0 0 6px}
+.def p{margin:0 0 9px;font-size:16px}
+.def p:last-child{margin-bottom:0}
+.def .lit{font-size:14.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:9px}
+
+.callout{border-radius:var(--radius);padding:16px 19px;margin:20px 0;font-size:16px;border:1px solid var(--line)}
+.callout.key{background:var(--accent-soft);border-color:var(--line-2)}
+.callout.warn{background:var(--warn-soft);border-color:var(--warn-line)}
+.callout.quote{background:var(--surface-2);border-left:4px solid var(--muted);font-style:italic}
+.callout p{margin:0 0 9px}.callout p:last-child{margin:0}
+.callout .ch{display:block;font-weight:820;margin-bottom:6px;font-size:15px;letter-spacing:.01em}
+.callout.key .ch{color:var(--accent-deep)}
+.callout.warn .ch{color:var(--warn)}
+
+.steps{counter-reset:s;list-style:none;padding:0;margin:22px 0}
+.steps li{counter-increment:s;position:relative;padding:0 0 0 46px;margin-bottom:20px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:31px;height:31px;border-radius:9px;
+  background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:830;font-size:14.5px}
+.steps li b{display:block;font-size:16.5px;margin-bottom:3px}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin:22px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
+.stat .n{font-size:26px;font-weight:860;color:var(--accent);line-height:1.15;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.5}
+
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:15px;background:var(--surface);
+  border-radius:12px;overflow:hidden;box-shadow:var(--shadow);display:block;overflow-x:auto}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--accent-soft);color:var(--accent-deep);font-weight:800;font-size:14px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td b{color:var(--accent-deep)}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:15px 17px;overflow-x:auto;
+  font-size:13.5px;line-height:1.62;margin:16px 0}
+pre code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.9em;
+  background:var(--accent-soft);padding:1.5px 6px;border-radius:5px;color:var(--accent-deep)}
+pre code{background:transparent;padding:0;color:inherit}
+.srcnote{font-size:13px;color:var(--muted);margin:-8px 0 18px}
+
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:6px 20px;margin:22px 0;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:800;color:var(--accent-deep);margin-top:15px;font-size:15.5px}
+.glossary dd{margin:3px 0 0;color:var(--ink-2);font-size:15.5px}
+
+.analogy{background:linear-gradient(135deg,var(--warn-soft),#fff);border:1px solid var(--warn-line);
+  border-radius:var(--radius);padding:17px 20px;margin:20px 0}
+.analogy .ah{font-weight:820;color:var(--warn);font-size:15px;margin-bottom:6px}
+.analogy p{margin:0;font-size:16px}
+
+details.rephrase{background:var(--surface-2);border:1px dashed var(--line-2);border-radius:11px;padding:11px 16px;margin:18px 0;font-size:15.5px}
+details.rephrase summary{cursor:pointer;font-weight:760;color:var(--accent-deep);font-size:14.5px}
+details.rephrase p{margin:10px 0 2px}
+
+.prereq{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:13px 17px;margin:18px 0;font-size:15px;color:var(--ink-2)}
+
+/* figures */
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 18px 14px;margin:26px 0;box-shadow:var(--shadow);
+  opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.5px;color:var(--muted);margin-top:12px;border-top:1px dashed var(--line);padding-top:9px;line-height:1.6}
+.figure [data-draw]{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600);transition:stroke-dashoffset 1.15s ease .18s}
+.figure.in [data-draw]{stroke-dashoffset:0}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+
+/* sources */
+.sources{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:8px 20px 18px;box-shadow:var(--shadow);font-size:14.5px}
+.sources ol{padding-left:20px;margin:14px 0 0}
+.sources li{margin-bottom:10px;line-height:1.6}
+.sources .tag{display:inline-block;font-size:11px;font-weight:800;padding:1.5px 7px;border-radius:5px;margin-right:7px;
+  background:var(--accent-soft);color:var(--accent-deep);border:1px solid var(--line-2);vertical-align:1px}
+.sources .tag.c{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+
+footer{border-top:1px solid var(--line);margin-top:44px;padding-top:22px;font-size:14px;color:var(--muted)}
+
+@media(max-width:1180px){#toc{display:none}#tocBtn{display:block}
+  #toc.open{display:block;position:fixed;left:12px;bottom:74px;top:auto;transform:none;width:min(280px,84vw);max-height:64vh}}
+@media(max-width:640px){
+  body{font-size:16.5px}
+  .hin{padding:66px 20px 36px}
+  .wrap{padding:0 18px 84px}
+  section{margin-bottom:42px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
+  pre{font-size:12.5px}
+  #lang{top:10px;right:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .figure,.figure [data-anim]{opacity:1;transform:none;transition:none}
+  .figure [data-draw]{stroke-dashoffset:0;transition:none}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中文 EN ☰ 深度学习 · 2026-08-20 Deep Dive · 2026-08-20 当 Agent 不再 借用你的账号 When your agent stops borrowing your login …">
+<meta property="og:title" content="Agent 身份与授权模型 | Agent Identity and Authorization">
+<meta property="og:description" content="中文 EN ☰ 深度学习 · 2026-08-20 Deep Dive · 2026-08-20 当 Agent 不再 借用你的账号 When your agent stops borrowing your login …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-20-agent-shen-fen-yu-shou-quan-mo-xing.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-20-agent-shen-fen-yu-shou-quan-mo-xing.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent 身份与授权模型 | Agent Identity and Authorization", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-20-agent-shen-fen-yu-shou-quan-mo-xing.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-20", "dateModified": "2026-08-20"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="prog"></div>
+<div id="lang" role="group" aria-label="Language">
+  <button type="button" id="bZh" aria-pressed="true">中文</button>
+  <button type="button" id="bEn" aria-pressed="false">EN</button>
+</div>
+<button id="tocBtn" type="button" aria-label="目录 / Contents">☰</button>
+
+<nav id="toc" aria-label="Contents">
+  <p class="tt"><span class="zh">目录</span><span class="en">Contents</span></p>
+  <a href="#tldr"><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></a>
+  <a href="#why"><span class="zh">1 · 旧模型为什么撑不住</span><span class="en">1 · Why the old model breaks</span></a>
+  <a href="#concepts"><span class="zh">2 · 核心概念</span><span class="en">2 · Core concepts</span></a>
+  <a href="#models"><span class="zh">3 · 三种做法对比</span><span class="en">3 · Three approaches compared</span></a>
+  <a href="#stack"><span class="zh">4 · 技术栈拆解</span><span class="en">4 · The technology stack</span></a>
+  <a href="#howto"><span class="zh">5 · 落地七步</span><span class="en">5 · Rolling it out in seven steps</span></a>
+  <a href="#cases"><span class="zh">6 · 真实案例</span><span class="en">6 · Real-world cases</span></a>
+  <a href="#pitfalls"><span class="zh">7 · 常见坑与限制</span><span class="en">7 · Pitfalls and limits</span></a>
+  <a href="#glossary"><span class="zh">术语表</span><span class="en">Glossary</span></a>
+  <a href="#sources"><span class="zh">来源清单</span><span class="en">Sources</span></a>
+</nav>
+
+<header class="hero"><div class="hin">
+  <span class="kicker zh">深度学习 · 2026-08-20</span>
+  <span class="kicker en">Deep Dive · 2026-08-20</span>
+  <h1 class="zh">当 Agent 不再<em>借用你的账号</em></h1>
+  <h1 class="en">When your agent stops <em>borrowing your login</em></h1>
+  <p class="lede zh">自主 Agent 打破了身份系统七十年来的一条隐含假设:每个请求背后站着一个人。当 Agent 在你下班后自己触发任务、在多人频道里替一屋子人干活时,「用谁的权限」这个问题第一次没有正确答案。这份文档讲清 Agent 身份(agent identity)是什么、怎么落地、什么时候该上。</p>
+  <p class="lede en">Autonomous agents break an assumption that identity systems have quietly relied on for seventy years: that behind every request stands a person. When an agent fires its own task after you've logged off, or works on behalf of a room full of people in a shared channel, the question "whose permissions apply?" has no right answer for the first time. This guide covers what agent identity is, how to implement it, and when you actually need it.</p>
+  <p class="meta zh">调研时间:2026-08-20 · 阅读约 22 分钟 · 全文含 3 张图解 · 所有关键事实附来源</p>
+  <p class="meta en">Researched 2026-08-20 · ~22 min read · 3 diagrams · Every key fact is sourced</p>
+</div></header>
+
+<div class="wrap">
+
+<section id="tldr">
+  <h2 class="zh"><span class="num">00</span>30 秒速览</h2>
+  <h2 class="en"><span class="num">00</span>The 30-second version</h2>
+  <p class="dek zh">如果你只读一段,读这段。</p>
+  <p class="dek en">If you read only one paragraph, read this one.</p>
+
+  <p class="zh"><b>Agent 身份(agent identity)</b>指的是:让 AI Agent 在它要访问的每个系统里<b>拥有自己的账号和凭据</b>,而不是拿着某个人的令牌去代办事情。它把访问控制的问题从「这个<b>用户</b>能做什么」改写成「这个<b>Agent</b>在这个<b>隔间</b>里能做什么」。</p>
+  <p class="en"><b>Agent identity</b> means giving an AI agent <b>its own accounts and credentials</b> in every system it touches, rather than having it carry a person's token around and act on their behalf. It rewrites access control from "what can this <b>user</b> do?" to "what can this <b>agent</b> do <b>in this compartment</b>?"</p>
+
+  <p class="zh">推动它的是两股力量。一是<b>自主性</b>:Anthropic 引用的数据显示,Agent 能可靠独立完成的任务长度<b>大约每四个月翻一番</b>,它现在会自己安排任务、在提问的人早已登出之后才动手。二是<b>多人协作</b>:当一个频道里三个工程师和一个 PM 一起找 bug,没有哪个人的权限是「永远正确」的那个。</p>
+  <p class="en">Two forces drive it. First, <b>autonomy</b>: by the figure Anthropic cites, the length of task an agent can reliably complete on its own has been <b>roughly doubling every four months</b>. Agents now schedule their own work and act long after the person who asked has logged off. Second, <b>multiplayer teams</b>: when three engineers and a PM debug together in one channel, no single person's permissions are the right ones all of the time.</p>
+
+  <div class="callout key">
+    <span class="ch zh">一句话判断你需不需要它</span>
+    <span class="ch en">A one-line test for whether you need this</span>
+    <p class="zh">如果你的 Agent <b>只在一个人面前、只在那个人盯着的时候</b>干活,「以用户身份行事」还够用。一旦它开始<b>异步触发</b>、<b>服务多人</b>、或<b>调用别人也能间接受益的工具</b>,你就需要 Agent 身份——否则一个共享入口就是通往某个人私有文档的侧门。</p>
+    <p class="en">If your agent works <b>for one person, only while that person is watching</b>, "act as the user" is still fine. The moment it starts firing <b>asynchronously</b>, serving <b>multiple people</b>, or calling tools whose results others can see, you need agent identity — otherwise a shared entry point becomes a side door into someone's private documents.</p>
+  </div>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三种访问模型对比:以用户身份行事、共享服务账号、Agent 身份">
+      <defs>
+        <marker id="ar-z" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#5f7b76"/>
+        </marker>
+      </defs>
+      <rect x="8" y="8" width="236" height="284" rx="12" fill="#fdf1e0" stroke="#efd0a4"/>
+      <rect x="262" y="8" width="236" height="284" rx="12" fill="#fdf1e0" stroke="#efd0a4"/>
+      <rect x="516" y="8" width="236" height="284" rx="12" fill="#e0f0ed" stroke="#b9d2cc"/>
+
+      <text data-anim x="126" y="34" text-anchor="middle" font-size="14" font-weight="800" fill="#a4590d">① 以用户身份行事</text>
+      <text data-anim x="380" y="34" text-anchor="middle" font-size="14" font-weight="800" fill="#a4590d">② 共享服务账号</text>
+      <text data-anim x="634" y="34" text-anchor="middle" font-size="14" font-weight="800" fill="#08423e">③ Agent 身份</text>
+
+      <g data-anim>
+        <circle cx="70" cy="80" r="17" fill="#fff" stroke="#5f7b76" stroke-width="1.6"/>
+        <text x="70" y="85" text-anchor="middle" font-size="15">🧑</text>
+        <text x="70" y="115" text-anchor="middle" font-size="11" fill="#5f7b76">用户令牌</text>
+        <rect x="140" y="63" width="76" height="34" rx="9" fill="#0e6f68"/>
+        <text x="178" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Agent</text>
+      </g>
+      <path data-draw style="--len:70" d="M90,80 L136,80" stroke="#5f7b76" stroke-width="1.6" fill="none" marker-end="url(#ar-z)"/>
+      <g data-anim>
+        <rect x="40" y="150" width="176" height="42" rx="9" fill="#fff" stroke="#d3e2de"/>
+        <text x="128" y="167" text-anchor="middle" font-size="11.5" fill="#2e4a46">Agent 拿着「你」的全部权限</text>
+        <text x="128" y="183" text-anchor="middle" font-size="11.5" fill="#2e4a46">日志里看到的动作人=你</text>
+        <rect x="40" y="206" width="176" height="66" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="128" y="228" text-anchor="middle" font-size="11.5" font-weight="700" fill="#a4590d">✗ 你下班后它还能动</text>
+        <text x="128" y="246" text-anchor="middle" font-size="11.5" font-weight="700" fill="#a4590d">✗ 多人场景无解</text>
+        <text x="128" y="264" text-anchor="middle" font-size="11.5" font-weight="700" fill="#a4590d">✗ 责任归属说不清</text>
+      </g>
+
+      <g data-anim>
+        <rect x="296" y="63" width="76" height="34" rx="9" fill="#0e6f68"/>
+        <text x="334" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Agent</text>
+        <rect x="396" y="63" width="86" height="34" rx="9" fill="#fff" stroke="#5f7b76" stroke-width="1.6"/>
+        <text x="439" y="85" text-anchor="middle" font-size="11" fill="#2e4a46">共享账号</text>
+      </g>
+      <path data-draw style="--len:26" d="M376,80 L392,80" stroke="#5f7b76" stroke-width="1.6" fill="none" marker-end="url(#ar-z)"/>
+      <g data-anim>
+        <rect x="294" y="150" width="176" height="42" rx="9" fill="#fff" stroke="#d3e2de"/>
+        <text x="382" y="167" text-anchor="middle" font-size="11.5" fill="#2e4a46">一次开通、涵盖「以后可能</text>
+        <text x="382" y="183" text-anchor="middle" font-size="11.5" fill="#2e4a46">用到的一切」,之后无人复查</text>
+        <rect x="294" y="206" width="176" height="66" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="382" y="228" text-anchor="middle" font-size="11.5" font-weight="700" fill="#a4590d">✗ 97% 非人身份权限过大</text>
+        <text x="382" y="246" text-anchor="middle" font-size="11.5" font-weight="700" fill="#a4590d">✗ 爆炸半径巨大</text>
+        <text x="382" y="264" text-anchor="middle" font-size="11.5" font-weight="700" fill="#a4590d">✗ 无法区分是哪次任务</text>
+      </g>
+
+      <g data-anim>
+        <rect x="550" y="63" width="76" height="34" rx="9" fill="#0e6f68"/>
+        <text x="588" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Agent</text>
+        <rect x="650" y="56" width="86" height="22" rx="7" fill="#fff" stroke="#0e6f68" stroke-width="1.4"/>
+        <text x="693" y="71" text-anchor="middle" font-size="10.5" fill="#08423e">隔间 A 身份</text>
+        <rect x="650" y="84" width="86" height="22" rx="7" fill="#fff" stroke="#0e6f68" stroke-width="1.4"/>
+        <text x="693" y="99" text-anchor="middle" font-size="10.5" fill="#08423e">隔间 B 身份</text>
+      </g>
+      <path data-draw style="--len:34" d="M630,74 L646,67" stroke="#0e6f68" stroke-width="1.6" fill="none" marker-end="url(#ar-z)"/>
+      <path data-draw style="--len:34" d="M630,88 L646,95" stroke="#0e6f68" stroke-width="1.6" fill="none" marker-end="url(#ar-z)"/>
+      <g data-anim>
+        <rect x="548" y="150" width="176" height="42" rx="9" fill="#fff" stroke="#d3e2de"/>
+        <text x="636" y="167" text-anchor="middle" font-size="11.5" fill="#2e4a46">每个隔间一套凭据,</text>
+        <text x="636" y="183" text-anchor="middle" font-size="11.5" fill="#2e4a46">边界内学到的不外溢</text>
+        <rect x="548" y="206" width="176" height="66" rx="9" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="636" y="228" text-anchor="middle" font-size="11.5" font-weight="700" fill="#08423e">✓ 吊销身份=全局断权</text>
+        <text x="636" y="246" text-anchor="middle" font-size="11.5" font-weight="700" fill="#08423e">✓ 动作落进各系统自己的日志</text>
+        <text x="636" y="264" text-anchor="middle" font-size="11.5" font-weight="700" fill="#08423e">✓ 私有频道记忆不外泄</text>
+      </g>
+    </svg>
+    <p class="fig-cap">图 1:三种让 Agent 拿到访问权的做法。①②是今天的主流,③是 Anthropic 在 Claude Tag 里采用的模型。「爆炸半径」指凭据一旦被滥用能波及的范围。数据来源见文末来源 [1][6]。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three access models compared: act-as-user, shared service account, agent identity">
+      <defs>
+        <marker id="ar-e" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#5f7b76"/>
+        </marker>
+      </defs>
+      <rect x="8" y="8" width="236" height="284" rx="12" fill="#fdf1e0" stroke="#efd0a4"/>
+      <rect x="262" y="8" width="236" height="284" rx="12" fill="#fdf1e0" stroke="#efd0a4"/>
+      <rect x="516" y="8" width="236" height="284" rx="12" fill="#e0f0ed" stroke="#b9d2cc"/>
+
+      <text data-anim x="126" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="#a4590d">① Act as the user</text>
+      <text data-anim x="380" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="#a4590d">② Shared service account</text>
+      <text data-anim x="634" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="#08423e">③ Agent identity</text>
+
+      <g data-anim>
+        <circle cx="70" cy="80" r="17" fill="#fff" stroke="#5f7b76" stroke-width="1.6"/>
+        <text x="70" y="85" text-anchor="middle" font-size="15">🧑</text>
+        <text x="70" y="115" text-anchor="middle" font-size="10.5" fill="#5f7b76">user token</text>
+        <rect x="140" y="63" width="76" height="34" rx="9" fill="#0e6f68"/>
+        <text x="178" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Agent</text>
+      </g>
+      <path data-draw style="--len:70" d="M90,80 L136,80" stroke="#5f7b76" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <g data-anim>
+        <rect x="40" y="150" width="176" height="42" rx="9" fill="#fff" stroke="#d3e2de"/>
+        <text x="128" y="167" text-anchor="middle" font-size="10.5" fill="#2e4a46">Agent carries all of "your" access</text>
+        <text x="128" y="183" text-anchor="middle" font-size="10.5" fill="#2e4a46">Logs show the actor as: you</text>
+        <rect x="40" y="206" width="176" height="66" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="128" y="228" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a4590d">✗ Still acts after you log off</text>
+        <text x="128" y="246" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a4590d">✗ No answer for shared spaces</text>
+        <text x="128" y="264" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a4590d">✗ Accountability is unprovable</text>
+      </g>
+
+      <g data-anim>
+        <rect x="296" y="63" width="76" height="34" rx="9" fill="#0e6f68"/>
+        <text x="334" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Agent</text>
+        <rect x="396" y="63" width="86" height="34" rx="9" fill="#fff" stroke="#5f7b76" stroke-width="1.6"/>
+        <text x="439" y="85" text-anchor="middle" font-size="10.5" fill="#2e4a46">shared acct</text>
+      </g>
+      <path data-draw style="--len:26" d="M376,80 L392,80" stroke="#5f7b76" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <g data-anim>
+        <rect x="294" y="150" width="176" height="42" rx="9" fill="#fff" stroke="#d3e2de"/>
+        <text x="382" y="167" text-anchor="middle" font-size="10.5" fill="#2e4a46">Provisioned once to cover</text>
+        <text x="382" y="183" text-anchor="middle" font-size="10.5" fill="#2e4a46">"whatever it might need", then left</text>
+        <rect x="294" y="206" width="176" height="66" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="382" y="228" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a4590d">✗ 97% of NHIs over-privileged</text>
+        <text x="382" y="246" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a4590d">✗ Enormous blast radius</text>
+        <text x="382" y="264" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a4590d">✗ Can't tell which task acted</text>
+      </g>
+
+      <g data-anim>
+        <rect x="550" y="63" width="76" height="34" rx="9" fill="#0e6f68"/>
+        <text x="588" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Agent</text>
+        <rect x="650" y="56" width="86" height="22" rx="7" fill="#fff" stroke="#0e6f68" stroke-width="1.4"/>
+        <text x="693" y="71" text-anchor="middle" font-size="10" fill="#08423e">identity in A</text>
+        <rect x="650" y="84" width="86" height="22" rx="7" fill="#fff" stroke="#0e6f68" stroke-width="1.4"/>
+        <text x="693" y="99" text-anchor="middle" font-size="10" fill="#08423e">identity in B</text>
+      </g>
+      <path data-draw style="--len:34" d="M630,74 L646,67" stroke="#0e6f68" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <path data-draw style="--len:34" d="M630,88 L646,95" stroke="#0e6f68" stroke-width="1.6" fill="none" marker-end="url(#ar-e)"/>
+      <g data-anim>
+        <rect x="548" y="150" width="176" height="42" rx="9" fill="#fff" stroke="#d3e2de"/>
+        <text x="636" y="167" text-anchor="middle" font-size="10.5" fill="#2e4a46">One credential set per compartment;</text>
+        <text x="636" y="183" text-anchor="middle" font-size="10.5" fill="#2e4a46">what it learns inside stays inside</text>
+        <rect x="548" y="206" width="176" height="66" rx="9" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="636" y="228" text-anchor="middle" font-size="10.5" font-weight="700" fill="#08423e">✓ Revoke identity = access ends</text>
+        <text x="636" y="246" text-anchor="middle" font-size="10.5" font-weight="700" fill="#08423e">✓ Actions land in each system's logs</text>
+        <text x="636" y="264" text-anchor="middle" font-size="10.5" font-weight="700" fill="#08423e">✓ Private-channel memory stays put</text>
+      </g>
+    </svg>
+    <p class="fig-cap">Figure 1: Three ways to give an agent access. ① and ② are today's defaults; ③ is the model Anthropic adopted for Claude Tag. "Blast radius" is how far a credential's misuse can reach. Data from sources [1] and [6] at the end.</p>
+  </div>
+</section>
+
+<section id="why">
+  <h2 class="zh"><span class="num">01</span>旧的访问模型为什么撑不住了</h2>
+  <h2 class="en"><span class="num">01</span>Why the old access model breaks</h2>
+  <p class="dek zh">先讲痛点。定义留到下一章。</p>
+  <p class="dek en">Pain points first. Definitions come next.</p>
+
+  <p class="zh">身份与访问管理(IAM,Identity and Access Management,就是「谁能访问什么」那套系统)有一条从未写在文档里的假设:<b>每一个到达服务器的请求,背后站着一个当时正在操作的人</b>。会话超时、二次确认、审计日志里的「操作人」字段——全都建立在这条假设上。</p>
+  <p class="en">Identity and Access Management (IAM — the machinery that decides who can reach what) rests on an assumption nobody ever wrote down: <b>behind every request arriving at a server stands a person who is operating right now</b>. Session timeouts, step-up confirmations, the "actor" field in your audit log — all of it is built on that premise.</p>
+
+  <p class="zh">自主 Agent 把这条假设的三根支柱同时打断了。</p>
+  <p class="en">Autonomous agents snap all three legs of that assumption at once.</p>
+
+  <h3 class="zh">支柱一:请求发生时,人在场</h3>
+  <h3 class="en">Leg one: a human is present when the request happens</h3>
+  <p class="zh">Anthropic 在介绍 Claude Tag 访问模型的文章里给出的判断是:<b>Agent 能可靠独立完成的任务长度大约每四个月翻一番</b>;Agent 现在会「自己为将来安排任务,并在提出请求的人早就登出之后响应事件」。用户设定的是「在什么情况下触发」的例行程序,真正干活的时候 Agent 基本是自主的。<span class="srcnote">(来源 [1],Anthropic/Claude 博客)</span></p>
+  <p class="en">In the post introducing Claude Tag's access model, Anthropic's framing is that <b>the length of task an agent can reliably complete on its own has been doubling roughly every four months</b>. Agents now "schedule their own tasks for later and respond to events long after the person who asked has logged off." Users set up routines that trigger the agent given certain conditions; the actual work happens largely autonomously. <span class="srcnote">(Source [1], Anthropic/Claude blog)</span></p>
+
+  <h3 class="zh">支柱二:一个请求对应一个人</h3>
+  <h3 class="en">Leg two: one request maps to one person</h3>
+  <p class="zh">Anthropic 举的例子很具体:一个频道里三个工程师和一个 PM 一起 debug。「当不止一个人在掌舵时,谁的权限算数?」他们的结论是:<b>没有哪一个人的选择在所有时候都是对的</b>。<span class="srcnote">(来源 [1])</span></p>
+  <p class="en">Anthropic's example is concrete: a channel where three engineers and a PM are debugging together. "When more than one person is steering, whose permissions apply?" Their conclusion: <b>there's no single choice of person that would be right all of the time</b>. <span class="srcnote">(Source [1])</span></p>
+
+  <h3 class="zh">支柱三:日志能说清是谁干的</h3>
+  <h3 class="en">Leg three: the log can say who did it</h3>
+  <p class="zh">这一根断得最安静,后果却最贵。当 Agent 用你的令牌行动时,所有下游系统的日志里写的都是<b>你</b>。业界把这叫做<b>归因鸿沟(attribution gap)</b>。据 Kiteworks 的分析,<b>三分之二的组织无法向监管方说清它们的 AI Agent 做了什么、为什么做</b>;而「只记录大模型的回复、不记录底层的工具调用、scope 与下游授权决策」,产生的是一份<b>看起来存在、取证时没用</b>的审计轨迹。<span class="srcnote">(来源 [7],厂商分析,属行业观点而非官方标准)</span></p>
+  <p class="en">This one snaps most quietly and costs the most. When an agent acts on your token, every downstream log records <b>you</b> as the actor. The industry calls this the <b>attribution gap</b>. Per Kiteworks' analysis, <b>two-thirds of organizations can't tell a regulator what their AI agents did or why</b>; and logging only the model's response — without the underlying tool invocations, scopes, and downstream authorization decisions — produces an audit trail that <b>looks present but is useless for forensics</b>. <span class="srcnote">(Source [7]; vendor analysis — an industry view, not an official standard.)</span></p>
+
+  <div class="stats">
+    <div class="stat"><div class="n">144:1</div><div class="l zh">2026 年非人身份 vs 人类身份的数量比,年增约 44%</div><div class="l en">Ratio of non-human to human identities in 2026, growing ~44% a year</div></div>
+    <div class="stat"><div class="n">97%</div><div class="l zh">被报告为权限过大的非人身份占比</div><div class="l en">Share of non-human identities reported as over-privileged</div></div>
+    <div class="stat"><div class="n">68%</div><div class="l zh">无法可靠区分 Agent 活动与人类活动的组织(CSA 调查)</div><div class="l en">Organizations that can't reliably tell agent activity from human activity (CSA survey)</div></div>
+    <div class="stat"><div class="n">16%+</div><div class="l zh">根本不追踪新 AI 身份创建的组织</div><div class="l en">Organizations that don't track the creation of new AI identities at all</div></div>
+  </div>
+  <p class="srcnote zh">以上数字来自安全厂商与云安全联盟(CSA)的行业调查汇总(来源 [6][7][8])。这些是<b>调查口径的统计</b>而非官方普查,不同报告的定义与样本差异较大,请当作数量级参考而非精确值。</p>
+  <p class="srcnote en">These figures come from security-vendor and Cloud Security Alliance (CSA) survey roundups (sources [6][7][8]). They are <b>survey-based statistics</b>, not an official census; definitions and samples vary considerably between reports, so treat them as order-of-magnitude signals rather than precise values.</p>
+
+  <div class="analogy">
+    <div class="ah zh">🔑 一个类比</div>
+    <div class="ah en">🔑 An analogy</div>
+    <p class="zh">「以用户身份行事」相当于:你把自己的员工门禁卡借给一个新来的实习生,让他去帮你取个快递。他确实能取到快递——顺便也能刷开财务室、机房和 CEO 办公室。而且门禁记录上,今晚三点进机房的人,写的是你。</p>
+    <p class="en">"Act as the user" is like handing your employee badge to a new intern so they can pick up a package for you. They can get the package — and also open the finance room, the server room, and the CEO's office. And the badge log says <em>you</em> were the one who walked into the server room at 3am.</p>
+  </div>
+</section>
+
+<section id="concepts">
+  <h2 class="zh"><span class="num">02</span>核心概念:五个词讲清这个领域</h2>
+  <h2 class="en"><span class="num">02</span>Core concepts: the field in five terms</h2>
+  <p class="dek zh">每个术语先给人话解释,再给严谨表述。</p>
+  <p class="dek en">Plain-language first, precise formulation second.</p>
+
+  <div class="def">
+    <p class="term zh">主体(principal)与非人身份(NHI)</p>
+    <p class="term en">Principal and non-human identity (NHI)</p>
+    <p class="zh"><b>人话</b>:「主体」就是权限系统眼里「能干事的那个东西」。过去几乎只有两类:人,和跑在服务器上的程序(服务账号)。<b>非人身份(Non-Human Identity, NHI)</b>是给后者起的统称——API 密钥、服务账号、CI 流水线的令牌,现在还要加上 AI Agent。</p>
+    <p class="en"><b>In plain terms</b>: a "principal" is whatever the permission system sees as capable of acting. Historically there were basically two kinds: people, and programs running on servers (service accounts). <b>Non-human identity (NHI)</b> is the umbrella term for the latter — API keys, service accounts, CI pipeline tokens, and now AI agents.</p>
+    <p class="lit zh">为什么 Agent 不能直接归进「服务账号」:服务账号的行为是<b>写死在代码里的</b>,你审一遍代码就知道它会做什么;Agent 的行为由运行时的自然语言输入决定,同一套凭据今天用来查订单、明天可能被一段藏在网页里的文字骗去发邮件。</p>
+    <p class="lit en">Why an agent isn't just a service account: a service account's behaviour is <b>fixed in code</b> — read the code and you know what it does. An agent's behaviour is decided at runtime by natural-language input, so the same credential that queries orders today can tomorrow be talked into sending email by text hidden in a web page.</p>
+  </div>
+
+  <div class="def">
+    <p class="term zh">委派链(delegation chain)</p>
+    <p class="term en">Delegation chain</p>
+    <p class="zh"><b>人话</b>:一句能写进日志的话——「<b>Agent X</b> 依据<b>策略 Y</b>、受<b>用户 Z</b> 委派,执行了这个动作」。三个信息缺一个,事后就说不清责任。</p>
+    <p class="en"><b>In plain terms</b>: one sentence you should be able to write into a log — "<b>Agent X</b> performed this action under <b>Policy Y</b>, delegated by <b>User Z</b>." Drop any of the three and accountability becomes unprovable after the fact.</p>
+    <p class="lit zh">技术上的常见承载方式:Agent 出示一个签名的 JWT(一种自带签名、可离线校验的令牌),里面装着它自己的身份(<code>sub</code> 声明)、被委派的用户身份(<code>act</code> 或 on-behalf-of 声明)、scope 和过期时间。这个「Agent 代表用户、在此 scope 内」的结构,恰恰是「人」和「服务账号」两个旧类别都表达不了的。<span class="srcnote">(来源 [9],行业实践综述)</span></p>
+    <p class="lit en">The common technical shape: the agent presents a signed JWT (a token that carries its own signature and can be validated offline) containing its own identity (the <code>sub</code> claim), the delegated user identity (an <code>act</code> or on-behalf-of claim), the scope, and an expiry. That "this agent, on behalf of this user, within this scope" structure is precisely what neither the "human" nor the "service account" category captures cleanly. <span class="srcnote">(Source [9], industry practice roundup)</span></p>
+  </div>
+
+  <div class="def">
+    <p class="term zh">混淆代理人问题(confused deputy)</p>
+    <p class="term en">The confused deputy problem</p>
+    <p class="zh"><b>人话</b>:一个手里有权限的「代办人」被外人骗着,用自己的权限去干了外人没资格干的事。经典例子就是本周的 Copilot 事件:受害者点开一条链接,Copilot 用<b>受害者自己的权限</b>去翻收件箱、把找到的密码打包发给攻击者。Copilot 全程没有「越权」——它只是被说服了。</p>
+    <p class="en"><b>In plain terms</b>: a deputy that holds authority gets talked by an outsider into using that authority for something the outsider isn't entitled to. This week's Copilot incident is the textbook case: the victim clicks a link, and Copilot uses <b>the victim's own permissions</b> to search their inbox and ship the passwords it finds to the attacker. Copilot never "exceeded" its privileges — it was simply persuaded.</p>
+    <p class="lit zh">学术侧正在把它形式化。arXiv 2606.28679《Capability Gates Are Not Authorization》指出:主流 Agent 框架里的「能力开关」(这个 Agent 能不能调这个工具)<b>不等于授权</b>(这次调用在这个上下文里该不该被允许),并提出 ScopeGate——一个覆盖 scope、授权、金额上限、幂等性、默认拒绝的五阶段策略决策/执行点。arXiv 2605.05440 则从多 Agent 系统角度讨论「授权不变式如何沿委派链传播」,指出这类攻击可以在没有人工逐步审核的情况下<b>跨组织边界扩散</b>。<span class="srcnote">(来源 [4][5])</span></p>
+    <p class="lit en">Academia is formalising it. arXiv 2606.28679, <em>Capability Gates Are Not Authorization</em>, argues that the "capability gates" in mainstream agent frameworks (can this agent call this tool?) <b>are not authorization</b> (should this particular call be allowed in this context?), and proposes ScopeGate — a five-stage policy decision/enforcement point covering scope, authorization, a money ceiling, idempotency, and default deny. arXiv 2605.05440 approaches it from the multi-agent side, examining how authorization invariants propagate along delegation chains and noting that such attacks can <b>traverse organizational boundaries</b> without human review at each step. <span class="srcnote">(Sources [4][5])</span></p>
+  </div>
+
+  <div class="def">
+    <p class="term zh">零常驻权限(zero standing privilege)与即时授予(JIT)</p>
+    <p class="term en">Zero standing privilege and just-in-time (JIT) access</p>
+    <p class="zh"><b>人话</b>:平时什么权限都不给,要用的时候<b>临时发一张有期限、只够干这一件事</b>的通行证,用完自动失效。反面是「一次开通、长期挂着」——安全圈把后者的后果叫做<b>持久爆炸半径(persistent blast radius)</b>:凭据活得比它的用途还久,并且无限期地可被利用。<span class="srcnote">(来源 [6])</span></p>
+    <p class="en"><b>In plain terms</b>: hold no privileges by default; when work needs doing, issue a <b>time-boxed pass scoped to that one task</b> that expires on its own. The opposite is "provision once, leave it hanging" — which the security community calls a <b>persistent blast radius</b>: credentials that outlive their operational context and stay exploitable indefinitely. <span class="srcnote">(Source [6])</span></p>
+  </div>
+
+  <div class="def">
+    <p class="term zh">Agent 身份(agent identity)</p>
+    <p class="term en">Agent identity</p>
+    <p class="zh"><b>人话</b>:把上面几件事合起来的产品化答案——Agent 在每个系统里有<b>自己的账号</b>,权限按<b>隔间</b>(频道、项目、租户)而不是按人来划,吊销这个身份就等于在所有地方同时断权。</p>
+    <p class="en"><b>In plain terms</b>: the productised answer that ties the above together — the agent holds <b>its own account</b> in each system, permissions are scoped per <b>compartment</b> (channel, project, tenant) rather than per person, and revoking the identity ends its access everywhere at once.</p>
+    <p class="lit zh">Anthropic 的原话是:agent identity 把「这个用户能做什么」替换成「<b>这个 Agent 在这个隔间里能做什么</b>」,并明确承认这是对传统按用户 ACL 的一次偏离——它意味着一个<b>本身没有仓库权限的频道成员,可以让 Claude 去读那个仓库</b>,只要频道的 profile 授予了 Claude 这项权限。<span class="srcnote">(来源 [1])</span></p>
+    <p class="lit en">In Anthropic's own words, agent identity replaces "what can this user do?" with "<b>what can this agent do in this compartment?</b>" — and they explicitly acknowledge this is a departure from per-user ACLs: it means <b>a channel member without direct repo access can ask Claude to read that repo</b>, provided the channel's profile grants Claude that permission. <span class="srcnote">(Source [1])</span></p>
+  </div>
+
+  <details class="rephrase zh">
+    <summary>换个说法:一句话串起这五个概念</summary>
+    <p>Agent 是一类新的<b>主体</b>(既非人也非传统服务账号);它行动时应当携带完整的<b>委派链</b>(谁、依据什么、代表谁);因为它会被自然语言说服,所以必须假设<b>混淆代理人</b>攻击一定会发生;因此权限要<b>零常驻、即时授予</b>;把这一整套做成产品形态,就叫 <b>Agent 身份</b>。</p>
+  </details>
+  <details class="rephrase en">
+    <summary>Put another way: the five concepts in one thread</summary>
+    <p>An agent is a new class of <b>principal</b> (neither human nor traditional service account); when it acts it should carry a full <b>delegation chain</b> (who, under what policy, on whose behalf); because it can be persuaded by natural language, you must assume <b>confused deputy</b> attacks will happen; therefore privileges should be <b>zero-standing and issued just in time</b>; and packaging all of that into a product shape is what's called <b>agent identity</b>.</p>
+  </details>
+</section>
+
+<section id="models">
+  <h2 class="zh"><span class="num">03</span>三种做法,分别适合什么情况</h2>
+  <h2 class="en"><span class="num">03</span>Three approaches, and when each fits</h2>
+  <p class="dek zh">有对比才知道什么时候该选谁。</p>
+  <p class="dek en">Comparison is how you know which one to pick.</p>
+
+  <table>
+    <thead class="zh"><tr><th>维度</th><th>① 以用户身份行事</th><th>② 共享服务账号</th><th>③ Agent 身份</th></tr></thead>
+    <tbody class="zh">
+      <tr><td><b>凭据来自</b></td><td>用户的 OAuth 令牌</td><td>管理员开的一个长期账号</td><td>每个隔间一套独立凭据</td></tr>
+      <tr><td><b>权限边界</b></td><td>= 那个用户的全部权限</td><td>= 「以后可能用到的一切」</td><td>= 该隔间被显式授予的部分</td></tr>
+      <tr><td><b>异步执行</b></td><td>❌ 人不在时仍持有其全部权限</td><td>✅ 可以</td><td>✅ 可以</td></tr>
+      <tr><td><b>多人场景</b></td><td>❌ 无解</td><td>⚠️ 能跑,但谁触发的分不清</td><td>✅ 隔间即边界</td></tr>
+      <tr><td><b>日志里的动作人</b></td><td>那个用户(归因错误)</td><td>一个共享账号(归因太粗)</td><td>Agent 自己的服务账号</td></tr>
+      <tr><td><b>吊销成本</b></td><td>要撤用户的令牌(误伤本人)</td><td>撤了所有 Agent 一起停</td><td>吊销该身份即可</td></tr>
+      <tr><td><b>适合</b></td><td>单人、同步、盯着看的助手;私聊场景</td><td>行为固定、无自然语言输入的自动化</td><td>多人、异步、跨系统的团队 Agent</td></tr>
+    </tbody>
+    <thead class="en"><tr><th>Dimension</th><th>① Act as the user</th><th>② Shared service account</th><th>③ Agent identity</th></tr></thead>
+    <tbody class="en">
+      <tr><td><b>Credential source</b></td><td>The user's OAuth token</td><td>One long-lived admin-provisioned account</td><td>A separate credential set per compartment</td></tr>
+      <tr><td><b>Permission boundary</b></td><td>= everything that user can do</td><td>= "whatever it might eventually need"</td><td>= what this compartment explicitly granted</td></tr>
+      <tr><td><b>Async execution</b></td><td>❌ Holds full user access while nobody's there</td><td>✅ Works</td><td>✅ Works</td></tr>
+      <tr><td><b>Multiplayer</b></td><td>❌ No answer</td><td>⚠️ Runs, but you can't tell who triggered it</td><td>✅ The compartment is the boundary</td></tr>
+      <tr><td><b>Actor in the logs</b></td><td>That user (wrong attribution)</td><td>A shared account (attribution too coarse)</td><td>The agent's own service account</td></tr>
+      <tr><td><b>Cost to revoke</b></td><td>Revoke the user's token (collateral damage)</td><td>Revoking stops every agent at once</td><td>Revoke that one identity</td></tr>
+      <tr><td><b>Best for</b></td><td>Single-user, synchronous, supervised assistants; DMs</td><td>Fixed-behaviour automation with no natural-language input</td><td>Multiplayer, async, cross-system team agents</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout key">
+    <span class="ch zh">别把 ① 全盘否定</span>
+    <span class="ch en">Don't write off ① entirely</span>
+    <p class="zh">Anthropic 自己的产品里两种模式共存:<b>共享频道</b>用 Agent 身份,而<b>私聊(DM)</b>仍然跑在用户自己的 claude.ai 账号上——用他们的连接器、凭据,结果署他们的名。原因很实际:草拟邮件、使用只有你有 license 的软件,这些工作<b>本来就不该进频道</b>。<span class="srcnote">(来源 [1])</span></p>
+    <p class="en">Both modes coexist in Anthropic's own product: <b>shared channels</b> use agent identity, while <b>direct messages</b> still run on the user's own claude.ai account — their connectors, their credentials, their name on the result. The reasoning is practical: drafting email, or using software only you hold a licence for, is work that <b>shouldn't live in a channel in the first place</b>. <span class="srcnote">(Source [1])</span></p>
+  </div>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="混淆代理人攻击路径与四道防线">
+      <defs>
+        <marker id="rd-z" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a4590d"/></marker>
+        <marker id="gr-z" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0e6f68"/></marker>
+      </defs>
+      <text data-anim x="20" y="26" font-size="13.5" font-weight="800" fill="#a4590d">攻击路径:一条链接如何变成数据外泄</text>
+
+      <g data-anim>
+        <rect x="16" y="42" width="118" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="75" y="63" text-anchor="middle" font-size="11.5" fill="#a4590d">① 攻击者构造</text>
+        <text x="75" y="79" text-anchor="middle" font-size="11.5" fill="#a4590d">带隐藏指令的链接</text>
+        <rect x="166" y="42" width="118" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="225" y="63" text-anchor="middle" font-size="11.5" fill="#a4590d">② 受害者点击</text>
+        <text x="225" y="79" text-anchor="middle" font-size="11.5" fill="#a4590d">(无需再做任何事)</text>
+        <rect x="316" y="42" width="130" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="381" y="63" text-anchor="middle" font-size="11.5" fill="#a4590d">③ Agent 用受害者权限</text>
+        <text x="381" y="79" text-anchor="middle" font-size="11.5" fill="#a4590d">搜索收件箱</text>
+        <rect x="478" y="42" width="118" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="537" y="63" text-anchor="middle" font-size="11.5" fill="#a4590d">④ 编码后外发到</text>
+        <text x="537" y="79" text-anchor="middle" font-size="11.5" fill="#a4590d">攻击者服务器</text>
+        <rect x="628" y="42" width="116" height="46" rx="9" fill="#f4e4e4" stroke="#e0bcbc"/>
+        <text x="686" y="63" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8c3b3b">⑤ 日志记录的</text>
+        <text x="686" y="79" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8c3b3b">动作人=受害者</text>
+      </g>
+      <path data-draw style="--len:34" d="M138,65 L162,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-z)"/>
+      <path data-draw style="--len:34" d="M288,65 L312,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-z)"/>
+      <path data-draw style="--len:34" d="M450,65 L474,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-z)"/>
+      <path data-draw style="--len:34" d="M600,65 L624,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-z)"/>
+
+      <line data-draw style="--len:730" x1="16" y1="118" x2="744" y2="118" stroke="#d3e2de" stroke-width="1.4" stroke-dasharray="5 5"/>
+      <text data-anim x="20" y="146" font-size="13.5" font-weight="800" fill="#08423e">四道防线:每一道都对应上面的一环</text>
+
+      <g data-anim>
+        <rect x="16" y="160" width="172" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="102" y="182" text-anchor="middle" font-size="12" font-weight="800" fill="#08423e">A. 独立身份</text>
+        <text x="102" y="201" text-anchor="middle" font-size="11" fill="#2e4a46">Agent 不持有用户令牌</text>
+        <text x="102" y="217" text-anchor="middle" font-size="11" fill="#2e4a46">→ 断掉第 ③ 环的权限来源</text>
+
+        <rect x="204" y="160" width="172" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="290" y="182" text-anchor="middle" font-size="12" font-weight="800" fill="#08423e">B. 隔间化 scope</text>
+        <text x="290" y="201" text-anchor="middle" font-size="11" fill="#2e4a46">这个隔间没授予邮箱</text>
+        <text x="290" y="217" text-anchor="middle" font-size="11" fill="#2e4a46">→ 即使被说服也读不到</text>
+
+        <rect x="392" y="160" width="172" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="478" y="182" text-anchor="middle" font-size="12" font-weight="800" fill="#08423e">C. 出网白名单</text>
+        <text x="478" y="201" text-anchor="middle" font-size="11" fill="#2e4a46">未放行主机一律阻断</text>
+        <text x="478" y="217" text-anchor="middle" font-size="11" fill="#2e4a46">→ 断掉第 ④ 环的外发</text>
+
+        <rect x="580" y="160" width="164" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="662" y="182" text-anchor="middle" font-size="12" font-weight="800" fill="#08423e">D. 委派链审计</text>
+        <text x="662" y="201" text-anchor="middle" font-size="11" fill="#2e4a46">记录 Agent+策略+委派人</text>
+        <text x="662" y="217" text-anchor="middle" font-size="11" fill="#2e4a46">→ 修正第 ⑤ 环的归因</text>
+      </g>
+      <path data-draw style="--len:60" d="M381,92 L290,156" stroke="#0e6f68" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#gr-z)"/>
+      <path data-draw style="--len:60" d="M537,92 L478,156" stroke="#0e6f68" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#gr-z)"/>
+      <path data-draw style="--len:60" d="M686,92 L662,156" stroke="#0e6f68" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#gr-z)"/>
+
+      <text data-anim x="380" y="278" text-anchor="middle" font-size="11.5" fill="#5f7b76">注意:没有任何一道防线拦得住「Agent 被说服」这件事本身——</text>
+      <text data-anim x="380" y="296" text-anchor="middle" font-size="11.5" fill="#5f7b76">它们做的是让「被说服」之后能造成的伤害尽量小、尽量可查。</text>
+    </svg>
+    <p class="fig-cap">图 2:混淆代理人攻击的完整链路,以及 Agent 身份体系里对应的四道防线。攻击路径依据 2026-08-18 Varonis 披露的 Copilot 案例(来源 [3]);防线 A/B/C 对应 Anthropic 描述的 Claude Tag 机制(来源 [1])。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Confused deputy attack path and four lines of defence">
+      <defs>
+        <marker id="rd-e" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a4590d"/></marker>
+        <marker id="gr-e" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0e6f68"/></marker>
+      </defs>
+      <text data-anim x="20" y="26" font-size="13" font-weight="800" fill="#a4590d">Attack path: how one link becomes a data breach</text>
+
+      <g data-anim>
+        <rect x="16" y="42" width="118" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="75" y="63" text-anchor="middle" font-size="10.5" fill="#a4590d">① Attacker crafts link</text>
+        <text x="75" y="79" text-anchor="middle" font-size="10.5" fill="#a4590d">with hidden instruction</text>
+        <rect x="166" y="42" width="118" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="225" y="63" text-anchor="middle" font-size="10.5" fill="#a4590d">② Victim clicks</text>
+        <text x="225" y="79" text-anchor="middle" font-size="10.5" fill="#a4590d">(nothing else needed)</text>
+        <rect x="316" y="42" width="130" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="381" y="63" text-anchor="middle" font-size="10.5" fill="#a4590d">③ Agent searches inbox</text>
+        <text x="381" y="79" text-anchor="middle" font-size="10.5" fill="#a4590d">using victim's access</text>
+        <rect x="478" y="42" width="118" height="46" rx="9" fill="#fdf1e0" stroke="#efd0a4"/>
+        <text x="537" y="63" text-anchor="middle" font-size="10.5" fill="#a4590d">④ Encoded and sent</text>
+        <text x="537" y="79" text-anchor="middle" font-size="10.5" fill="#a4590d">to attacker's server</text>
+        <rect x="628" y="42" width="116" height="46" rx="9" fill="#f4e4e4" stroke="#e0bcbc"/>
+        <text x="686" y="63" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8c3b3b">⑤ Log records the</text>
+        <text x="686" y="79" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8c3b3b">actor as: the victim</text>
+      </g>
+      <path data-draw style="--len:34" d="M138,65 L162,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-e)"/>
+      <path data-draw style="--len:34" d="M288,65 L312,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-e)"/>
+      <path data-draw style="--len:34" d="M450,65 L474,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-e)"/>
+      <path data-draw style="--len:34" d="M600,65 L624,65" stroke="#a4590d" stroke-width="1.7" fill="none" marker-end="url(#rd-e)"/>
+
+      <line data-draw style="--len:730" x1="16" y1="118" x2="744" y2="118" stroke="#d3e2de" stroke-width="1.4" stroke-dasharray="5 5"/>
+      <text data-anim x="20" y="146" font-size="13" font-weight="800" fill="#08423e">Four defences, each aimed at one link in the chain</text>
+
+      <g data-anim>
+        <rect x="16" y="160" width="172" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="102" y="182" text-anchor="middle" font-size="11.5" font-weight="800" fill="#08423e">A. Its own identity</text>
+        <text x="102" y="201" text-anchor="middle" font-size="10" fill="#2e4a46">Agent holds no user token</text>
+        <text x="102" y="217" text-anchor="middle" font-size="10" fill="#2e4a46">→ removes step ③'s authority</text>
+
+        <rect x="204" y="160" width="172" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="290" y="182" text-anchor="middle" font-size="11.5" font-weight="800" fill="#08423e">B. Compartment scope</text>
+        <text x="290" y="201" text-anchor="middle" font-size="10" fill="#2e4a46">This compartment has no mail</text>
+        <text x="290" y="217" text-anchor="middle" font-size="10" fill="#2e4a46">→ persuaded but can't read</text>
+
+        <rect x="392" y="160" width="172" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="478" y="182" text-anchor="middle" font-size="11.5" font-weight="800" fill="#08423e">C. Egress allowlist</text>
+        <text x="478" y="201" text-anchor="middle" font-size="10" fill="#2e4a46">Unapproved hosts blocked</text>
+        <text x="478" y="217" text-anchor="middle" font-size="10" fill="#2e4a46">→ cuts step ④'s exfiltration</text>
+
+        <rect x="580" y="160" width="164" height="76" rx="10" fill="#e0f0ed" stroke="#b9d2cc"/>
+        <text x="662" y="182" text-anchor="middle" font-size="11.5" font-weight="800" fill="#08423e">D. Chain-level audit</text>
+        <text x="662" y="201" text-anchor="middle" font-size="10" fill="#2e4a46">Log agent + policy + delegator</text>
+        <text x="662" y="217" text-anchor="middle" font-size="10" fill="#2e4a46">→ fixes step ⑤'s attribution</text>
+      </g>
+      <path data-draw style="--len:60" d="M381,92 L290,156" stroke="#0e6f68" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#gr-e)"/>
+      <path data-draw style="--len:60" d="M537,92 L478,156" stroke="#0e6f68" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#gr-e)"/>
+      <path data-draw style="--len:60" d="M686,92 L662,156" stroke="#0e6f68" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#gr-e)"/>
+
+      <text data-anim x="380" y="278" text-anchor="middle" font-size="10.5" fill="#5f7b76">Note: none of these stops the agent from being persuaded in the first place —</text>
+      <text data-anim x="380" y="296" text-anchor="middle" font-size="10.5" fill="#5f7b76">they make the damage after persuasion as small and as traceable as possible.</text>
+    </svg>
+    <p class="fig-cap">Figure 2: The full confused-deputy chain, and the four defences agent identity puts against it. Attack path follows the Copilot case disclosed by Varonis on 2026-08-18 (source [3]); defences A/B/C map to the Claude Tag mechanisms Anthropic describes (source [1]).</p>
+  </div>
+</section>
+
+<section id="stack">
+  <h2 class="zh"><span class="num">04</span>技术栈:四层各解决一个问题</h2>
+  <h2 class="en"><span class="num">04</span>The stack: four layers, four questions</h2>
+  <p class="dek zh">别把这些标准当成互相替代的选项——它们回答的是不同的问题。</p>
+  <p class="dek en">Don't treat these standards as competing options — they answer different questions.</p>
+
+  <p class="zh">调研中最容易造成混乱的一点是:SPIFFE 和 OAuth 经常被摆在一起问「选哪个」。但它们不在同一层。一句话区分:<b>SPIFFE 回答「这真的是服务 X 吗」,OAuth 回答「服务 X 能不能访问资源 Y」</b>;合起来才有端到端的保证——连接时的身份 + 访问时的策略。<span class="srcnote">(来源 [10],厂商技术博客综述)</span></p>
+  <p class="en">The most common confusion in this space is people asking whether to "pick SPIFFE or OAuth." They aren't at the same layer. The clean split: <b>SPIFFE answers "is this really service X?", OAuth answers "can service X access resource Y?"</b> Together they give end-to-end assurance — identity at connection time, policy at access time. <span class="srcnote">(Source [10], vendor technical blog roundup)</span></p>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent 身份技术栈的四层结构">
+      <defs>
+        <marker id="dn-z" markerWidth="8" markerHeight="8" refX="4" refY="7" orient="auto"><path d="M0,0 L8,0 L4,7 z" fill="#0e6f68"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="60" y="20" width="600" height="66" rx="12" fill="#e0f0ed" stroke="#0e6f68" stroke-width="1.6"/>
+        <text x="86" y="46" font-size="14" font-weight="820" fill="#08423e">第 1 层 · 证明「你是谁」</text>
+        <text x="86" y="68" font-size="12" fill="#2e4a46">SPIFFE / SPIRE 签发短生命周期、自动轮转的 SVID(X.509 或 JWT 形式)</text>
+        <text x="620" y="58" text-anchor="end" font-size="11.5" font-weight="700" fill="#0e6f68">attestation</text>
+      </g>
+      <path data-draw style="--len:20" d="M360,88 L360,102" stroke="#0e6f68" stroke-width="1.6" marker-end="url(#dn-z)"/>
+      <g data-anim>
+        <rect x="60" y="104" width="600" height="66" rx="12" fill="#eef4f2" stroke="#b9d2cc" stroke-width="1.4"/>
+        <text x="86" y="130" font-size="14" font-weight="820" fill="#08423e">第 2 层 · 表达「代表谁、在什么范围内」</text>
+        <text x="86" y="152" font-size="12" fill="#2e4a46">OAuth 2.1 + PKCE;JWT 里的 sub(Agent) / act(委派用户) / scope / exp</text>
+        <text x="620" y="142" text-anchor="end" font-size="11.5" font-weight="700" fill="#5f7b76">delegation</text>
+      </g>
+      <path data-draw style="--len:20" d="M360,172 L360,186" stroke="#0e6f68" stroke-width="1.6" marker-end="url(#dn-z)"/>
+      <g data-anim>
+        <rect x="60" y="188" width="600" height="66" rx="12" fill="#eef4f2" stroke="#b9d2cc" stroke-width="1.4"/>
+        <text x="86" y="214" font-size="14" font-weight="820" fill="#08423e">第 3 层 · 判定「这一次调用该不该放行」</text>
+        <text x="86" y="236" font-size="12" fill="#2e4a46">工具调用前的策略决策点:scope、授权、金额上限、幂等性、默认拒绝</text>
+        <text x="620" y="226" text-anchor="end" font-size="11.5" font-weight="700" fill="#5f7b76">authorization</text>
+      </g>
+      <path data-draw style="--len:20" d="M360,256 L360,270" stroke="#0e6f68" stroke-width="1.6" marker-end="url(#dn-z)"/>
+      <g data-anim>
+        <rect x="60" y="272" width="600" height="66" rx="12" fill="#fdf1e0" stroke="#efd0a4" stroke-width="1.4"/>
+        <text x="86" y="298" font-size="14" font-weight="820" fill="#a4590d">第 4 层 · 事后说清「谁、依据什么、代表谁」</text>
+        <text x="86" y="320" font-size="12" fill="#2e4a46">记录工具调用本身、scope 与下游授权决策,而不只是模型的回复</text>
+        <text x="620" y="310" text-anchor="end" font-size="11.5" font-weight="700" fill="#a4590d">audit</text>
+      </g>
+    </svg>
+    <p class="fig-cap">图 3:四层各回答一个不同的问题,自上而下是「身份 → 委派 → 授权 → 审计」。第 1 层来源 [10],第 2 层来源 [9][11],第 3 层的五阶段划分来自 arXiv 2606.28679(来源 [4]),第 4 层来源 [7]。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The four layers of the agent identity stack">
+      <defs>
+        <marker id="dn-e" markerWidth="8" markerHeight="8" refX="4" refY="7" orient="auto"><path d="M0,0 L8,0 L4,7 z" fill="#0e6f68"/></marker>
+      </defs>
+      <g data-anim>
+        <rect x="40" y="20" width="640" height="66" rx="12" fill="#e0f0ed" stroke="#0e6f68" stroke-width="1.6"/>
+        <text x="64" y="46" font-size="13.5" font-weight="820" fill="#08423e">Layer 1 · Prove who you are</text>
+        <text x="64" y="68" font-size="11.5" fill="#2e4a46">SPIFFE / SPIRE issue short-lived, auto-rotating SVIDs (X.509 or JWT form)</text>
+        <text x="648" y="58" text-anchor="end" font-size="11" font-weight="700" fill="#0e6f68">attestation</text>
+      </g>
+      <path data-draw style="--len:20" d="M360,88 L360,102" stroke="#0e6f68" stroke-width="1.6" marker-end="url(#dn-e)"/>
+      <g data-anim>
+        <rect x="40" y="104" width="640" height="66" rx="12" fill="#eef4f2" stroke="#b9d2cc" stroke-width="1.4"/>
+        <text x="64" y="130" font-size="13.5" font-weight="820" fill="#08423e">Layer 2 · Express on whose behalf, within what limits</text>
+        <text x="64" y="152" font-size="11.5" fill="#2e4a46">OAuth 2.1 + PKCE; JWT claims: sub (agent) / act (delegating user) / scope / exp</text>
+        <text x="648" y="142" text-anchor="end" font-size="11" font-weight="700" fill="#5f7b76">delegation</text>
+      </g>
+      <path data-draw style="--len:20" d="M360,172 L360,186" stroke="#0e6f68" stroke-width="1.6" marker-end="url(#dn-e)"/>
+      <g data-anim>
+        <rect x="40" y="188" width="640" height="66" rx="12" fill="#eef4f2" stroke="#b9d2cc" stroke-width="1.4"/>
+        <text x="64" y="214" font-size="13.5" font-weight="820" fill="#08423e">Layer 3 · Decide whether this specific call is allowed</text>
+        <text x="64" y="236" font-size="11.5" fill="#2e4a46">A pre-tool-call decision point: scope, authorization, money ceiling, idempotency, default deny</text>
+        <text x="648" y="226" text-anchor="end" font-size="11" font-weight="700" fill="#5f7b76">authorization</text>
+      </g>
+      <path data-draw style="--len:20" d="M360,256 L360,270" stroke="#0e6f68" stroke-width="1.6" marker-end="url(#dn-e)"/>
+      <g data-anim>
+        <rect x="40" y="272" width="640" height="66" rx="12" fill="#fdf1e0" stroke="#efd0a4" stroke-width="1.4"/>
+        <text x="64" y="298" font-size="13.5" font-weight="820" fill="#a4590d">Layer 4 · Afterwards, say who acted, under what policy, for whom</text>
+        <text x="64" y="320" font-size="11.5" fill="#2e4a46">Record the tool invocations, scopes and downstream decisions — not just the model's reply</text>
+        <text x="648" y="310" text-anchor="end" font-size="11" font-weight="700" fill="#a4590d">audit</text>
+      </g>
+    </svg>
+    <p class="fig-cap">Figure 3: Each layer answers a different question — identity → delegation → authorization → audit, top to bottom. Layer 1 from source [10]; layer 2 from [9][11]; the five-stage split in layer 3 comes from arXiv 2606.28679 (source [4]); layer 4 from [7].</p>
+  </div>
+
+  <h3 class="zh">SPIFFE / SVID:身份绑在「工作负载」上,不绑在秘密上</h3>
+  <h3 class="en">SPIFFE / SVID: identity bound to the workload, not to a secret</h3>
+  <p class="zh"><b>SPIFFE</b>(Secure Production Identity Framework For Everyone)是一套工作负载身份标准。它的核心动作叫<b>证明(attestation)</b>:Agent 要先证明自己是「跑在哪个集群、哪个命名空间、由哪个部署产生的那个进程」,才能拿到一份 <b>SVID</b>(SPIFFE Verifiable Identity Document)。SVID 可以是 X.509 证书或 JWT,都绑在一个 <code>spiffe://信任域/服务</code> 形式的标识符上,并且<b>生命周期很短、由 SPIRE agent 自动轮转</b>。</p>
+  <p class="en"><b>SPIFFE</b> (Secure Production Identity Framework For Everyone) is a workload identity standard. Its central move is <b>attestation</b>: an agent must first prove it is "the process running in this cluster, this namespace, produced by this deployment" before it receives an <b>SVID</b> (SPIFFE Verifiable Identity Document). An SVID can be an X.509 certificate or a JWT, each tied to a <code>spiffe://trust-domain/service</code> identifier, and both are <b>short-lived and rotated automatically by the SPIRE agent</b>.</p>
+  <p class="zh">关键差别在于:API 密钥和 OAuth client credentials 的身份<b>就是那个秘密本身</b>——秘密泄露 = 身份被冒用。SVID 的身份绑在<b>被证明的工作负载属性</b>上,不是一个可以复制走的字符串。<span class="srcnote">(来源 [10])</span></p>
+  <p class="en">The key difference: with an API key or OAuth client credentials, the identity <b>is the secret</b> — leak the secret and the identity is impersonated. An SVID's identity is bound to <b>attested workload attributes</b>, not to a string you can copy away. <span class="srcnote">(Source [10])</span></p>
+
+  <div class="callout warn">
+    <span class="ch zh">现实成本提醒</span>
+    <span class="ch en">A note on real-world cost</span>
+    <p class="zh">SPIFFE 好归好,部署它要跑一个 SPIRE server(或等价物)、配置信任域、为每种工作负载类型接入 attestor、并把 SVID 铺进运行时。有厂商直言:<b>对一个只有三个工程师、没有平台团队的团队,这是实打实的工作量</b>;而且即使部署成功,仍有一类凭据根本无法表达成 SVID。<span class="srcnote">(来源 [10],厂商观点,该厂商本身销售替代方案,请注意立场)</span></p>
+    <p class="en">SPIFFE is good, but deploying it means running a SPIRE server (or equivalent), configuring trust domains, wiring up attestors per workload type, and rolling SVIDs through your runtime. One vendor puts it bluntly: <b>for a team of three engineers with no platform team, this is real work</b> — and even where it is deployed, a category of credentials simply cannot be expressed as SVIDs. <span class="srcnote">(Source [10]; vendor viewpoint — note that the vendor sells an alternative.)</span></p>
+  </div>
+
+  <h3 class="zh">MCP 的企业托管授权(EMA):把决定权交回企业 IdP</h3>
+  <h3 class="en">MCP's Enterprise-Managed Authorization (EMA): handing the decision back to the enterprise IdP</h3>
+  <p class="zh">如果你的 Agent 通过 <b>MCP</b>(Model Context Protocol,一套让模型接工具的开放协议)调工具,这一条直接相关。<b>2026-07-28 版 MCP 规范</b>强化并澄清了授权模型,使 OAuth / OpenID Connect 的部署更贴近既有实践,并把 <b>EMA 升格为正式扩展</b>。</p>
+  <p class="en">If your agent calls tools through <b>MCP</b> (Model Context Protocol, the open protocol that connects models to tools), this is directly relevant. The <b>2026-07-28 MCP specification</b> strengthened and clarified the authorization model, aligning OAuth / OpenID Connect deployment more closely with established practice, and promoted <b>EMA to an official extension</b>.</p>
+  <p class="zh">EMA 的机制:企业身份提供方(IdP)用来自 Cross-App Access(XAA)的 <b>Identity Assertion JWT Authorization Grant(ID-JAG)</b> 断言,来管辖「哪个 MCP 客户端、代表哪个用户、可以访问哪个 MCP 服务器」。IdP 按管理员策略签发断言,MCP 服务器的授权服务器校验后自行签发受限令牌——<b>整个过程不需要逐用户的同意屏</b>。<span class="srcnote">(来源 [2],MCP 官方博客 + Descope 技术解读)</span></p>
+  <p class="en">How EMA works: the enterprise identity provider (IdP) governs which MCP client can reach which MCP server on behalf of which user, using the <b>Identity Assertion JWT Authorization Grant (ID-JAG)</b> from Cross-App Access (XAA). The IdP issues a signed assertion under admin policy; the MCP server's authorization server validates it and mints its own scoped tokens — <b>with no per-user consent screens</b> anywhere in the flow. <span class="srcnote">(Source [2], MCP official blog plus Descope's technical write-up)</span></p>
+
+  <div class="prereq zh">💡 已覆盖过的相邻主题:MCP 企业托管授权(EMA)在 2026-07-16 的深度文档里单独讲过,MCP 无状态新规范在 2026-08-14 讲过。本节只取与 Agent 身份直接相关的部分,不重复展开。</div>
+  <div class="prereq en">💡 Adjacent topics already covered: MCP Enterprise-Managed Authorization got its own deep dive on 2026-07-16, and the stateless MCP specification on 2026-08-14. This section only takes the parts that bear directly on agent identity, without re-covering the rest.</div>
+</section>
+
+<section id="howto">
+  <h2 class="zh"><span class="num">05</span>落地七步</h2>
+  <h2 class="en"><span class="num">05</span>Rolling it out in seven steps</h2>
+  <p class="dek zh">从「你现在大概率的状态」走到「可审计的 Agent 身份」。</p>
+  <p class="dek en">From where you probably are today to an auditable agent identity setup.</p>
+
+  <ol class="steps zh">
+    <li><b>先盘点,而不是先设计</b>你现在有多少个 Agent、每个拿着谁的凭据、能碰到哪些系统。这一步经常最难堪:超过 16% 的组织根本不追踪新 AI 身份的创建(来源 [8]),意味着盘点结果和你的想象会有出入。产出一张表:Agent 名 / 凭据来源 / 可达系统 / 谁能触发它。</li>
+    <li><b>划隔间,而不是划人</b>照着你的组织结构找天然边界——频道、项目、租户、环境(prod / staging)。Anthropic 的做法是:<b>每个私有频道有独立身份;所有公开频道共享一个工作区级身份</b>。私有频道里学到的东西,不会出现在更宽的工作区里。(来源 [1])</li>
+    <li><b>为每个隔间开独立账号,而不是共用一个</b>Agent 在 Slack 里以 Claude app 身份发言、在 GitHub 上以 Claude GitHub App 身份开 PR、查数仓走管理员开的 service account。同一个服务在不同隔间可以用<b>不同权限等级的 API key</b>——比如通用频道只读数仓,数据团队的私有频道可写。(来源 [1])</li>
+    <li><b>凭据独立存储、在网络边界注入</b>Anthropic 描述的做法是:管理员把连接加进某个频道的 profile 时,凭据<b>独立存储并映射到该频道的身份</b>,在请求时于网络边界注入;<b>发往管理员未放行主机的出站流量一律阻断</b>。凭据不进模型上下文,是这一层的关键。(来源 [1])</li>
+    <li><b>在工具调用之前设一道策略关卡</b>这是学术侧最明确的建议:能力开关不等于授权。参照 ScopeGate 的五阶段——scope、授权、<b>金额上限</b>、幂等性、<b>默认拒绝</b>——在每次工具调用之前做判定,而不是事后看日志。金额上限和幂等性这两条尤其容易被忽略:前者防「一次失控花掉预算」,后者防「重试把同一笔操作做了三遍」。(来源 [4])</li>
+    <li><b>把审计做在委派链层面,而不是回复层面</b>目标是每条记录都能回答「Agent X、依据策略 Y、受用户 Z 委派」。只记模型输出的日志,取证时没用。附带的好处是:因为 Agent 用的是自己的服务账号,这些动作也会同时落进<b>每个被连接系统自己的日志</b>里——你多了一份不受你的 Agent 平台控制的交叉证据。(来源 [1][7])</li>
+    <li><b>从宽授权起步,按审计轨迹收缩</b>这条可能反直觉。Anthropic 在内部使用后的建议是:<b>从一开始就给它慷慨的访问权,再依据组织的管理偏好往回收</b>——因为「每接一个系统,其它系统的价值也跟着涨」(能把 Slack 的一段讨论、Drive 的一份文档、tracker 的一张票和数仓的一次查询合成一个答案)。具体做法:先在几个频道建立基线 profile,<b>读审计轨迹</b>,然后一次一个、有意识地扩展。(来源 [1])</li>
+  </ol>
+
+  <ol class="steps en">
+    <li><b>Inventory before you design.</b> How many agents do you have, whose credentials does each hold, and what systems can each reach? This step is often the embarrassing one: over 16% of organizations don't track the creation of new AI identities at all (source [8]), so the inventory will likely differ from your mental model. Produce a table: agent name / credential source / reachable systems / who can trigger it.</li>
+    <li><b>Draw compartments, not people.</b> Look for the natural boundaries your organization already has — channels, projects, tenants, environments (prod / staging). Anthropic's approach: <b>each private channel gets a distinct identity; public channels share a workspace-level one</b>. What Claude learns in a private channel never appears in the wider workspace. (Source [1])</li>
+    <li><b>Provision separate accounts per compartment, not one shared account.</b> The agent posts in Slack as the Claude app, opens pull requests as the Claude GitHub App, and queries the warehouse under an admin-provisioned service account. The same service can be reached with <b>API keys at different permission levels</b> in different compartments — read-only warehouse access in a general channel, write access in the data team's private one. (Source [1])</li>
+    <li><b>Store credentials independently; inject them at the network boundary.</b> As Anthropic describes it: when an admin adds a connection to a channel's profile, the credential is <b>stored independently and mapped to that channel's identity</b>, then injected at the network boundary at request time; <b>outbound traffic to any host an admin hasn't allowed is blocked outright</b>. Keeping credentials out of the model's context is the crux of this layer. (Source [1])</li>
+    <li><b>Put a policy gate before the tool call.</b> This is academia's sharpest recommendation: capability gates are not authorization. Follow ScopeGate's five stages — scope, authorization, <b>money ceiling</b>, idempotency, <b>default deny</b> — evaluated before each tool call rather than read back from logs afterwards. The money ceiling and idempotency stages are the ones most often skipped: the first guards against a runaway spending the budget in one go, the second against a retry performing the same operation three times. (Source [4])</li>
+    <li><b>Audit at the delegation-chain level, not the reply level.</b> The goal is that every record can answer "Agent X, under Policy Y, delegated by User Z." A log of model outputs alone is useless in forensics. A side benefit: because the agent acts under its own service accounts, those actions also land in <b>each connected system's own logs</b> — giving you corroborating evidence your agent platform doesn't control. (Sources [1][7])</li>
+    <li><b>Start broad, then contract along the audit trail.</b> This one may feel counterintuitive. Anthropic's advice after running Claude Tag internally is to <b>grant generous access from the start and pare it back according to your organization's admin preferences</b> — because value compounds with access (a thread from Slack, a doc from Drive, a ticket from a tracker and a warehouse query combined into one answer no single tool could produce). Concretely: start with a baseline profile in a few channels, <b>read the audit trail</b>, then extend one deliberate grant at a time. (Source [1])</li>
+  </ol>
+
+  <div class="callout warn">
+    <span class="ch zh">第 7 步有争议,值得你自己判断</span>
+    <span class="ch en">Step 7 is contested — judge it for yourself</span>
+    <p class="zh">「从宽起步」是 Anthropic 基于自家内部使用给出的建议,他们同时给出了配套条件:身份边界够硬、审计轨迹可读、可以逐条收缩。而安全侧的主流建议恰恰相反——<b>零常驻权限、即时授予、最小权限</b>。两边其实不矛盾:前者说的是「授予哪些系统」,后者说的是「在被授予的系统里能做到什么程度」。但如果你所在行业受强监管,建议按后者的默认立场起步。</p>
+    <p class="en">"Start broad" is Anthropic's advice based on their own internal use, and they attach conditions: firm identity boundaries, a readable audit trail, and the ability to pare back one grant at a time. The mainstream security recommendation runs the other way — <b>zero standing privilege, just-in-time, ruthless least privilege</b>. The two aren't really in conflict: the first is about <em>which systems</em> to connect, the second about <em>how far</em> the agent can go inside a connected system. But if you work in a heavily regulated industry, start from the second posture by default.</p>
+  </div>
+</section>
+
+<section id="cases">
+  <h2 class="zh"><span class="num">06</span>两个真实案例:一个正例,一个反例</h2>
+  <h2 class="en"><span class="num">06</span>Two real cases: one positive, one cautionary</h2>
+
+  <h3 class="zh">正例:Claude Tag 的 agent identity(2026-06-24 公布)</h3>
+  <h3 class="en">Positive: Claude Tag's agent identity (published 2026-06-24)</h3>
+  <p class="zh">这是目前公开细节最完整的生产级实现。要点已在前几节引用,这里补三个容易漏掉的设计决定:</p>
+  <p class="en">This is currently the most fully documented production implementation. The main points appeared in earlier sections; here are three design decisions that are easy to miss:</p>
+  <ul class="zh">
+    <li><b>身份属于频道,不属于人</b>:频道里的<b>任何人</b>默认都能 @ Claude;管理员应把频道 profile 收缩到<b>该频道里权限最低的成员</b>的水平。企业版还可以用 RBAC 决定「哪些成员能唤起 Claude」——于是频道同时管住了「Agent 能碰什么」和「谁能让它动」。</li>
+    <li><b>吊销的成本被刻意压低</b>:因为访问是围绕独立身份组织的,<b>吊销身份就终结了它在所有用到该身份的地方的访问</b>。他们明确对比说:这比「跨几十个用户账号逐条审计 Agent 动作」省力得多。</li>
+    <li><b>已知的未完成部分</b>:他们计划中的下一步包括<b>即时(JIT)凭据授予</b>(用户当场批准一次敏感操作,而不永久放宽 Agent 的 scope),以及一个<b>身份感知叠加层</b>——在 Agent 的 scope 之上再加一道用户级检查,只有<b>频道 profile 与发起用户自身权限双双允许</b>时 Claude 才行动。也就是说:目前的模型,发起用户的个人权限还不是一道门。</li>
+  </ul>
+  <ul class="en">
+    <li><b>The identity belongs to the channel, not to a person.</b> <b>Anyone</b> in the channel can tag Claude by default; admins should scope each channel's profile to its <b>least-privileged member</b>. On Enterprise plans, RBAC further decides which members can invoke Claude at all — so the channel governs both what the agent can reach and who can ask.</li>
+    <li><b>Revocation is deliberately made cheap.</b> Because access is organised around distinct identities, <b>revoking an identity ends its access everywhere that identity was used</b>. Anthropic contrasts this explicitly with the alternative: auditing individual agent actions across dozens of user accounts.</li>
+    <li><b>What's openly not finished.</b> Their stated next steps include <b>just-in-time credential grants</b> (approve a single sensitive action in the moment without permanently widening the agent's scope) and an <b>identity-aware overlay</b> that adds a user-level check on top of the agent's scope, so Claude acts only when <b>both the channel's profile and the requesting user's own permissions</b> allow it. Which means: in the current model, the requesting user's personal permissions are not yet a gate.</li>
+  </ul>
+  <p class="srcnote zh">来源 [1]。该文由 Claude Code 团队成员 Noah Zweben 撰写,发布于 2026-06-24;文中的产品状态可能已变化,以官方最新文档为准。</p>
+  <p class="srcnote en">Source [1]. Written by Noah Zweben of the Claude Code team, published 2026-06-24; product state may have changed since — check the current official docs.</p>
+
+  <h3 class="zh">反例:Microsoft Copilot 的 <code>?autorun=1</code>(2026-08-18 披露)</h3>
+  <h3 class="en">Cautionary: Microsoft Copilot's <code>?autorun=1</code> (disclosed 2026-08-18)</h3>
+  <p class="zh">安全公司 Varonis 通过<b>反复追问 Copilot 自身的护栏逻辑</b>,套出了一个未公开的参数 <code>?autorun=1</code>。与已知的 <code>?q=</code> 组合后,受害者<b>点开一条链接的瞬间</b>就会静默执行一段 prompt:Copilot 去搜索受害者的收件箱、找出密码等敏感数据、base64 编码、发往攻击者控制的服务器。研究者还演示了藏在网页里的提示注入污染 Copilot 的持久化记忆——<b>这种攻击连改密码都清不掉</b>。微软在收到报告三个月后(2026 年 2 月)发了部分修复,直到 2026-08-18 那周的周二才发出较完整的修复。<span class="srcnote">(来源 [3],Ars Technica)</span></p>
+  <p class="en">Security firm Varonis extracted an undocumented parameter, <code>?autorun=1</code>, out of Copilot itself <b>by repeatedly questioning it about its own guardrails</b>. Combined with the known <code>?q=</code> parameter, the string let an attacker-crafted link silently execute a prompt <b>the moment a victim clicked it</b>: Copilot searched the victim's inbox for passwords and other sensitive data, base64-encoded it, and sent it to an attacker-controlled server. The researchers separately demonstrated a prompt injection hidden in a web page that poisoned Copilot's persistent memory store — <b>an attack that survives even a password change</b>. Microsoft issued a partial fix three months after the report (February 2026) and only shipped a more comprehensive fix on the Tuesday of the week of 2026-08-18. <span class="srcnote">(Source [3], Ars Technica)</span></p>
+
+  <div class="callout key">
+    <span class="ch zh">从这个案例能提炼的三条</span>
+    <span class="ch en">Three lessons to extract</span>
+    <p class="zh"><b>一</b>:向助手追问它自己的安全逻辑,本身就是一种<b>攻击侦察</b>——这条对任何做 Agent 产品的人都适用。<b>二</b>:攻击全程<b>没有任何权限被突破</b>,Copilot 用的自始至终是受害者自己的访问权;这正是「以用户身份行事」的结构性问题,而不是某个 bug。<b>三</b>:给助手加<b>长期记忆</b>,等于给攻击者加一块可持久化的攻击面。</p>
+    <p class="en"><b>One</b>: interrogating an assistant about its own safety logic is itself a form of <b>attack reconnaissance</b> — relevant to anyone shipping an agent product. <b>Two</b>: <b>no privilege was ever breached</b> in this attack; Copilot used the victim's own access throughout. That is the structural problem with "act as the user," not a particular bug. <b>Three</b>: giving an assistant <b>long-term memory</b> hands attackers a persistent new surface to exploit.</p>
+  </div>
+</section>
+
+<section id="pitfalls">
+  <h2 class="zh"><span class="num">07</span>常见坑与限制</h2>
+  <h2 class="en"><span class="num">07</span>Pitfalls and limits</h2>
+  <p class="dek zh">区分「官方承认的限制」与「社区/厂商的反馈」。</p>
+  <p class="dek en">Distinguishing acknowledged limits from community and vendor observations.</p>
+
+  <div class="callout warn">
+    <span class="ch zh">坑 1:Agent 身份本身就是一次权限扩散(官方明确承认)</span>
+    <span class="ch en">Pitfall 1: agent identity itself widens access (explicitly acknowledged)</span>
+    <p class="zh">Anthropic 用了「unusual」这个词来形容:一个<b>本身没有仓库权限的频道成员,可以让 Claude 去读那个仓库</b>。这是从按用户 ACL 的一次<b>有意偏离</b>,不是 bug。所以隔间划得不对,后果就是「换个通道就绕过了原有的权限设计」。缓解办法就是前文第 2、7 步:把 profile 收缩到该隔间<b>权限最低成员</b>的水平,并读审计轨迹再扩。<span class="srcnote">(来源 [1])</span></p>
+    <p class="en">Anthropic uses the word "unusual" for it: <b>a channel member without direct repo access can ask Claude to read that repo</b>. That is a <b>deliberate departure</b> from per-user ACLs, not a bug. So if you draw compartments badly, the consequence is that a new channel becomes a way around your existing permission design. The mitigation is steps 2 and 7 above: scope each profile to the compartment's <b>least-privileged member</b>, and read the audit trail before extending. <span class="srcnote">(Source [1])</span></p>
+  </div>
+
+  <div class="callout warn">
+    <span class="ch zh">坑 2:把「有身份」当成「有授权」</span>
+    <span class="ch en">Pitfall 2: mistaking identity for authorization</span>
+    <p class="zh">这是学术侧点名批评的那条:<b>能力开关 ≠ 授权</b>。给 Agent 发一个 SVID、让它以自己的身份登录,解决的是「它是谁」;但「它这次要花 5000 块下单,该不该批」是另一层的问题。没有第 3 层的策略关卡,你只是把一个匿名的过度授权,换成了一个<b>署名的</b>过度授权。<span class="srcnote">(来源 [4],arXiv 2606.28679)</span></p>
+    <p class="en">This is the one academia calls out by name: <b>capability gates are not authorization</b>. Issuing an agent an SVID so it logs in as itself solves "who is this?"; whether this particular $5,000 order should go through is a different layer. Without a layer-3 policy gate, all you've done is turn an anonymous over-privileged actor into a <b>named</b> over-privileged actor. <span class="srcnote">(Source [4], arXiv 2606.28679)</span></p>
+  </div>
+
+  <div class="callout warn">
+    <span class="ch zh">坑 3:审计日志「看起来有,取证时没用」</span>
+    <span class="ch en">Pitfall 3: audit logs that look present but are useless</span>
+    <p class="zh">只记录大模型的回复,不记录底层的工具调用、scope 和下游授权决策——这份日志过不了取证。判断标准很简单:<b>随便挑一条历史记录,你能不能填满「Agent X / 策略 Y / 委派人 Z」三个空</b>?填不满就是有鸿沟。<span class="srcnote">(来源 [7],厂商分析)</span></p>
+    <p class="en">Logging only the model's response, without the underlying tool invocations, scopes and downstream authorization decisions, produces a trail that fails in forensics. The test is simple: <b>pick any historical record and try to fill in "Agent X / Policy Y / Delegator Z."</b> If you can't, you have the gap. <span class="srcnote">(Source [7], vendor analysis)</span></p>
+  </div>
+
+  <div class="callout warn">
+    <span class="ch zh">坑 4:低估规模效应</span>
+    <span class="ch en">Pitfall 4: underestimating the scale effect</span>
+    <p class="zh">一句被反复引用的话:<b>一个人做出一次糟糕的访问决定,影响一起事件;一个 Agent 做出同样的决定,可能在有人发现之前影响成千上万条记录</b>。这就是为什么「等出事了再收紧」在 Agent 场景下比在人的场景下贵得多。<span class="srcnote">(来源 [7],厂商分析,属观点)</span></p>
+    <p class="en">A line worth repeating: <b>a human making one bad access decision affects one incident; an agent making the same decision can affect thousands of records before anyone notices</b>. That's why "tighten it after something goes wrong" costs far more with agents than with people. <span class="srcnote">(Source [7], vendor analysis — a viewpoint, not a measurement)</span></p>
+  </div>
+
+  <div class="callout warn">
+    <span class="ch zh">坑 5:标准还没定型,别过早把架构焊死</span>
+    <span class="ch en">Pitfall 5: the standards aren't settled — don't weld your architecture shut</span>
+    <p class="zh">截至调研时,这个领域<b>正在从四个方向同时补齐</b>:面向 Agent 委派的 OAuth 2.1 扩展、SPIFFE/SVID 工作负载身份、商业平台,以及一批试图标准化 Agent 身份语义的 IETF 草案(如 WIMSE,把 AI 中介归为委派工作负载的一个特例,并要求<b>自主动作与委派动作必须通过独立的工作负载身份或 token scope 明确区分</b>)。<b>草案不等于标准</b>,建议把身份层做成可替换的适配层。<span class="srcnote">(来源 [11],综述性技术博客;IETF 草案状态请以 IETF 官方为准)</span></p>
+    <p class="en">As of this research date, the gap is being <b>patched from four directions at once</b>: OAuth 2.1 extensions for agentic delegation, SPIFFE/SVID workload identity, purpose-built commercial platforms, and a run of IETF drafts trying to standardise agent identity semantics (WIMSE, for instance, classifies AI intermediaries as a special case of delegated workloads and requires that <b>autonomous actions be clearly distinguished from delegated ones through separate workload identities or token scopes</b>). <b>A draft is not a standard</b> — keep your identity layer behind a replaceable adapter. <span class="srcnote">(Source [11], survey-style technical blog; for IETF draft status consult the IETF directly.)</span></p>
+  </div>
+
+  <div class="callout quote">
+    <p class="zh">调研中未能核实的:多份厂商材料引用了一项 EY 调查,称「99% 的组织报告了 AI 相关风险造成的财务损失,64% 损失超过 100 万美元」。我们没能找到该调查的一手来源与方法学说明,<b>此处仅作转述、不建议引用</b>。</p>
+    <p class="en">Not verified in this research: several vendor pieces cite an EY survey claiming "99% of organizations reported financial losses from AI-related risks, with 64% suffering losses over $1M." We could not locate the primary source or its methodology, so <b>this is relayed here only, and we don't recommend citing it</b>.</p>
+  </div>
+</section>
+
+<section id="glossary">
+  <h2 class="zh">术语表</h2>
+  <h2 class="en">Glossary</h2>
+  <div class="glossary zh">
+    <dl>
+      <dt>NHI(Non-Human Identity,非人身份)</dt><dd>不属于自然人的一切可行动主体的统称:API 密钥、服务账号、CI 令牌、AI Agent。</dd>
+      <dt>SPIFFE / SVID</dt><dd>工作负载身份标准 / 它签发的可验证身份文档(X.509 或 JWT),短生命周期、自动轮转,标识形如 <code>spiffe://信任域/服务</code>。</dd>
+      <dt>attestation(证明)</dt><dd>工作负载在拿到身份之前,先证明自己确实是「那个部署、那个进程」的过程。</dd>
+      <dt>scope</dt><dd>令牌上写明的「允许做哪些事」的范围;粒度越细,被滥用时的伤害越小。</dd>
+      <dt>on-behalf-of / act 声明</dt><dd>JWT 里表示「我这次是代表某个用户行动」的字段,是委派链能被审计的关键。</dd>
+      <dt>confused deputy(混淆代理人)</dt><dd>有权限的代办方被外部输入诱导,替不该被服务的人使用了自己的权限。</dd>
+      <dt>blast radius(爆炸半径)</dt><dd>一份凭据一旦被滥用,能波及的系统与数据范围。</dd>
+      <dt>zero standing privilege(零常驻权限)</dt><dd>默认不持有任何权限,用时临时授予、到期自动失效。</dd>
+      <dt>EMA / ID-JAG</dt><dd>MCP 的企业托管授权扩展 / 它使用的身份断言授权许可,让企业 IdP 统一管辖 MCP 客户端到服务器的访问。</dd>
+      <dt>attribution gap(归因鸿沟)</dt><dd>日志里存在动作记录,却无法说清「是哪个 Agent、依据什么、代表谁」做的。</dd>
+    </dl>
+  </div>
+  <div class="glossary en">
+    <dl>
+      <dt>NHI (Non-Human Identity)</dt><dd>Umbrella term for every acting principal that isn't a person: API keys, service accounts, CI tokens, AI agents.</dd>
+      <dt>SPIFFE / SVID</dt><dd>A workload identity standard / the verifiable identity document it issues (X.509 or JWT), short-lived and auto-rotated, identified as <code>spiffe://trust-domain/service</code>.</dd>
+      <dt>Attestation</dt><dd>The process by which a workload proves it really is "that deployment, that process" before receiving an identity.</dd>
+      <dt>Scope</dt><dd>The range of permitted actions written onto a token; the finer the grain, the smaller the damage from misuse.</dd>
+      <dt>on-behalf-of / act claim</dt><dd>The JWT field stating "I am acting for this user right now" — the key to an auditable delegation chain.</dd>
+      <dt>Confused deputy</dt><dd>A privileged intermediary induced by external input into using its authority for someone it shouldn't be serving.</dd>
+      <dt>Blast radius</dt><dd>How far the misuse of one credential can reach across systems and data.</dd>
+      <dt>Zero standing privilege</dt><dd>Hold no privileges by default; grant them just in time and let them expire automatically.</dd>
+      <dt>EMA / ID-JAG</dt><dd>MCP's Enterprise-Managed Authorization extension / the identity assertion grant it uses, letting an enterprise IdP govern MCP client-to-server access centrally.</dd>
+      <dt>Attribution gap</dt><dd>Actions appear in the log, but you can't establish which agent performed them, under what policy, for whom.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="sources">
+  <h2 class="zh">来源清单</h2>
+  <h2 class="en">Sources</h2>
+  <p class="dek zh">标签说明:<b>官方</b>=一手厂商/标准来源;<b>报道</b>=新闻机构;<b>论文</b>=arXiv 预印本;<b>厂商观点</b>=安全厂商分析,有立场,已在正文标注。</p>
+  <p class="dek en">Tag key: <b>Official</b> = first-party vendor or standards source; <b>Press</b> = news outlet; <b>Paper</b> = arXiv preprint; <b>Vendor view</b> = security-vendor analysis with a commercial stake, flagged as such in the text.</p>
+  <div class="sources zh">
+    <ol>
+      <li><span class="tag">官方</span>Noah Zweben,《Agent identity in Claude Tag: a new access model for autonomous, team-wide AI》,Claude/Anthropic 博客,2026-06-24 — <a href="https://claude.com/blog/agent-identity-access-model">claude.com/blog/agent-identity-access-model</a></li>
+      <li><span class="tag">官方</span>MCP 2026-07-28 规范说明(授权模型强化、EMA 升格为正式扩展)— <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">blog.modelcontextprotocol.io</a>;技术解读:<a href="https://www.descope.com/blog/post/mcp-auth-spec">Descope · Diving Into the MCP Authorization Specification</a></li>
+      <li><span class="tag c">报道</span>《Microsoft Copilot reveals secret input that allowed it to be hacked》,Ars Technica,2026-08-18 — <a href="https://arstechnica.com/security/2026/08/microsoft-copilot-reveals-secret-input-that-allowed-it-to-be-hacked/">arstechnica.com</a></li>
+      <li><span class="tag">论文</span>《Capability Gates Are Not Authorization: Confused-Deputy Failures in LLM Agent Frameworks》,arXiv 2606.28679 — <a href="https://arxiv.org/abs/2606.28679">arxiv.org/abs/2606.28679</a></li>
+      <li><span class="tag">论文</span>《Authorization Propagation in Multi-Agent AI Systems: Identity Governance as Infrastructure》,arXiv 2605.05440 — <a href="https://arxiv.org/html/2605.05440v1">arxiv.org/html/2605.05440v1</a></li>
+      <li><span class="tag c">厂商观点</span>《AI agent identity security in 2026: are your controls keeping up?》,NHI Mgmt Group — <a href="https://nhimg.org/community/agentic-ai-and-nhis/ai-agent-identity-security-in-2026-are-your-controls-keeping-up/">nhimg.org</a></li>
+      <li><span class="tag c">厂商观点</span>《AI Agents Are Still Logging In as Humans – and Your Audit Trail Is Paying for It》,Kiteworks — <a href="https://www.kiteworks.com/cybersecurity-risk-management/ai-agents-identity-audit-trail/">kiteworks.com</a></li>
+      <li><span class="tag">官方</span>Cloud Security Alliance,非人身份与 Agentic AI 治理白皮书 — <a href="https://labs.cloudsecurityalliance.org/research/csa-whitepaper-nonhuman-identity-agentic-ai-governance-v1-cs/">labs.cloudsecurityalliance.org</a></li>
+      <li><span class="tag c">厂商观点</span>《AI Agent Identity and Authorization in 2026》,UmarCode — <a href="https://umarcode.com/insights/ai-agent-identity-authorization-2026">umarcode.com</a></li>
+      <li><span class="tag c">厂商观点</span>《Workload Identity for Agents: SPIFFE/SPIRE vs. OAuth Client Credentials》,MojoAuth — <a href="https://mojoauth.com/blog/workload-identity-for-agents-spiffe-spire-vs-oauth-client-credentials">mojoauth.com</a>;另参 <a href="https://aembit.io/blog/spiffe-vs-oauth-access-control-nonhuman-identities/">Aembit · SPIFFE vs. OAuth</a></li>
+      <li><span class="tag c">厂商观点</span>《SPIFFE Meets OAuth2: Current landscape for Secure Workload Identity in the Agentic AI Era》,Riptides — <a href="https://riptides.io/blog-post/spiffe-meets-oauth2-current-landscape-for-secure-workload-identity-in-the-agentic-ai-era/">riptides.io</a></li>
+      <li><span class="tag">官方</span>Microsoft Security Blog,《Least privilege for AI agents: Identity, access, and tool binding》,2026-07-16 — <a href="https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/">microsoft.com</a></li>
+    </ol>
+  </div>
+  <div class="sources en">
+    <ol>
+      <li><span class="tag">Official</span>Noah Zweben, "Agent identity in Claude Tag: a new access model for autonomous, team-wide AI," Claude/Anthropic blog, 2026-06-24 — <a href="https://claude.com/blog/agent-identity-access-model">claude.com/blog/agent-identity-access-model</a></li>
+      <li><span class="tag">Official</span>MCP 2026-07-28 specification notes (strengthened authorization model; EMA promoted to an official extension) — <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">blog.modelcontextprotocol.io</a>; walkthrough: <a href="https://www.descope.com/blog/post/mcp-auth-spec">Descope · Diving Into the MCP Authorization Specification</a></li>
+      <li><span class="tag c">Press</span>"Microsoft Copilot reveals secret input that allowed it to be hacked," Ars Technica, 2026-08-18 — <a href="https://arstechnica.com/security/2026/08/microsoft-copilot-reveals-secret-input-that-allowed-it-to-be-hacked/">arstechnica.com</a></li>
+      <li><span class="tag">Paper</span>"Capability Gates Are Not Authorization: Confused-Deputy Failures in LLM Agent Frameworks," arXiv 2606.28679 — <a href="https://arxiv.org/abs/2606.28679">arxiv.org/abs/2606.28679</a></li>
+      <li><span class="tag">Paper</span>"Authorization Propagation in Multi-Agent AI Systems: Identity Governance as Infrastructure," arXiv 2605.05440 — <a href="https://arxiv.org/html/2605.05440v1">arxiv.org/html/2605.05440v1</a></li>
+      <li><span class="tag c">Vendor view</span>"AI agent identity security in 2026: are your controls keeping up?", NHI Mgmt Group — <a href="https://nhimg.org/community/agentic-ai-and-nhis/ai-agent-identity-security-in-2026-are-your-controls-keeping-up/">nhimg.org</a></li>
+      <li><span class="tag c">Vendor view</span>"AI Agents Are Still Logging In as Humans – and Your Audit Trail Is Paying for It," Kiteworks — <a href="https://www.kiteworks.com/cybersecurity-risk-management/ai-agents-identity-audit-trail/">kiteworks.com</a></li>
+      <li><span class="tag">Official</span>Cloud Security Alliance, whitepaper on non-human identity and agentic AI governance — <a href="https://labs.cloudsecurityalliance.org/research/csa-whitepaper-nonhuman-identity-agentic-ai-governance-v1-cs/">labs.cloudsecurityalliance.org</a></li>
+      <li><span class="tag c">Vendor view</span>"AI Agent Identity and Authorization in 2026," UmarCode — <a href="https://umarcode.com/insights/ai-agent-identity-authorization-2026">umarcode.com</a></li>
+      <li><span class="tag c">Vendor view</span>"Workload Identity for Agents: SPIFFE/SPIRE vs. OAuth Client Credentials," MojoAuth — <a href="https://mojoauth.com/blog/workload-identity-for-agents-spiffe-spire-vs-oauth-client-credentials">mojoauth.com</a>; see also <a href="https://aembit.io/blog/spiffe-vs-oauth-access-control-nonhuman-identities/">Aembit · SPIFFE vs. OAuth</a></li>
+      <li><span class="tag c">Vendor view</span>"SPIFFE Meets OAuth2: Current landscape for Secure Workload Identity in the Agentic AI Era," Riptides — <a href="https://riptides.io/blog-post/spiffe-meets-oauth2-current-landscape-for-secure-workload-identity-in-the-agentic-ai-era/">riptides.io</a></li>
+      <li><span class="tag">Official</span>Microsoft Security Blog, "Least privilege for AI agents: Identity, access, and tool binding," 2026-07-16 — <a href="https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/">microsoft.com</a></li>
+    </ol>
+  </div>
+
+  <footer>
+    <p class="zh">调研时间:<b>2026-08-20</b>。本文的关键事实均对应上方来源;标注为「厂商观点」的条目带有商业立场,其调查数字为口径不一的行业统计,请当作数量级参考。此领域标准仍在快速演进(多项 IETF 草案未定稿),生产落地前请以官方最新文档为准。</p>
+    <p class="zh">本文由 mingyu 的每日 AI 情报流程自动生成 · 中英双语对照 · 单文件自包含</p>
+    <p class="en">Researched on <b>2026-08-20</b>. Every key fact maps to a source listed above; entries tagged "Vendor view" carry a commercial stake, and their survey figures use inconsistent definitions — treat them as order-of-magnitude signals. Standards in this area are still moving fast (several IETF drafts remain unfinished), so verify against current official documentation before building on any of it.</p>
+    <p class="en">Generated by mingyu's daily AI intelligence pipeline · Bilingual · Self-contained single file</p>
+  </footer>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var body=document.body, html=document.documentElement;
+  var bZh=document.getElementById('bZh'), bEn=document.getElementById('bEn');
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+
+  function measure(){
+    figs.forEach(function(f){
+      [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){
+        try{ var L=p.getTotalLength(); p.style.setProperty('--len', Math.ceil(L)); }catch(e){}
+      });
+    });
+  }
+
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.14});
+    figs.forEach(function(f){ io.observe(f); });
+  } else {
+    figs.forEach(function(f){ f.classList.add('in'); });
+  }
+
+  function refreshFigs(){
+    figs.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      if(f.offsetParent===null) return;           // hidden by language switch
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight && r.bottom > 0){ f.classList.add('in'); if(io) io.unobserve(f); }
+      else if(io){ io.observe(f); }
+    });
+  }
+
+  function setLang(l){
+    body.setAttribute('data-lang', l);
+    html.setAttribute('lang', l==='zh' ? 'zh-CN' : 'en');
+    bZh.setAttribute('aria-pressed', l==='zh' ? 'true':'false');
+    bEn.setAttribute('aria-pressed', l==='en' ? 'true':'false');
+    try{ localStorage.setItem('aidaily-lang', l); }catch(e){}
+    requestAnimationFrame(function(){ measure(); refreshFigs(); });
+  }
+
+  var saved=null;
+  try{ saved=localStorage.getItem('aidaily-lang'); }catch(e){}
+  if(saved!=='zh' && saved!=='en'){
+    var nav=(navigator.language||'en').toLowerCase();
+    saved = nav.indexOf('zh')===0 ? 'zh' : 'en';
+  }
+  setLang(saved);
+
+  bZh.addEventListener('click', function(){ setLang('zh'); });
+  bEn.addEventListener('click', function(){ setLang('en'); });
+
+  // progress bar + toc highlight
+  var prog=document.getElementById('prog');
+  var links=[].slice.call(document.querySelectorAll('#toc a'));
+  var secs=links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=(h>0 ? (window.scrollY/h*100) : 0)+'%';
+    var idx=0;
+    for(var i=0;i<secs.length;i++){
+      if(secs[i] && secs[i].getBoundingClientRect().top <= 130) idx=i;
+    }
+    links.forEach(function(a,i){ a.classList.toggle('act', i===idx); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', function(){ measure(); refreshFigs(); }, {passive:true});
+  onScroll();
+
+  var toc=document.getElementById('toc'), tocBtn=document.getElementById('tocBtn');
+  tocBtn.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.tagName==='A') toc.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>
