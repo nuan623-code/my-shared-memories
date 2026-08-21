@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt 缓存命中率工程 | Prompt Cache Hit-Rate Engineering</title>
+<style>
+:root{
+  --bg:#f5f5fa; --surface:#ffffff; --surface-2:#eeeef8;
+  --ink:#16162e; --ink-2:#3a3a5e; --muted:#69698c;
+  --line:#dcdcee; --line-2:#c3c3e2;
+  --accent:#4a3fb5; --accent-2:#6d5fe0; --accent-soft:#e9e7fb; --accent-deep:#2b2378;
+  --warn:#a8560c; --warn-soft:#fdf0e2; --warn-line:#f0cfa6;
+  --amber:#c07818;
+  --code-bg:#191934; --code-ink:#dcdcf2;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(22,22,46,.05),0 8px 26px rgba(22,22,46,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.82;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--amber));z-index:120;transition:width .1s linear}
+
+#lang{position:fixed;top:14px;right:16px;z-index:130;display:flex;background:rgba(255,255,255,.82);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid var(--line-2);
+  border-radius:99px;overflow:hidden;box-shadow:var(--shadow);font-size:13.5px;font-weight:700}
+#lang button{border:0;background:transparent;color:var(--muted);padding:7px 15px;cursor:pointer;font:inherit;letter-spacing:.02em}
+#lang button[aria-pressed="true"]{background:var(--accent);color:#fff}
+
+#toc{position:fixed;top:50%;left:18px;transform:translateY(-50%);z-index:110;width:216px;
+  background:rgba(255,255,255,.74);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow);
+  max-height:78vh;overflow-y:auto}
+#toc .tt{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:0 0 9px;padding-left:8px}
+#toc a{display:block;color:var(--ink-2);text-decoration:none;font-size:13.5px;line-height:1.45;
+  padding:6px 9px;border-radius:8px;border-left:2.5px solid transparent;margin-bottom:1px}
+#toc a:hover{background:var(--accent-soft);color:var(--accent-deep)}
+#toc a.act{background:var(--accent-soft);color:var(--accent-deep);border-left-color:var(--accent);font-weight:700}
+#tocBtn{display:none;position:fixed;left:14px;bottom:18px;z-index:130;width:46px;height:46px;border-radius:50%;
+  border:1.5px solid var(--line-2);background:rgba(255,255,255,.9);font-size:19px;cursor:pointer;box-shadow:var(--shadow)}
+
+.wrap{max-width:790px;margin:0 auto;padding:0 22px 90px}
+
+header.hero{background:
+  radial-gradient(1100px 340px at 10% -12%, #e2ddfb 0%, rgba(226,221,251,0) 62%),
+  radial-gradient(760px 300px at 92% 4%, #fbeedb 0%, rgba(251,238,219,0) 60%),
+  linear-gradient(180deg,#fcfcfe 0%, var(--bg) 100%);
+  border-bottom:1px solid var(--line);margin-bottom:34px;position:relative;overflow:hidden}
+header.hero::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:46px 46px;opacity:.3;mask-image:linear-gradient(180deg,rgba(0,0,0,.5),transparent 72%);
+  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.5),transparent 72%);pointer-events:none}
+.hin{max-width:790px;margin:0 auto;padding:74px 22px 44px;position:relative;z-index:1}
+.kicker{display:inline-block;font-size:11.5px;font-weight:850;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--accent-deep);background:var(--accent-soft);border:1px solid var(--line-2);padding:5px 13px;border-radius:99px;margin-bottom:16px}
+h1{font-size:clamp(28px,6vw,45px);line-height:1.2;margin:0 0 14px;font-weight:860;letter-spacing:-.025em}
+h1 em{font-style:normal;color:var(--accent);position:relative}
+h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.09em;height:.28em;background:rgba(192,120,24,.24);z-index:-1}
+.lede{font-size:18.5px;color:var(--ink-2);margin:0 0 20px;max-width:63ch}
+.meta{font-size:13.5px;color:var(--muted);border-top:1px dashed var(--line-2);padding-top:14px}
+
+section{margin:0 0 52px;scroll-margin-top:22px}
+h2{font-size:clamp(21px,3.6vw,27px);margin:0 0 8px;font-weight:820;letter-spacing:-.015em;line-height:1.32}
+h2 .num{color:var(--accent-2);font-variant-numeric:tabular-nums;margin-right:9px;font-weight:850}
+h3{font-size:18.5px;margin:30px 0 8px;font-weight:780;color:var(--accent-deep)}
+p{margin:0 0 15px}
+.dek{color:var(--muted);font-size:15px;margin:-2px 0 20px;border-left:2.5px solid var(--line-2);padding-left:12px}
+ul,ol{margin:0 0 15px;padding-left:22px}
+li{margin-bottom:8px}
+b,strong{font-weight:750;color:var(--accent-deep)}
+a{color:var(--accent)}
+
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:var(--radius);padding:18px 20px;margin:20px 0;box-shadow:var(--shadow)}
+.def .term{font-size:17px;font-weight:820;color:var(--accent-deep);margin:0 0 6px}
+.def p{margin:0 0 9px;font-size:16px}
+.def p:last-child{margin-bottom:0}
+
+.callout{border-radius:var(--radius);padding:16px 19px;margin:20px 0;font-size:16px;border:1px solid var(--line)}
+.callout.key{background:var(--accent-soft);border-color:var(--line-2)}
+.callout.warn{background:var(--warn-soft);border-color:var(--warn-line)}
+.callout p{margin:0 0 9px}.callout p:last-child{margin:0}
+.callout .ch{display:block;font-weight:820;margin-bottom:6px;font-size:15px;letter-spacing:.01em}
+.callout.key .ch{color:var(--accent-deep)}
+.callout.warn .ch{color:var(--warn)}
+
+.steps{counter-reset:s;list-style:none;padding:0;margin:22px 0}
+.steps li{counter-increment:s;position:relative;padding:0 0 0 46px;margin-bottom:20px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:31px;height:31px;border-radius:9px;
+  background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:830;font-size:14.5px}
+.steps li b{display:block;font-size:16.5px;margin-bottom:3px}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin:22px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
+.stat .n{font-size:26px;font-weight:860;color:var(--accent);line-height:1.15;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.5}
+
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:15px;background:var(--surface);
+  border-radius:12px;overflow:hidden;box-shadow:var(--shadow);display:block;overflow-x:auto}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--accent-soft);color:var(--accent-deep);font-weight:800;font-size:14px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td b{color:var(--accent-deep)}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:15px 17px;overflow-x:auto;
+  font-size:13.5px;line-height:1.62;margin:16px 0}
+pre code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.9em;
+  background:var(--accent-soft);padding:1.5px 6px;border-radius:5px;color:var(--accent-deep)}
+pre code{background:transparent;padding:0;color:inherit}
+.srcnote{font-size:13px;color:var(--muted)}
+
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:6px 20px;margin:22px 0;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:800;color:var(--accent-deep);margin-top:15px;font-size:15.5px}
+.glossary dd{margin:3px 0 0;color:var(--ink-2);font-size:15.5px}
+
+.analogy{background:linear-gradient(135deg,var(--warn-soft),#fff);border:1px solid var(--warn-line);
+  border-radius:var(--radius);padding:17px 20px;margin:20px 0}
+.analogy .ah{font-weight:820;color:var(--warn);font-size:15px;margin-bottom:6px}
+.analogy p{margin:0;font-size:16px}
+
+.prereq{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:13px 17px;margin:18px 0;font-size:15px;color:var(--ink-2)}
+
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 18px 14px;margin:26px 0;box-shadow:var(--shadow);
+  opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.5px;color:var(--muted);margin-top:12px;border-top:1px dashed var(--line);padding-top:9px;line-height:1.6}
+.figure [data-draw]{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600);transition:stroke-dashoffset 1.15s ease .18s}
+.figure.in [data-draw]{stroke-dashoffset:0}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+
+.sources{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:8px 20px 18px;box-shadow:var(--shadow);font-size:14.5px}
+.sources ol{padding-left:20px;margin:14px 0 0}
+.sources li{margin-bottom:10px;line-height:1.6}
+.sources .tag{display:inline-block;font-size:11px;font-weight:800;padding:1.5px 7px;border-radius:5px;margin-right:7px;
+  background:var(--accent-soft);color:var(--accent-deep);border:1px solid var(--line-2);vertical-align:1px}
+.sources .tag.c{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+
+footer{border-top:1px solid var(--line);margin-top:44px;padding-top:22px;font-size:14px;color:var(--muted)}
+
+@media(max-width:1180px){#toc{display:none}#tocBtn{display:block}
+  #toc.open{display:block;position:fixed;left:12px;bottom:74px;top:auto;transform:none;width:min(280px,84vw);max-height:64vh}}
+@media(max-width:640px){
+  body{font-size:16.5px}
+  .hin{padding:66px 20px 36px}
+  .wrap{padding:0 18px 84px}
+  section{margin-bottom:42px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
+  pre{font-size:12.5px}
+  #lang{top:10px;right:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .figure,.figure [data-anim]{opacity:1;transform:none;transition:none}
+  .figure [data-draw]{stroke-dashoffset:0;transition:none}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中文 EN ☰ 深度学习 · 2026-08-21 Deep Dive · 2026-08-21 同一个 Agent,只挪了 一行字 ,账单降了 59% Same agent, one line moved , 59% …">
+<meta property="og:title" content="Prompt 缓存命中率工程 | Prompt Cache Hit-Rate Engineering">
+<meta property="og:description" content="中文 EN ☰ 深度学习 · 2026-08-21 Deep Dive · 2026-08-21 同一个 Agent,只挪了 一行字 ,账单降了 59% Same agent, one line moved , 59% …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-21-prompt-huan-cun-ming-zhong-lv-gong-cheng.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-21-prompt-huan-cun-ming-zhong-lv-gong-cheng.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Prompt 缓存命中率工程 | Prompt Cache Hit-Rate Engineering", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-21-prompt-huan-cun-ming-zhong-lv-gong-cheng.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-21", "dateModified": "2026-08-21"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="prog"></div>
+<div id="lang" role="group" aria-label="Language">
+  <button type="button" id="bZh" aria-pressed="true">中文</button>
+  <button type="button" id="bEn" aria-pressed="false">EN</button>
+</div>
+<button id="tocBtn" type="button" aria-label="目录 / Contents">☰</button>
+
+<nav id="toc" aria-label="Contents">
+  <p class="tt"><span class="zh">目录</span><span class="en">Contents</span></p>
+  <a href="#tldr"><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></a>
+  <a href="#why"><span class="zh">1 · Agent 为什么特别吃缓存</span><span class="en">1 · Why agents live or die on cache</span></a>
+  <a href="#how"><span class="zh">2 · 前缀缓存到底怎么工作</span><span class="en">2 · How prefix caching actually works</span></a>
+  <a href="#vendors"><span class="zh">3 · 三家机制与定价对比</span><span class="en">3 · Three vendors compared</span></a>
+  <a href="#playbook"><span class="zh">4 · 提高命中率的六步</span><span class="en">4 · Six steps to a higher hit rate</span></a>
+  <a href="#numbers"><span class="zh">5 · 真实数字与边界</span><span class="en">5 · Real numbers, real limits</span></a>
+  <a href="#pitfalls"><span class="zh">6 · 常见坑</span><span class="en">6 · Common traps</span></a>
+  <a href="#when"><span class="zh">7 · 什么时候不该用</span><span class="en">7 · When not to bother</span></a>
+  <a href="#glossary"><span class="zh">术语表</span><span class="en">Glossary</span></a>
+  <a href="#sources"><span class="zh">来源清单</span><span class="en">Sources</span></a>
+</nav>
+
+<header class="hero"><div class="hin">
+  <span class="kicker zh">深度学习 · 2026-08-21</span>
+  <span class="kicker en">Deep Dive · 2026-08-21</span>
+  <h1 class="zh">同一个 Agent,只挪了<em>一行字</em>,账单降了 59%</h1>
+  <h1 class="en">Same agent, <em>one line moved</em>, 59% off the bill</h1>
+  <p class="lede zh">Prompt 缓存不是一个「打开就省钱」的开关,而是一门需要主动设计请求结构的手艺。厂商宣传的是「最高 90%」,跨三家 500+ 真实 agent 会话的实测区间是 41–80%,而多数团队的起点是 7%。这份文档讲清缓存到底怎么命中、怎么被打破、以及六步把命中率提上去。</p>
+  <p class="lede en">Prompt caching is not a switch you flip to save money — it's a discipline that requires designing the shape of your requests. Vendors advertise "up to 90%." A measurement across 500+ real agent sessions on three providers found 41–80% in practice. Most teams start at 7%. This guide covers how a cache hit actually happens, what breaks it, and six steps to fix your hit rate.</p>
+  <p class="meta zh">调研时间:2026-08-21 · 阅读约 20 分钟 · 全文含 3 张图解 · 所有关键数字附来源</p>
+  <p class="meta en">Researched 2026-08-21 · ~20 min read · 3 diagrams · Every key number is sourced</p>
+</div></header>
+
+<div class="wrap">
+
+<section id="tldr">
+  <h2 class="zh"><span class="num">00</span>30 秒速览</h2>
+  <h2 class="en"><span class="num">00</span>The 30-second version</h2>
+  <p class="dek zh">如果你只读一段,读这段。</p>
+  <p class="dek en">If you read only one paragraph, read this one.</p>
+
+  <p class="zh"><b>Prompt 缓存(prompt caching)</b>的原理很朴素:模型把你请求开头那一段<b>一模一样、一字不差</b>的内容的计算结果存起来,下次同样的开头直接复用,只算新增的部分。省钱和省延迟都来自这里。关键词是<b>前缀(prefix)</b>——它只从头开始匹配,遇到第一个不同的 token 就停止,后面全部重算。</p>
+  <p class="en"><b>Prompt caching</b> works on a plain idea: the model stores the computed state for the opening stretch of your request — <b>byte-for-byte identical</b> — and reuses it next time, computing only what's new. Both the cost savings and the latency savings come from that. The operative word is <b>prefix</b>: matching starts at position zero and stops at the first token that differs. Everything after that point is recomputed.</p>
+
+  <p class="zh">这就带来了整件事最反直觉的一点:<b>缓存是否命中,取决于你把动态内容放在哪里,而不取决于动态内容有多少</b>。一个 4,000 token 的系统提示里塞了一个每次都变的会话 ID,如果它在中间,那 4,000 token 每次全额重算;把它挪到末尾,前面 3,900 多个 token 全部命中。有实测记录的一个安全情报 Agent,做的正是这一个改动:命中率 <b>7% → 74%</b>,月度推理账单降 <b>59%</b>。<span class="srcnote">(来源 [2])</span></p>
+  <p class="en">Which leads to the least intuitive fact in the whole topic: <b>whether you get a cache hit depends on where the dynamic content sits, not on how much of it there is</b>. A 4,000-token system instruction with one per-request session ID buried in the middle recomputes all 4,000 tokens every time. Move that ID to the end and roughly 3,900 of them hit cache. A documented security-intelligence agent made exactly that one change: hit rate went <b>7% → 74%</b> and the monthly inference bill dropped <b>59%</b>.<span class="srcnote"> (Source [2])</span></p>
+
+  <div class="stats zh">
+    <div class="stat"><div class="n">0.1×</div><div class="l">Anthropic 缓存读取价 / 基础输入价</div></div>
+    <div class="stat"><div class="n">1.25×</div><div class="l">缓存写入价 / 基础输入价</div></div>
+    <div class="stat"><div class="n">41–80%</div><div class="l">500+ 真实会话实测的节省区间</div></div>
+    <div class="stat"><div class="n">13–31%</div><div class="l">首 token 时间(TTFT)缩短幅度</div></div>
+  </div>
+  <div class="stats en">
+    <div class="stat"><div class="n">0.1×</div><div class="l">Anthropic cache read vs. base input price</div></div>
+    <div class="stat"><div class="n">1.25×</div><div class="l">Cache write vs. base input price</div></div>
+    <div class="stat"><div class="n">41–80%</div><div class="l">Measured savings across 500+ real sessions</div></div>
+    <div class="stat"><div class="n">13–31%</div><div class="l">Reduction in time-to-first-token</div></div>
+  </div>
+
+  <div class="callout key">
+    <span class="ch zh">一句话判断你有没有这个问题</span>
+    <span class="ch en">A one-line test for whether this applies to you</span>
+    <p class="zh">打开你的用量面板,看 <b>cache read token 占总输入 token 的比例</b>。如果这个数低于 50%,而你的 Agent 每轮都发同一份系统提示和工具定义,那你几乎肯定在为已经算过的东西重复付钱。</p>
+    <p class="en">Open your usage dashboard and look at <b>cache-read tokens as a share of total input tokens</b>. If that number is under 50% while your agent sends the same system prompt and tool definitions every turn, you are almost certainly paying twice for work the model already did.</p>
+  </div>
+</section>
+
+<section id="why">
+  <h2 class="zh"><span class="num">01</span>Agent 为什么特别吃缓存</h2>
+  <h2 class="en"><span class="num">01</span>Why agents live or die on cache</h2>
+  <p class="dek zh">聊天应用里缓存是锦上添花;在 Agent 循环里它是成本结构的主导项。</p>
+  <p class="dek en">In a chat app, caching is a nice-to-have. In an agent loop, it dominates the cost structure.</p>
+
+  <p class="zh">单轮问答的成本模型很简单:发一份 prompt,收一份回答。Agent 不是这样。一个 Agent 完成一个任务要跑十几轮甚至上百轮,每一轮都要把<b>完整的历史</b>重新发一遍——系统提示、工具定义、之前所有的思考与工具结果。第 20 轮发送的输入,可能是第 1 轮的十几倍。</p>
+  <p class="en">Single-turn Q&amp;A has a simple cost model: send a prompt, get an answer. Agents don't work that way. Completing one task takes a dozen turns, sometimes a hundred, and every turn resends <b>the entire history</b> — system prompt, tool definitions, all prior reasoning and tool results. The input on turn 20 can be an order of magnitude larger than on turn 1.</p>
+
+  <p class="zh">这正是缓存的理想场景:每一轮的输入都是上一轮输入的<b>严格前缀延长</b>(append-only)。理论上,第 N 轮只需要为「第 N−1 轮之后新增的那点内容」付全价,前面全部按 0.1× 计费。理论上。</p>
+  <p class="en">That is the ideal case for caching: each turn's input is a strict <b>append-only extension</b> of the previous turn's. In theory, turn <em>N</em> pays full price only for what was added since turn <em>N−1</em>, and everything before it bills at 0.1×. In theory.</p>
+
+  <div class="analogy zh">
+    <div class="ah">打个比方</div>
+    <p>把模型想成一个每天早上都要重读一遍项目背景才能开工的同事。缓存等于让他「昨天读到哪、今天从哪接着读」。但他有个怪癖:只要你在文档<b>开头</b>改了一个字——哪怕只是把日期从 8 月 20 日改成 8 月 21 日——他就会从第一页重新读起。</p>
+  </div>
+  <div class="analogy en">
+    <div class="ah">An analogy</div>
+    <p>Think of the model as a colleague who has to re-read the whole project background every morning before starting work. Caching means he picks up where he stopped yesterday. But he has a quirk: change one character near the <b>front</b> of the document — even just the date, from Aug 20 to Aug 21 — and he starts over from page one.</p>
+  </div>
+
+  <p class="zh">Agent 循环把这个怪癖放大了。因为历史很长,前缀失效的惩罚不是「多算一点」,而是「把已经积累的整个上下文全额重算」。一个 100k token 的 Agent 会话,前缀被破坏一次,这一轮就要按全价重付 100k 输入 token,而不是 0.1× 的 10k 等效价。这就是为什么一份实践分析把它称作「Agent 循环打破缓存并抽干你的预算」。<span class="srcnote">(来源 [8])</span></p>
+  <p class="en">The agent loop amplifies that quirk. Because the history is long, a prefix miss doesn't mean "a bit of extra compute" — it means recomputing the entire accumulated context at full price. In a 100k-token agent session, one broken prefix costs you 100k input tokens at full rate rather than the 10k-equivalent you'd have paid at 0.1×. Hence the framing in one production analysis: agent loops break caching and drain your budget.<span class="srcnote"> (Source [8])</span></p>
+
+  <div class="prereq zh"><b>本文假设你已经知道:</b>token 是什么、system prompt 与 tool definitions 会被一起发给模型、以及 Agent 是「模型调工具 → 拿结果 → 再想」的循环。不需要任何缓存的前置知识。</div>
+  <div class="prereq en"><b>Assumed background:</b> what a token is, that the system prompt and tool definitions are sent to the model along with the conversation, and that an agent is a loop of "model calls a tool → gets a result → thinks again." No prior knowledge of caching is needed.</div>
+</section>
+
+<section id="how">
+  <h2 class="zh"><span class="num">02</span>前缀缓存到底怎么工作</h2>
+  <h2 class="en"><span class="num">02</span>How prefix caching actually works</h2>
+  <p class="dek zh">三个概念:前缀匹配、断点、TTL。理解这三个,后面全是推论。</p>
+  <p class="dek en">Three concepts: prefix matching, breakpoints, TTL. Everything else follows from them.</p>
+
+  <div class="def zh">
+    <p class="term">前缀匹配(prefix matching)</p>
+    <p>缓存查找<b>只从请求的第 0 个 token 开始</b>,逐 token 比对,遇到第一个不同就停。停下来的位置之前算命中,之后全部重算。它不做「中间那段一样」的模糊匹配——不是搜索,是精确的开头比对。</p>
+  </div>
+  <div class="def en">
+    <p class="term">Prefix matching</p>
+    <p>Cache lookup starts at <b>token 0 of the request</b> and compares token by token until the first difference. Everything before that point is a hit; everything after is recomputed. There is no fuzzy "the middle section is the same" matching — it isn't search, it's an exact comparison from the front.</p>
+  </div>
+
+  <div class="def zh">
+    <p class="term">缓存断点(cache breakpoint)</p>
+    <p>你在请求里显式标记「到这里为止的内容请存下来」的位置。Anthropic 用 <code>cache_control</code> 参数标记,<b>每个请求最多 4 个断点</b>。OpenAI 走的是自动前缀缓存,不需要你标记。</p>
+  </div>
+  <div class="def en">
+    <p class="term">Cache breakpoint</p>
+    <p>An explicit marker saying "store everything up to here." Anthropic marks these with the <code>cache_control</code> parameter, with <b>up to 4 breakpoints per request</b>. OpenAI uses automatic prefix caching instead, requiring no markers from you.</p>
+  </div>
+
+  <div class="def zh">
+    <p class="term">TTL(存活时间)</p>
+    <p>缓存条目多久过期。Anthropic 的每个断点有 ephemeral TTL,<b>默认 5 分钟(每次命中刷新)</b>,也可选 <b>1 小时</b>——1 小时档的写入价是基础输入价的 2×。同一请求里两种 TTL 可以混用,但 1 小时的条目必须排在 5 分钟的前面。</p>
+  </div>
+  <div class="def en">
+    <p class="term">TTL (time to live)</p>
+    <p>How long an entry survives. Each Anthropic breakpoint carries an ephemeral TTL: <b>5 minutes by default, refreshed on every hit</b>, or <b>1 hour</b> as an option — the 1-hour tier writes at 2× base input price. You can mix both TTLs in one request, but 1-hour entries must appear before 5-minute ones.</p>
+  </div>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="前缀缓存原理:动态内容的位置决定命中范围">
+      <defs>
+        <marker id="arz1" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#69698c"/>
+        </marker>
+      </defs>
+      <text x="12" y="22" font-size="14" font-weight="800" fill="#2b2378" data-anim>情况 A · 动态内容在中间</text>
+      <g data-anim>
+        <rect x="12" y="36" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="112" y="55" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">系统提示</text>
+        <text x="112" y="71" font-size="11" fill="#69698c" text-anchor="middle">2,000 token · 静态</text>
+        <rect x="216" y="36" width="120" height="42" rx="7" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="276" y="55" font-size="12.5" fill="#a8560c" text-anchor="middle" font-weight="700">会话 ID</text>
+        <text x="276" y="71" font-size="11" fill="#a8560c" text-anchor="middle">12 token · 每次变</text>
+        <rect x="340" y="36" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="440" y="55" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">工具定义</text>
+        <text x="440" y="71" font-size="11" fill="#69698c" text-anchor="middle">1,800 token · 静态</text>
+        <rect x="544" y="36" width="204" height="42" rx="7" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="646" y="55" font-size="12.5" fill="#3a3a5e" text-anchor="middle" font-weight="700">对话历史</text>
+        <text x="646" y="71" font-size="11" fill="#69698c" text-anchor="middle">追加增长</text>
+      </g>
+      <path d="M12 94 L212 94" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+      <path d="M216 94 L748 94" stroke="#a8560c" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+      <text x="112" y="112" font-size="11.5" fill="#4a3fb5" text-anchor="middle" font-weight="700" data-anim>命中 2,000</text>
+      <text x="482" y="112" font-size="11.5" fill="#a8560c" text-anchor="middle" font-weight="700" data-anim>全额重算 · 剩下全部</text>
+
+      <text x="12" y="164" font-size="14" font-weight="800" fill="#2b2378" data-anim>情况 B · 动态内容挪到末尾</text>
+      <g data-anim>
+        <rect x="12" y="178" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="112" y="197" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">系统提示</text>
+        <text x="112" y="213" font-size="11" fill="#69698c" text-anchor="middle">2,000 token · 静态</text>
+        <rect x="216" y="178" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="316" y="197" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">工具定义</text>
+        <text x="316" y="213" font-size="11" fill="#69698c" text-anchor="middle">1,800 token · 静态</text>
+        <rect x="420" y="178" width="204" height="42" rx="7" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="522" y="197" font-size="12.5" fill="#3a3a5e" text-anchor="middle" font-weight="700">对话历史</text>
+        <text x="522" y="213" font-size="11" fill="#69698c" text-anchor="middle">追加增长</text>
+        <rect x="628" y="178" width="120" height="42" rx="7" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="688" y="197" font-size="12.5" fill="#a8560c" text-anchor="middle" font-weight="700">会话 ID</text>
+        <text x="688" y="213" font-size="11" fill="#a8560c" text-anchor="middle">12 token</text>
+      </g>
+      <path d="M12 236 L624 236" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+      <path d="M628 236 L748 236" stroke="#a8560c" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+      <text x="318" y="254" font-size="11.5" fill="#4a3fb5" text-anchor="middle" font-weight="700" data-anim>命中 3,800 + 历史</text>
+      <text x="688" y="254" font-size="11.5" fill="#a8560c" text-anchor="middle" font-weight="700" data-anim>只重算 12</text>
+
+      <rect x="12" y="278" width="736" height="50" rx="9" fill="#e9e7fb" stroke="#c3c3e2" data-anim/>
+      <text x="30" y="300" font-size="13" fill="#2b2378" font-weight="800" data-anim>同样的内容、同样的 token 总量,只改了顺序。</text>
+      <text x="30" y="319" font-size="12.5" fill="#3a3a5e" data-anim>实测案例:命中率 7% → 74%,月度推理账单降 59%(来源 [2])</text>
+      <path d="M700 300 L736 300" stroke="#69698c" stroke-width="1.6" marker-end="url(#arz1)" fill="none"/>
+    </svg>
+    <p class="fig-cap">图 1 · 前缀缓存只从头匹配。一个 12 token 的动态字段放在中间,就让它后面的 3,800 个静态 token 全部作废;挪到末尾,损失降到 12 个 token。这不是优化技巧,这是缓存机制的直接推论。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How prefix caching works: the position of dynamic content decides the hit range">
+      <defs>
+        <marker id="arz1-e" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#69698c"/>
+        </marker>
+      </defs>
+      <text x="12" y="22" font-size="14" font-weight="800" fill="#2b2378" data-anim>Case A · dynamic field in the middle</text>
+      <g data-anim>
+        <rect x="12" y="36" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="112" y="55" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">System prompt</text>
+        <text x="112" y="71" font-size="11" fill="#69698c" text-anchor="middle">2,000 tokens · static</text>
+        <rect x="216" y="36" width="120" height="42" rx="7" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="276" y="55" font-size="12.5" fill="#a8560c" text-anchor="middle" font-weight="700">Session ID</text>
+        <text x="276" y="71" font-size="11" fill="#a8560c" text-anchor="middle">12 tokens · varies</text>
+        <rect x="340" y="36" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="440" y="55" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">Tool definitions</text>
+        <text x="440" y="71" font-size="11" fill="#69698c" text-anchor="middle">1,800 tokens · static</text>
+        <rect x="544" y="36" width="204" height="42" rx="7" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="646" y="55" font-size="12.5" fill="#3a3a5e" text-anchor="middle" font-weight="700">Conversation</text>
+        <text x="646" y="71" font-size="11" fill="#69698c" text-anchor="middle">append-only</text>
+      </g>
+      <path d="M12 94 L212 94" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+      <path d="M216 94 L748 94" stroke="#a8560c" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+      <text x="112" y="112" font-size="11.5" fill="#4a3fb5" text-anchor="middle" font-weight="700" data-anim>2,000 hit</text>
+      <text x="482" y="112" font-size="11.5" fill="#a8560c" text-anchor="middle" font-weight="700" data-anim>full recompute · everything after</text>
+
+      <text x="12" y="164" font-size="14" font-weight="800" fill="#2b2378" data-anim>Case B · dynamic field moved to the end</text>
+      <g data-anim>
+        <rect x="12" y="178" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="112" y="197" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">System prompt</text>
+        <text x="112" y="213" font-size="11" fill="#69698c" text-anchor="middle">2,000 tokens · static</text>
+        <rect x="216" y="178" width="200" height="42" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="316" y="197" font-size="12.5" fill="#2b2378" text-anchor="middle" font-weight="700">Tool definitions</text>
+        <text x="316" y="213" font-size="11" fill="#69698c" text-anchor="middle">1,800 tokens · static</text>
+        <rect x="420" y="178" width="204" height="42" rx="7" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="522" y="197" font-size="12.5" fill="#3a3a5e" text-anchor="middle" font-weight="700">Conversation</text>
+        <text x="522" y="213" font-size="11" fill="#69698c" text-anchor="middle">append-only</text>
+        <rect x="628" y="178" width="120" height="42" rx="7" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="688" y="197" font-size="12.5" fill="#a8560c" text-anchor="middle" font-weight="700">Session ID</text>
+        <text x="688" y="213" font-size="11" fill="#a8560c" text-anchor="middle">12 tokens</text>
+      </g>
+      <path d="M12 236 L624 236" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+      <path d="M628 236 L748 236" stroke="#a8560c" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+      <text x="318" y="254" font-size="11.5" fill="#4a3fb5" text-anchor="middle" font-weight="700" data-anim>3,800 + history hit</text>
+      <text x="688" y="254" font-size="11.5" fill="#a8560c" text-anchor="middle" font-weight="700" data-anim>12 recomputed</text>
+
+      <rect x="12" y="278" width="736" height="50" rx="9" fill="#e9e7fb" stroke="#c3c3e2" data-anim/>
+      <text x="30" y="300" font-size="13" fill="#2b2378" font-weight="800" data-anim>Same content, same token count. Only the order changed.</text>
+      <text x="30" y="319" font-size="12.5" fill="#3a3a5e" data-anim>Documented case: hit rate 7% → 74%, monthly inference bill down 59% (Source [2])</text>
+      <path d="M700 300 L736 300" stroke="#69698c" stroke-width="1.6" marker-end="url(#arz1-e)" fill="none"/>
+    </svg>
+    <p class="fig-cap">Figure 1 · Prefix caching matches from position zero. A 12-token dynamic field in the middle invalidates the 3,800 static tokens behind it; moved to the end, the loss shrinks to 12 tokens. This isn't a clever trick — it falls straight out of how the mechanism works.</p>
+  </div>
+</section>
+
+<section id="vendors">
+  <h2 class="zh"><span class="num">03</span>三家机制与定价对比</h2>
+  <h2 class="en"><span class="num">03</span>Three vendors compared</h2>
+  <p class="dek zh">手动 vs 自动、折扣多少、什么时候值得。</p>
+  <p class="dek en">Manual vs. automatic, how big the discount is, and when it pays off.</p>
+
+  <table class="zh">
+    <tr><th>维度</th><th>Anthropic Claude</th><th>OpenAI</th><th>Google Gemini</th></tr>
+    <tr><td><b>触发方式</b></td><td>自动缓存 + 可选 <code>cache_control</code> 显式断点(每请求最多 4 个)</td><td>自动前缀缓存,零代码改动</td><td>隐式 + 显式两种</td></tr>
+    <tr><td><b>缓存读取折扣</b></td><td>0.1× 基础输入价(约省 90%)</td><td>约省 50%</td><td>约 90% 折扣(2.5 系列)</td></tr>
+    <tr><td><b>缓存写入成本</b></td><td>1.25× 基础输入价(5 分钟档);1 小时档 2×</td><td>不额外收写入费</td><td>另有存储计费维度</td></tr>
+    <tr><td><b>TTL</b></td><td>5 分钟(命中即刷新)或 1 小时</td><td>由平台管理</td><td>可配置</td></tr>
+    <tr><td><b>最小可缓存长度</b></td><td>按模型不同,如 1,024 / 2,048 token 起</td><td>有最小长度门槛</td><td>有最小长度门槛</td></tr>
+  </table>
+
+  <table class="en">
+    <tr><th>Dimension</th><th>Anthropic Claude</th><th>OpenAI</th><th>Google Gemini</th></tr>
+    <tr><td><b>How it triggers</b></td><td>Automatic caching plus optional explicit <code>cache_control</code> breakpoints (max 4 per request)</td><td>Automatic prefix caching, zero code changes</td><td>Both implicit and explicit modes</td></tr>
+    <tr><td><b>Cache read discount</b></td><td>0.1× base input price (~90% off)</td><td>Roughly 50% savings</td><td>~90% discount on 2.5-series models</td></tr>
+    <tr><td><b>Cache write cost</b></td><td>1.25× base input (5-min tier); 2× for the 1-hour tier</td><td>No separate write charge</td><td>Separate storage billing dimension</td></tr>
+    <tr><td><b>TTL</b></td><td>5 minutes (refreshed on hit) or 1 hour</td><td>Platform-managed</td><td>Configurable</td></tr>
+    <tr><td><b>Minimum cacheable length</b></td><td>Model-dependent, e.g. from 1,024 / 2,048 tokens</td><td>Has a minimum-length threshold</td><td>Has a minimum-length threshold</td></tr>
+  </table>
+  <p class="srcnote zh">来源 [1][3][4]。定价与门槛数字随模型代际变化,落地前请以各家当前官方文档为准。</p>
+  <p class="srcnote en">Sources [1][3][4]. Pricing and thresholds shift between model generations; check each vendor's current docs before you build on these numbers.</p>
+
+  <h3 class="zh">5 分钟还是 1 小时?一个可以直接套的判据</h3>
+  <h3 class="en">Five minutes or one hour? A rule you can apply directly</h3>
+
+  <p class="zh">因为 1 小时档的写入价是 2×(而 5 分钟档是 1.25×),你需要<b>在这一小时内至少读 3 次</b>才能比 5 分钟档划算;5 分钟档只需要读 2 次就回本。实践建议是:<b>交互式、流量稳定 → 用默认 5 分钟;流量突发或请求之间间隔长 → 考虑 1 小时</b>,批处理是典型场景(一个批次跑完往往超过 5 分钟)。如果流量尖峰且不可预测,5 分钟是更安全的默认值。<span class="srcnote">(来源 [3])</span></p>
+  <p class="en">Because the 1-hour tier writes at 2× (against 1.25× for the 5-minute tier), you need <b>at least three reads within that hour</b> to come out ahead; the 5-minute tier breaks even at two reads. The practical guidance: <b>interactive workloads with steady traffic → stay on the 5-minute default; bursty or widely spaced requests → consider the hour</b>, with batch processing as the obvious case (a batch often takes longer than five minutes to work through). If your traffic is spiky and unpredictable, 5 minutes is the safer default.<span class="srcnote"> (Source [3])</span></p>
+
+  <div class="callout key">
+    <span class="ch zh">先自动,后手动</span>
+    <span class="ch en">Automatic first, manual second</span>
+    <p class="zh">官方建议是<b>从自动缓存开始</b>——它以最小成本覆盖了大多数用例;只有当你确实需要细粒度控制(比如想把工具定义和系统提示分成两个独立的缓存段,让工具集变化时不牵连系统提示)时,才切到显式断点。过早手动标断点是常见的过度工程。</p>
+    <p class="en">The documented recommendation is to <b>start with automatic caching</b> — it covers the majority of use cases with minimal effort. Switch to explicit breakpoints only when you genuinely need fine-grained control, e.g. splitting tool definitions and system prompt into separate cache segments so a change to the tool set doesn't invalidate the prompt. Reaching for manual breakpoints too early is a classic case of over-engineering.</p>
+  </div>
+</section>
+
+<section id="playbook">
+  <h2 class="zh"><span class="num">04</span>提高命中率的六步</h2>
+  <h2 class="en"><span class="num">04</span>Six steps to a higher hit rate</h2>
+  <p class="dek zh">按顺序做,前两步通常就能拿走大部分收益。</p>
+  <p class="dek en">Do them in order. The first two usually capture most of the win.</p>
+
+  <ol class="steps zh">
+    <li><b>先测,别先改</b>把 cache read token / 总 input token 这个比值打进你的可观测面板,按会话统计。没有基线,后面所有改动都是盲改。一份行业分析的判断是:大多数 Agent 的真实命中率<b>大约在 7% 左右</b>,而团队普遍以为自己在 90%。</li>
+    <li><b>前缀重排:静态在前,动态在后</b>把系统提示、工具定义、少样本示例、政策文本这些「永远不变」的内容全部推到最前面;把时间戳、会话 ID、用户 ID、当前日期这些每次都变的东西推到最后。这一步<b>不需要改 API 调用方式、不引入延迟风险</b>,是收益/成本比最高的一步。</li>
+    <li><b>让更新变成 append-only</b>Agent 的历史应该只往后追加,不要回头重写。任何「重新生成一遍系统提示」「把摘要插回开头」的操作都会摧毁前缀。如果框架帮你自动做了这类事,先把它关掉。</li>
+    <li><b>把缓存边界划在实时数据之前</b>工具返回的实时数据(股价、天气、库存)不要落进缓存段。缓存边界应该停在任何实时工具输出<b>之前</b>,否则后续请求会基于陈旧数据推理——这是正确性问题,不只是成本问题。</li>
+    <li><b>稳定工具定义与顺序</b>工具定义被包含在 prompt 里,工具集一变、甚至只是顺序随机化,前缀就作废。把工具列表排序固定下来;动态工具加载要放在缓存边界之后,或者索性用 tool-search 这类模式,避免每轮工具集抖动。</li>
+    <li><b>控制压缩(compaction)频率</b>会话压缩会重写历史开头,等于主动作废整个缓存。压缩阈值设得越激进,缓存被砸得越频繁。把压缩当成一次性的昂贵操作来安排,而不是每 N 轮自动触发。</li>
+  </ol>
+
+  <ol class="steps en">
+    <li><b>Measure before you change anything</b>Put the ratio of cache-read tokens to total input tokens on your observability dashboard, per session. Without a baseline every subsequent change is a guess. One industry analysis puts the typical real-world agent hit rate at <b>around 7%</b>, while teams generally assume they're near 90%.</li>
+    <li><b>Restructure the prefix: static first, dynamic last</b>Push everything that never changes — system prompt, tool definitions, few-shot examples, policy text — to the very front. Push everything that changes per request — timestamps, session IDs, user IDs, today's date — to the very end. This step <b>requires no API changes and carries no latency risk</b>, which makes it the best return on effort available.</li>
+    <li><b>Make updates append-only</b>Agent history should only grow at the tail; never rewrite what came before. Anything that regenerates the system prompt or splices a summary back into the opening destroys the prefix. If your framework does this automatically, turn it off first.</li>
+    <li><b>Put the cache boundary before any live data</b>Live tool output — stock prices, weather, inventory — must not land inside a cached segment. The boundary belongs <b>before</b> live results, otherwise later requests reason over stale data. That's a correctness problem, not just a cost one.</li>
+    <li><b>Stabilise tool definitions and their order</b>Tool definitions travel inside the prompt. Change the tool set — or merely randomise its order — and the prefix is void. Fix a deterministic ordering for your tool list. Dynamic tool loading belongs after the cache boundary, or should be replaced with a tool-search pattern so the tool set stops jittering every turn.</li>
+    <li><b>Control how often you compact</b>Compaction rewrites the head of the conversation, which deliberately voids the entire cache. The more aggressive your compaction threshold, the more often the cache gets smashed. Treat compaction as an expensive one-off you schedule, not something that fires automatically every N turns.</li>
+  </ol>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="推荐的请求排布顺序与四个缓存断点位置">
+      <text x="12" y="22" font-size="14" font-weight="800" fill="#2b2378" data-anim>推荐排布:按「变化频率」从低到高排序</text>
+      <g data-anim>
+        <rect x="12" y="40" width="736" height="46" rx="8" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="26" y="60" font-size="13" font-weight="800" fill="#2b2378">① 系统提示 / 角色定义 / 政策文本</text>
+        <text x="26" y="78" font-size="11.5" fill="#69698c">变化频率:几乎从不 · 断点 1 · 建议 1 小时 TTL</text>
+        <rect x="700" y="52" width="34" height="22" rx="5" fill="#4a3fb5"/>
+        <text x="717" y="67" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP1</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="92" width="736" height="46" rx="8" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="26" y="112" font-size="13" font-weight="800" fill="#2b2378">② 工具定义(顺序固定)/ 少样本示例</text>
+        <text x="26" y="130" font-size="11.5" fill="#69698c">变化频率:发版时 · 断点 2</text>
+        <rect x="700" y="104" width="34" height="22" rx="5" fill="#4a3fb5"/>
+        <text x="717" y="119" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP2</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="144" width="736" height="46" rx="8" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="26" y="164" font-size="13" font-weight="800" fill="#3a3a5e">③ 检索到的文档 / 长期记忆(本会话内不变的部分)</text>
+        <text x="26" y="182" font-size="11.5" fill="#69698c">变化频率:每会话 · 断点 3</text>
+        <rect x="700" y="156" width="34" height="22" rx="5" fill="#6d5fe0"/>
+        <text x="717" y="171" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP3</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="196" width="736" height="46" rx="8" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="26" y="216" font-size="13" font-weight="800" fill="#3a3a5e">④ 对话历史(只追加,不回改)</text>
+        <text x="26" y="234" font-size="11.5" fill="#69698c">变化频率:每轮追加 · 断点 4 滚动前移</text>
+        <rect x="700" y="208" width="34" height="22" rx="5" fill="#6d5fe0"/>
+        <text x="717" y="223" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP4</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="248" width="736" height="46" rx="8" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="26" y="268" font-size="13" font-weight="800" fill="#a8560c">⑤ 时间戳 / 会话 ID / 用户上下文 / 实时工具结果</text>
+        <text x="26" y="286" font-size="11.5" fill="#a8560c">变化频率:每次请求 · 绝不放进缓存段</text>
+      </g>
+      <path d="M6 40 L6 294" stroke="#c3c3e2" stroke-width="2" fill="none" data-draw/>
+      <text x="12" y="312" font-size="11.5" fill="#69698c" data-anim>越靠上越稳定 · 缓存收益越大;越靠下越易变 · 重算代价越小</text>
+    </svg>
+    <p class="fig-cap">图 2 · 一个可以照抄的请求排布。核心规则只有一条:按「变化频率」从低到高排,让最稳定的内容占据最长的前缀。Anthropic 每请求最多 4 个断点,把它们放在变化频率的边界上。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Recommended request layout and four cache breakpoint positions">
+      <text x="12" y="22" font-size="14" font-weight="800" fill="#2b2378" data-anim>Recommended layout: order by how often each part changes</text>
+      <g data-anim>
+        <rect x="12" y="40" width="736" height="46" rx="8" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="26" y="60" font-size="13" font-weight="800" fill="#2b2378">① System prompt / role definition / policy text</text>
+        <text x="26" y="78" font-size="11.5" fill="#69698c">Changes: almost never · breakpoint 1 · consider 1-hour TTL</text>
+        <rect x="700" y="52" width="34" height="22" rx="5" fill="#4a3fb5"/>
+        <text x="717" y="67" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP1</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="92" width="736" height="46" rx="8" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="26" y="112" font-size="13" font-weight="800" fill="#2b2378">② Tool definitions (fixed order) / few-shot examples</text>
+        <text x="26" y="130" font-size="11.5" fill="#69698c">Changes: on release · breakpoint 2</text>
+        <rect x="700" y="104" width="34" height="22" rx="5" fill="#4a3fb5"/>
+        <text x="717" y="119" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP2</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="144" width="736" height="46" rx="8" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="26" y="164" font-size="13" font-weight="800" fill="#3a3a5e">③ Retrieved documents / long-term memory (stable within a session)</text>
+        <text x="26" y="182" font-size="11.5" fill="#69698c">Changes: per session · breakpoint 3</text>
+        <rect x="700" y="156" width="34" height="22" rx="5" fill="#6d5fe0"/>
+        <text x="717" y="171" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP3</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="196" width="736" height="46" rx="8" fill="#eeeef8" stroke="#dcdcee"/>
+        <text x="26" y="216" font-size="13" font-weight="800" fill="#3a3a5e">④ Conversation history (append-only, never rewritten)</text>
+        <text x="26" y="234" font-size="11.5" fill="#69698c">Changes: appended each turn · breakpoint 4 rolls forward</text>
+        <rect x="700" y="208" width="34" height="22" rx="5" fill="#6d5fe0"/>
+        <text x="717" y="223" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">BP4</text>
+      </g>
+      <g data-anim>
+        <rect x="12" y="248" width="736" height="46" rx="8" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="26" y="268" font-size="13" font-weight="800" fill="#a8560c">⑤ Timestamps / session ID / user context / live tool results</text>
+        <text x="26" y="286" font-size="11.5" fill="#a8560c">Changes: every request · never inside a cached segment</text>
+      </g>
+      <path d="M6 40 L6 294" stroke="#c3c3e2" stroke-width="2" fill="none" data-draw/>
+      <text x="12" y="312" font-size="11.5" fill="#69698c" data-anim>Higher = more stable = bigger caching win. Lower = more volatile = cheaper to recompute.</text>
+    </svg>
+    <p class="fig-cap">Figure 2 · A layout you can copy. One rule drives it: sort by change frequency, lowest first, so the most stable content occupies the longest possible prefix. Anthropic allows four breakpoints per request — place them on the change-frequency boundaries.</p>
+  </div>
+
+  <h3 class="zh">代码长什么样</h3>
+  <h3 class="en">What this looks like in code</h3>
+
+  <pre class="zh"><code># ❌ 反模式:动态内容混在静态内容中间
+system = f"""你是一个代码审查助手。
+当前时间:{datetime.now()}          # ← 每次都变,毁掉后面全部
+会话:{session_id}                   # ← 同上
+{3000_tokens_of_review_guidelines}   # ← 静态,但已经缓存不到了
+"""
+
+# ✅ 正确:静态在前,动态压到最后
+system = [
+    {
+        "type": "text",
+        "text": REVIEW_GUIDELINES,        # 3000 token,永不变
+        "cache_control": {"type": "ephemeral", "ttl": "1h"},
+    },
+    {
+        "type": "text",
+        "text": TOOL_USAGE_NOTES,          # 变化频率:发版时
+        "cache_control": {"type": "ephemeral"},   # 默认 5 分钟
+    },
+    {
+        "type": "text",
+        "text": f"当前时间:{now}\n会话:{session_id}",  # 动态,断点之后
+    },
+]
+# 注意:1 小时 TTL 的段必须排在 5 分钟 TTL 的段之前</code></pre>
+
+  <pre class="en"><code># ❌ Anti-pattern: dynamic content buried among static content
+system = f"""You are a code review assistant.
+Current time: {datetime.now()}       # ← changes every call, voids everything below
+Session: {session_id}                # ← same problem
+{3000_tokens_of_review_guidelines}   # ← static, but now uncacheable
+"""
+
+# ✅ Correct: static first, dynamic pushed to the tail
+system = [
+    {
+        "type": "text",
+        "text": REVIEW_GUIDELINES,        # 3,000 tokens, never changes
+        "cache_control": {"type": "ephemeral", "ttl": "1h"},
+    },
+    {
+        "type": "text",
+        "text": TOOL_USAGE_NOTES,          # changes only on release
+        "cache_control": {"type": "ephemeral"},   # 5-minute default
+    },
+    {
+        "type": "text",
+        "text": f"Current time: {now}\nSession: {session_id}",  # dynamic, after the breakpoint
+    },
+]
+# Note: 1-hour TTL segments must come before 5-minute TTL segments</code></pre>
+  <p class="srcnote zh">写法依据 Anthropic 官方 prompt caching 文档 [1];具体字段名与可选值请以当前文档为准。</p>
+  <p class="srcnote en">Structure follows Anthropic's prompt caching documentation [1]; verify field names and accepted values against the current docs.</p>
+</section>
+
+<section id="numbers">
+  <h2 class="zh"><span class="num">05</span>真实数字与边界</h2>
+  <h2 class="en"><span class="num">05</span>Real numbers, real limits</h2>
+  <p class="dek zh">宣传值、实测值、和你大概率会拿到的值。</p>
+  <p class="dek en">The advertised number, the measured number, and the one you'll probably get.</p>
+
+  <p class="zh">先说结论:<b>各家宣传的「最高 90%」是理论上限,不是你的预期值。</b>一份 2026 年 1 月的研究在 OpenAI、Anthropic 与 Google 上测量了 500+ 个真实 agent 会话,得出的实际节省区间是 <b>41–80%</b>。这个差距不是厂商在夸大——90% 指的是「缓存读 vs 全价输入」的单价折扣,而 41–80% 是「一整个会话的实际账单差异」,中间隔着写入成本、未命中的部分和 output token。<span class="srcnote">(来源 [2])</span></p>
+  <p class="en">The headline first: <b>the "up to 90%" every lab markets is a theoretical ceiling, not your expected value.</b> A January 2026 study measured caching across 500+ real agent sessions on OpenAI, Anthropic and Google and found actual savings of <b>41–80%</b>. That gap isn't vendors exaggerating — 90% describes the unit-price discount on a cache read versus full-price input, while 41–80% describes the difference in a whole session's bill, with write costs, unhit segments and output tokens sitting in between.<span class="srcnote"> (Source [2])</span></p>
+
+  <div class="stats zh">
+    <div class="stat"><div class="n">7% → 74%</div><div class="l">安全情报 Agent:仅移动一个动态标识符</div></div>
+    <div class="stat"><div class="n">−59%</div><div class="l">同一改动带来的月度推理账单下降</div></div>
+    <div class="stat"><div class="n">45–80%</div><div class="l">缓存对 Agent API 成本的削减幅度</div></div>
+    <div class="stat"><div class="n">2–3 次</div><div class="l">同一前缀至少被读这么多次才回本</div></div>
+  </div>
+  <div class="stats en">
+    <div class="stat"><div class="n">7% → 74%</div><div class="l">Security-intelligence agent: one identifier moved</div></div>
+    <div class="stat"><div class="n">−59%</div><div class="l">Monthly inference bill drop from that same change</div></div>
+    <div class="stat"><div class="n">45–80%</div><div class="l">Range of API cost reduction attributed to caching</div></div>
+    <div class="stat"><div class="n">2–3×</div><div class="l">Reads of the same prefix needed to break even</div></div>
+  </div>
+
+  <p class="zh">延迟收益比成本收益小但真实:多份实践报告给出的<b>首 token 时间(TTFT)缩短 13–31%</b>。对交互式产品,这个数量级足以被用户感知到。<span class="srcnote">(来源 [2][6])</span></p>
+  <p class="en">The latency win is smaller than the cost win but real: practice reports converge on a <b>13–31% reduction in time-to-first-token</b>. For interactive products that magnitude is perceptible to users.<span class="srcnote"> (Sources [2][6])</span></p>
+
+  <p class="zh">2026 年被反复提到的「成本优化三件套」是:<b>为静态结构做前缀缓存</b>、<b>为增长中的上下文做对话压缩</b>、<b>把语义缓存或计划缓存作为上层优化</b>。这三层解决的是不同的问题,不能互相替代——前缀缓存省的是重复计算,压缩省的是上下文体积,语义缓存省的是「同样的问题被问了第二遍」。<span class="srcnote">(来源 [5])</span></p>
+  <p class="en">The stack most often described for 2026 cost optimisation has three layers: <b>prefix caching for static structure</b>, <b>conversation compression for a growing context window</b>, and <b>semantic or plan caching as an optimisation layer on top</b>. They solve different problems and don't substitute for each other — prefix caching saves repeated computation, compression saves context volume, semantic caching saves you from answering the same question twice.<span class="srcnote"> (Source [5])</span></p>
+
+  <div class="callout warn">
+    <span class="ch zh">缓存不是无条件划算</span>
+    <span class="ch en">Caching is not unconditionally cheaper</span>
+    <p class="zh">写缓存比普通输入 token 贵 25%(Anthropic 5 分钟档)。<b>如果一个前缀只被用一次,开缓存是净亏损。</b>回本点在同一前缀被读 2–3 次。一次性的批量分类、单轮的分类接口、每次 prompt 都不同的场景,不要开。</p>
+    <p class="en">A cache write costs 25% more than an ordinary input token (Anthropic's 5-minute tier). <b>If a prefix is used only once, caching is a net loss.</b> Break-even is 2–3 reads of the same prefix. One-shot bulk classification, single-turn classifier endpoints, and workloads where every prompt differs should leave it off.</p>
+  </div>
+
+  <p class="zh">学术侧也在跟进:arXiv 上有一篇《Don't Break the Cache: An Evaluation of Prompt Caching for Long-Horizon Agentic Tasks》专门评测长时程 agent 任务下的缓存行为,标题本身就点明了这个领域的核心矛盾。<span class="srcnote">(来源 [7])</span></p>
+  <p class="en">Academia is catching up too: an arXiv paper titled <em>Don't Break the Cache: An Evaluation of Prompt Caching for Long-Horizon Agentic Tasks</em> evaluates cache behaviour specifically under long-horizon agent workloads — the title alone names the central tension in this area.<span class="srcnote"> (Source [7])</span></p>
+</section>
+
+<section id="pitfalls">
+  <h2 class="zh"><span class="num">06</span>常见坑</h2>
+  <h2 class="en"><span class="num">06</span>Common traps</h2>
+  <p class="dek zh">这些都是有据可查、反复出现的失败模式,不是假想的。</p>
+  <p class="dek en">Documented, recurring failure modes — not hypotheticals.</p>
+
+  <h3 class="zh">坑 1:框架偷偷往系统提示里注时间戳</h3>
+  <h3 class="en">Trap 1: your framework quietly injects a timestamp</h3>
+  <p class="zh">很多 agent 框架会在运行时把时间戳、用户 ID、会话配置直接注入系统提示。<b>系统提示里差一个字符,整个前缀缓存就作废</b>,每一步都被迫全量重算。这是最隐蔽的一类,因为你的业务代码看起来完全正确。定位方法:抓两次相邻请求的完整 payload,做逐字节 diff。</p>
+  <p class="en">Many agent frameworks inject timestamps, user IDs, or session configuration straight into the system prompt at runtime. <b>A single character of difference in the system prompt invalidates the prefix cache entirely</b>, forcing a full recompute at every step. This is the sneakiest failure because your own code looks perfectly correct. How to find it: capture the full payload of two consecutive requests and diff them byte for byte.</p>
+
+  <h3 class="zh">坑 2:压缩之后时间戳变了</h3>
+  <h3 class="en">Trap 2: the timestamp changes after compaction</h3>
+  <p class="zh">有一个公开记录的 bug 类型是:自动注入的上下文每 N 轮重建一次系统提示,在任何做前缀缓存的后端上都会导致 KV 缓存整体失效。这类问题的共同特征是「周期性的账单尖峰」——每 N 轮就有一轮特别贵。<span class="srcnote">(来源 [8])</span></p>
+  <p class="en">One publicly documented bug class: auto-injected context rebuilds the cached system prompt every N turns, invalidating the KV cache on every prefix-caching backend. The signature of this family of problems is a <b>periodic billing spike</b> — one turn in every N costs far more than its neighbours.<span class="srcnote"> (Source [8])</span></p>
+
+  <h3 class="zh">坑 3:把实时工具结果缓存进去了</h3>
+  <h3 class="en">Trap 3: caching live tool results</h3>
+  <p class="zh">如果一个工具抓的是股价或天气,而你把包含这些结果的完整上下文一起缓存了,后续请求会基于<b>过期数据</b>推理。这条比其他几条更严重,因为它是正确性 bug 而不是成本 bug——账单看起来很漂亮,答案却是错的。规则:<b>缓存边界必须停在任何实时工具输出之前,而不是之后。</b></p>
+  <p class="en">If a tool fetches stock prices or weather and you cache the full context including those results, later requests reason over <b>stale data</b>. This one is more serious than the others because it's a correctness bug rather than a cost bug — the bill looks great and the answers are wrong. The rule: <b>the cache boundary belongs before any live tool output, never after.</b></p>
+
+  <h3 class="zh">坑 4:工具集在轮次之间抖动</h3>
+  <h3 class="en">Trap 4: the tool set jitters between turns</h3>
+  <p class="zh">动态函数调用会在工具定义变化时打破缓存。工具定义包含在 prompt 里,<b>可用工具集的任何变化都会作废前缀</b>。常见诱因包括:工具顺序被随机化、MCP 频繁重连导致工具列表重建、按上下文动态增删工具。修法是把工具列表排序固定、把动态工具装载移到缓存边界之后。</p>
+  <p class="en">Dynamic function calling breaks the cache whenever tool definitions change. Tool definitions live inside the prompt, so <b>any change to the available tool set invalidates the prefix</b>. Common causes: randomised tool ordering, frequent MCP reconnection rebuilding the tool list, and context-dependent addition or removal of tools. The fix is a deterministic tool ordering plus moving dynamic tool loading past the cache boundary.</p>
+
+  <h3 class="zh">坑 5:网关或代理层悄悄关掉了缓存</h3>
+  <h3 class="en">Trap 5: a gateway or proxy silently disables caching</h3>
+  <p class="zh">这一条在 2026-08-20 有了一个具体的公开例证:Claude Code v2.1.237 修复了「使用 LLM gateway 或自定义 base URL 的会话中 prompt caching 失效」的问题。中间层是缓存最容易悄无声息失效的地方——它可能重写 header、规范化 payload、或者干脆不透传 <code>cache_control</code>。如果你在自建网关后面跑 Agent,<b>把缓存命中率作为网关的一项回归测试</b>。<span class="srcnote">(来源 [9])</span></p>
+  <p class="en">This one got a concrete public example on 2026-08-20: Claude Code v2.1.237 shipped a fix for prompt caching being broken in sessions that go through an LLM gateway or a custom base URL. Middle layers are where caching most often dies silently — they may rewrite headers, normalise payloads, or simply fail to pass <code>cache_control</code> through. If you run agents behind your own gateway, <b>make cache hit rate a regression test on the gateway itself</b>.<span class="srcnote"> (Source [9])</span></p>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent 循环中的缓存生命周期与三种失效">
+      <text x="12" y="20" font-size="14" font-weight="800" fill="#2b2378" data-anim>一个 Agent 会话里的缓存生命周期</text>
+      <line x1="40" y1="250" x2="740" y2="250" stroke="#c3c3e2" stroke-width="2"/>
+      <text x="40" y="272" font-size="11.5" fill="#69698c" data-anim>轮次 1</text>
+      <text x="380" y="272" font-size="11.5" fill="#69698c" text-anchor="middle" data-anim>轮次 8 · 压缩触发</text>
+      <text x="740" y="272" font-size="11.5" fill="#69698c" text-anchor="end" data-anim>轮次 16</text>
+
+      <path d="M40 240 L60 240 L60 200 L200 200 L200 150 L340 150 L340 110 L370 110" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+      <path d="M370 110 L378 110 L378 238 L390 238" stroke="#a8560c" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+      <path d="M390 238 L410 238 L410 196 L540 196 L540 152 L680 152 L680 116 L740 116" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+
+      <g data-anim>
+        <rect x="66" y="60" width="188" height="40" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="160" y="78" font-size="11.5" fill="#2b2378" text-anchor="middle" font-weight="700">前缀稳定 · 缓存持续增长</text>
+        <text x="160" y="93" font-size="11" fill="#69698c" text-anchor="middle">每轮读价 0.1×</text>
+      </g>
+      <g data-anim>
+        <rect x="286" y="34" width="188" height="40" rx="7" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="380" y="52" font-size="11.5" fill="#a8560c" text-anchor="middle" font-weight="700">压缩重写历史开头</text>
+        <text x="380" y="67" font-size="11" fill="#a8560c" text-anchor="middle">整段缓存作废,归零重建</text>
+      </g>
+      <g data-anim>
+        <rect x="530" y="60" width="200" height="40" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="630" y="78" font-size="11.5" fill="#2b2378" text-anchor="middle" font-weight="700">重新积累 · 但起点更低</text>
+        <text x="630" y="93" font-size="11" fill="#69698c" text-anchor="middle">这次压缩的净收益要减去重建成本</text>
+      </g>
+      <text x="40" y="130" font-size="11.5" fill="#4a3fb5" font-weight="700" data-anim>缓存覆盖长度 ↑</text>
+      <text x="386" y="232" font-size="11" fill="#a8560c" font-weight="700" data-anim>↓ 归零</text>
+    </svg>
+    <p class="fig-cap">图 3 · 缓存覆盖长度随轮次增长,直到某个操作重写了历史开头。压缩、时间戳注入、工具集变化都会造成同一个形状的断崖。评估「要不要压缩」时,别只算省下的上下文,要减去缓存重建的成本。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cache lifecycle across an agent session and how it breaks">
+      <text x="12" y="20" font-size="14" font-weight="800" fill="#2b2378" data-anim>Cache lifecycle across one agent session</text>
+      <line x1="40" y1="250" x2="740" y2="250" stroke="#c3c3e2" stroke-width="2"/>
+      <text x="40" y="272" font-size="11.5" fill="#69698c" data-anim>Turn 1</text>
+      <text x="380" y="272" font-size="11.5" fill="#69698c" text-anchor="middle" data-anim>Turn 8 · compaction fires</text>
+      <text x="740" y="272" font-size="11.5" fill="#69698c" text-anchor="end" data-anim>Turn 16</text>
+
+      <path d="M40 240 L60 240 L60 200 L200 200 L200 150 L340 150 L340 110 L370 110" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+      <path d="M370 110 L378 110 L378 238 L390 238" stroke="#a8560c" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+      <path d="M390 238 L410 238 L410 196 L540 196 L540 152 L680 152 L680 116 L740 116" stroke="#4a3fb5" stroke-width="3" fill="none" data-draw/>
+
+      <g data-anim>
+        <rect x="66" y="60" width="200" height="40" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="166" y="78" font-size="11.5" fill="#2b2378" text-anchor="middle" font-weight="700">Prefix stable · cache keeps growing</text>
+        <text x="166" y="93" font-size="11" fill="#69698c" text-anchor="middle">reads bill at 0.1× each turn</text>
+      </g>
+      <g data-anim>
+        <rect x="286" y="34" width="188" height="40" rx="7" fill="#fdf0e2" stroke="#f0cfa6"/>
+        <text x="380" y="52" font-size="11.5" fill="#a8560c" text-anchor="middle" font-weight="700">Compaction rewrites the head</text>
+        <text x="380" y="67" font-size="11" fill="#a8560c" text-anchor="middle">whole cache voided, rebuilt from zero</text>
+      </g>
+      <g data-anim>
+        <rect x="530" y="60" width="200" height="40" rx="7" fill="#e9e7fb" stroke="#c3c3e2"/>
+        <text x="630" y="78" font-size="11.5" fill="#2b2378" text-anchor="middle" font-weight="700">Rebuilding · from a lower base</text>
+        <text x="630" y="93" font-size="11" fill="#69698c" text-anchor="middle">net gain must cover the rebuild cost</text>
+      </g>
+      <text x="40" y="130" font-size="11.5" fill="#4a3fb5" font-weight="700" data-anim>Cached prefix length ↑</text>
+      <text x="386" y="232" font-size="11" fill="#a8560c" font-weight="700" data-anim>↓ zero</text>
+    </svg>
+    <p class="fig-cap">Figure 3 · Cached prefix length grows turn over turn until something rewrites the head of the conversation. Compaction, timestamp injection and tool-set changes all produce the same cliff. When deciding whether to compact, subtract the cost of rebuilding the cache from the context you save.</p>
+  </div>
+</section>
+
+<section id="when">
+  <h2 class="zh"><span class="num">07</span>什么时候不该用</h2>
+  <h2 class="en"><span class="num">07</span>When not to bother</h2>
+  <p class="dek zh">诚实的边界:这不是万能优化。</p>
+  <p class="dek en">The honest boundary: this is not a universal optimisation.</p>
+
+  <ul class="zh">
+    <li><b>一次性调用。</b>只调一次的端点,写缓存的 1.25× 是纯亏。</li>
+    <li><b>前缀短于最小门槛。</b>各家都有最小可缓存长度(如 1,024 / 2,048 token 起),短 prompt 根本进不了缓存。</li>
+    <li><b>每次 prompt 都实质不同。</b>比如用户自由输入直接构成整个 prompt、没有共享的系统前缀。</li>
+    <li><b>请求间隔远大于 TTL 且量不大。</b>每半小时来一次、又不值得开 1 小时档,缓存基本每次都过期。</li>
+    <li><b>正确性要求实时数据在前。</b>如果业务上必须让最新数据参与早期推理,不要为了缓存把它挪到后面。</li>
+  </ul>
+
+  <ul class="en">
+    <li><b>One-shot calls.</b> For an endpoint you hit once, the 1.25× write premium is pure loss.</li>
+    <li><b>Prefixes below the minimum threshold.</b> Every vendor has a minimum cacheable length (e.g. from 1,024 / 2,048 tokens); short prompts never enter the cache at all.</li>
+    <li><b>Every prompt is materially different.</b> For example, free-form user input constituting the entire prompt with no shared system prefix.</li>
+    <li><b>Request gaps far exceed the TTL at low volume.</b> One request every half hour, not worth the 1-hour tier — the entry expires before nearly every read.</li>
+    <li><b>Correctness requires fresh data up front.</b> If your domain genuinely needs the newest data to participate in early reasoning, don't relocate it to the tail just to win a cache hit.</li>
+  </ul>
+
+  <div class="callout key">
+    <span class="ch zh">收尾的一句话</span>
+    <span class="ch en">The closing thought</span>
+    <p class="zh">缓存命中率工程之所以值得单独当成一件事来做,是因为它<b>不需要牺牲任何东西</b>:不降低模型能力、不减少上下文、不改变输出质量。它唯一要求的是你对「请求里每一段内容变化多快」有一个清晰的认识,然后按这个认识排序。在所有 LLM 成本优化手段里,这大概是唯一一个纯粹的免费午餐。</p>
+    <p class="en">Cache hit-rate engineering earns its own name because it <b>costs you nothing in return</b>: no reduction in model capability, no context removed, no change in output quality. All it asks is that you know how fast each part of your request changes, and then order them accordingly. Among LLM cost optimisations, it's about the only genuinely free lunch on the menu.</p>
+  </div>
+</section>
+
+<section id="glossary">
+  <h2 class="zh"><span class="num">08</span>术语表</h2>
+  <h2 class="en"><span class="num">08</span>Glossary</h2>
+
+  <div class="glossary zh">
+    <dl>
+      <dt>prefix caching(前缀缓存)</dt>
+      <dd>从请求第一个 token 开始逐 token 匹配、复用已计算状态的机制。遇到第一处不同即停止复用。</dd>
+      <dt>cache hit rate(缓存命中率)</dt>
+      <dd>命中缓存的输入 token 占总输入 token 的比例。这是本文所有优化的唯一目标指标。</dd>
+      <dt>cache_control / breakpoint(缓存断点)</dt>
+      <dd>Anthropic API 里显式标记「缓存到此为止」的参数,每请求最多 4 个。</dd>
+      <dt>TTL(time to live,存活时间)</dt>
+      <dd>缓存条目的过期时长。Anthropic 提供 5 分钟(命中刷新)与 1 小时两档。</dd>
+      <dt>cache write / cache read(缓存写 / 读)</dt>
+      <dd>两类独立计费的 token。写贵于普通输入(Anthropic 5 分钟档 1.25×),读远便宜于普通输入(0.1×)。</dd>
+      <dt>TTFT(time to first token,首 token 时间)</dt>
+      <dd>从发出请求到收到第一个输出 token 的延迟。缓存命中会显著降低它。</dd>
+      <dt>append-only(只追加)</dt>
+      <dd>一种更新纪律:新内容只加在末尾,已有内容永不回改。这是保持前缀稳定的前提。</dd>
+      <dt>compaction(压缩)</dt>
+      <dd>把长对话历史摘要化以节省上下文的操作。副作用是重写历史开头,从而作废缓存。</dd>
+      <dt>semantic cache(语义缓存)</dt>
+      <dd>更上层的缓存:对语义相近的查询直接复用之前的答案。与前缀缓存解决的是不同问题。</dd>
+    </dl>
+  </div>
+
+  <div class="glossary en">
+    <dl>
+      <dt>prefix caching</dt>
+      <dd>Reusing precomputed state by matching token by token from position zero, stopping at the first difference.</dd>
+      <dt>cache hit rate</dt>
+      <dd>The share of input tokens served from cache. It is the single target metric for everything in this guide.</dd>
+      <dt>cache_control / breakpoint</dt>
+      <dd>The Anthropic API parameter that explicitly marks "cache up to here," with a maximum of four per request.</dd>
+      <dt>TTL (time to live)</dt>
+      <dd>How long a cache entry survives. Anthropic offers 5 minutes (refreshed on hit) and 1 hour.</dd>
+      <dt>cache write / cache read</dt>
+      <dd>Two separately billed token classes. Writes cost more than ordinary input (1.25× on Anthropic's 5-minute tier); reads cost far less (0.1×).</dd>
+      <dt>TTFT (time to first token)</dt>
+      <dd>Latency from sending the request to receiving the first output token. Cache hits reduce it noticeably.</dd>
+      <dt>append-only</dt>
+      <dd>An update discipline: new content is added only at the tail and existing content is never rewritten. It's the precondition for a stable prefix.</dd>
+      <dt>compaction</dt>
+      <dd>Summarising a long conversation history to save context. Its side effect is rewriting the head of the conversation, which voids the cache.</dd>
+      <dt>semantic cache</dt>
+      <dd>A higher layer of caching that reuses a previous answer for a semantically similar query. It solves a different problem than prefix caching.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="sources">
+  <h2 class="zh"><span class="num">09</span>来源清单</h2>
+  <h2 class="en"><span class="num">09</span>Sources</h2>
+  <p class="dek zh">标记说明:<b>官方</b>=厂商文档或发布说明;<b>二手</b>=第三方实践文章、聚合站或媒体报道,数字可能未经独立复核。</p>
+  <p class="dek en">Tags: <b>Official</b> = vendor documentation or release notes; <b>Secondary</b> = third-party practice write-ups, aggregators or press, whose figures are not independently verified here.</p>
+
+  <div class="sources zh">
+    <ol>
+      <li><span class="tag">官方</span><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Prompt caching — Claude Platform Docs</a> · 断点数量、TTL 选项、定价倍率、最小长度门槛的一手依据。</li>
+      <li><span class="tag c">二手</span><a href="https://www.digitalocean.com/community/conceptual-articles/prompt-caching-in-practice-hit-rate">Prompt Caching in Practice: From 7% to 74% Hit Rate — DigitalOcean</a> · 7%→74%、−59% 账单、41–80% 实测区间、13–31% TTFT 的出处。</li>
+      <li><span class="tag c">二手</span><a href="https://galileo.ai/blog/the-2026-caching-playbook-for-agents-bigger-prompts-smaller-bills">The 2026 Caching Playbook for Agents — Galileo</a> · TTL 选择判据(3 次读 vs 2 次读回本)与三层缓存栈。</li>
+      <li><span class="tag c">二手</span><a href="https://technspire.com/en/blog/prompt-caching-2026-real-cost-wins">Prompt Caching in 2026: Anthropic, OpenAI, Azure Compared</a> · 跨厂商折扣对比。</li>
+      <li><span class="tag c">二手</span><a href="https://agentmarketcap.ai/blog/2026/04/11/prompt-cache-hit-rate-engineering-2026">Prompt Cache Hit Rate Engineering — AgentMarketCap</a> · 45–80% 成本削减、前缀重排的零风险论述。</li>
+      <li><span class="tag c">二手</span><a href="https://www.digitalapplied.com/blog/prompt-caching-2026-cut-llm-costs-engineering-guide">Prompt Caching in 2026: Cut LLM Costs, Keep Quality</a> · 各家折扣与实施要点。</li>
+      <li><span class="tag c">二手</span><a href="https://arxiv.org/pdf/2601.06007">Don't Break the Cache: An Evaluation of Prompt Caching for Long-Horizon Agentic Tasks — arXiv</a> · 长时程 agent 任务下的缓存评测。</li>
+      <li><span class="tag c">二手</span><a href="https://www.tensormesh.ai/blog-posts/agentic-ai-inference-cost-kv-caching-production">How LLM Agent Loops Break Caching and Drain Your Budget — Tensormesh</a> · Agent 循环中的失效模式与周期性账单尖峰。</li>
+      <li><span class="tag">官方</span><a href="https://code.claude.com/docs/en/changelog">Claude Code changelog</a> · v2.1.237(2026-08-20)修复 LLM gateway / 自定义 base URL 下的 prompt caching 失效。</li>
+      <li><span class="tag c">二手</span><a href="https://codex.danielvaughan.com/2026/04/21/codex-cli-prompt-caching-maximise-cache-hits-cost-reduction/">Prompt Caching in Codex CLI: How the Agent Loop Stays Linear — Codex Knowledge Base</a> · 另一家 CLI 侧的线性 agent 循环与命中率实践。</li>
+    </ol>
+  </div>
+
+  <div class="sources en">
+    <ol>
+      <li><span class="tag">Official</span><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Prompt caching — Claude Platform Docs</a> · Primary source for breakpoint counts, TTL options, price multipliers and minimum-length thresholds.</li>
+      <li><span class="tag c">Secondary</span><a href="https://www.digitalocean.com/community/conceptual-articles/prompt-caching-in-practice-hit-rate">Prompt Caching in Practice: From 7% to 74% Hit Rate — DigitalOcean</a> · Source of the 7%→74%, −59% bill, 41–80% measured range and 13–31% TTFT figures.</li>
+      <li><span class="tag c">Secondary</span><a href="https://galileo.ai/blog/the-2026-caching-playbook-for-agents-bigger-prompts-smaller-bills">The 2026 Caching Playbook for Agents — Galileo</a> · TTL selection rule (3 reads vs 2 reads to break even) and the three-layer caching stack.</li>
+      <li><span class="tag c">Secondary</span><a href="https://technspire.com/en/blog/prompt-caching-2026-real-cost-wins">Prompt Caching in 2026: Anthropic, OpenAI, Azure Compared</a> · Cross-vendor discount comparison.</li>
+      <li><span class="tag c">Secondary</span><a href="https://agentmarketcap.ai/blog/2026/04/11/prompt-cache-hit-rate-engineering-2026">Prompt Cache Hit Rate Engineering — AgentMarketCap</a> · The 45–80% cost reduction figure and the zero-risk argument for prefix restructuring.</li>
+      <li><span class="tag c">Secondary</span><a href="https://www.digitalapplied.com/blog/prompt-caching-2026-cut-llm-costs-engineering-guide">Prompt Caching in 2026: Cut LLM Costs, Keep Quality</a> · Vendor discounts and implementation notes.</li>
+      <li><span class="tag c">Secondary</span><a href="https://arxiv.org/pdf/2601.06007">Don't Break the Cache: An Evaluation of Prompt Caching for Long-Horizon Agentic Tasks — arXiv</a> · Cache evaluation under long-horizon agent workloads.</li>
+      <li><span class="tag c">Secondary</span><a href="https://www.tensormesh.ai/blog-posts/agentic-ai-inference-cost-kv-caching-production">How LLM Agent Loops Break Caching and Drain Your Budget — Tensormesh</a> · Failure modes inside agent loops and the periodic billing spike signature.</li>
+      <li><span class="tag">Official</span><a href="https://code.claude.com/docs/en/changelog">Claude Code changelog</a> · v2.1.237 (2026-08-20) fixed prompt caching for sessions using an LLM gateway or custom base URL.</li>
+      <li><span class="tag c">Secondary</span><a href="https://codex.danielvaughan.com/2026/04/21/codex-cli-prompt-caching-maximise-cache-hits-cost-reduction/">Prompt Caching in Codex CLI: How the Agent Loop Stays Linear — Codex Knowledge Base</a> · A different CLI's take on keeping the agent loop linear for cache hits.</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <p class="zh">本文由每日 AI 情报定时任务于 2026-08-21 生成。所有数字均标注来源;二手来源的实测数据未经本文独立复核,落地前建议在自己的负载上重新测量。定价与限制随模型代际变化,以厂商当前官方文档为准。</p>
+  <p class="en">Generated by a daily AI intelligence task on 2026-08-21. Every figure is sourced; measurements from secondary sources have not been independently reproduced here — re-measure on your own workload before relying on them. Pricing and limits change between model generations; the vendor's current documentation is authoritative.</p>
+  <p class="zh">深度学习文档 · Prompt 缓存命中率工程</p>
+  <p class="en">Deep dive · Prompt cache hit-rate engineering</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var body=document.body, html=document.documentElement;
+  var bZh=document.getElementById('bZh'), bEn=document.getElementById('bEn');
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+
+  function measure(){
+    figs.forEach(function(f){
+      [].slice.call(f.querySelectorAll('[data-draw]')).forEach(function(p){
+        try{ var L=p.getTotalLength(); p.style.setProperty('--len', Math.ceil(L)); }catch(e){}
+      });
+    });
+  }
+
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.14});
+    figs.forEach(function(f){ io.observe(f); });
+  } else {
+    figs.forEach(function(f){ f.classList.add('in'); });
+  }
+
+  function refreshFigs(){
+    figs.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      if(f.offsetParent===null) return;
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight && r.bottom > 0){ f.classList.add('in'); if(io) io.unobserve(f); }
+      else if(io){ io.observe(f); }
+    });
+  }
+
+  function setLang(l){
+    body.setAttribute('data-lang', l);
+    html.setAttribute('lang', l==='zh' ? 'zh-CN' : 'en');
+    bZh.setAttribute('aria-pressed', l==='zh' ? 'true':'false');
+    bEn.setAttribute('aria-pressed', l==='en' ? 'true':'false');
+    try{ localStorage.setItem('aidaily-lang', l); }catch(e){}
+    requestAnimationFrame(function(){ measure(); refreshFigs(); });
+  }
+
+  var saved=null;
+  try{ saved=localStorage.getItem('aidaily-lang'); }catch(e){}
+  if(saved!=='zh' && saved!=='en'){
+    var nav=(navigator.language||'en').toLowerCase();
+    saved = nav.indexOf('zh')===0 ? 'zh' : 'en';
+  }
+  setLang(saved);
+
+  bZh.addEventListener('click', function(){ setLang('zh'); });
+  bEn.addEventListener('click', function(){ setLang('en'); });
+
+  var prog=document.getElementById('prog');
+  var links=[].slice.call(document.querySelectorAll('#toc a'));
+  var secs=links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=(h>0 ? (window.scrollY/h*100) : 0)+'%';
+    var idx=0;
+    for(var i=0;i<secs.length;i++){
+      if(secs[i] && secs[i].getBoundingClientRect().top <= 130) idx=i;
+    }
+    links.forEach(function(a,i){ a.classList.toggle('act', i===idx); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', function(){ measure(); refreshFigs(); }, {passive:true});
+  onScroll();
+
+  var toc=document.getElementById('toc'), tocBtn=document.getElementById('tocBtn');
+  tocBtn.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.tagName==='A') toc.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>
