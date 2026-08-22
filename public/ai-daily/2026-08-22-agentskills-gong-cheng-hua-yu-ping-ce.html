@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Skills 工程化与评测 | Engineering and Evaluating Agent Skills</title>
+<style>
+:root{
+  --bg:#faf7f2; --surface:#ffffff; --surface-2:#f4efe7;
+  --ink:#16201f; --ink-2:#3a4a48; --muted:#78857f; --line:#e2dbd0;
+  --primary:#0f6b63; --primary-d:#0a4b45; --primary-soft:#dff0ed;
+  --amber:#b45309; --amber-soft:#fdf0dd; --amber-line:#f0d3a8;
+  --rose:#a13a34; --rose-soft:#fbe9e7;
+  --code-bg:#12201f; --code-ink:#d8ece8;
+  --r:14px; --shadow:0 1px 2px rgba(20,32,31,.05),0 8px 26px rgba(20,32,31,.07);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.82;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+ -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-size:16.5px}
+
+/* progress */
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--primary),var(--amber));z-index:60;transition:width .1s linear}
+
+/* lang toggle */
+#lang{position:fixed;top:14px;right:16px;z-index:70;display:flex;background:var(--surface);
+ border:1px solid var(--line);border-radius:99px;padding:3px;box-shadow:var(--shadow);font-size:13px;font-weight:750}
+#lang button{border:0;background:transparent;color:var(--muted);padding:5px 13px;border-radius:99px;cursor:pointer;font:inherit}
+#lang button[aria-pressed="true"]{background:var(--primary);color:#fff}
+
+/* hero */
+header{position:relative;overflow:hidden;background:var(--surface-2);border-bottom:1px solid var(--line)}
+header:before{content:"";position:absolute;inset:0;opacity:.5;
+ background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+ background-size:34px 34px;mask-image:radial-gradient(ellipse 80% 70% at 70% 10%,#000,transparent 75%)}
+.hin{position:relative;max-width:820px;margin:0 auto;padding:74px 22px 46px}
+.eyebrow{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:var(--primary);margin:0 0 14px}
+h1{font-size:clamp(28px,5.6vw,45px);line-height:1.22;margin:0 0 16px;font-weight:850;letter-spacing:-.022em}
+h1 mark{background:linear-gradient(transparent 62%,#f7d9a8 62%);color:inherit;padding:0 2px}
+.lede{font-size:18px;color:var(--ink-2);margin:0 0 22px;max-width:64ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px;font-size:12.5px}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:5px 13px;color:var(--ink-2);font-weight:650}
+.pill.p{background:var(--primary-soft);border-color:#a9d4ce;color:var(--primary-d)}
+
+/* layout */
+.shell{max-width:1180px;margin:0 auto;padding:0 22px;display:grid;grid-template-columns:232px minmax(0,1fr);gap:40px;align-items:start}
+nav.toc{position:sticky;top:22px;margin-top:36px;padding:16px 14px;border-radius:var(--r);
+ background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid var(--line);box-shadow:var(--shadow);font-size:13.5px}
+nav.toc b{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+nav.toc a{display:block;padding:5px 9px;border-radius:7px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;line-height:1.45}
+nav.toc a:hover{background:var(--primary-soft);color:var(--primary-d)}
+nav.toc a.on{background:var(--primary-soft);border-left-color:var(--primary);color:var(--primary-d);font-weight:750}
+#tocToggle{display:none}
+main{padding:36px 0 90px;min-width:0}
+
+section{margin-bottom:52px;scroll-margin-top:70px}
+h2{font-size:clamp(22px,3.6vw,29px);font-weight:820;letter-spacing:-.015em;margin:0 0 8px;line-height:1.3}
+h2 .num{color:var(--primary);font-variant-numeric:tabular-nums;margin-right:9px;font-weight:850}
+h3{font-size:19px;font-weight:780;margin:28px 0 8px}
+p{margin:0 0 15px}
+a{color:var(--primary-d)}
+strong{font-weight:750}
+ul,ol{margin:0 0 15px;padding-left:1.35em}
+li{margin-bottom:7px}
+.small{font-size:14px;color:var(--muted)}
+
+/* components */
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--primary);
+ border-radius:0 var(--r) var(--r) 0;padding:18px 22px;margin:20px 0;box-shadow:var(--shadow)}
+.def .t{display:block;font-weight:820;font-size:16px;margin-bottom:6px;color:var(--primary-d)}
+.callout{border-radius:var(--r);padding:16px 20px;margin:20px 0;border:1px solid;font-size:16px}
+.callout .h{display:block;font-weight:800;margin-bottom:5px}
+.callout.key{background:var(--primary-soft);border-color:#a9d4ce;color:var(--primary-d)}
+.callout.warn{background:var(--amber-soft);border-color:var(--amber-line);color:#7c3d06}
+.callout.risk{background:var(--rose-soft);border-color:#eec4c0;color:#7a2a25}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:22px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:15px 16px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:26px;font-weight:850;color:var(--primary);font-variant-numeric:tabular-nums;line-height:1.15}
+.stat span{display:block;font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+.steps{counter-reset:s;margin:20px 0;padding:0;list-style:none}
+.steps li{counter-increment:s;position:relative;padding-left:42px;margin-bottom:15px}
+.steps li:before{content:counter(s);position:absolute;left:0;top:1px;width:28px;height:28px;border-radius:9px;
+ background:var(--primary);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:15px 17px;overflow-x:auto;
+ font-size:13.5px;line-height:1.62;margin:16px 0;font-family:var(--mono)}
+pre code{font-family:inherit}
+code{font-family:var(--mono);font-size:.92em;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+pre code{background:none;padding:0}
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:15px;background:var(--surface);
+ border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface-2);font-weight:800;font-size:13.5px}
+tr:last-child td{border-bottom:0}
+.wrap-t{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 20px;margin:20px 0;box-shadow:var(--shadow)}
+.glossary dt{font-weight:800;margin-top:13px;color:var(--primary-d);font-size:15.5px}
+.glossary dd{margin:3px 0 13px;font-size:15.5px;color:var(--ink-2)}
+details.rephrase{background:var(--surface-2);border:1px dashed var(--line);border-radius:11px;padding:11px 16px;margin:16px 0;font-size:15.5px}
+details.rephrase summary{cursor:pointer;font-weight:750;color:var(--primary-d)}
+.figure{margin:26px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 16px 12px;box-shadow:var(--shadow)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.5px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6}
+.figure [data-anim]{opacity:0;transform:translateY(9px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure [data-anim="1"]{transition-delay:.05s}.figure [data-anim="2"]{transition-delay:.16s}
+.figure [data-anim="3"]{transition-delay:.27s}.figure [data-anim="4"]{transition-delay:.38s}
+.figure [data-anim="5"]{transition-delay:.49s}.figure [data-anim="6"]{transition-delay:.6s}
+@media(prefers-reduced-motion:reduce){.figure [data-anim]{opacity:1;transform:none;transition:none}}
+footer{border-top:1px solid var(--line);background:var(--surface-2);padding:34px 22px 60px}
+.fin{max-width:820px;margin:0 auto;font-size:14px;color:var(--ink-2)}
+.fin h3{margin-top:0}
+.fin ol{padding-left:1.3em}
+.fin li{margin-bottom:5px;line-height:1.6}
+.fin a{word-break:break-word}
+
+@media(max-width:940px){
+  .shell{grid-template-columns:1fr;gap:0}
+  nav.toc{position:static;margin:22px 0 0}
+  #tocToggle{display:block;width:100%;text-align:left;background:transparent;border:0;font:inherit;
+   font-weight:800;color:var(--primary-d);cursor:pointer;padding:2px 0}
+  nav.toc .links{display:none;margin-top:9px}
+  nav.toc.open .links{display:block}
+  .hin{padding:62px 20px 36px}
+  main{padding:22px 0 70px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中 EN 深度学习文档 · 2026-08-22 Deep Dive · 2026-08-22 Agent Skills: 怎么写、怎么测、怎么防 Agent Skills: Write Them, Measure Th…">
+<meta property="og:title" content="Agent Skills 工程化与评测 | Engineering and Evaluating Agent Skills">
+<meta property="og:description" content="中 EN 深度学习文档 · 2026-08-22 Deep Dive · 2026-08-22 Agent Skills: 怎么写、怎么测、怎么防 Agent Skills: Write Them, Measure Th…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-22-agentskills-gong-cheng-hua-yu-ping-ce.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-22-agentskills-gong-cheng-hua-yu-ping-ce.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent Skills 工程化与评测 | Engineering and Evaluating Agent Skills", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-22-agentskills-gong-cheng-hua-yu-ping-ce.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-22", "dateModified": "2026-08-22"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="prog"></div>
+<div id="lang">
+  <button id="bzh" aria-pressed="true">中</button>
+  <button id="ben" aria-pressed="false">EN</button>
+</div>
+
+<header><div class="hin">
+  <p class="eyebrow zh">深度学习文档 · 2026-08-22</p>
+  <p class="eyebrow en">Deep Dive · 2026-08-22</p>
+  <h1 class="zh">Agent Skills:<mark>怎么写、怎么测、怎么防</mark></h1>
+  <h1 class="en">Agent Skills: <mark>Write Them, Measure Them, Secure Them</mark></h1>
+  <p class="lede zh">一个 <code>SKILL.md</code> 文件就能给 AI Agent 装上专业能力——这件事在 2026 年从「有意思的小格式」变成了一个有 2 万星规范、4 万个公开技能、以及第一批评测与安全研究的工程学科。本文把它讲成一条链:它是什么 → 机制怎么跑 → 怎么写才有用 → 有没有用(有数据) → 有什么坑。</p>
+  <p class="lede en">A single <code>SKILL.md</code> file can hand an AI agent real expertise. Over 2026 that idea went from a neat little format to an engineering discipline — a 20k-star open spec, 40,000+ public skills, and the first serious benchmarks and security studies. This piece runs the whole chain: what it is, how the mechanism works, how to write one that earns its keep, whether skills actually help (with numbers), and where the sharp edges are.</p>
+  <div class="meta">
+    <span class="pill p zh">调研时间:2026-08-22</span>
+    <span class="pill p en">Researched: 2026-08-22</span>
+    <span class="pill zh">阅读约 18 分钟</span>
+    <span class="pill en">~18 min read</span>
+    <span class="pill zh">面向:第一次系统了解 Skills 的开发者</span>
+    <span class="pill en">For: developers new to the Skills ecosystem</span>
+  </div>
+</div></header>
+
+<div class="shell">
+<nav class="toc" id="toc">
+  <button id="tocToggle">☰ <span class="zh">目录</span><span class="en">Contents</span></button>
+  <b class="zh">目录</b><b class="en">Contents</b>
+  <div class="links">
+    <a href="#tldr"><span class="zh">0 · 30 秒速览</span><span class="en">0 · The 30-second version</span></a>
+    <a href="#why"><span class="zh">1 · 它来解决什么痛点</span><span class="en">1 · The problem it solves</span></a>
+    <a href="#how"><span class="zh">2 · 机制:渐进式披露</span><span class="en">2 · Mechanism: progressive disclosure</span></a>
+    <a href="#anatomy"><span class="zh">3 · 一个 Skill 长什么样</span><span class="en">3 · Anatomy of a skill</span></a>
+    <a href="#write"><span class="zh">4 · 怎么写才有用</span><span class="en">4 · Writing one that works</span></a>
+    <a href="#evidence"><span class="zh">5 · 到底有没有用</span><span class="en">5 · Do skills actually help?</span></a>
+    <a href="#compare"><span class="zh">6 · 和谁比:选型</span><span class="en">6 · Skills vs the alternatives</span></a>
+    <a href="#risk"><span class="zh">7 · 坑、税与安全</span><span class="en">7 · Costs, noise and security</span></a>
+    <a href="#resources"><span class="zh">8 · 学习资源</span><span class="en">8 · Where to go next</span></a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============ 0 ============ -->
+<section id="tldr">
+  <h2><span class="num">0</span><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></h2>
+
+  <p class="zh">一个 Agent Skill 就是<strong>一个文件夹</strong>,里面必须有一个 <code>SKILL.md</code>。这个文件的开头是几行元数据(名字 + 一句「什么时候该用我」的描述),下面是给 Agent 看的操作说明。文件夹里还可以塞脚本、参考文档、模板。</p>
+  <p class="en">An Agent Skill is <strong>a folder</strong> that must contain a <code>SKILL.md</code>. That file opens with a few lines of metadata (a name, plus a description saying when to use it), followed by instructions written for the agent. The folder can also bundle scripts, reference docs and templates.</p>
+
+  <p class="zh">关键的设计不是格式,而是<strong>加载方式</strong>:启动时 Agent 只读每个技能的名字和描述(每个约 30–50 token),只有当任务匹配上描述,才把完整正文读进上下文。所以你可以挂几十个技能而几乎不占地方。</p>
+  <p class="en">The interesting design choice isn't the format — it's the <strong>loading strategy</strong>. At startup the agent reads only each skill's name and description (roughly 30–50 tokens apiece). The full body loads only once a task matches that description. That's how you can keep dozens of skills on hand at near-zero context cost.</p>
+
+  <div class="stats">
+    <div class="stat"><b>20.6k</b><span class="zh">规范仓库 star 数(agentskills/agentskills)</span><span class="en">stars on the spec repo (agentskills/agentskills)</span></div>
+    <div class="stat"><b>40,285</b><span class="zh">2026-02 学术研究抓取到的公开技能数</span><span class="en">public skills analysed in a Feb 2026 study</span></div>
+    <div class="stat"><b>+16.6pp</b><span class="zh">SkillsBench 实测:人工策划的技能带来的平均通过率提升</span><span class="en">average pass-rate lift from curated skills (SkillsBench)</span></div>
+    <div class="stat"><b>36%</b><span class="zh">Snyk 抽查中含安全缺陷的技能占比</span><span class="en">of surveyed skills carry a security flaw (Snyk)</span></div>
+  </div>
+
+  <div class="callout key">
+    <span class="h zh">一句话</span><span class="h en">In one line</span>
+    <span class="zh">Skills 把「Agent 需要但不知道的流程性知识」打包成可版本控制、可跨产品复用的文件夹,按需加载。它有效,但效果高度依赖<strong>谁来写、写得多克制</strong>——模型自己生成的技能平均没有收益。</span>
+    <span class="en">Skills package the procedural knowledge an agent needs but can't know into version-controlled, cross-product folders that load on demand. They work — but the payoff depends heavily on <strong>who writes them and how restrained the writing is</strong>. Model-authored skills show no average benefit at all.</span>
+  </div>
+</section>
+
+<!-- ============ 1 ============ -->
+<section id="why">
+  <h2><span class="num">1</span><span class="zh">它来解决什么痛点</span><span class="en">The problem it solves</span></h2>
+
+  <p class="zh">先说 Skills 出现之前的世界。你手上有一个通用能力很强的 Agent:会写代码、会 debug、会写文档。但它<strong>不知道你这边的规矩</strong>——你们团队的 commit message 怎么写、你们的 lint 流水线是自定义的、每个 PR 合并前必须过一份安全清单。</p>
+  <p class="en">Start with the world before skills. You have an agent that's broadly capable — it writes code, debugs, produces docs. What it <strong>doesn't know is your local rules</strong>: how your team writes commit messages, that your lint pipeline is custom, that every PR needs a security checklist before merge.</p>
+
+  <p class="zh">过去的做法是:把这些偏好、约定、工具文档<strong>一股脑塞进系统提示</strong>。问题很直接——这段提示<em>每一次会话都会加载</em>,不管你今天用不用得上。它和你真正的工作内容抢同一个上下文窗口。</p>
+  <p class="en">The standard workaround was to <strong>stuff all of it into the system prompt</strong>. The problem is blunt: that prompt loads <em>every session</em>, whether it's relevant or not, competing with your actual work for the same context window.</p>
+
+  <div class="def">
+    <span class="t zh">上下文窗口(context window)</span>
+    <span class="t en">Context window</span>
+    <span class="zh">模型一次能「看到」的文字总量。它是有限的,而且——这点更要命——<strong>模型在上下文变长时表现会可测量地变差,远在窗口被填满之前就开始了</strong>。所以「多塞点总没坏处」是错的:每一段没用上的文字都在稀释注意力。</span>
+    <span class="en">The total amount of text a model can "see" at once. It's finite, and — more importantly — <strong>every frontier model measurably degrades as context grows, well before the window is actually full</strong>. So "more context can't hurt" is wrong: every unused paragraph dilutes attention.</span>
+  </div>
+
+  <p class="zh">Skills 的赌注就下在这里:与其造一堆专用的单一用途 Agent,不如给<strong>一个通用 Agent 配一个技能库</strong>,用的时候才取。Anthropic 的产品经理 Mahesh Murag 把这个设计原则叫做「渐进式披露(progressive disclosure)」——每个技能平时只占几十个 token 的「摘要」,细节等任务需要时再展开。</p>
+  <p class="en">That's where skills place their bet: rather than building a fleet of narrow single-purpose agents, give <strong>one general-purpose agent a skill library</strong> it draws from on demand. Anthropic PM Mahesh Murag calls the underlying principle "progressive disclosure" — each skill costs a few dozen tokens as a summary, with the detail expanding only when the task calls for it.</p>
+
+  <details class="rephrase">
+    <summary class="zh">换个说法:图书馆和背包</summary>
+    <summary class="en">Another way to put it: the library and the backpack</summary>
+    <p class="zh">系统提示像是「把整个书架背在身上」——每天都背,不管今天读不读。Skills 像是「随身带一份索引卡,书留在图书馆」——你只背卡片(名字 + 一句这本书讲什么),真要用了才去把那本书取下来。索引卡很薄,所以你可以带 50 张。</p>
+    <p class="en">A system prompt is like carrying the whole bookshelf on your back — every day, read or not. Skills are like carrying an index card per book and leaving the books on the shelf: the card holds only a title and a line about what's inside, and you fetch the actual book when you need it. Cards are thin, so you can carry fifty.</p>
+  </details>
+
+  <p class="zh">格式本身由 Anthropic 提出,2025 年 12 月 18 日作为<strong>开放标准</strong>发布,现在规范托管在 <a href="https://github.com/agentskills/agentskills">agentskills/agentskills</a>(代码 Apache-2.0,文档 CC-BY-4.0),已经被 20 多个 Agent 产品采用——同一个 SKILL.md 文件在 Claude Code、OpenAI Codex CLI、Gemini CLI、GitHub Copilot、Cursor、VS Code 上都能直接用,不用改。</p>
+  <p class="en">The format itself came from Anthropic and was released as an <strong>open standard</strong> on 18 December 2025. The spec now lives at <a href="https://github.com/agentskills/agentskills">agentskills/agentskills</a> (code Apache-2.0, docs CC-BY-4.0) and has been adopted by more than twenty agent products — the same SKILL.md runs unmodified in Claude Code, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, Cursor and VS Code.</p>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="how">
+  <h2><span class="num">2</span><span class="zh">机制:渐进式披露的三个阶段</span><span class="en">Mechanism: the three stages of progressive disclosure</span></h2>
+
+  <p class="zh">规范把加载过程明确拆成三段。理解这三段,你就理解了 Skills 的全部魔法(以及它的全部局限)。</p>
+  <p class="en">The spec breaks loading into three explicit stages. Understand these three and you understand both the whole trick and all of its limits.</p>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="渐进式披露三阶段流程图">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#0f6b63"/>
+        </marker>
+      </defs>
+      <g data-anim="1">
+        <rect x="14" y="60" width="196" height="112" rx="12" fill="#dff0ed" stroke="#a9d4ce"/>
+        <text x="112" y="88" text-anchor="middle" font-size="15" font-weight="800" fill="#0a4b45">① 发现 Discovery</text>
+        <text x="112" y="112" text-anchor="middle" font-size="12.5" fill="#3a4a48">会话启动时</text>
+        <text x="112" y="132" text-anchor="middle" font-size="12.5" fill="#3a4a48">只读 name + description</text>
+        <text x="112" y="155" text-anchor="middle" font-size="13" font-weight="800" fill="#b45309">≈ 30–50 token / 个</text>
+      </g>
+      <g data-anim="2">
+        <rect x="262" y="60" width="196" height="112" rx="12" fill="#ffffff" stroke="#e2dbd0"/>
+        <text x="360" y="88" text-anchor="middle" font-size="15" font-weight="800" fill="#0a4b45">② 激活 Activation</text>
+        <text x="360" y="112" text-anchor="middle" font-size="12.5" fill="#3a4a48">任务匹配上 description</text>
+        <text x="360" y="132" text-anchor="middle" font-size="12.5" fill="#3a4a48">读入 SKILL.md 全文</text>
+        <text x="360" y="155" text-anchor="middle" font-size="13" font-weight="800" fill="#b45309">中位数 1,414 token</text>
+      </g>
+      <g data-anim="3">
+        <rect x="510" y="60" width="196" height="112" rx="12" fill="#ffffff" stroke="#e2dbd0"/>
+        <text x="608" y="88" text-anchor="middle" font-size="15" font-weight="800" fill="#0a4b45">③ 执行 Execution</text>
+        <text x="608" y="112" text-anchor="middle" font-size="12.5" fill="#3a4a48">按正文指示,才去读</text>
+        <text x="608" y="132" text-anchor="middle" font-size="12.5" fill="#3a4a48">references/ 或跑 scripts/</text>
+        <text x="608" y="155" text-anchor="middle" font-size="13" font-weight="800" fill="#b45309">没被引用的文件永不加载</text>
+      </g>
+      <line x1="212" y1="116" x2="256" y2="116" stroke="#0f6b63" stroke-width="2" marker-end="url(#ar)" data-anim="4"/>
+      <line x1="460" y1="116" x2="504" y2="116" stroke="#0f6b63" stroke-width="2" marker-end="url(#ar)" data-anim="5"/>
+      <g data-anim="6">
+        <text x="360" y="30" text-anchor="middle" font-size="13.5" font-weight="800" fill="#16201f">上下文占用:一路只在「需要时」才增加</text>
+        <text x="360" y="215" text-anchor="middle" font-size="12.5" fill="#78857f">50 个技能挂在身上 ≈ 1,500–2,500 token 的启动开销</text>
+        <text x="360" y="240" text-anchor="middle" font-size="12.5" fill="#78857f">—— 但只有真正命中的那一个,才会展开成完整正文</text>
+      </g>
+    </svg>
+    <p class="fig-cap">图 1:渐进式披露三阶段。数字来自 agentskills 官方 README 与 2026-02 Bosch/CMU 研究(arXiv:2602.08004)。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three stages of progressive disclosure">
+      <defs>
+        <marker id="ar-e" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#0f6b63"/>
+        </marker>
+      </defs>
+      <g data-anim="1">
+        <rect x="14" y="60" width="196" height="112" rx="12" fill="#dff0ed" stroke="#a9d4ce"/>
+        <text x="112" y="88" text-anchor="middle" font-size="15" font-weight="800" fill="#0a4b45">① Discovery</text>
+        <text x="112" y="112" text-anchor="middle" font-size="12.5" fill="#3a4a48">at session start</text>
+        <text x="112" y="132" text-anchor="middle" font-size="12.5" fill="#3a4a48">name + description only</text>
+        <text x="112" y="155" text-anchor="middle" font-size="13" font-weight="800" fill="#b45309">≈ 30–50 tokens each</text>
+      </g>
+      <g data-anim="2">
+        <rect x="262" y="60" width="196" height="112" rx="12" fill="#ffffff" stroke="#e2dbd0"/>
+        <text x="360" y="88" text-anchor="middle" font-size="15" font-weight="800" fill="#0a4b45">② Activation</text>
+        <text x="360" y="112" text-anchor="middle" font-size="12.5" fill="#3a4a48">task matches description</text>
+        <text x="360" y="132" text-anchor="middle" font-size="12.5" fill="#3a4a48">full SKILL.md loads</text>
+        <text x="360" y="155" text-anchor="middle" font-size="13" font-weight="800" fill="#b45309">median 1,414 tokens</text>
+      </g>
+      <g data-anim="3">
+        <rect x="510" y="60" width="196" height="112" rx="12" fill="#ffffff" stroke="#e2dbd0"/>
+        <text x="608" y="88" text-anchor="middle" font-size="15" font-weight="800" fill="#0a4b45">③ Execution</text>
+        <text x="608" y="112" text-anchor="middle" font-size="12.5" fill="#3a4a48">reads references/ or runs</text>
+        <text x="608" y="132" text-anchor="middle" font-size="12.5" fill="#3a4a48">scripts/ only when told to</text>
+        <text x="608" y="155" text-anchor="middle" font-size="13" font-weight="800" fill="#b45309">unreferenced files never load</text>
+      </g>
+      <line x1="212" y1="116" x2="256" y2="116" stroke="#0f6b63" stroke-width="2" marker-end="url(#ar-e)" data-anim="4"/>
+      <line x1="460" y1="116" x2="504" y2="116" stroke="#0f6b63" stroke-width="2" marker-end="url(#ar-e)" data-anim="5"/>
+      <g data-anim="6">
+        <text x="360" y="30" text-anchor="middle" font-size="13.5" font-weight="800" fill="#16201f">Context cost grows only when something is actually needed</text>
+        <text x="360" y="215" text-anchor="middle" font-size="12.5" fill="#78857f">50 installed skills ≈ 1,500–2,500 tokens of startup overhead</text>
+        <text x="360" y="240" text-anchor="middle" font-size="12.5" fill="#78857f">— and only the one that matches expands into its full body</text>
+      </g>
+    </svg>
+    <p class="fig-cap">Fig. 1 — The three stages of progressive disclosure. Figures from the official agentskills README and the Feb 2026 Bosch/CMU study (arXiv:2602.08004).</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="h zh">这个机制的直接推论</span><span class="h en">The direct consequence</span>
+    <span class="zh"><code>description</code> 字段是整个技能里<strong>最重要的一行</strong>。它是唯一在「发现」阶段被读到的东西,也就是说:<em>它是决定技能会不会被用的全部依据</em>。写得含糊(「帮助处理代码」),技能就会长期躺在硬盘上;写得具体(「用 conventional commits 规范格式化提交信息。当用户要求撰写、审查或修正 commit message 时使用」),它才会在该出现的时候出现。</span>
+    <span class="en">The <code>description</code> field is <strong>the single most important line</strong> in the whole skill. It's the only thing read during discovery — which means <em>it is the entire basis on which the skill does or doesn't get used</em>. Write it vaguely ("helps with code") and the skill sits on disk forever. Write it precisely ("Format commit messages using the conventional commits spec. Use when the user asks to write, review, or fix a commit message") and it fires at exactly the right moments.</span>
+  </div>
+
+  <p class="zh">Anthropic 侧的最佳实践里还有一条反直觉的建议:description 要写得<strong>「稍微强势一点」</strong>,因为 Claude 有一个可测量的<strong>欠触发(under-trigger)</strong>倾向——它宁可不用技能也不愿误用。</p>
+  <p class="en">Anthropic's own guidance adds a counter-intuitive note: write the description a little <strong>"pushy"</strong>, because Claude has a measured tendency to <strong>under-trigger</strong> skills — it would rather skip one than misapply it.</p>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="anatomy">
+  <h2><span class="num">3</span><span class="zh">一个 Skill 长什么样</span><span class="en">Anatomy of a skill</span></h2>
+
+  <p class="zh">最小可用形态就是一个文件夹加一个文件:</p>
+  <p class="en">The minimum viable form is one folder and one file:</p>
+
+<pre class="zh"><code>my-skill/
+└── SKILL.md          # 必需:YAML 元数据 + markdown 说明</code></pre>
+<pre class="en"><code>my-skill/
+└── SKILL.md          # required: YAML frontmatter + markdown instructions</code></pre>
+
+  <p class="zh">完整形态多出三个约定俗成的目录:</p>
+  <p class="en">The full form adds three conventional directories:</p>
+
+<pre class="zh"><code>skill-name/
+├── SKILL.md          # 必需
+├── scripts/          # 可选:可执行的 Python / Bash / JS
+├── references/       # 可选:按需加载的详细文档
+└── assets/           # 可选:模板、schema、数据文件</code></pre>
+<pre class="en"><code>skill-name/
+├── SKILL.md          # required
+├── scripts/          # optional: executable Python / Bash / JS
+├── references/       # optional: detailed docs, loaded on demand
+└── assets/           # optional: templates, schemas, data files</code></pre>
+
+  <h3 class="zh">SKILL.md 的两部分</h3>
+  <h3 class="en">The two halves of SKILL.md</h3>
+
+  <p class="zh">上半部分是 YAML 元数据(frontmatter),下半部分是纯 markdown 的指令正文。一个真实可跑的最小例子:</p>
+  <p class="en">The top half is YAML frontmatter; the bottom half is a plain-markdown instruction body. A minimal working example:</p>
+
+<pre class="zh"><code>---
+name: format-newsletter
+description: 把原始文字整理成专业的周报结构。当用户提供
+  草稿、要求「排版 / 结构化 / 清理 newsletter」时使用。
+---
+# Newsletter 格式化
+
+## 何时使用
+用户给了 newsletter 原始文字、想要专业结构,或提到「格式化 newsletter」时。
+
+## 步骤
+1. **清理**:去掉多余换行,修正空格。
+2. **结构**:确保存在 标题 / 引言 / 本周更新(用列表)/ 本周金句 / 行动号召。
+3. **语气**:口语但专业。
+4. **格式**:用 Markdown 标题(#、##)与加粗(**)。</code></pre>
+<pre class="en"><code>---
+name: format-newsletter
+description: Formats raw text into a professional weekly newsletter
+  structure. Use when asked to format, structure, or clean up a draft.
+---
+# Newsletter Formatting
+
+## When to use
+Whenever the user provides raw newsletter text, wants a professional
+structure, or mentions "formatting the newsletter."
+
+## Instructions
+1. **Cleanup:** remove excessive line breaks, fix spacing.
+2. **Structure:** ensure Title / Introduction / Key Updates (bulleted) /
+   Quote of the Week / Call to Action all exist.
+3. **Tone:** conversational yet professional.
+4. **Formatting:** Markdown headers (#, ##) and bolding (**).</code></pre>
+
+  <p class="small zh">代码示例来自 Firecrawl 的 Agent Skills 解析文(2026-05 更新),与 agentskills 官方 README 的结构描述一致。</p>
+  <p class="small en">Example adapted from Firecrawl's Agent Skills explainer (updated May 2026); consistent with the structure described in the official agentskills README.</p>
+
+  <h3 class="zh">值得知道的 frontmatter 字段</h3>
+  <h3 class="en">Frontmatter fields worth knowing</h3>
+
+  <div class="wrap-t">
+  <table class="zh">
+    <tr><th>字段</th><th>作用</th><th>什么时候用</th></tr>
+    <tr><td><code>name</code></td><td>技能名,同时变成斜杠命令。只允许小写字母、数字、连字符,上限 64 字符。</td><td>必填。<code>deploy-to-staging</code> 合法,<code>Deploy_To_Staging</code> 不合法。</td></tr>
+    <tr><td><code>description</code></td><td>决定技能会不会被激活。写给模型看,不是写给人看。</td><td>必填,而且是全场最重要的一行。</td></tr>
+    <tr><td><code>disable-model-invocation</code></td><td>关掉自动加载,只能用户手动 <code>/name</code> 调用;description 完全退出上下文,「上下文税」降到近零。</td><td>有副作用的技能:部署、提交、对外写操作。</td></tr>
+    <tr><td><code>paths</code></td><td>glob 模式,限制技能在哪些路径下才考虑自动激活。</td><td>技能只适用于 <code>libs/go/</code> 时,在别处就不参与匹配。</td></tr>
+    <tr><td><code>allowed-tools</code></td><td>限定技能可用的工具范围,支持通配(如 <code>Bash(gh *)</code>)。</td><td>收窄权限面。注意:这是 CLI 侧字段,通过 SDK 使用时不生效。</td></tr>
+    <tr><td><code>effort</code></td><td>思考深度:<code>low</code> / <code>medium</code> / <code>high</code>。</td><td>格式化类用 low;架构决策类用 high。别留给默认。</td></tr>
+    <tr><td><code>context: fork</code></td><td>在独立 subagent 里跑,拥有自己的上下文窗口。</td><td>要吞大量参考资料、否则会撑爆主会话的技能。</td></tr>
+    <tr><td><code>argument-hint</code></td><td>自动补全时提示参数,如 <code>[environment]</code> → <code>/deploy [environment]</code>。</td><td>需要参数的技能。</td></tr>
+  </table>
+  </div>
+  <div class="wrap-t">
+  <table class="en">
+    <tr><th>Field</th><th>What it does</th><th>When to reach for it</th></tr>
+    <tr><td><code>name</code></td><td>Skill name, which also becomes the slash command. Lowercase letters, numbers and hyphens only; 64 characters max.</td><td>Required. <code>deploy-to-staging</code> is valid; <code>Deploy_To_Staging</code> is not.</td></tr>
+    <tr><td><code>description</code></td><td>Decides whether the skill activates at all. Written for the model, not for humans.</td><td>Required — and the most consequential line in the file.</td></tr>
+    <tr><td><code>disable-model-invocation</code></td><td>Turns off automatic loading; users invoke it manually with <code>/name</code>. The description drops out of context entirely, cutting the "context tax" to near zero.</td><td>Skills with side effects: deployments, commits, external writes.</td></tr>
+    <tr><td><code>paths</code></td><td>Glob patterns limiting where the skill is considered for auto-activation.</td><td>A skill that only applies to <code>libs/go/</code> shouldn't compete elsewhere in the repo.</td></tr>
+    <tr><td><code>allowed-tools</code></td><td>Scopes which tools the skill may use; supports wildcards such as <code>Bash(gh *)</code>.</td><td>Narrowing the permission surface. Note: this is a CLI-side field and does not apply when using skills through the SDK.</td></tr>
+    <tr><td><code>effort</code></td><td>Thinking depth: <code>low</code> / <code>medium</code> / <code>high</code>.</td><td><code>low</code> for a formatting skill, <code>high</code> for architecture calls. Don't leave it to chance.</td></tr>
+    <tr><td><code>context: fork</code></td><td>Runs the skill in an isolated subagent with its own context window.</td><td>Reference-heavy skills that would otherwise bloat the primary session.</td></tr>
+    <tr><td><code>argument-hint</code></td><td>Shows expected arguments in autocomplete: <code>[environment]</code> → <code>/deploy [environment]</code>.</td><td>Any skill that takes arguments.</td></tr>
+  </table>
+  </div>
+
+  <p class="zh">正文里还能用三个运行时变量:<code>$ARGUMENTS</code>(斜杠命令后面跟的全部内容)、<code>$ARGUMENTS[0]</code>(按位取参)、<code>${CLAUDE_SKILL_DIR}</code>(引用打包脚本时用,不受用户当前工作目录影响)。</p>
+  <p class="en">The body also supports three runtime substitutions: <code>$ARGUMENTS</code> (everything passed after the slash command), <code>$ARGUMENTS[0]</code> for positional access, and <code>${CLAUDE_SKILL_DIR}</code> for referencing bundled scripts regardless of the user's working directory.</p>
+
+  <div class="callout key">
+    <span class="h zh">规范给的两条硬约束</span><span class="h en">Two hard limits from the spec</span>
+    <span class="zh">SKILL.md 正文建议不超过 <strong>5,000 token</strong>,整个技能目录建议不超过 <strong>500 行</strong>。这不是刁难,是在逼你区分「Agent 真正需要的」和「写着好看的」。想放更多细节?挪到 <code>references/</code>,让它按需加载。</span>
+    <span class="en">The spec recommends keeping SKILL.md bodies under <strong>5,000 tokens</strong> and whole skill directories under <strong>500 lines</strong>. That's not pedantry — it forces you to separate what the agent actually needs from what's merely nice to have. Want more detail? Push it into <code>references/</code> and let it load on demand.</span>
+  </div>
+
+  <h3 class="zh">技能装在哪儿</h3>
+  <h3 class="en">Where skills live</h3>
+  <ul class="zh">
+    <li>Claude Code:默认读 <code>~/.claude/skills</code></li>
+    <li>Codex CLI:<code>~/.codex/skills</code></li>
+    <li>Gemini CLI:扫描 <code>~/.gemini/skills</code></li>
+    <li>Cursor:读项目级目录</li>
+  </ul>
+  <ul class="en">
+    <li>Claude Code reads from <code>~/.claude/skills</code> by default</li>
+    <li>Codex CLI uses <code>~/.codex/skills</code></li>
+    <li>Gemini CLI scans <code>~/.gemini/skills</code></li>
+    <li>Cursor reads project-level directories</li>
+  </ul>
+  <p class="zh">社区维护的 <code>npx skills</code> CLI(Vercel Labs)会自动判断装到哪里:</p>
+  <p class="en">The community <code>npx skills</code> CLI (Vercel Labs) handles placement automatically:</p>
+<pre><code>npx skills add firebase/agent-skills
+npx skills add anthropics/skills/pdf</code></pre>
+  <p class="small zh">⚠️ 手动安装时,放好目录后需要<strong>重启会话</strong>——技能是在启动时被发现的。</p>
+  <p class="small en">⚠️ If you install manually, <strong>restart the session</strong> after dropping the folder in place — skills are discovered at startup.</p>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="write">
+  <h2><span class="num">4</span><span class="zh">怎么写才有用</span><span class="en">Writing one that actually works</span></h2>
+
+  <p class="zh">格式十分钟就学会了。难的是下一个问题:<strong>这个技能该不该存在,以及它该多短</strong>。下面这套流程综合了 Anthropic 的官方最佳实践、一篇被广泛引用的工程博客《Does Your Skill Earn Its Keep?》,以及 2026-07 的论文《Authoring Agent Skills: A Software-Engineering Approach》。</p>
+  <p class="en">The format takes ten minutes to learn. The hard question comes next: <strong>should this skill exist at all, and how short can it be?</strong> The workflow below combines Anthropic's published best practices, a widely-cited engineering post titled "Does Your Skill Earn Its Keep?", and the July 2026 paper <em>Authoring Agent Skills: A Software-Engineering Approach</em>.</p>
+
+  <ol class="steps zh">
+    <li><strong>先不带技能试一次。</strong>打开 Agent,直接描述你要什么,什么技能都不装。如果它已经做得挺好,你不需要技能。如果它做成了但绕了远路,或者以某种<em>具体</em>的方式失败了——那个缺口,就是你的技能该填的,<strong>仅此而已</strong>。跳过这一步,你根本不知道 Agent 在哪里需要帮助。</li>
+    <li><strong>算一下「上下文税」。</strong>你的 description 会在<em>每一次</em>会话加载,不管技能触没触发。100 token 的描述 × 1,000 个工程师 × 每天 10 次会话 = <strong>每天 100 万 token 的固定开销</strong>,而且是在 Agent 碰到任何真实任务之前。问题不是「这个技能有用吗」,而是「它挣得回自己的成本吗」。10 个人时你察觉不到;10,000 个人时,一个定位不准的技能就是每天都在复利的隐形税。</li>
+    <li><strong>先写评测,再写技能。</strong>确认缺口真实存在后,别急着写技能——先写一个 eval。把任务编码成可测的形式,量出当前模型 + 当前 harness 的基线。这样技能写完你才知道它<em>到底有没有帮上忙</em>。没有 eval,你就是在猜:你可能写出一个增加噪声、误导模型、或与其它技能冲突的东西。</li>
+    <li><strong>问一句:这是技能,还是脚本?</strong>如果它主要是一串确定性步骤,如果有人能用 bash 脚本或一个 Makefile target 完成其中 80%——<em>那就写脚本</em>。最糟的技能是用 500 token 的自然语言描述一件其实等同于 <code>make test</code> 加几个 flag 的事。技能可以<em>调用</em>脚本:脚本负责可预测的部分(便宜、可靠),技能负责判断——什么时候跑、输出怎么解读、出意外了怎么办。</li>
+    <li><strong>写到最小。</strong>目标不是一份完整指南,不是教程,是<strong>一次轻推</strong>:指向正确的框架、提醒一条模型不可能知道的内部约定、点出一个容易漏的 flag。每多一行都是模型要处理的额外上下文、更多指令冲突的可能、以及将来更大的维护负担。最好的技能,一分钟内读得完。</li>
+    <li><strong>诚实对待适用范围与分发方式。</strong>这个技能是给谁的?一份专为你们团队工作流写的端到端技能,对团队外几乎没用——如果它进了默认集合,所有人都在替它交上下文税。<em>普适的</em>放进默认配置;<em>团队/领域专用的</em>做成 opt-in。一个对 15 个人极有价值、对另外 5,000 人纯属噪声的技能,不该被默认加载。</li>
+  </ol>
+
+  <ol class="steps en">
+    <li><strong>Try the task without a skill first.</strong> Open the agent and describe what you want with nothing installed. If it already handles the task well, you don't need a skill. If it succeeds but takes a roundabout path, or fails in a <em>specific</em> way, that gap is what your skill should fill — <strong>and nothing more</strong>. Skip this step and you can't know where the agent actually needs help.</li>
+    <li><strong>Do the context-tax arithmetic.</strong> Your description loads into context on <em>every</em> session, for every engineer, whether the skill fires or not. 100 tokens of description × 1,000 engineers × 10 sessions a day = <strong>a million tokens of daily overhead</strong> before the agent touches a single task. The question isn't "is this useful?" but "will it earn back what it costs to carry?" At ten engineers you'll never notice. At ten thousand, a poorly targeted skill is a silent tax compounding daily.</li>
+    <li><strong>Write the eval before the skill.</strong> Once you've identified a real gap, don't write the skill yet — encode the task as a measurable eval and establish a baseline for your current model and harness. Only then can you tell whether the skill <em>actually helped</em>. Without an eval you're guessing, and you may ship something that adds noise, confuses the model, or conflicts with other skills.</li>
+    <li><strong>Ask: is this a skill or a script?</strong> If it's mostly a sequence of deterministic steps — if someone could write a bash script or a Makefile target that does 80% of it — <em>write the script instead</em>. The worst skills spend 500 tokens of natural language describing something that is really just <code>make test</code> with a few flags. A skill can <em>call</em> a script: the script handles the predictable parts cheaply and reliably, while the skill handles the judgement — when to run it, how to read the output, what to do when something unexpected happens.</li>
+    <li><strong>Keep it minimal.</strong> You're not writing a comprehensive guide or a tutorial. You're writing <strong>a nudge</strong>: a pointer to the right framework, a reminder of an internal convention the model can't know, a specific flag that's easy to miss. Every extra line is more context to process, more room for conflicting instructions, and more maintenance debt later. The best skills read in under a minute.</li>
+    <li><strong>Be honest about scope and distribution.</strong> Who is this for? A detailed end-to-end skill built around your team's workflow is unlikely to help anyone outside it — and if it ships in the default set, everyone pays its context tax. Broadly applicable? Ship it by default. Team- or domain-specific? Make it opt-in. A skill that's invaluable to 15 people and meaningless noise to 5,000 should not load by default.</li>
+  </ol>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="该不该写这个 Skill 的决策树">
+      <defs>
+        <marker id="ar2" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#78857f"/></marker>
+      </defs>
+      <g data-anim="1">
+        <rect x="250" y="8" width="220" height="42" rx="10" fill="#0f6b63"/>
+        <text x="360" y="34" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">不装技能,先跑一次任务</text>
+      </g>
+      <line x1="360" y1="50" x2="360" y2="76" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2)" data-anim="1"/>
+      <g data-anim="2">
+        <rect x="264" y="78" width="192" height="40" rx="10" fill="#fff" stroke="#e2dbd0"/>
+        <text x="360" y="103" text-anchor="middle" font-size="13.5" fill="#16201f">它做好了吗?</text>
+      </g>
+      <line x1="264" y1="98" x2="180" y2="98" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2)" data-anim="2"/>
+      <text x="222" y="90" text-anchor="middle" font-size="11.5" font-weight="750" fill="#0a4b45">做好了</text>
+      <g data-anim="3">
+        <rect x="10" y="78" width="160" height="40" rx="10" fill="#dff0ed" stroke="#a9d4ce"/>
+        <text x="90" y="103" text-anchor="middle" font-size="13" font-weight="750" fill="#0a4b45">不要写技能 ✋</text>
+      </g>
+      <line x1="360" y1="118" x2="360" y2="142" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2)" data-anim="3"/>
+      <text x="392" y="136" font-size="11.5" font-weight="750" fill="#b45309">有具体缺口</text>
+      <g data-anim="4">
+        <rect x="252" y="144" width="216" height="40" rx="10" fill="#fff" stroke="#e2dbd0"/>
+        <text x="360" y="169" text-anchor="middle" font-size="13.5" fill="#16201f">缺口是确定性步骤吗?</text>
+      </g>
+      <line x1="468" y1="164" x2="552" y2="164" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2)" data-anim="4"/>
+      <text x="510" y="156" text-anchor="middle" font-size="11.5" font-weight="750" fill="#0a4b45">是</text>
+      <g data-anim="5">
+        <rect x="556" y="144" width="156" height="40" rx="10" fill="#fdf0dd" stroke="#f0d3a8"/>
+        <text x="634" y="169" text-anchor="middle" font-size="13" font-weight="750" fill="#7c3d06">写脚本,不写技能 🔧</text>
+      </g>
+      <line x1="360" y1="184" x2="360" y2="208" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2)" data-anim="5"/>
+      <text x="392" y="202" font-size="11.5" font-weight="750" fill="#b45309">需要判断力</text>
+      <g data-anim="6">
+        <rect x="240" y="210" width="240" height="40" rx="10" fill="#fff" stroke="#e2dbd0"/>
+        <text x="360" y="235" text-anchor="middle" font-size="13.5" fill="#16201f">先写 eval,量出基线</text>
+        <rect x="240" y="262" width="240" height="46" rx="10" fill="#0f6b63"/>
+        <text x="360" y="282" text-anchor="middle" font-size="13.5" font-weight="800" fill="#fff">写「最小的一次轻推」</text>
+        <text x="360" y="299" text-anchor="middle" font-size="11.5" fill="#dff0ed">再用 eval 验证它真的有帮助</text>
+        <line x1="360" y1="250" x2="360" y2="258" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2)"/>
+      </g>
+    </svg>
+    <p class="fig-cap">图 2:「该不该写这个技能」的决策路径。综合自 Anthropic 最佳实践与《Does Your Skill Earn Its Keep?》。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision tree: should you write this skill?">
+      <defs>
+        <marker id="ar2-e" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#78857f"/></marker>
+      </defs>
+      <g data-anim="1">
+        <rect x="240" y="8" width="240" height="42" rx="10" fill="#0f6b63"/>
+        <text x="360" y="34" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">Run the task with no skill</text>
+      </g>
+      <line x1="360" y1="50" x2="360" y2="76" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2-e)" data-anim="1"/>
+      <g data-anim="2">
+        <rect x="264" y="78" width="192" height="40" rx="10" fill="#fff" stroke="#e2dbd0"/>
+        <text x="360" y="103" text-anchor="middle" font-size="13.5" fill="#16201f">Did it do the job?</text>
+      </g>
+      <line x1="264" y1="98" x2="180" y2="98" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2-e)" data-anim="2"/>
+      <text x="222" y="90" text-anchor="middle" font-size="11.5" font-weight="750" fill="#0a4b45">yes</text>
+      <g data-anim="3">
+        <rect x="10" y="78" width="160" height="40" rx="10" fill="#dff0ed" stroke="#a9d4ce"/>
+        <text x="90" y="103" text-anchor="middle" font-size="13" font-weight="750" fill="#0a4b45">Don't write one ✋</text>
+      </g>
+      <line x1="360" y1="118" x2="360" y2="142" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2-e)" data-anim="3"/>
+      <text x="392" y="136" font-size="11.5" font-weight="750" fill="#b45309">specific gap</text>
+      <g data-anim="4">
+        <rect x="244" y="144" width="232" height="40" rx="10" fill="#fff" stroke="#e2dbd0"/>
+        <text x="360" y="169" text-anchor="middle" font-size="13.5" fill="#16201f">Is the gap deterministic steps?</text>
+      </g>
+      <line x1="476" y1="164" x2="552" y2="164" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2-e)" data-anim="4"/>
+      <text x="514" y="156" text-anchor="middle" font-size="11.5" font-weight="750" fill="#0a4b45">yes</text>
+      <g data-anim="5">
+        <rect x="556" y="144" width="156" height="40" rx="10" fill="#fdf0dd" stroke="#f0d3a8"/>
+        <text x="634" y="169" text-anchor="middle" font-size="13" font-weight="750" fill="#7c3d06">Write a script 🔧</text>
+      </g>
+      <line x1="360" y1="184" x2="360" y2="208" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2-e)" data-anim="5"/>
+      <text x="392" y="202" font-size="11.5" font-weight="750" fill="#b45309">needs judgement</text>
+      <g data-anim="6">
+        <rect x="240" y="210" width="240" height="40" rx="10" fill="#fff" stroke="#e2dbd0"/>
+        <text x="360" y="235" text-anchor="middle" font-size="13.5" fill="#16201f">Write the eval, get a baseline</text>
+        <rect x="240" y="262" width="240" height="46" rx="10" fill="#0f6b63"/>
+        <text x="360" y="282" text-anchor="middle" font-size="13.5" font-weight="800" fill="#fff">Write the smallest nudge</text>
+        <text x="360" y="299" text-anchor="middle" font-size="11.5" fill="#dff0ed">then verify with the eval that it helped</text>
+        <line x1="360" y1="250" x2="360" y2="258" stroke="#78857f" stroke-width="1.6" marker-end="url(#ar2-e)"/>
+      </g>
+    </svg>
+    <p class="fig-cap">Fig. 2 — Deciding whether a skill should exist. Synthesised from Anthropic's best practices and "Does Your Skill Earn Its Keep?".</p>
+  </div>
+
+  <div class="callout key">
+    <span class="h zh">还有一条组织层面的规矩</span><span class="h en">One organisational rule on top</span>
+    <span class="zh">Anthropic 侧的实践强调:<strong>每个技能只有一个 canonical source(唯一权威副本)</strong>。技能在一个按领域组织的库里编写,再通过自动化同步流程复制到每个使用它的 Agent。手工复制粘贴到三个地方,三个月后你会有三个互相矛盾的版本。</span>
+    <span class="en">Anthropic's practice adds: <strong>every skill has exactly one canonical source</strong>. Skills are authored in a domain-organised library and copied into each consuming agent via an automated sync. Hand-copy the same skill into three places and in three months you'll have three contradictory versions.</span>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="evidence">
+  <h2><span class="num">5</span><span class="zh">到底有没有用:第一批实测数据</span><span class="en">Do skills actually help? The first hard numbers</span></h2>
+
+  <p class="zh">到 2026 年年中为止,这个问题一直靠体感回答。<strong>SkillsBench</strong> 是第一份把它量化的公开基准:86 个任务、11 个领域、配套人工策划的技能与确定性验证器,跑了 7,308 条轨迹。</p>
+  <p class="en">Until mid-2026 this question was answered by vibes. <strong>SkillsBench</strong> is the first public benchmark to quantify it: 86 tasks across 11 domains, each paired with curated skills and deterministic verifiers, measured over 7,308 trajectories.</p>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SkillsBench 结果:通过率提升与领域差异">
+      <g data-anim="1">
+        <text x="16" y="26" font-size="14" font-weight="800" fill="#16201f">整体通过率</text>
+        <rect x="16" y="40" width="200" height="30" rx="6" fill="#e2dbd0"/>
+        <rect x="16" y="40" width="97" height="30" rx="6" fill="#78857f"/>
+        <text x="228" y="60" font-size="13" fill="#3a4a48">无技能 <tspan font-weight="800" fill="#16201f">33.9%</tspan></text>
+        <rect x="16" y="80" width="200" height="30" rx="6" fill="#dff0ed"/>
+        <rect x="16" y="80" width="145" height="30" rx="6" fill="#0f6b63"/>
+        <text x="228" y="100" font-size="13" fill="#3a4a48">有策划技能 <tspan font-weight="800" fill="#0a4b45">50.5%</tspan> <tspan font-weight="800" fill="#b45309">(+16.6pp)</tspan></text>
+      </g>
+      <g data-anim="2">
+        <text x="16" y="150" font-size="14" font-weight="800" fill="#16201f">但领域之间差了一个数量级</text>
+        <text x="16" y="178" font-size="13" fill="#3a4a48">软件工程</text>
+        <rect x="130" y="166" width="360" height="16" rx="4" fill="#f4efe7"/>
+        <rect x="130" y="166" width="31" height="16" rx="4" fill="#b45309"/>
+        <text x="500" y="179" font-size="13" font-weight="800" fill="#b45309">+4.5pp</text>
+        <text x="16" y="210" font-size="13" fill="#3a4a48">医疗</text>
+        <rect x="130" y="198" width="360" height="16" rx="4" fill="#f4efe7"/>
+        <rect x="130" y="198" width="360" height="16" rx="4" fill="#0f6b63"/>
+        <text x="500" y="211" font-size="13" font-weight="800" fill="#0a4b45">+51.9pp</text>
+      </g>
+      <g data-anim="3">
+        <rect x="16" y="236" width="688" height="52" rx="10" fill="#fbe9e7" stroke="#eec4c0"/>
+        <text x="32" y="258" font-size="13" font-weight="800" fill="#7a2a25">两条不能忽略的负面结果</text>
+        <text x="32" y="277" font-size="12.5" fill="#7a2a25">① 84 个任务中有 16 个出现负增益 ② 模型自己生成的技能,平均收益为零</text>
+      </g>
+    </svg>
+    <p class="fig-cap">图 3:SkillsBench 主要结果(arXiv:2602.12670)。「pp」= 百分点。</p>
+  </div>
+
+  <div class="figure en">
+    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SkillsBench results: pass-rate lift and domain variance">
+      <g data-anim="1">
+        <text x="16" y="26" font-size="14" font-weight="800" fill="#16201f">Overall pass rate</text>
+        <rect x="16" y="40" width="200" height="30" rx="6" fill="#e2dbd0"/>
+        <rect x="16" y="40" width="97" height="30" rx="6" fill="#78857f"/>
+        <text x="228" y="60" font-size="13" fill="#3a4a48">no skills <tspan font-weight="800" fill="#16201f">33.9%</tspan></text>
+        <rect x="16" y="80" width="200" height="30" rx="6" fill="#dff0ed"/>
+        <rect x="16" y="80" width="145" height="30" rx="6" fill="#0f6b63"/>
+        <text x="228" y="100" font-size="13" fill="#3a4a48">curated skills <tspan font-weight="800" fill="#0a4b45">50.5%</tspan> <tspan font-weight="800" fill="#b45309">(+16.6pp)</tspan></text>
+      </g>
+      <g data-anim="2">
+        <text x="16" y="150" font-size="14" font-weight="800" fill="#16201f">But domains differ by an order of magnitude</text>
+        <text x="16" y="178" font-size="13" fill="#3a4a48">Software eng.</text>
+        <rect x="130" y="166" width="360" height="16" rx="4" fill="#f4efe7"/>
+        <rect x="130" y="166" width="31" height="16" rx="4" fill="#b45309"/>
+        <text x="500" y="179" font-size="13" font-weight="800" fill="#b45309">+4.5pp</text>
+        <text x="16" y="210" font-size="13" fill="#3a4a48">Healthcare</text>
+        <rect x="130" y="198" width="360" height="16" rx="4" fill="#f4efe7"/>
+        <rect x="130" y="198" width="360" height="16" rx="4" fill="#0f6b63"/>
+        <text x="500" y="211" font-size="13" font-weight="800" fill="#0a4b45">+51.9pp</text>
+      </g>
+      <g data-anim="3">
+        <rect x="16" y="236" width="688" height="52" rx="10" fill="#fbe9e7" stroke="#eec4c0"/>
+        <text x="32" y="258" font-size="13" font-weight="800" fill="#7a2a25">Two negative findings you can't wave away</text>
+        <text x="32" y="277" font-size="12.5" fill="#7a2a25">① 16 of 84 tasks show negative deltas  ② self-generated skills deliver no benefit on average</text>
+      </g>
+    </svg>
+    <p class="fig-cap">Fig. 3 — Headline SkillsBench results (arXiv:2602.12670). "pp" = percentage points.</p>
+  </div>
+
+  <h3 class="zh">怎么读这几个数字</h3>
+  <h3 class="en">How to read these numbers</h3>
+
+  <ul class="zh">
+    <li><strong>平均 +16.6pp 是真的,但平均值在这里很危险。</strong>软件工程只有 +4.5pp——如果你的场景就是写代码,别指望技能带来跃迁。医疗 +51.9pp 说明:<em>模型越缺乏领域程序性知识的地方,技能的杠杆越大</em>。</li>
+    <li><strong>16/84 的负增益不是噪声,是警告。</strong>写坏了的技能会让 Agent 变差。这正是「先写 eval」那一步存在的理由。</li>
+    <li><strong>模型自己写的技能平均无效。</strong>这是全篇最反直觉的一条:模型能<em>受益于</em>程序性知识,却不能可靠地<em>产出</em>它。所以「让 Claude 帮我把这个流程写成技能」可以当草稿起点,但不能当终点——人得进来做筛选和裁剪。</li>
+    <li><strong>聚焦优于全面。</strong>2–3 个模块的紧凑技能,表现优于面面俱到的大文档。这和规范的 5,000 token 上限、以及「写成一次轻推」的建议是同一件事的三种说法。</li>
+    <li><strong>小模型 + 技能 ≈ 大模型无技能。</strong>这条有直接的成本含义:某些任务上,与其升级模型档位,不如补一份好技能。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>+16.6pp on average is real, but averages are dangerous here.</strong> Software engineering gets only +4.5pp — if coding is your use case, don't expect a step change. Healthcare's +51.9pp tells the real story: <em>the leverage is largest exactly where the model lacks domain procedural knowledge</em>.</li>
+    <li><strong>16 of 84 negative deltas is a warning, not noise.</strong> A badly written skill makes the agent worse. That is precisely why "write the eval first" exists as a step.</li>
+    <li><strong>Model-authored skills show no average benefit.</strong> The most counter-intuitive finding in the whole study: models can <em>consume</em> procedural knowledge reliably but can't <em>produce</em> it. "Have Claude turn this workflow into a skill" is a fine starting draft — it is not a finished artefact. A human has to prune.</li>
+    <li><strong>Focused beats comprehensive.</strong> Skills with 2–3 modules outperform exhaustive documentation. This is the same claim as the spec's 5,000-token ceiling and the "write a nudge" advice, stated three different ways.</li>
+    <li><strong>A small model with skills can match a large model without them.</strong> That has a direct cost implication: on some tasks, adding a good skill beats upgrading the model tier.</li>
+  </ul>
+
+  <p class="zh">另一份补充证据来自 <strong>NVIDIA SkillEvaluator</strong>:用 2026-08-12 的基准快照,在正确性 / 可发现性 / 有效性 / 效率四个维度上给技能打分,baseline 平均分只有 <strong>39–46 分(满分 100)</strong>。换句话说:大部分已发布的技能,离「写好」还有很远。</p>
+  <p class="en">A second data point comes from <strong>NVIDIA SkillEvaluator</strong>: scoring skills on correctness, discoverability, effectiveness and efficiency against an August 12, 2026 benchmark snapshot, average baseline scores landed at just <strong>39–46 out of 100</strong>. Put plainly: most published skills are nowhere near well-written.</p>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="compare">
+  <h2><span class="num">6</span><span class="zh">和谁比:什么时候选 Skills</span><span class="en">Skills vs the alternatives</span></h2>
+
+  <p class="zh">Skills 不是唯一能给 Agent 加能力的方式。搞清它在生态里的位置,你才知道什么时候<em>不</em>该用它。</p>
+  <p class="en">Skills aren't the only way to extend an agent. Knowing where they sit in the ecosystem is how you learn when <em>not</em> to reach for them.</p>
+
+  <div class="wrap-t">
+  <table class="zh">
+    <tr><th>方式</th><th>它给 Agent 的是</th><th>成本模型</th><th>什么时候选它</th></tr>
+    <tr><td><strong>Agent Skills</strong></td><td>程序性知识:「这类活该怎么干」</td><td>启动时每技能 30–50 token;命中才展开正文</td><td>有固定流程/约定/领域套路要教;跨产品复用;要版本控制</td></tr>
+    <tr><td><strong>MCP(Model Context Protocol)</strong></td><td>能力接口:「你可以调这些工具、读这些数据」</td><td>工具 schema 常驻上下文;需要跑一个 server</td><td>需要真正连到外部系统(数据库、SaaS、内部 API)</td></tr>
+    <tr><td><strong>系统提示 / CLAUDE.md</strong></td><td>全局的、每次都成立的约束</td><td>每次会话全量加载</td><td>内容<em>确实</em>每次都需要(项目结构、语气、红线)</td></tr>
+    <tr><td><strong>脚本 / Makefile</strong></td><td>确定性执行</td><td>近乎为零(不进上下文)</td><td>步骤固定、无需判断——这是最被低估的选项</td></tr>
+    <tr><td><strong>微调</strong></td><td>改变模型本身的倾向</td><td>训练成本 + 数据准备 + 迭代周期长</td><td>提示与技能都试过仍不够;有稳定大量的样本</td></tr>
+  </table>
+  </div>
+  <div class="wrap-t">
+  <table class="en">
+    <tr><th>Approach</th><th>What it gives the agent</th><th>Cost model</th><th>Reach for it when</th></tr>
+    <tr><td><strong>Agent Skills</strong></td><td>Procedural knowledge — "here's how this kind of work is done"</td><td>30–50 tokens per skill at startup; body expands only on a match</td><td>You have a repeatable workflow, convention or domain playbook to teach; you want cross-product reuse and version control</td></tr>
+    <tr><td><strong>MCP (Model Context Protocol)</strong></td><td>Capability surface — "here are tools you can call and data you can read"</td><td>Tool schemas sit in context; you have to run a server</td><td>You genuinely need to reach an external system: a database, a SaaS product, an internal API</td></tr>
+    <tr><td><strong>System prompt / CLAUDE.md</strong></td><td>Global constraints that hold every single time</td><td>Loaded in full, every session</td><td>The content <em>really is</em> needed every time — project layout, tone, hard rules</td></tr>
+    <tr><td><strong>Scripts / Makefile</strong></td><td>Deterministic execution</td><td>Effectively zero — never enters context</td><td>The steps are fixed and need no judgement. The most underrated option on this list.</td></tr>
+    <tr><td><strong>Fine-tuning</strong></td><td>Shifts the model's own dispositions</td><td>Training cost, data prep, long iteration loop</td><td>Prompting and skills were tried and weren't enough, and you have stable volume of examples</td></tr>
+  </table>
+  </div>
+
+  <div class="callout key">
+    <span class="h zh">最实用的一条分界线</span><span class="h en">The most useful dividing line</span>
+    <span class="zh">MCP 解决<strong>「够不着」</strong>(Agent 无法访问某个系统);Skills 解决<strong>「不知道怎么做」</strong>(Agent 能访问,但做法不对)。两者经常一起用:MCP 给通路,Skill 教套路。</span>
+    <span class="en">MCP solves <strong>"can't reach it"</strong> — the agent has no access to a system. Skills solve <strong>"doesn't know how"</strong> — it has access but goes about it wrong. They're frequently paired: MCP provides the connection, the skill supplies the playbook.</span>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="risk">
+  <h2><span class="num">7</span><span class="zh">坑、税与安全</span><span class="en">Costs, noise and security</span></h2>
+
+  <h3 class="zh">7.1 生态噪声:数量爆炸,质量没跟上</h3>
+  <h3 class="en">7.1 Ecosystem noise: explosive growth, lagging quality</h3>
+
+  <p class="zh">2026 年 2 月,Bosch Research 与卡内基梅隆大学的研究者分析了 <strong>40,285 个</strong>公开技能(arXiv:2602.08004),数字很能说明问题:生态在 <strong>20 天里增长了 18.5 倍</strong>——1 月 16 日 2,179 个,2 月 5 日超过 4 万个;峰值出现在 1 月 25 日,<strong>单日发布 8,857 个</strong>,占该窗口全部新增的 23%。</p>
+  <p class="en">In February 2026, researchers at Bosch Research and Carnegie Mellon analysed <strong>40,285</strong> publicly listed skills (arXiv:2602.08004). The numbers speak for themselves: the ecosystem grew <strong>18.5× in twenty days</strong> — from 2,179 skills on 16 January to over 40,000 by 5 February, peaking on 25 January with <strong>8,857 skills published in a single day</strong>, 23% of all new listings in the window.</p>
+
+  <ul class="zh">
+    <li><strong>46% 的市场条目和至少一个其它技能重名</strong>——大量近乎相同的转发副本。没有可靠的质量信号,找到某个任务的「最佳版本」需要比应有的更多手工评估。</li>
+    <li><strong>供需错配:55% 的技能是软件工程流程</strong>(因为这是开发者最容易写的);而安装量最高的类别是<em>信息检索</em>(平均每个技能 1,268 次安装,约为代码生成类的 5 倍),恰恰长期供给不足——因为它需要稳定的连接器和持续维护。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>46% of marketplace listings share a name with at least one other skill</strong> — a mass of near-identical reposts. Without reliable quality signals, finding the best version of a skill takes more manual evaluation than it should.</li>
+    <li><strong>Supply doesn't match demand: 55% of all skills are software-engineering workflows</strong>, because that's what developers find easiest to write. Meanwhile the highest-install category is <em>information retrieval</em> (averaging 1,268 installs per skill, roughly 5× code generation) and it stays chronically undersupplied, because it needs stable connectors and ongoing maintenance.</li>
+  </ul>
+
+  <h3 class="zh">7.2 安全:把技能当依赖治理,而不是当文档审阅</h3>
+  <h3 class="en">7.2 Security: govern skills as dependencies, not as documents</h3>
+
+  <div class="callout risk">
+    <span class="h zh">Snyk「ToxicSkills」抽查结果</span><span class="h en">Snyk's "ToxicSkills" findings</span>
+    <span class="zh"><strong>36% 的技能含安全缺陷</strong>,1,467 个存在漏洞,其中 <strong>534 个(13.4%)含至少一个 critical 级问题</strong>——恶意软件分发、提示注入、明文泄露的密钥。更棘手的一个观察:恶意技能会改写 <code>MEMORY.md</code>(Agent 的持久指令存储),使得<strong>技能被删除后,恶意行为仍然存活</strong>。</span>
+    <span class="en"><strong>36% of skills carry a security flaw.</strong> 1,467 were found vulnerable, of which <strong>534 (13.4%) contain at least one critical-level issue</strong> — malware distribution, prompt injection, exposed secrets. The nastiest observation: malicious skills rewrote <code>MEMORY.md</code>, the agent's persistent instruction store, so <strong>the malicious behaviour survived deletion of the skill itself</strong>.</span>
+  </div>
+
+  <p class="zh">学术侧给出的攻击面分类学(arXiv:2604.02837 等)列了六条路径:<strong>直接提示注入、间接提示注入、动态上下文、工具授权、外部依赖、市场信任</strong>。云安全联盟(CSA)把这类问题统称为「Agent 上下文投毒」——Anthropic 在 2026-02-10 的 Claude Code 版本里通过 Unicode 规范化修补过其中一种手法,但研究者指出:这类技术的门槛只是「攻击者能通过正常的技能分发渠道投递一个文件」。</p>
+  <p class="en">The academic threat taxonomy (arXiv:2604.02837 and related work) lists six paths: <strong>direct prompt injection, indirect prompt injection, dynamic context, tool grants, external dependencies, and marketplace trust</strong>. The Cloud Security Alliance groups these under "agent context poisoning." Anthropic patched one variant via Unicode sanitisation in the 10 February 2026 Claude Code release — but as researchers note, the technique requires only that an attacker can deliver a file through the normal skill distribution channel.</p>
+
+  <p class="zh">前述 4 万技能研究还有一个量化补充:<strong>近 40% 的已发布技能会访问敏感上下文或执行写操作,9% 落在关键风险等级</strong>。而规范目前<em>还没有</em>在平台层面强制权限模型或沙箱——安全地限定作用域这件事,责任落在写技能的人身上。</p>
+  <p class="en">The 40,000-skill study adds a quantitative complement: <strong>nearly 40% of published skills access sensitive context or perform writes, and 9% fall into the critical-risk category</strong>. The spec does <em>not</em> yet enforce a permission model or sandboxing at the platform level, so the burden of scoping skills safely falls on whoever writes them.</p>
+
+  <p class="zh">实操上的三条对策:</p>
+  <p class="en">Three practical mitigations:</p>
+  <ul class="zh">
+    <li>装第三方技能前<strong>通读 SKILL.md 全文和 scripts/ 里的每个脚本</strong>——它和装一个 npm 包是同一性质的操作,不是「读一篇文档」。</li>
+    <li>对有副作用的技能加 <code>disable-model-invocation: true</code>,让它只能被人手动调起,顺带把 description 的上下文税降到零。</li>
+    <li>用 <code>allowed-tools</code> 收窄工具面(如 <code>Bash(gh *)</code> 而不是放开整个 Bash),并配合 Agent 侧的权限/沙箱设置。</li>
+  </ul>
+  <ul class="en">
+    <li>Before installing a third-party skill, <strong>read the whole SKILL.md and every script in scripts/</strong>. This is the same class of action as installing an npm package — not "reading a doc."</li>
+    <li>Put <code>disable-model-invocation: true</code> on anything with side effects so it can only be invoked deliberately by a human — which also drops its description's context tax to zero.</li>
+    <li>Narrow the tool surface with <code>allowed-tools</code> (<code>Bash(gh *)</code> rather than all of Bash), backed by your agent's own permission and sandbox settings.</li>
+  </ul>
+
+  <h3 class="zh">7.3 三个还没解决的粗糙边缘</h3>
+  <h3 class="en">7.3 Three rough edges that remain</h3>
+  <ul class="zh">
+    <li><strong>会话中途更新技能很别扭。</strong>技能在会话启动时加载。你推了 SKILL.md 的改动,正在跑的会话不会生效,得重启。对集中共享技能的团队来说,「不打断在跑的工作流去滚动更新」目前仍是没被工具解决的协调问题。</li>
+    <li><strong>发现机制噪声大。</strong>重名率 46%,缺乏质量信号,挑技能仍然是体力活。</li>
+    <li><strong>没有平台级权限模型。</strong>见 7.2。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Updating a skill mid-session is awkward.</strong> Skills load at session start. Push a change to SKILL.md and a running session won't see it until restart. For teams sharing skills centrally, rolling out updates without disrupting active work remains an unsolved coordination problem.</li>
+    <li><strong>Discovery is noisy.</strong> A 46% name-collision rate and no reliable quality signal means choosing a skill is still manual labour.</li>
+    <li><strong>No platform-level permission model.</strong> See 7.2.</li>
+  </ul>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="resources">
+  <h2><span class="num">8</span><span class="zh">学习资源与术语表</span><span class="en">Where to go next, plus a glossary</span></h2>
+
+  <ul class="zh">
+    <li><a href="https://agentskills.io">agentskills.io</a> —— 官方文档与规范正文(先看 <a href="https://agentskills.io/specification">Specification</a>)</li>
+    <li><a href="https://github.com/agentskills/agentskills">agentskills/agentskills</a> —— 规范仓库(20.6k star,Apache-2.0)</li>
+    <li><a href="https://github.com/anthropics/skills">anthropics/skills</a> —— 官方参考技能,含 <code>skill-creator</code>、pdf / docx / xlsx / pptx 文档处理技能</li>
+    <li><a href="https://code.claude.com/docs/en/skills">Claude Code · Extend Claude with skills</a> —— Claude Code 侧的安装与使用文档</li>
+    <li><a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview">Claude Platform · Agent Skills 概览</a> —— 平台/SDK 侧</li>
+    <li><a href="https://www.anthropic.com/engineering/writing-tools-for-agents">Anthropic Engineering · Writing effective tools for AI agents</a></li>
+    <li><a href="https://arxiv.org/abs/2602.12670">SkillsBench(arXiv:2602.12670)</a> —— 效果评测</li>
+    <li><a href="https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/">Snyk · ToxicSkills</a> —— 供应链安全实证</li>
+    <li><a href="https://www.deeplearning.ai/courses/agent-skills-with-anthropic">DeepLearning.AI · Agent Skills with Anthropic</a> —— 与 Anthropic 合作的短课程</li>
+  </ul>
+  <ul class="en">
+    <li><a href="https://agentskills.io">agentskills.io</a> — official docs and the spec itself (start with the <a href="https://agentskills.io/specification">Specification</a>)</li>
+    <li><a href="https://github.com/agentskills/agentskills">agentskills/agentskills</a> — the spec repository (20.6k stars, Apache-2.0)</li>
+    <li><a href="https://github.com/anthropics/skills">anthropics/skills</a> — official reference skills, including <code>skill-creator</code> and the pdf / docx / xlsx / pptx document skills</li>
+    <li><a href="https://code.claude.com/docs/en/skills">Claude Code · Extend Claude with skills</a> — installation and usage on the Claude Code side</li>
+    <li><a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview">Claude Platform · Agent Skills overview</a> — platform and SDK side</li>
+    <li><a href="https://www.anthropic.com/engineering/writing-tools-for-agents">Anthropic Engineering · Writing effective tools for AI agents</a></li>
+    <li><a href="https://arxiv.org/abs/2602.12670">SkillsBench (arXiv:2602.12670)</a> — effectiveness benchmark</li>
+    <li><a href="https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/">Snyk · ToxicSkills</a> — supply-chain security evidence</li>
+    <li><a href="https://www.deeplearning.ai/courses/agent-skills-with-anthropic">DeepLearning.AI · Agent Skills with Anthropic</a> — short course built with Anthropic</li>
+  </ul>
+
+  <dl class="glossary zh">
+    <dt>渐进式披露(progressive disclosure)</dt>
+    <dd>只在需要时才把详细内容读进上下文的加载策略。Skills 的核心机制。</dd>
+    <dt>程序性知识(procedural knowledge)</dt>
+    <dd>「这类事情该怎么一步步做」的知识,区别于「这是什么」的事实性知识。Skills 装的主要是前者。</dd>
+    <dt>上下文税(context tax)</dt>
+    <dd>一个技能的 description 在每次会话都要占用的固定 token 开销,不管技能是否触发。乘以团队人数和会话频率后会变得可观。</dd>
+    <dt>欠触发(under-trigger)</dt>
+    <dd>模型倾向于不去调用本该调用的技能。对策是把 description 写得更具体、更「强势」。</dd>
+    <dt>上下文投毒(context poisoning)</dt>
+    <dd>攻击者通过正常渠道投递一个含恶意指令的文件(如 SKILL.md),让 Agent 把它当成合法指令执行。</dd>
+    <dt>pp(percentage point,百分点)</dt>
+    <dd>两个百分数之间的绝对差值。33.9% → 50.5% 是 +16.6pp,不是 +16.6%。</dd>
+  </dl>
+  <dl class="glossary en">
+    <dt>Progressive disclosure</dt>
+    <dd>A loading strategy that pulls detail into context only when it's needed. The core mechanism behind skills.</dd>
+    <dt>Procedural knowledge</dt>
+    <dd>Knowledge of <em>how</em> a class of task is done, step by step — as opposed to factual knowledge of what something is. Skills mostly package the former.</dd>
+    <dt>Context tax</dt>
+    <dd>The fixed token cost a skill's description imposes on every session, whether or not it fires. Multiplied by headcount and session frequency, it stops being trivial.</dd>
+    <dt>Under-triggering</dt>
+    <dd>A model's tendency to skip a skill it should have invoked. The fix is a more specific, slightly pushier description.</dd>
+    <dt>Context poisoning</dt>
+    <dd>Delivering a file containing malicious instructions (e.g. a SKILL.md) through a normal distribution channel so the agent executes it as legitimate guidance.</dd>
+    <dt>pp (percentage points)</dt>
+    <dd>The absolute difference between two percentages. 33.9% → 50.5% is +16.6pp, not +16.6%.</dd>
+  </dl>
+
+  <div class="callout warn">
+    <span class="h zh">带走的三句话</span><span class="h en">Three things to take away</span>
+    <span class="zh">① Skills 的价值不在格式,在<strong>加载策略</strong>——所以 description 是最重要的一行。② 效果真实但方差极大,<strong>先写 eval 再写技能</strong>是唯一能分辨「帮上忙」和「加噪声」的办法。③ 装第三方技能等同于装一个依赖,<strong>按依赖来审</strong>,不要按文档来读。</span>
+    <span class="en">① The value of skills lies in the <strong>loading strategy</strong>, not the format — which is why the description is the most important line you'll write. ② The benefit is real but wildly variable; <strong>writing the eval before the skill</strong> is the only way to tell "helped" from "added noise." ③ Installing a third-party skill is installing a dependency. <strong>Review it like one</strong>, not like a document.</span>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer><div class="fin">
+  <h3 class="zh">调研说明与来源清单</h3>
+  <h3 class="en">Research note and sources</h3>
+  <p class="zh"><strong>调研时间:2026-08-22。</strong>本文所有关键数字均来自下列公开来源。Agent Skills 生态迭代很快,规范细节、frontmatter 字段与各客户端的支持情况请以官方最新文档为准。文中区分了「官方说法」(规范、官方文档、Anthropic 工程博客)与「研究/社区观点」(学术论文、安全厂商报告、工程博客)。若某条只出现在单一非官方来源,已在正文中注明出处。</p>
+  <p class="en"><strong>Researched 2026-08-22.</strong> Every headline figure here comes from a source listed below. The Agent Skills ecosystem moves fast — treat the official docs as authoritative for spec details, frontmatter fields and per-client support. The text distinguishes official statements (the spec, official docs, Anthropic engineering posts) from research and community views (academic papers, security-vendor reports, engineering blogs). Where a claim rests on a single non-official source, that source is named inline.</p>
+  <ol class="zh">
+    <li>Agent Skills 官方规范仓库 README — <a href="https://github.com/agentskills/agentskills">github.com/agentskills/agentskills</a>(2026-08-22 读取;star 数 20.6k)</li>
+    <li>Ninad Pathak,《Agent Skills Explained: How SKILL.md Files Work and Why They're Everywhere》,Firecrawl(2026-05-26 更新)— <a href="https://www.firecrawl.dev/blog/agent-skills">firecrawl.dev/blog/agent-skills</a></li>
+    <li>SkillsBench: Benchmarking How Well Agent Skills Work Across Diverse Tasks — <a href="https://arxiv.org/abs/2602.12670">arXiv:2602.12670</a> ・ <a href="https://www.skillsbench.ai/">skillsbench.ai</a></li>
+    <li>Ling et al.,《Agent Skills: A Data-Driven Analysis》(Bosch Research / CMU,2026-02)— <a href="https://arxiv.org/abs/2602.08004">arXiv:2602.08004</a></li>
+    <li>Snyk,《ToxicSkills: 恶意 AI Agent 技能供应链研究》— <a href="https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/">snyk.io/blog/toxicskills-...</a></li>
+    <li>Cloud Security Alliance,《SKILL.md 与 Agent 上下文投毒》研究简报 — <a href="https://labs.cloudsecurityalliance.org/research/briefing-csa-research-note-skill-md-agent-context-poisoning/">labs.cloudsecurityalliance.org</a></li>
+    <li>Towards Secure Agent Skills: Architecture, Threat Taxonomy, and Security Analysis — <a href="https://arxiv.org/pdf/2604.02837">arXiv:2604.02837</a></li>
+    <li>Destefanis et al.,《Authoring Agent Skills: A Software-Engineering Approach》— <a href="https://arxiv.org/pdf/2607.25032">arXiv:2607.25032</a></li>
+    <li>NVIDIA,《Evaluating AI Agent Skill Performance with NVIDIA SkillEvaluator》— <a href="https://developer.nvidia.com/blog/evaluating-ai-agent-skill-performance-with-nvidia-skillevaluator/">developer.nvidia.com</a></li>
+    <li>Anthropic Engineering,《Writing effective tools for AI agents》— <a href="https://www.anthropic.com/engineering/writing-tools-for-agents">anthropic.com/engineering/writing-tools-for-agents</a></li>
+    <li>《Skill Authoring Patterns from Anthropic's Best Practices》— <a href="https://generativeprogrammer.com/p/skill-authoring-patterns-from-anthropics">generativeprogrammer.com</a></li>
+    <li>Claude Code 文档 · Extend Claude with skills — <a href="https://code.claude.com/docs/en/skills">code.claude.com/docs/en/skills</a></li>
+    <li>Microsoft Learn · Agent Skills — <a href="https://learn.microsoft.com/en-us/agent-framework/agents/skills">learn.microsoft.com</a></li>
+  </ol>
+  <ol class="en">
+    <li>Official Agent Skills spec repository README — <a href="https://github.com/agentskills/agentskills">github.com/agentskills/agentskills</a> (read 2026-08-22; 20.6k stars)</li>
+    <li>Ninad Pathak, "Agent Skills Explained: How SKILL.md Files Work and Why They're Everywhere," Firecrawl (updated 2026-05-26) — <a href="https://www.firecrawl.dev/blog/agent-skills">firecrawl.dev/blog/agent-skills</a></li>
+    <li>SkillsBench: Benchmarking How Well Agent Skills Work Across Diverse Tasks — <a href="https://arxiv.org/abs/2602.12670">arXiv:2602.12670</a> · <a href="https://www.skillsbench.ai/">skillsbench.ai</a></li>
+    <li>Ling et al., "Agent Skills: A Data-Driven Analysis" (Bosch Research / CMU, Feb 2026) — <a href="https://arxiv.org/abs/2602.08004">arXiv:2602.08004</a></li>
+    <li>Snyk, "ToxicSkills: malicious AI agent skills supply-chain study" — <a href="https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/">snyk.io/blog/toxicskills-...</a></li>
+    <li>Cloud Security Alliance, "SKILL.md and Agent Context Poisoning" research note — <a href="https://labs.cloudsecurityalliance.org/research/briefing-csa-research-note-skill-md-agent-context-poisoning/">labs.cloudsecurityalliance.org</a></li>
+    <li>Towards Secure Agent Skills: Architecture, Threat Taxonomy, and Security Analysis — <a href="https://arxiv.org/pdf/2604.02837">arXiv:2604.02837</a></li>
+    <li>Destefanis et al., "Authoring Agent Skills: A Software-Engineering Approach" — <a href="https://arxiv.org/pdf/2607.25032">arXiv:2607.25032</a></li>
+    <li>NVIDIA, "Evaluating AI Agent Skill Performance with NVIDIA SkillEvaluator" — <a href="https://developer.nvidia.com/blog/evaluating-ai-agent-skill-performance-with-nvidia-skillevaluator/">developer.nvidia.com</a></li>
+    <li>Anthropic Engineering, "Writing effective tools for AI agents" — <a href="https://www.anthropic.com/engineering/writing-tools-for-agents">anthropic.com/engineering/writing-tools-for-agents</a></li>
+    <li>"Skill Authoring Patterns from Anthropic's Best Practices" — <a href="https://generativeprogrammer.com/p/skill-authoring-patterns-from-anthropics">generativeprogrammer.com</a></li>
+    <li>Claude Code docs · Extend Claude with skills — <a href="https://code.claude.com/docs/en/skills">code.claude.com/docs/en/skills</a></li>
+    <li>Microsoft Learn · Agent Skills — <a href="https://learn.microsoft.com/en-us/agent-framework/agents/skills">learn.microsoft.com</a></li>
+  </ol>
+</div></footer>
+
+<script>
+(function(){
+  // ---- progress bar ----
+  var prog=document.getElementById('prog');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=(h>0?(window.scrollY/h*100):0)+'%';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+  // ---- figure reveal ----
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.14});
+  }
+  function observeFigures(){
+    var figs=document.querySelectorAll('.figure:not(.in)');
+    Array.prototype.forEach.call(figs,function(f){
+      if(!io){ f.classList.add('in'); return; }
+      // display:none elements never trigger IO — reveal those already on screen directly
+      var r=f.getBoundingClientRect();
+      if(r.width>0 && r.top<window.innerHeight && r.bottom>0){ f.classList.add('in'); }
+      else { io.observe(f); }
+    });
+  }
+  observeFigures();
+
+  // ---- TOC scrollspy ----
+  var links=Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var secs=links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function spy(){
+    var best=0;
+    for(var i=0;i<secs.length;i++){ if(secs[i] && secs[i].getBoundingClientRect().top<=120) best=i; }
+    links.forEach(function(a,i){ a.classList.toggle('on',i===best); });
+  }
+  window.addEventListener('scroll',spy,{passive:true});spy();
+
+  var toc=document.getElementById('toc'),tt=document.getElementById('tocToggle');
+  tt.addEventListener('click',function(){ toc.classList.toggle('open'); });
+  links.forEach(function(a){ a.addEventListener('click',function(){ toc.classList.remove('open'); }); });
+
+  // ---- language toggle ----
+  var bzh=document.getElementById('bzh'), ben=document.getElementById('ben');
+  function setLang(l){
+    document.body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang', l==='zh'?'zh-CN':'en');
+    bzh.setAttribute('aria-pressed', l==='zh'?'true':'false');
+    ben.setAttribute('aria-pressed', l==='en'?'true':'false');
+    try{ localStorage.setItem('aidaily-lang', l); }catch(e){}
+    // re-run reveal because previously hidden figures had no layout box
+    setTimeout(function(){ observeFigures(); spy(); onScroll(); },30);
+  }
+  var saved=null;
+  try{ saved=localStorage.getItem('aidaily-lang'); }catch(e){}
+  if(saved!=='zh' && saved!=='en'){
+    var nl=(navigator.language||'en').toLowerCase();
+    saved = nl.indexOf('zh')===0 ? 'zh' : 'en';
+  }
+  setLang(saved);
+  bzh.addEventListener('click',function(){ setLang('zh'); });
+  ben.addEventListener('click',function(){ setLang('en'); });
+})();
+</script>
+</body>
+</html>
