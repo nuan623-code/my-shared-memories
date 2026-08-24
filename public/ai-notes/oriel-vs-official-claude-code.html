@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>我的 app 有多少功能被 Claude 官方吃掉了 —— 一次逐条对账</title>
+<style>
+:root{
+  --bg:#faf9fb; --surface:#ffffff; --surface2:#f3f1f6; --border:#e3dfe9;
+  --text:#17151c; --muted:#6b6577; --accent:#6d4aff; --accent-soft:#6d4aff14;
+  --gone:#c02b3a; --gone-soft:#c02b3a12;
+  --part:#b45309; --part-soft:#b4530912;
+  --own:#0f7a52; --own-soft:#0f7a5212;
+  --grid:#00000007;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+html[data-theme="dark"]{
+  --bg:#0d0c11; --surface:#15141b; --surface2:#1c1a24; --border:#2a2733;
+  --text:#e8e6ec; --muted:#948da3; --accent:#a78bfa; --accent-soft:#a78bfa1a;
+  --gone:#f87171; --gone-soft:#f8717114;
+  --part:#fbbf24; --part-soft:#fbbf2414;
+  --own:#4ade80; --own-soft:#4ade8014;
+  --grid:#ffffff06;
+}
+@media (prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+    --bg:#0d0c11; --surface:#15141b; --surface2:#1c1a24; --border:#2a2733;
+    --text:#e8e6ec; --muted:#948da3; --accent:#a78bfa; --accent-soft:#a78bfa1a;
+    --gone:#f87171; --gone-soft:#f8717114;
+    --part:#fbbf24; --part-soft:#fbbf2414;
+    --own:#4ade80; --own-soft:#4ade8014;
+    --grid:#ffffff06;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+  font-size:16px; line-height:1.78; -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;
+}
+#bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0;z-index:60;transition:width .1s}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:224px minmax(0,1fr);gap:48px}
+nav{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:26px 0 40px;font-size:13.5px}
+nav .nt{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin:0 0 12px}
+nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 11px;border-left:2px solid var(--border);line-height:1.45}
+nav a:hover{color:var(--text);border-left-color:var(--accent)}
+nav a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+.tt{display:flex;gap:4px;margin:22px 0 0;padding-left:11px}
+.tt button{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:3px 7px;cursor:pointer}
+.tt button.on{color:var(--accent);border-color:var(--accent)}
+main{padding:0 0 120px;min-width:0}
+header.hero{padding:74px 0 40px;border-bottom:1px solid var(--border);margin-bottom:46px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+h1{font-size:clamp(29px,5vw,45px);line-height:1.18;margin:0 0 20px;letter-spacing:-.02em;font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:66ch;margin:0 0 30px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.stats div{background:var(--surface);padding:15px 16px}
+.stats b{display:block;font-family:var(--mono);font-size:25px;line-height:1.2;letter-spacing:-.02em}
+.stats span{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+.s-gone b{color:var(--gone)} .s-part b{color:var(--part)} .s-own b{color:var(--own)}
+section{margin:0 0 60px;scroll-margin-top:20px}
+h2{font-size:clamp(21px,3vw,28px);line-height:1.3;margin:0 0 8px;letter-spacing:-.01em;font-weight:700}
+h2 .num{font-family:var(--mono);font-size:12px;color:var(--accent);display:block;margin-bottom:7px;letter-spacing:.1em}
+h3{font-size:17.5px;margin:34px 0 10px;font-weight:650}
+h4{font-size:15px;margin:24px 0 8px;font-weight:650;color:var(--muted)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px;padding-left:22px} li{margin:0 0 7px}
+code{font-family:var(--mono);font-size:.87em;background:var(--surface2);padding:1.5px 5px;border-radius:4px;border:1px solid var(--border)}
+a{color:var(--accent)}
+.tw{overflow-x:auto;margin:0 0 20px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.55}
+th{background:var(--surface2);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.tag{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:20px;white-space:nowrap;font-weight:600;display:inline-block}
+.t-gone{background:var(--gone-soft);color:var(--gone);border:1px solid var(--gone)}
+.t-part{background:var(--part-soft);color:var(--part);border:1px solid var(--part)}
+.t-own{background:var(--own-soft);color:var(--own);border:1px solid var(--own)}
+.box{border:1px solid var(--border);border-left:3px solid var(--accent);background:var(--surface);border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 22px}
+.box.warn{border-left-color:var(--gone)} .box.ok{border-left-color:var(--own)} .box.mid{border-left-color:var(--part)}
+.box .bt{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:7px}
+.box.warn .bt{color:var(--gone)} .box.ok .bt{color:var(--own)} .box.mid .bt{color:var(--part)}
+.box p:last-child{margin-bottom:0}
+figure{margin:26px 0;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px 16px;overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;min-width:520px}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:11px;text-align:center;line-height:1.55}
+.quote{border-left:3px solid var(--border);padding:2px 0 2px 16px;margin:0 0 18px;color:var(--muted);font-size:14.5px}
+.quote code{font-size:.9em}
+.src li{font-size:14px;margin-bottom:9px}
+hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+@media(max-width:900px){
+  .wrap{grid-template-columns:1fr;gap:0}
+  nav{position:static;max-height:none;padding:18px 0 0;border-bottom:1px solid var(--border);margin-bottom:8px}
+  nav a{display:inline-block;border-left:none;border-bottom:2px solid var(--border);margin:0 8px 6px 0;padding:3px 0}
+  nav a.on{border-left:none;border-bottom-color:var(--accent)}
+  .tt{padding-left:0}
+  header.hero{padding:32px 0 28px}
+}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div class="wrap">
+<nav>
+  <p class="nt">目录</p>
+  <a href="#s0">结论</a>
+  <a href="#s1">怎么核的</a>
+  <a href="#s2">官方 2026 干了什么</a>
+  <a href="#s3">对账 · 监控与看板</a>
+  <a href="#s4">对账 · 审批</a>
+  <a href="#s5">对账 · 宿主与执行</a>
+  <a href="#s6">对账 · 组织与通知</a>
+  <a href="#s7">三条卖点复检</a>
+  <a href="#s8">那个盲点</a>
+  <a href="#s9">竞品现状</a>
+  <a href="#s10">还剩什么</a>
+  <a href="#s11">对路线图的建议</a>
+  <a href="#s12">没核到的</a>
+  <a href="#s13">来源</a>
+  <div class="tt">
+    <button data-t="auto">自动</button><button data-t="light">浅</button><button data-t="dark">深</button>
+  </div>
+</nav>
+<main>
+
+<header class="hero">
+  <p class="kicker">产品对账 · 2026-08-24</p>
+  <h1>我的 app 有多少功能<br>被 Claude 官方吃掉了</h1>
+  <p class="lede">一次逐条对账。把自研 macOS 菜单栏 app「Oriel」规划与已交付的 48 条功能,
+  对着 2026 年 8 月 24 日为止 Claude Code 官方的真实能力过了一遍——不是凭印象,是拉官方文档原文核的。
+  结论比预想的更不客气,但也比预想的更清楚。</p>
+  <div class="stats">
+    <div class="s-gone"><b>18</b><span>已被官方替代</span></div>
+    <div class="s-part"><b>15</b><span>部分重叠</span></div>
+    <div class="s-own"><b>15</b><span>仍然独占</span></div>
+    <div><b>3→2</b><span>卖点存活</span></div>
+    <div><b>4</b><span>阶段建议停掉</span></div>
+  </div>
+</header>
+
+<section id="s0">
+  <h2><span class="num">01</span>结论:一句话</h2>
+  <p><strong>官方在 2026 年 4 月把桌面端重做了一遍,那一次重做吃掉的正是这个 app 的主线,而不是它的支线。</strong></p>
+  <p>这个 app 原本押的三件事——把本机所有 session 收进一块看板、把高风险操作收进一个审批台、用内嵌终端直接托管 session。
+  一年后回头看:</p>
+  <ul>
+    <li><strong>第三件已经基本没有意义了。</strong>官方桌面 app 现在有多 session 侧边栏、每 session 自动 git worktree 隔离、
+      集成终端与文件编辑器、分屏、应用预览窗格、diff 审阅。这些正好是规划里的阶段 5 / 7 / 10。</li>
+    <li><strong>第一件被砍掉一半,但剩下的一半是硬的。</strong>官方桌面 app 的会话列表<em>只看得见它自己起的 session</em>——
+      终端 CLI 里跑的、VS Code 扩展里跑的,一律不进列表。这一条写在官方文档里,不是我推的。</li>
+    <li><strong>第二件基本完好。</strong>官方的权限审批是「一次一弹、弹在那个 session 里」;
+      没有跨 session 的聚合收件箱、没有风险分级、没有决策留痕、没有按事件类型分档的通知开关(最后这条官方文档明说没有)。</li>
+  </ul>
+  <div class="box warn">
+    <p class="bt">最贵的一条发现</p>
+    <p>这个项目在 2026-08-08 做过一次同类核查,当时的结论是「手机远程批准和多 session 并行不能再当卖点」。
+    但那次<strong>只核了 Remote Control(手机线),没核桌面 app 的 Code tab</strong>——
+    而桌面重做在那之前将近四个月就已经发布了。也就是说,那次核查保住了手机线的判断,却漏掉了对 Mac 主线杀伤最大的那一块。
+    这不是信息不够,是核查范围划错了。</p>
+  </div>
+  <p>下面是逐条的账。分级用三档:<span class="tag t-gone">已被替代</span>
+  <span class="tag t-part">部分重叠</span> <span class="tag t-own">仍然独占</span>。</p>
+</section>
+
+<section id="s1">
+  <h2><span class="num">02</span>怎么核的,以及什么不算证据</h2>
+  <p>清单的左半边(自研功能)取自项目自己的<code>功能矩阵</code>文档的 macOS 列,加上执行位置派发方案里的四条,共 48 条。
+  这是项目内部的唯一权威表,所以不存在「挑对自己有利的功能来比」的问题。</p>
+  <p>右半边(官方能力)只认三种证据,按可信度排:</p>
+  <ol>
+    <li><strong>官方文档原文</strong>(<code>code.claude.com/docs</code>)——本文的判定绝大多数落在这一档,涉及功能边界的地方直接引原文。</li>
+    <li><strong>官方发版说明与主流媒体报道</strong>——用来确认「什么时候发的」,不用来确认「具体能做什么」。</li>
+    <li><strong>官方 issue 追踪器上的公开状态</strong>——只用来确认「某能力<em>还没有</em>」,这是比文档没写更强的证据。</li>
+  </ol>
+  <div class="box mid">
+    <p class="bt">三条自律</p>
+    <p><strong>一、「文档没写」不等于「不存在」。</strong>凡是判「仍然独占」的,本文都说清楚是「文档中查不到对应物」,
+    而不是断言官方做不到。<br>
+    <strong>二、自研这边的交付状态没有重测。</strong>哪条已交付、哪条只在规划里,一律照项目文档的记录,没有实际跑一遍。<br>
+    <strong>三、能力对等不等于体验对等。</strong>官方有一个功能,不代表它在这个场景里好用。
+    但「体验更好」是个需要用户验证的假设,不能拿它给重叠度打折——所以本文一律按能力判,不按手感判。</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="num">03</span>官方 2026 年干了什么</h2>
+  <p>按对本项目的杀伤力排,而不是按发布顺序。</p>
+
+  <figure>
+    <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="官方能力发布时间线与它覆盖的自研阶段">
+      <line x1="60" y1="150" x2="850" y2="150" stroke="currentColor" stroke-width="1.5" opacity=".28"/>
+      <g font-family="ui-monospace,Menlo,monospace" font-size="11" fill="currentColor">
+        <text x="60" y="176" opacity=".55">2026-04-14</text>
+        <text x="278" y="176" opacity=".55">2026-04-16</text>
+        <text x="470" y="176" opacity=".55">研究预览</text>
+        <text x="660" y="176" opacity=".55">持续</text>
+      </g>
+      <g>
+        <circle cx="72" cy="150" r="7" fill="#c02b3a"/>
+        <circle cx="290" cy="150" r="7" fill="#c02b3a"/>
+        <circle cx="482" cy="150" r="7" fill="#b45309"/>
+        <circle cx="672" cy="150" r="7" fill="#b45309"/>
+      </g>
+      <g font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor">
+        <text x="72" y="120" font-size="13" font-weight="700" text-anchor="middle">桌面端重做</text>
+        <text x="72" y="102" font-size="10.5" opacity=".6" text-anchor="middle">多 session 侧边栏</text>
+        <text x="72" y="88" font-size="10.5" opacity=".6" text-anchor="middle">worktree / 分屏 / 预览</text>
+        <text x="72" y="212" font-size="11" fill="#c02b3a" text-anchor="middle" font-weight="600">吃掉阶段 5 / 7 / 10</text>
+
+        <text x="290" y="120" font-size="13" font-weight="700" text-anchor="middle">手机推送</text>
+        <text x="290" y="102" font-size="10.5" opacity=".6" text-anchor="middle">「需要你批准」时推送</text>
+        <text x="290" y="88" font-size="10.5" opacity=".6" text-anchor="middle">手机上直接答权限提示</text>
+        <text x="290" y="212" font-size="11" fill="#c02b3a" text-anchor="middle" font-weight="600">吃掉手机线 M3</text>
+
+        <text x="482" y="120" font-size="13" font-weight="700" text-anchor="middle">Routines / 定时任务</text>
+        <text x="482" y="102" font-size="10.5" opacity=".6" text-anchor="middle">本机定时 + 云端例程</text>
+        <text x="482" y="212" font-size="11" fill="#b45309" text-anchor="middle" font-weight="600">压住「每日日报」</text>
+
+        <text x="672" y="120" font-size="13" font-weight="700" text-anchor="middle">Dispatch / 跨会话消息</text>
+        <text x="672" y="102" font-size="10.5" opacity=".6" text-anchor="middle">手机发任务 → 本机开 session</text>
+        <text x="672" y="212" font-size="11" fill="#b45309" text-anchor="middle" font-weight="600">压住阶段 7 派工</text>
+      </g>
+      <rect x="60" y="240" width="790" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1" opacity=".25"/>
+      <text x="455" y="262" font-size="12" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle" opacity=".75">
+        四条线合起来 = 「不在终端前面时怎么继续干活」这件事,官方已经自己铺满了
+      </text>
+    </svg>
+    <figcaption>官方 2026 年的四条投放,以及每条压住的自研阶段。红点为直接替代,黄点为部分重叠。</figcaption>
+  </figure>
+
+  <h3>① 桌面端重做(2026-04-14)——杀伤力最大的一次</h3>
+  <p>官方把 Claude 桌面 app 的 Code tab 重做了:多 session 侧边栏、拖放式面板布局、集成终端与文件编辑器、
+  扩展的预览窗格、独立快捷键的侧边对话。官方文档里逐条能查到的有:</p>
+  <ul>
+    <li>侧边栏可<strong>按状态 / 项目 / 环境筛选</strong>,并可<strong>按项目分组</strong>;</li>
+    <li>Git 仓库下<strong>每个 session 自动分到独立 worktree</strong>,默认落在 <code>&lt;project-root&gt;/.claude/worktrees/</code>,
+      可配置位置与分支前缀,还能在 PR 合并后自动归档;</li>
+    <li>按住 Cmd 点侧边栏可<strong>双 session 分屏</strong>;</li>
+    <li>模型选择器旁的<strong>用量环</strong>同时给出「本 session 的上下文占用」和「本周期的套餐用量」;</li>
+    <li>开新 session 时可直接选<strong>运行环境:本机 / 云端 / SSH 远程机器 / WSL</strong>;</li>
+    <li>任务面板可看本 session 内的子 agent、后台 shell 命令、动态工作流;</li>
+    <li>应用预览 + 外部站点浏览 + diff 审阅 + PR 状态监控。</li>
+  </ul>
+
+  <h3>② 手机推送与远程答权限(2026-04-16)</h3>
+  <p>Remote Control 把本机 CLI/VS Code session 连到 claude.ai/code 与手机 app。关键的两句官方原文:</p>
+  <p class="quote"><code>/config</code> 里可开启 <strong>Push when actions required</strong>,用于「permission prompts and questions」;
+  且「Claude Code keeps permission prompts and <code>AskUserQuestion</code> questions open until you answer them」。</p>
+  <p>也就是说,<strong>手机上批准权限、手机上回答选择型提示,官方都已经免费提供</strong>。
+  连「连续答了几次权限提示后,CLI 弹一句『Approve tool calls from your phone』」这种细节都有了。</p>
+
+  <h3>③ Dispatch(手机发任务 → 本机开 session)</h3>
+  <p>在手机上给 Dispatch 发一句任务,它自己判断这是不是开发工作,是就<strong>在你的桌面 app 里开一个 Code session</strong>,
+  侧边栏上打 Dispatch 徽标,<strong>完成或需要你批准时推你手机</strong>。这几乎是自研规划里「手机端派工 + 审批推送」的原样。</p>
+
+  <h3>④ 跨会话消息与自动分诊</h3>
+  <p>桌面 app 里可以让 Claude「列出我其它的 session、读它们在干嘛、给它们发消息、重命名或归档它们」。
+  更贴近自研阶段 7 的是:<strong>Claude 发现当前任务外值得修的东西时,会给出一个任务卡片,点一下就在新 session + 新 worktree 里开工</strong>——
+  这就是分诊 + 派工。</p>
+
+  <h3>⑤ 定时任务与 Routines</h3>
+  <p>三档:CLI 的 <code>/loop</code>、桌面端定时任务(本机跑、最短一分钟、能读本地文件)、云端 Routines(云上跑、最短一小时、无本地文件)。
+  「每天早上生成一份日报」这种活,官方现在自带。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="num">04</span>逐条对账 · 监控与看板</h2>
+  <p>这是自研 app 的门面,也是重叠最尴尬的一块:<strong>看板本身几乎全被替代,唯独「看得见谁」这一条守住了</strong>。</p>
+  <div class="tw"><table>
+    <thead><tr><th>自研功能</th><th>判定</th><th>官方对应物</th><th>依据 / 备注</th></tr></thead>
+    <tbody>
+      <tr><td><strong>被动全量监控</strong>(内嵌 + 外部终端 session 自动进看板)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>无</td>
+        <td>官方文档原文:桌面 app「只看得见它自己跑的 session:本机、SSH、WSL」,<strong>看不见你从终端 CLI 或 VS Code 扩展起的 session</strong>,即使是同一项目的 worktree 也不行。社区已有对应的功能请求 issue,尚未实现。<strong>这是整份对账里最硬的一条护城河。</strong></td></tr>
+      <tr><td>菜单栏四态图标 + 活跃数 + 待处理标记</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>官方无;但第三方菜单栏 app 已有</td>
+        <td>官方桌面 app 是窗口形态,没有常驻菜单栏态势。但这块<strong>已经有一堆第三方在做</strong>(见第 10 节),形态优势不等于壁垒。</td></tr>
+      <tr><td>快速面板三区(等你 / 进行中 / 刚完成)+ 全局快捷键</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>无</td>
+        <td>官方侧边栏是列表 + 筛选,没有「按是否需要你」重排的分区语义。</td></tr>
+      <tr><td>Overview 分区卡片 + 顶部统计四项</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>侧边栏按状态/项目/环境筛选 + 按项目分组</td>
+        <td>官方给的是筛选与分组,不是「态势概览」。信息密度不同,但覆盖的判断需求高度重合。</td></tr>
+      <tr><td>context 用量指示条(到 80% 转琥珀)</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>用量环:本 session 上下文占用 + 套餐周期用量</td>
+        <td>官方还多给了一层套餐用量,且明说「上下文按 session,套餐用量跨所有 Claude Code 界面共享」。</td></tr>
+      <tr><td>来源徽标 App / External + 按来源筛选</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>按环境(本机/云/SSH/WSL)筛选</td>
+        <td>官方的「环境」维度更细,但只在它自己看得见的 session 范围内。自研这条的价值完全依附于上面第一行。</td></tr>
+      <tr><td>Sessions 页:状态 / 项目筛选 + 名称搜索</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>侧边栏筛选 + 分组 + 会话重命名</td>
+        <td>逐项对得上。</td></tr>
+      <tr><td>Sessions 页:内容搜索 / 表格视图 / 日期筛选 / 六维排序</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>但要注意:这条在自研这边本身就是<strong>未定项</strong>,不是已交付能力。</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Session 详情页</h3>
+  <div class="tw"><table>
+    <thead><tr><th>自研功能</th><th>判定</th><th>官方对应物</th><th>依据 / 备注</th></tr></thead>
+    <tbody>
+      <tr><td>Overview:任务简述 / 当前状态 / 计划 / 结果</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>让 Claude 读其它 session 在干嘛</td>
+        <td>官方靠自然语言问答给答案(「API 那个 session 得出什么结论?」),不是结构化四段。对外部 session 仍不可用。</td></tr>
+      <tr><td>Activity 时间线(重复读取合并、压缩 / 中断 / 错误事件)</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>任务面板(子 agent / 后台命令 / 工作流)</td>
+        <td>官方的任务面板<strong>只看当前 session</strong>,且是运行中任务视角,不是历史事件流。</td></tr>
+      <tr><td>Metadata(模型 / 目录 / 时长 / context / 血缘)</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>用量环 + 会话属性 + Dispatch 徽标</td>
+        <td>官方没有跨 session 的血缘链(父子 / 批次 / 续作)。</td></tr>
+      <tr><td>Tasks tab</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>任务面板</td>
+        <td>官方还能点进去看子 agent 输出、直接停掉它。自研这条尚未开工。</td></tr>
+      <tr><td>Files &amp; Diff tab</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>diff 审阅视图 + 代码审查 + PR 状态监控</td>
+        <td>官方这块比规划里的更完整。自研这条尚未开工。</td></tr>
+      <tr><td>Conversation tab(完整对话)</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>自家 session 的对话本身</td>
+        <td>对<strong>外部 session</strong> 的对话回看仍是独占——但同样依附于「看得见外部 session」这一条。</td></tr>
+      <tr><td>Terminal tab(内嵌 = 活终端;外部 = 只读记录)</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>集成终端 + Remote Control 远程镜像</td>
+        <td>见第 6 节。</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s4">
+  <h2><span class="num">05</span>逐条对账 · 审批</h2>
+  <p>这是唯一一块<strong>越查越站得住</strong>的。官方把「远程批准」做透了,但没做「审批台」。这两件事不是一回事。</p>
+
+  <figure>
+    <svg viewBox="0 0 860 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="官方逐 session 弹窗 与 自研聚合审批台的结构差异">
+      <text x="215" y="26" font-size="13" font-weight="700" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle">官方:一次一弹,弹在那个 session 里</text>
+      <g>
+        <rect x="60" y="48" width="140" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"/>
+        <text x="130" y="76" font-size="11.5" font-family="ui-monospace,Menlo,monospace" fill="currentColor" text-anchor="middle" opacity=".8">session A</text>
+        <rect x="76" y="86" width="108" height="22" rx="5" fill="#c02b3a" opacity=".16"/>
+        <text x="130" y="101" font-size="10.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle">批准这条命令?</text>
+
+        <rect x="230" y="48" width="140" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"/>
+        <text x="300" y="76" font-size="11.5" font-family="ui-monospace,Menlo,monospace" fill="currentColor" text-anchor="middle" opacity=".8">session B</text>
+        <rect x="246" y="86" width="108" height="22" rx="5" fill="#c02b3a" opacity=".16"/>
+        <text x="300" y="101" font-size="10.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle">批准这条命令?</text>
+
+        <rect x="60" y="136" width="140" height="52" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"/>
+        <text x="130" y="158" font-size="11.5" font-family="ui-monospace,Menlo,monospace" fill="currentColor" text-anchor="middle" opacity=".8">session C</text>
+        <text x="130" y="175" font-size="10" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle" opacity=".55">安静</text>
+
+        <rect x="230" y="136" width="140" height="52" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"/>
+        <text x="300" y="158" font-size="11.5" font-family="ui-monospace,Menlo,monospace" fill="currentColor" text-anchor="middle" opacity=".8">终端里的 D</text>
+        <text x="300" y="175" font-size="10" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle" opacity=".55">桌面 app 看不见</text>
+      </g>
+      <text x="215" y="222" font-size="11" font-family="-apple-system,PingFang SC,sans-serif" fill="#c02b3a" text-anchor="middle" font-weight="600">你得挨个窗口去找哪个在等你</text>
+      <text x="215" y="244" font-size="10.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle" opacity=".6">高风险和低风险长得一模一样 · 批过什么没有留痕</text>
+
+      <line x1="430" y1="40" x2="430" y2="290" stroke="currentColor" stroke-width="1" opacity=".2" stroke-dasharray="4 4"/>
+
+      <text x="645" y="26" font-size="13" font-weight="700" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle">自研:一个收件箱收齐,带分级</text>
+      <g>
+        <rect x="490" y="48" width="310" height="140" rx="10" fill="none" stroke="#0f7a52" stroke-width="1.6"/>
+        <text x="645" y="70" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="currentColor" text-anchor="middle" opacity=".8">审批收件箱</text>
+        <rect x="506" y="82" width="278" height="26" rx="5" fill="#c02b3a" opacity=".2"/>
+        <text x="518" y="99" font-size="10.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor">A · 高风险 · rm -rf ./build · 影响:删除 412 个文件</text>
+        <rect x="506" y="114" width="278" height="26" rx="5" fill="#b45309" opacity=".18"/>
+        <text x="518" y="131" font-size="10.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor">B · 一般 · git push origin feature/x</text>
+        <rect x="506" y="146" width="278" height="26" rx="5" fill="currentColor" opacity=".07"/>
+        <text x="518" y="163" font-size="10.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" opacity=".7">D(终端里的)· 一般 · 读取 config.json</text>
+      </g>
+      <text x="645" y="222" font-size="11" font-family="-apple-system,PingFang SC,sans-serif" fill="#0f7a52" text-anchor="middle" font-weight="600">一眼看完谁在等你 · 高风险单列且永不一键批</text>
+      <text x="645" y="244" font-size="10.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle" opacity=".6">每条决定落审批记录 · 按事件类型分档通知</text>
+
+      <rect x="60" y="272" width="740" height="38" rx="8" fill="none" stroke="currentColor" stroke-width="1" opacity=".25"/>
+      <text x="430" y="296" font-size="11.5" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor" text-anchor="middle" opacity=".75">
+        差别不在「能不能批」——都能批。差别在「批之前你看得见多少」和「批完留下什么」。
+      </text>
+    </svg>
+    <figcaption>官方把审批做成了一次一弹的交互;自研把它做成了一个有分级、有留痕、有策略层的台子。这是本次对账里唯一一块结构性差异。</figcaption>
+  </figure>
+
+  <div class="tw"><table>
+    <thead><tr><th>自研功能</th><th>判定</th><th>官方对应物</th><th>依据 / 备注</th></tr></thead>
+    <tbody>
+      <tr><td><strong>跨 session 聚合审批收件箱</strong></td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>官方的权限提示是 session 内的交互;Dispatch 会在「需要批准」时推手机,但推的是<em>那一个</em> session。没有把多个 session 的待批请求收进一处的界面。</td></tr>
+      <tr><td><strong>三级风险分级 + 影响说明 + 人话解释</strong></td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>官方的权限模式(Manual / Accept edits / Plan / Auto / Bypass)分的是<strong>自主程度</strong>,不是<strong>单条请求的风险</strong>。Auto 模式有「后台安全检查」,但那是模型侧判断,不是给用户看的分级。</td></tr>
+      <tr><td><strong>审批记录(六字段,可回顾)+ 只增不改的审计日志</strong></td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>企业向的场景里,这一条比收件箱本身更值钱。</td></tr>
+      <tr><td><strong>按事件类型分档的推送开关</strong>(等批准 / 高风险 / 等输入 / 出错 / 完成)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>官方明说没有</td>
+        <td>官方文档原文:「Claude decides when to push… Beyond the two on/off toggles below, <strong>there is no per-event configuration</strong>」。两个开关分别是「Push when Claude decides」和「Push when actions required」。这条差异<strong>在 8-08 那次核查里已经识别过,一年后依然成立</strong>。</td></tr>
+      <tr><td>高风险无一键批 / 无批量批 / 须展开完整详情</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>不适用(是产品立场)</td>
+        <td>官方的方向恰好相反:Auto 模式主打「减少权限提示」。这构成真实的定位差异,但要说清它是<strong>立场</strong>不是<strong>功能</strong>。</td></tr>
+      <tr><td>Approve Once / Deny / Deny with Feedback</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>权限提示本身 + 手机远程作答</td>
+        <td>官方连「保持提示打开直到你回答」的语义都写进文档了。</td></tr>
+      <tr><td>Allow for This Session(会话级长效授权)</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>权限模式 + 允许规则 + 每目录记忆</td>
+        <td>官方的模式选择还能按文件夹记住。</td></tr>
+      <tr><td>Deny and Stop(中断)</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>拒绝 + 中断当前轮</td>
+        <td>—</td></tr>
+      <tr><td>选择型提示(问答类)作答</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>官方支持远程回答此类提示</td>
+        <td><strong>值得单独说</strong>:自研这边把「远程回答选择型提示」定成了红线不做;官方直接做了,而且做在手机上。这一条上,官方比自研<em>更激进</em>。</td></tr>
+      <tr><td>外部 session 的批准操作</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>Remote Control</td>
+        <td><strong>本次对账里最反直觉的一条。</strong>自研这边因为架构限制,对外部 session 一律只读、审批不生效;而官方的 Remote Control 恰恰让终端里的 session 可以远程批准——代价是<strong>必须显式开启</strong>(跑 <code>claude remote-control</code>),且转录会存到 Anthropic 服务器。</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="box ok">
+    <p class="bt">这一节的净结论</p>
+    <p>审批这块的差异是<strong>真的</strong>,而且是这份对账里唯一没有被时间稀释的一块。但它的表述必须精确:
+    不是「官方不能远程批准」(能,而且免费),而是<strong>「官方没有把待批请求聚合成一个带风险分级和留痕的台子」</strong>。
+    这两句话的市场含义差得很远——前者已经是假话,后者仍然是真话。</p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="num">06</span>逐条对账 · 宿主与执行</h2>
+  <p>重叠最狠的一块。<strong>这一节里判「已被替代」的条目数,超过其它所有节加起来的一半。</strong></p>
+  <div class="tw"><table>
+    <thead><tr><th>自研功能</th><th>判定</th><th>官方对应物</th><th>依据 / 备注</th></tr></thead>
+    <tbody>
+      <tr><td>内嵌终端 / 垂直标签 / 左右分屏 / 工作区</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>集成终端 + 拖放布局 + Cmd 点击双 session 分屏</td>
+        <td>官方还多给了文件编辑器和视图模式切换。这块<strong>是官方的主场</strong>——它在进程内,信息优势天然更大。</td></tr>
+      <tr><td>远程终端只读镜像 / 远程输入</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>Remote Control</td>
+        <td>官方还支持从手机发图片和文件、自动重连、多端同时在线。</td></tr>
+      <tr><td><strong>git worktree 隔离</strong></td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>每 session 自动 worktree</td>
+        <td>官方做得更细:可配置目录与分支前缀、<code>.worktreeinclude</code> 把 <code>.env</code> 这类 gitignore 文件带进去、PR 合并后自动归档。</td></tr>
+      <tr><td>浏览器窗格(与终端分屏,加载 localhost)</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>应用预览 + 外部站点浏览</td>
+        <td>自研这条尚未开工。</td></tr>
+      <tr><td><strong>执行位置选择器</strong>(窗格 / 本机后台 / 云 / 远程 SSH)</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>开新 session 时选环境:本机 / 云端 / SSH / WSL</td>
+        <td><strong>这一条要单独看。</strong>自研这边把它拆成了阶段 Y1–Y5 五格,目前刚做完 Y1 和 Y2a;官方是开 session 时的一个下拉框,四个选项,四月就有了。</td></tr>
+      <tr><td>Anthropic 云派发</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>云端 session(关掉电脑仍继续)+ 可跨多仓库</td>
+        <td>官方还支持把本机 session「继续到云端」:推分支、生成对话摘要、带完整上下文开云端 session。</td></tr>
+      <tr><td>远程 SSH 派发</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>SSH session</td>
+        <td>—</td></tr>
+      <tr><td>Dispatch 分诊表 + 硬确认门 + 批量 spawn + 批次追踪</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>任务卡片(点一下开新 session + 新 worktree)+ 手机 Dispatch</td>
+        <td>官方覆盖了「发现工作 → 开一个 session」;<strong>没覆盖</strong>「一次派一批、按批次追踪、派之前过一道人工确认门」。这是这一节里唯一还剩东西的一格。</td></tr>
+      <tr><td>本机后台 agent 派发 + 审批真批 + 接管进窗格</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>后台任务 + 任务面板 + Dispatch</td>
+        <td>「接管进窗格」这个动作官方没有对应物。</td></tr>
+      <tr><td>出生登记 / 血缘元数据(来源 / 父 session / 批次 / worktree)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>Dispatch 徽标、worktree 归属</td>
+        <td>官方有零散的归属标记,没有可查询的血缘链。这条是阶段 7 和阶段 9 的地基,别当成小功能。</td></tr>
+      <tr><td>收官模式(阈值 → 注入收官指令 → checkpoint 落盘)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>官方到「上下文满了自动摘要」为止,不产出可交接的 checkpoint 文件。</td></tr>
+      <tr><td>接力(checkpoint → 新 session 续作链)</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>「继续到云端」会带对话摘要开新 session</td>
+        <td>官方有「换个地方接着干」,没有「按 checkpoint 文件接力并留下续作链」。</td></tr>
+      <tr><td>压缩纪律(检测到压缩 → 注入「先重读 progress.md」)</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>自动摘要 + <code>/compact</code></td>
+        <td>官方管「压缩」,不管「压缩之后重新对齐到项目文档」。这条小,但它是自研这边少数<strong>真正踩中痛点</strong>的设计。</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s6">
+  <h2><span class="num">07</span>逐条对账 · 组织、通知、多 agent</h2>
+  <p>这一节的特点是:<strong>独占条目最多,但也最没被验证过</strong>——大部分尚未开工。独占不等于有人要。</p>
+
+  <h3>组织与回顾</h3>
+  <div class="tw"><table>
+    <thead><tr><th>自研功能</th><th>判定</th><th>官方对应物</th><th>依据 / 备注</th></tr></thead>
+    <tbody>
+      <tr><td>Topics 主题追踪(跨 session 进度线 + 「接着干」)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>官方能让 Claude「读其它 session 在干嘛」,但那是即时问答,不是持久的主题索引。</td></tr>
+      <tr><td>CLAUDE.md 沉淀草案</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>—</td></tr>
+      <tr><td>Projects 进度页(解析 progress.md 真实勾选,无文件不编百分比)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到</td>
+        <td>官方有 PR 状态监控,那是另一个维度。</td></tr>
+      <tr><td>多来源进度追踪(Cowork 只读 + 侧车 + 设计产物)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>不适用</td>
+        <td>官方自己不会去做「把自家几个产品的痕迹拼成一条进度线」这件事。</td></tr>
+      <tr><td>History 按项目 + 日期聚合 / 今日总结</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>定时任务可生成</td>
+        <td>「让 Claude 每天早上写一份昨天干了什么」现在是官方一个定时任务就能做的事。</td></tr>
+      <tr><td>每日日报(生成 / 查看 / 推送 / 导出)</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>桌面定时任务 + 云端 Routines</td>
+        <td>官方文档举的例子就是「daily code reviews、morning briefings」。自研的差异只剩「日报的数据源是<em>全部</em> session,包括官方看不见的那些」——又绕回第一条护城河。</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>通知与连接</h3>
+  <div class="tw"><table>
+    <thead><tr><th>自研功能</th><th>判定</th><th>官方对应物</th><th>依据 / 备注</th></tr></thead>
+    <tbody>
+      <tr><td>系统通知 + 短时聚合</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>桌面 app 在 session 完成且你没在看时发系统通知</td>
+        <td>「短时聚合」官方没有,但这是细节不是壁垒。</td></tr>
+      <tr><td>手机推送(载荷只含通用文案 + 计数)</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>官方推送(完成时 / 需要决定时 / 可在 prompt 里主动要求)</td>
+        <td>官方还有一个巧思:<strong>你正在终端里打字时不推</strong>,并可用一个标记文件把这个抑制扩展到「人在机器前」的任意时刻。</td></tr>
+      <tr><td>配对(二维码 = 指纹 + 一次性码)+ 设备台账 + 逐台吊销</td>
+        <td><span class="tag t-gone">已被替代</span></td>
+        <td>Remote Control 配对 + 受信设备 + 组织级开关</td>
+        <td>官方在企业侧还多一层:Team/Enterprise 默认关闭、需 Owner 开启、可要求受信设备登记。</td></tr>
+      <tr><td>能力分级(读 / 读内容 / 批准 / 派工 / 终端读 / 终端写)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>文档中查不到对等物</td>
+        <td>官方有权限模式和企业管控,但没有「按能力逐项授权给某台设备」这层。</td></tr>
+      <tr><td>Kitty 形象(静态 + 动态状态机)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>不适用</td>
+        <td>—</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>多 agent(阶段 11–13)</h3>
+  <div class="tw"><table>
+    <thead><tr><th>自研功能</th><th>判定</th><th>官方对应物</th><th>依据 / 备注</th></tr></thead>
+    <tbody>
+      <tr><td>Core 层不认识任何 agent 品牌 + 提供者注册表</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>结构上不可能有</td>
+        <td>Anthropic 不会去做一个「把 Codex 也纳进来」的抽象层。这是<strong>官方的结构性盲区</strong>,不是它还没排期。</td></tr>
+      <tr><td>Codex 只读接入(L0–L2)</td>
+        <td><span class="tag t-part">部分重叠</span></td>
+        <td>官方无;但第三方菜单栏工具已有</td>
+        <td>见下一节——这块<strong>已经不是空地了</strong>。</td></tr>
+      <tr><td>opencode 接入(可达 L3)</td>
+        <td><span class="tag t-own">仍然独占</span></td>
+        <td>未见对应物</td>
+        <td>「能审批第三方 agent」比「能看第三方 agent 的用量」高一个量级,目前没查到别人做到。</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s7">
+  <h2><span class="num">08</span>三条卖点,逐条复检</h2>
+  <p>项目的上线 spec 里定了三条卖点。一年后逐条过:</p>
+
+  <h3>卖点 1 ·「零配置、被动看全部」<span class="tag t-own">成立</span></h3>
+  <p><strong>而且比当初更成立。</strong>当初这条的对手是 Remote Control 的「必须显式开启」;
+  现在多了一个更强的论据:<strong>官方自己的桌面 app 也看不见终端里的 session</strong>,而且这是写在文档里的已知边界。
+  一个开着五个终端窗口跑 Claude Code 的人,在官方桌面 app 里看到的是空的。</p>
+  <div class="box ok">
+    <p class="bt">文案该怎么改</p>
+    <p>原文案说的是「机器上所有 Claude Code session 自动进看板」。建议加一句更锋利的对照:
+    <strong>「包括官方桌面 app 自己看不见的那些」</strong>——这句有官方文档背书,是可以直接核的事实,不是营销话术。</p>
+  </div>
+
+  <h3>卖点 2 ·「审批收件箱,带风险分级」<span class="tag t-own">成立,但表述必须收紧</span></h3>
+  <p>核过一圈,官方确实没有聚合、没有分级、没有留痕、没有分档通知。但「远程批准」本身早已不是差异点,
+  且官方在<strong>选择型提示远程作答</strong>这一项上比自研更激进。所以这条卖点的边界要重画:
+  卖的是<strong>「批之前你看得见多少 / 批之后留下什么」</strong>,不是「你能不能在别处批」。</p>
+
+  <h3>卖点 3 ·「数据通路上没有第三方服务器」<span class="tag t-part">半成立</span></h3>
+  <p>这条当初的依据是 Remote Control 会把转录存到 Anthropic 服务器。那依然是事实。
+  但它现在<strong>只对一小撮人成立</strong>——同时满足「在意转录出本机」且「不使用官方桌面 app」的人。
+  而官方桌面 app 的本机 session 本来就在本机跑。这条更适合作为<strong>隐私页的一段说明</strong>,而不是首页的第三块 hero。</p>
+  <p>更值钱的是当初那张限制表里的人群,它们一条都没过期:用 API key 的、走企业 LLM 网关的、
+  关了遥测的、有零数据留存合规要求的、组织没开 Remote Control 的。<strong>这不是卖点,这是 ICP。</strong></p>
+</section>
+
+<section id="s8">
+  <h2><span class="num">09</span>那个盲点:为什么上次没查出来</h2>
+  <p>这一节不讲产品,讲方法,因为它是这次对账里唯一可以复用的东西。</p>
+  <p>2026-08-08 那次核查做得其实很扎实:拉了官方文档原文、推翻了两份互相打架的二手研究、
+  逐条列出了 Remote Control 的八条硬边界、并据此砍掉了两句已经站不住的卖点。<strong>方法没问题,范围错了。</strong></p>
+  <div class="box warn">
+    <p class="bt">错在哪</p>
+    <p>那次核查的入口问题是<strong>「官方的手机方案能不能替代我们的手机方案」</strong>,
+    于是查了 Remote Control、Dispatch、Channels、Scheduled tasks——手机线相关的全查了。
+    但桌面端重做(4 月 14 日发布,比那次核查早了将近四个月)<strong>不在这个问题的射程内</strong>,
+    因为它不是手机功能。而它恰恰是对 Mac 主线杀伤最大的一次投放。</p>
+  </div>
+  <p>可以复用的教训是:<strong>竞品核查的范围应该按「对手的产品线」划,不是按「我这次担心的那条线」划。</strong>
+  担心手机被替代,就只去查手机;结果桌面被端了四个月都不知道。</p>
+  <p>配套的一条:<strong>这类核查要定期重跑,而不是立项时跑一次。</strong>
+  从 4 月到 8 月这四个月里,官方发的东西改变了本项目至少 18 条功能的性质,而项目文档里没有任何一处反映这件事。</p>
+</section>
+
+<section id="s9">
+  <h2><span class="num">10</span>还有一件事:这块地已经不空了</h2>
+  <p>对账做到一半发现了一个不在原计划里的问题:<strong>「跨品牌 + 菜单栏 + 监控 session」这个位置,已经有人在了。</strong></p>
+  <div class="tw"><table>
+    <thead><tr><th>工具</th><th>它做什么</th><th>与自研的关系</th></tr></thead>
+    <tbody>
+      <tr><td>so-agentbar</td><td>从菜单栏追踪每一个活跃的 Claude Code 与 Codex session——<strong>CLI、Xcode、桌面 app、Codex 都算</strong>,显示 token、花费、状态</td><td><strong>位置几乎重合</strong>:跨品牌 + 菜单栏 + 含 CLI session。差别在它是用量视角,不做审批</td></tr>
+      <tr><td>ClaudeBar</td><td>菜单栏监控 Claude / Codex / Gemini / Copilot 的配额</td><td>跨品牌配额,不碰 session 态势与审批</td></tr>
+      <tr><td>SessionWatcher</td><td>菜单栏追踪 Claude / Codex / Copilot / Cursor / Gemini 的用量、花费、限流窗口;含桌面小组件;一次性买断 $6.99 起</td><td>已经在收钱,且定价档位与自研规划的 Pro 档撞了</td></tr>
+      <tr><td>Happy(开源)</td><td>手机端远程控制 Claude Code</td><td>8 月那次核查已识别,免费</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box mid">
+    <p class="bt">这意味着什么</p>
+    <p><strong>「跨品牌」本身不再是护城河,它是一个已经有三四个玩家的品类。</strong>
+    真正还没被占的位置是这两条的<em>交集</em>:跨品牌 + <strong>审批台</strong>(不是用量表)。
+    上面这些工具全部停在「看用量」,没有一个碰权限请求——因为那需要接 hooks、需要做风险模型、需要处理超时策略,
+    是个重得多的工程。<strong>这恰好是自研这边已经投了最多的地方。</strong></p>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><span class="num">11</span>还剩什么:护城河按含金量排</h2>
+  <p>「独占」有 15 条,但含金量差得很远。判断标准是两条:<strong>官方结构上会不会来做</strong>,以及<strong>已经有没有别人在做</strong>。</p>
+
+  <figure>
+    <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="四条护城河按含金量排序">
+      <g font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor">
+        <text x="20" y="24" font-size="11.5" opacity=".6">含金量</text>
+        <text x="700" y="24" font-size="11.5" opacity=".6" text-anchor="middle">官方会不会来做</text>
+
+        <rect x="20" y="40" width="560" height="52" rx="8" fill="#0f7a52" opacity=".14"/>
+        <rect x="20" y="40" width="4" height="52" rx="2" fill="#0f7a52"/>
+        <text x="38" y="62" font-size="14" font-weight="700">1 · 跨品牌的统一抽象</text>
+        <text x="38" y="80" font-size="11" opacity=".65">Core 不认识任何 agent 品牌;Codex / opencode 都是提供者</text>
+        <text x="700" y="70" font-size="12" fill="#0f7a52" text-anchor="middle" font-weight="600">结构上不可能</text>
+
+        <rect x="20" y="102" width="560" height="52" rx="8" fill="#0f7a52" opacity=".11"/>
+        <rect x="20" y="102" width="4" height="52" rx="2" fill="#0f7a52"/>
+        <text x="38" y="124" font-size="14" font-weight="700">2 · 看得见外部终端 session</text>
+        <text x="38" y="142" font-size="11" opacity=".65">官方桌面 app 明确看不见 CLI / VS Code 起的 session</text>
+        <text x="700" y="132" font-size="12" fill="#b45309" text-anchor="middle" font-weight="600">已有功能请求</text>
+
+        <rect x="20" y="164" width="560" height="52" rx="8" fill="#0f7a52" opacity=".14"/>
+        <rect x="20" y="164" width="4" height="52" rx="2" fill="#0f7a52"/>
+        <text x="38" y="186" font-size="14" font-weight="700">3 · 审批台(聚合 + 分级 + 留痕 + 分档通知)</text>
+        <text x="38" y="204" font-size="11" opacity=".65">官方方向相反:Auto 模式主打「减少权限提示」</text>
+        <text x="700" y="194" font-size="12" fill="#0f7a52" text-anchor="middle" font-weight="600">方向相反,不太会</text>
+
+        <rect x="20" y="226" width="560" height="52" rx="8" fill="#b45309" opacity=".1"/>
+        <rect x="20" y="226" width="4" height="52" rx="2" fill="#b45309"/>
+        <text x="38" y="248" font-size="14" font-weight="700">4 · 菜单栏常驻态势 / Kitty / 主题追踪</text>
+        <text x="38" y="266" font-size="11" opacity=".65">形态优势与未验证需求;第三方已在做菜单栏那半</text>
+        <text x="700" y="256" font-size="12" fill="#c02b3a" text-anchor="middle" font-weight="600">别人已经在做</text>
+      </g>
+    </svg>
+    <figcaption>1 和 3 是结构性的,2 是有时效的(官方一旦统一会话存储就没了),4 基本不构成壁垒。</figcaption>
+  </figure>
+
+  <p>把这张图翻译成一句定位:</p>
+  <div class="box ok">
+    <p class="bt">建议的新定位</p>
+    <p>从「<strong>Claude Code 的管理面板</strong>」挪到「<strong>所有 coding agent 的统一审批台</strong>」。<br><br>
+    前者在和官方赛跑,而官方在自己的进程里、有全部信息、还比你快;
+    后者踩的是官方的结构性盲区(它不会去管 Codex),同时又是现有第三方工具全都绕开的那块硬骨头(它们只做用量,不做审批)。<br><br>
+    注意这个新定位<strong>不需要新功能</strong>——阶段 11/12a/13 那条线本来就在往这走。它需要的是<strong>停掉另外几件事</strong>。</p>
+  </div>
+</section>
+
+<section id="s11">
+  <h2><span class="num">12</span>对路线图的具体建议</h2>
+  <p>按「继续 / 收缩 / 停掉」三档给,每条都对得上前面的判定。</p>
+
+  <h3>继续投(踩在护城河 1 和 3 上)</h3>
+  <ul>
+    <li><strong>阶段 13(opencode 接入)</strong> —— 唯一一个能做到「第三方 agent 也能审批」的方向,是护城河 1 和 3 的交点。优先级应该是最高的。</li>
+    <li><strong>阶段 12b(Codex 审批与托管)</strong> —— 同上。等配额窗口期间可以先把 Core 的抽象欠账补掉。</li>
+    <li><strong>审批台自身的加固</strong>(记录、审计、分档通知、风险模型) —— 这是唯一一块<strong>越查越站得住</strong>的地方,却排在很后面。建议提前。</li>
+  </ul>
+
+  <h3>收缩范围(还有价值,但别再加功能)</h3>
+  <ul>
+    <li><strong>内嵌终端</strong> —— 别砍,它是跨品牌托管的载体;但停止往「比官方终端更好用」的方向投入。官方在进程内,这场比不赢。</li>
+    <li><strong>阶段 Y(执行位置多目标派发)</strong> —— <strong>重新审一遍</strong>。官方的「本机 / 云 / SSH / WSL」下拉框四月就有了,Y3/Y4/Y5 三格需要重新论证还剩多少增量。Y1/Y2 做的分诊建议引擎可能仍有价值(那是官方没有的判断层),但「把活派到别处执行」本身已经不稀缺。</li>
+    <li><strong>每日日报</strong> —— 唯一的差异化理由是「数据源包含官方看不见的 session」。围绕这一点写,别当独立功能做。</li>
+  </ul>
+
+  <h3>建议停掉或降级</h3>
+  <ul>
+    <li><strong>阶段 10 的浏览器窗格</strong> —— 官方的预览 + 外部站点浏览已经覆盖,而且尚未开工。这是最容易砍的一格。</li>
+    <li><strong>Files &amp; Diff / Tasks 两个 tab(自家 session 部分)</strong> —— 官方的 diff 审阅和任务面板更完整。若要做,只做<strong>外部 session</strong> 的那一半。</li>
+    <li><strong>手机端 M4/M5(远程终端镜像与输入)</strong> —— Remote Control 完整覆盖且免费。手机端要做,做的应该是<strong>审批台的手机版</strong>,不是终端的手机版。</li>
+    <li><strong>官网卖点 3 从首页降级到隐私页</strong> —— 理由见第 8 节。</li>
+  </ul>
+
+  <div class="box">
+    <p class="bt">还有一条与功能无关的</p>
+    <p>「Dispatch」这个名字<strong>和官方的功能重名了</strong>——官方的 Dispatch 是「手机发任务给桌面 app」。
+    自研这边的 Dispatch 页是派工分诊。这两个东西面向的场景还挺接近,重名会造成真实的沟通混乱,建议改名。</p>
+  </div>
+</section>
+
+<section id="s12">
+  <h2><span class="num">13</span>没核到的,和可能错的</h2>
+  <p>把这节写在这里,是因为一份对账报告最容易骗人的地方就是它不说自己哪里虚。</p>
+  <ul>
+    <li><strong>「文档中查不到」不等于「不存在」。</strong>判为「仍然独占」的 15 条里,绝大多数依据是官方文档没有描述对应能力。
+      官方产品迭代速度快于文档,这些判定有过期风险,尤其是审批相关的几条。</li>
+    <li><strong>没有实机验证。</strong>本文没有装官方桌面 app 逐项点过一遍,全部依据文档描述。
+      「文档说有」和「实际好用」之间的差距没有测量。</li>
+    <li><strong>自研这边的交付状态没有重测。</strong>哪条已交付、哪条在规划,照项目文档记录,没跑一遍验证。</li>
+    <li><strong>第三方工具只做了搜索层面的了解。</strong>so-agentbar 等工具没有实际安装试用,
+      「它是否真能看见 CLI session」这一条只有它自己的宣称,没有独立验证。<strong>这条如果错了,影响的是第 10 节的结论强度。</strong></li>
+    <li><strong>企业侧完全没查。</strong>官方的管控台、受信设备、托管设置这几块只扫到标题,没有细看。
+      如果未来定位往企业走,这块必须单独重做一次对账。</li>
+    <li><strong>数字有主观成分。</strong>48 条的切分粒度、以及「部分重叠」与「已被替代」之间的界线,都由本文自己划。
+      换个人划,18/15/15 这组数会变。<strong>请把它当作量级参考,不是精确测量。</strong></li>
+  </ul>
+  <p>最后一句是给自己的:这份对账的价值不在那三个数字,而在它把一件本来靠感觉的事
+  ——「是不是被替代了」——变成了一张可以逐行反驳的表。<strong>下次该做的不是再感觉一次,是把这张表重跑一遍。</strong></p>
+</section>
+
+<section id="s13">
+  <h2><span class="num">14</span>来源</h2>
+  <h4>官方文档(判定的主要依据)</h4>
+  <ul class="src">
+    <li><a href="https://code.claude.com/docs/en/desktop">Desktop application</a> —— 多 session 侧边栏与筛选分组、worktree 隔离、分屏、用量环、权限模式表、任务面板、跨会话消息、Dispatch 徽标、云端/SSH 环境;以及「Claude 看不见你从终端 CLI 或 VS Code 扩展起的 session」这句原文</li>
+    <li><a href="https://code.claude.com/docs/en/remote-control">Continue local sessions from any device with Remote Control</a> —— 手机答权限提示、<code>Push when actions required</code>、「there is no per-event configuration」、转录存储位置、各项禁用条件、四种离机工作方式的对比表</li>
+    <li><a href="https://code.claude.com/docs/en/desktop-scheduled-tasks">Schedule recurring tasks in Claude Code Desktop</a> —— 桌面定时任务</li>
+    <li><a href="https://code.claude.com/docs/en/worktrees">Worktrees</a> · <a href="https://code.claude.com/docs/en/cross-session-messaging">Cross-session messaging</a> · <a href="https://code.claude.com/docs/en/permission-modes">Permission modes</a></li>
+  </ul>
+  <h4>发布时间与报道</h4>
+  <ul class="src">
+    <li><a href="https://www.macrumors.com/2026/04/15/anthropic-rebuilds-claude-code-desktop-app/">Anthropic Rebuilds Claude Code Desktop App Around Parallel Sessions</a> —— 2026-04-14 发布,多 session 侧边栏与拖放布局</li>
+    <li><a href="https://www.buildfastwithai.com/blogs/claude-code-desktop-redesign-2026">Claude Code Desktop Redesign: Multi-Sessions + Routines</a> —— 五大块归纳、每 session 独立 worktree、侧边对话快捷键</li>
+    <li><a href="https://note.com/fuma_ai_lab/n/n660ce26c57f0?hl=en-US">Claude Code 手机推送更新说明</a> —— 推送功能于 v2.1.110(2026-04-16)加入</li>
+    <li><a href="https://prosperinai.substack.com/p/claude-routines-tasks-loop">Claude Routines vs /loop vs Desktop Tasks</a> —— 三档定时能力的差异</li>
+  </ul>
+  <h4>官方 issue(用于确认某能力尚不存在)</h4>
+  <ul class="src">
+    <li><a href="https://github.com/anthropics/claude-code/issues/43786">[FEATURE] Desktop app sidebar should show CLI-created sessions</a> —— CLI session 不进桌面侧边栏,会话存储位置不同</li>
+    <li><a href="https://github.com/anthropics/claude-code/issues/29438">[FEATURE] Remote Control: Push notifications on iOS when permission approval is needed</a></li>
+  </ul>
+  <h4>第三方工具(第 10 节)</h4>
+  <ul class="src">
+    <li><a href="https://sotthang.github.io/so-agentbar/">so-agentbar</a> —— 菜单栏追踪 Claude Code 与 Codex session,含 CLI / Xcode / 桌面 app</li>
+    <li><a href="https://github.com/tddworks/ClaudeBar">ClaudeBar</a> —— 多提供方配额监控</li>
+    <li><a href="https://sessionwatcher.com/">SessionWatcher</a> —— 多提供方用量追踪,含桌面小组件与买断定价</li>
+  </ul>
+  <hr>
+  <p style="font-size:13.5px;color:var(--muted)">
+    对账日期 2026-08-24。官方能力以该日期前可公开查阅的文档为准,此后发布的功能不在本文射程内。
+    自研功能清单取自项目内部的功能矩阵文档 macOS 列与执行位置派发方案。
+  </p>
+</section>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var html=document.documentElement, KEY='oriel-audit-theme';
+  var saved=localStorage.getItem(KEY)||'auto';
+  html.setAttribute('data-theme',saved);
+  document.querySelectorAll('.tt button').forEach(function(b){
+    if(b.dataset.t===saved) b.classList.add('on'); else b.classList.remove('on');
+    b.addEventListener('click',function(){
+      html.setAttribute('data-theme',b.dataset.t);
+      localStorage.setItem(KEY,b.dataset.t);
+      document.querySelectorAll('.tt button').forEach(function(x){x.classList.toggle('on',x===b)});
+    });
+  });
+  var bar=document.getElementById('bar');
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))}).filter(Boolean);
+  function onScroll(){
+    var h=document.documentElement;
+    bar.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+    var cur=null;
+    secs.forEach(function(s){ if(s.getBoundingClientRect().top<160) cur=s; });
+    links.forEach(function(a){ a.classList.toggle('on', cur && a.getAttribute('href')==='#'+cur.id); });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>
