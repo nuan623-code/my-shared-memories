@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>x402:Agent 原生支付协议 | x402: Native Payments for AI Agents</title>
+<style>
+:root{
+  --ink:#0d1b2a; --ink-2:#3d5166; --ink-3:#6b8299;
+  --paper:#f6f4ef; --card:#ffffff; --line:#e0dbd1;
+  --mint:#0f8a6a; --mint-soft:#e3f4ee;
+  --amber:#c9761a; --amber-soft:#fbeeda;
+  --rose:#b23a48; --rose-soft:#fbe8ea;
+  --code-bg:#111d2b; --code-ink:#dbe6f0;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC","Hiragino Sans GB",sans-serif;
+  font-size:17px; line-height:1.78; -webkit-text-size-adjust:100%;
+}
+.bar{position:sticky;top:0;z-index:40;background:rgba(246,244,239,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar-in{max-width:900px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:12px}
+.brand{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+.spacer{flex:1}
+#langBtn{
+  border:1px solid var(--ink);background:transparent;color:var(--ink);
+  font:inherit;font-size:13px;font-weight:700;letter-spacing:.06em;
+  padding:5px 13px;border-radius:999px;cursor:pointer;transition:.18s;
+}
+#langBtn:hover{background:var(--ink);color:var(--paper)}
+#prog{height:2px;background:var(--mint);width:0;transition:width .12s linear}
+
+header.hero{max-width:900px;margin:0 auto;padding:56px 20px 30px}
+.kicker{display:inline-block;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mint);border:1px solid var(--mint);border-radius:999px;padding:3px 12px;font-weight:700}
+h1{font-size:clamp(29px,5.6vw,46px);line-height:1.18;margin:18px 0 12px;letter-spacing:-.02em}
+.lede{font-size:19px;color:var(--ink-2);margin:0 0 18px}
+.meta{font-size:13.5px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:14px}
+
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:8px 0 44px}
+nav.toc b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+nav.toc ol{margin:0;padding-left:20px}
+nav.toc li{margin:5px 0}
+nav.toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent}
+nav.toc a:hover{border-bottom-color:var(--mint);color:var(--mint)}
+
+section{margin:0 0 52px;scroll-margin-top:64px}
+h2{font-size:clamp(22px,3.6vw,29px);line-height:1.3;margin:0 0 6px;letter-spacing:-.01em}
+h2:before{content:"";display:block;width:44px;height:3px;background:var(--mint);margin-bottom:14px}
+h3{font-size:19px;margin:30px 0 8px}
+p{margin:0 0 14px}
+a{color:var(--mint)}
+code{font-family:var(--mono);font-size:.9em;background:#eceae4;padding:1px 5px;border-radius:4px}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.62;margin:0 0 16px}
+pre code{background:none;color:inherit;padding:0;font-size:inherit}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin:0 0 16px}
+.callout{border-left:4px solid var(--mint);background:var(--mint-soft);border-radius:0 11px 11px 0;padding:14px 18px;margin:0 0 16px;font-size:16px}
+.callout.warn{border-left-color:var(--rose);background:var(--rose-soft)}
+.callout.note{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout b{display:block;margin-bottom:4px}
+
+.tbl{width:100%;overflow-x:auto;margin:0 0 18px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:#efece5;font-weight:700}
+
+figure{margin:26px 0;opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+figure.in{opacity:1;transform:none}
+figure svg{width:100%;height:auto;display:block;background:var(--card);border:1px solid var(--line);border-radius:13px}
+figcaption{font-size:13.5px;color:var(--ink-3);margin-top:9px;text-align:center}
+
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0}
+.src{font-size:13.5px;color:var(--ink-3)}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.05em;padding:2px 8px;border-radius:999px;vertical-align:middle}
+.tag.fact{background:var(--mint-soft);color:var(--mint)}
+.tag.infer{background:var(--amber-soft);color:var(--amber)}
+footer{border-top:1px solid var(--line);padding:26px 0 0;font-size:13.5px;color:var(--ink-3)}
+@media (max-width:600px){
+  body{font-size:16px}
+  header.hero{padding:34px 18px 22px}
+  .wrap{padding:0 18px 60px}
+  nav.toc{padding:16px 18px}
+  pre{font-size:12.5px;padding:13px 14px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="AI 深度学习 · 2026-08-24 AI Deep Dive · 2026-08-24 EN Agent 基础设施 Agent Infrastructure x402:把 HTTP 402 唤醒,让 Agent 自…">
+<meta property="og:title" content="x402:Agent 原生支付协议 | x402: Native Payments for AI Agents">
+<meta property="og:description" content="AI 深度学习 · 2026-08-24 AI Deep Dive · 2026-08-24 EN Agent 基础设施 Agent Infrastructure x402:把 HTTP 402 唤醒,让 Agent 自…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-24-x402-dai-li-zhi-fu-xie-yi.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-24-x402-dai-li-zhi-fu-xie-yi.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "x402:Agent 原生支付协议 | x402: Native Payments for AI Agents", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-24-x402-dai-li-zhi-fu-xie-yi.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-24", "dateModified": "2026-08-24"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+
+<div class="bar">
+  <div class="bar-in">
+    <span class="brand zh">AI 深度学习 · 2026-08-24</span>
+    <span class="brand en">AI Deep Dive · 2026-08-24</span>
+    <span class="spacer"></span>
+    <button id="langBtn" type="button">EN</button>
+  </div>
+  <div id="prog"></div>
+</div>
+
+<header class="hero">
+  <span class="kicker zh">Agent 基础设施</span>
+  <span class="kicker en">Agent Infrastructure</span>
+  <h1 class="zh">x402:把 HTTP 402 唤醒,让 Agent 自己付钱</h1>
+  <h1 class="en">x402: Waking Up HTTP 402 So Agents Can Pay for Themselves</h1>
+  <p class="lede zh">一个只加两个 HTTP 头的支付协议,已经在生产里跑了上亿笔;同一个月,三篇论文系统性地证明了它有洞。这份文档讲清楚它是什么、怎么接、什么时候<b>别</b>用。</p>
+  <p class="lede en">A payment protocol that adds just two HTTP headers, already running hundreds of millions of transactions in production — and in the same month, three papers systematically proved it has holes. This document covers what it is, how to wire it up, and when <b>not</b> to.</p>
+  <p class="meta zh">深度调研文档 · 全部数据标注来源与日期 · 事实与推断分开标记 · 阅读约 22 分钟</p>
+  <p class="meta en">Deep research document · every figure sourced and dated · facts and inferences marked separately · ~22 min read</p>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <b class="zh">目录</b>
+  <b class="en">Contents</b>
+  <ol>
+    <li><a href="#s-tldr"><span class="zh">一分钟速览</span><span class="en">The one-minute version</span></a></li>
+    <li><a href="#s-what"><span class="zh">是什么:一个被搁置 30 年的状态码</span><span class="en">What it is: a status code parked for 30 years</span></a></li>
+    <li><a href="#s-flow"><span class="zh">协议流程:两个头走完一次支付</span><span class="en">The flow: one payment in two headers</span></a></li>
+    <li><a href="#s-tech"><span class="zh">关键机制:gasless 签名与 facilitator</span><span class="en">Key mechanics: gasless signatures and the facilitator</span></a></li>
+    <li><a href="#s-use"><span class="zh">怎么用:服务端、MCP server、客户端</span><span class="en">How to use it: server, MCP server, client</span></a></li>
+    <li><a href="#s-when"><span class="zh">什么场景用:和 AP2 / ACP / MPP 的分工</span><span class="en">When to use it: x402 vs AP2 / ACP / MPP</span></a></li>
+    <li><a href="#s-risk"><span class="zh">安全与常见坑:三篇论文说了什么</span><span class="en">Security and pitfalls: what three papers found</span></a></li>
+    <li><a href="#s-status"><span class="zh">生态现状与数据</span><span class="en">Ecosystem status and numbers</span></a></li>
+    <li><a href="#s-glossary"><span class="zh">术语表</span><span class="en">Glossary</span></a></li>
+    <li><a href="#s-sources"><span class="zh">来源清单</span><span class="en">Sources</span></a></li>
+  </ol>
+</nav>
+
+<!-- ===================== TLDR ===================== -->
+<section id="s-tldr">
+  <h2 class="zh">1 · 一分钟速览</h2>
+  <h2 class="en">1 · The one-minute version</h2>
+
+  <p class="zh"><b>一句话:</b>x402 是一个开放的 HTTP 原生支付协议——服务端用 <code>402 Payment Required</code> 回一份「报价单」,客户端把一个<b>签名后的付款授权</b>塞进请求头再发一次,服务端验签放行,链上结算异步发生。全程<b>不需要账号、不需要 API key、不需要人点确认</b>。</p>
+  <p class="en"><b>In one sentence:</b> x402 is an open, HTTP-native payment protocol — the server answers with <code>402 Payment Required</code> plus a machine-readable quote, the client puts a <b>signed payment authorization</b> in a request header and retries, the server verifies it and serves the resource, and on-chain settlement happens asynchronously. No account, no API key, no human clicking Approve.</p>
+
+  <div class="card">
+    <p class="zh"><b>为什么现在值得学:</b></p>
+    <p class="en"><b>Why it's worth learning now:</b></p>
+    <ul class="zh">
+      <li><b>已在生产规模运行</b> <span class="tag fact">事实</span>:截至 2026 Q1,Base 上累计逾 1.19 亿笔、Solana 上 3500 万笔,年化约 6 亿美元规模,协议层零手续费。</li>
+      <li><b>进了主流基建</b> <span class="tag fact">事实</span>:2026-02 Stripe 在 Base 上集成 x402;2026-08 Cloudflare 在 Agents Week 随 Kitesurf 一起上线 x402 支持,20+ 家公司参与 agent 发起的支付流;x402 基金会由 Coinbase 与 Cloudflare 共治。</li>
+      <li><b>刚被系统性拆过</b> <span class="tag fact">事实</span>:2026 年多篇 arXiv 论文给出了五类具体攻击、"白嫖算力"分析,以及 PII 泄露加固方案。</li>
+      <li><b>对独立开发者的现实意义</b> <span class="tag infer">推断</span>:它目前是让「我的 API / MCP server 按次收钱、不建账号体系」落地成本最低的路径。</li>
+    </ul>
+    <ul class="en">
+      <li><b>Already at production scale</b> <span class="tag fact">fact</span>: as of Q1 2026, 119M+ cumulative transactions on Base and 35M on Solana, roughly $600M annualized volume, zero protocol fees.</li>
+      <li><b>Inside mainstream infrastructure</b> <span class="tag fact">fact</span>: Stripe integrated x402 on Base in Feb 2026; Cloudflare shipped x402 support alongside Kitesurf during Agents Week in Aug 2026, with 20+ companies participating in agent-initiated payment flows; the x402 Foundation is co-governed by Coinbase and Cloudflare.</li>
+      <li><b>And it has just been taken apart</b> <span class="tag fact">fact</span>: several 2026 arXiv papers document five concrete attacks, a "free-riding compute" analysis, and a PII-hardening proposal.</li>
+      <li><b>Why an indie developer should care</b> <span class="tag infer">inference</span>: today it is the cheapest path to "charge per call for my API or MCP server, without building an account system."</li>
+    </ul>
+  </div>
+
+  <div class="callout warn">
+    <b class="zh">先说结论里的那个「但是」</b>
+    <b class="en">The "but" up front</b>
+    <p class="zh" style="margin:0">x402 把<b>同步的 HTTP 授权</b>和<b>异步的链上结算</b>缝在一起,这条缝制造了传统 Web 支付和纯链上支付<b>都没有</b>的跨层攻击面。签名的付款凭据本质是 <b>bearer credential</b>(拿到就能用),协议本身没有应用层 nonce。任何生产接入都必须自己补上花费策略、幂等与重放防护。</p>
+    <p class="en" style="margin:0">x402 stitches <b>synchronous HTTP authorization</b> onto <b>asynchronous on-chain settlement</b>, and that seam creates a cross-layer attack surface absent from both conventional web payments and pure on-chain payments. A signed payment payload is effectively a <b>bearer credential</b>, and the protocol has no application-layer nonce of its own. Any production integration must add its own spending policy, idempotency, and replay protection.</p>
+  </div>
+</section>
+
+<!-- ===================== WHAT ===================== -->
+<section id="s-what">
+  <h2 class="zh">2 · 是什么:一个被搁置 30 年的状态码</h2>
+  <h2 class="en">2 · What it is: a status code parked for 30 years</h2>
+
+  <p class="zh">HTTP 规范里一直有一个 <code>402 Payment Required</code>,自 1990 年代起就被标记为「保留供未来使用」。原因很实际:那时没有一种能在一次请求往返里完成、金额可以低到几分钱、且不需要人工介入的结算方式。信用卡的最小手续费就把微支付判了死刑。</p>
+  <p class="en">The HTTP spec has always had a <code>402 Payment Required</code>, marked "reserved for future use" since the 1990s. The reason was practical: there was no settlement method that could complete inside a single request round-trip, go as low as fractions of a cent, and require no human in the loop. Credit-card minimum fees alone killed micropayments.</p>
+
+  <p class="zh">x402 的判断是:<b>稳定币 + 可由第三方代付 gas 的签名授权</b>让这三个条件同时成立了。它由 Coinbase Developer Platform 提出,白皮书发布于 2025-05-06;V2 于 2025-12 发布。<span class="tag fact">事实</span></p>
+  <p class="en">The x402 bet is that <b>stablecoins plus signed authorizations whose gas a third party can pay</b> make all three conditions true at once. It came out of Coinbase Developer Platform, with the whitepaper published on 2025-05-06 and V2 in Dec 2025. <span class="tag fact">fact</span></p>
+
+  <h3 class="zh">它解决的到底是谁的问题</h3>
+  <h3 class="en">Whose problem does it actually solve</h3>
+
+  <p class="zh">传统 API 变现的路径是:注册 → 拿 API key → 绑卡 → 按月结算。这套流程里的每一步都<b>预设了一个人</b>。一个自主 agent 想临时调用一个它三秒钟前才发现的数据源,这套流程完全走不通——它没有邮箱、没有信用卡、也没有耐心等人工审批。</p>
+  <p class="en">The classic path to API monetization is: sign up → get an API key → attach a card → settle monthly. Every step of that presumes <b>a person</b>. An autonomous agent that wants to call a data source it discovered three seconds ago cannot walk that path — it has no inbox, no credit card, and no patience for manual approval.</p>
+
+  <p class="zh">x402 把这条链路压缩成:<b>请求 → 收到报价 → 签名 → 重发 → 拿到资源</b>。服务方不需要认识调用方是谁,只需要确认「这笔钱到账了」。<span class="tag infer">推断</span>这本质上是把 API 的商业模型从「身份授权」换成了「按次结算」——身份问题被绕开,而不是被解决。</p>
+  <p class="en">x402 compresses that into: <b>request → receive a quote → sign → retry → get the resource</b>. The provider never needs to know who the caller is, only that the money arrived. <span class="tag infer">inference</span> In effect this swaps the API business model from "identity-based authorization" to "per-call settlement" — the identity problem is routed around rather than solved.</p>
+
+  <div class="callout note">
+    <b class="zh">和 MCP 的关系</b>
+    <b class="en">How this relates to MCP</b>
+    <p class="zh" style="margin:0">MCP 2026-07-28 规范之后,一个远程 MCP server 就是一个普通 HTTP 负载。这意味着<b>任何针对 HTTP 的支付中间件都能直接套在 MCP server 上</b>——`tools/list` 保持免费,`tools/call` 里的付费工具走 402。MCP 官方路线图(2026-08-22)把 agent 身份与企业安全列为五大优先领域之一,但当前规范里<b>没有</b>支付原语;x402 填的正是这块空白。<span class="tag infer">推断</span></p>
+    <p class="en" style="margin:0">After the MCP 2026-07-28 specification, a remote MCP server is just an ordinary HTTP workload. That means <b>any HTTP payment middleware drops straight onto an MCP server</b> — keep `tools/list` free, and gate priced tools inside `tools/call` behind a 402. The official MCP roadmap (2026-08-22) lists agent identity and enterprise security among its five priority areas, but the current specification has <b>no</b> payment primitive; x402 fills exactly that gap. <span class="tag infer">inference</span></p>
+  </div>
+</section>
+
+<!-- ===================== FLOW ===================== -->
+<section id="s-flow">
+  <h2 class="zh">3 · 协议流程:两个头走完一次支付</h2>
+  <h2 class="en">3 · The flow: one payment in two headers</h2>
+
+  <p class="zh">参与方有三个:<b>客户端</b>(付费的 agent)、<b>资源服务器</b>(卖东西的 API)、<b>facilitator</b>(验签并把钱真正搬上链的第三方)。下图是一次完整的往返。</p>
+  <p class="en">Three parties are involved: the <b>client</b> (the paying agent), the <b>resource server</b> (the API selling something), and the <b>facilitator</b> (the third party that verifies signatures and actually moves the money on-chain). The diagram below is one complete round-trip.</p>
+
+  <figure class="zh">
+    <svg viewBox="0 0 860 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="x402 支付流程图">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#3d5166"/>
+        </marker>
+        <marker id="ar-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0f8a6a"/>
+        </marker>
+      </defs>
+      <rect x="30" y="24" width="180" height="46" rx="10" fill="#e3f4ee" stroke="#0f8a6a"/>
+      <text x="120" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="#0d1b2a">Agent(客户端)</text>
+      <rect x="340" y="24" width="180" height="46" rx="10" fill="#fbeeda" stroke="#c9761a"/>
+      <text x="430" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="#0d1b2a">资源服务器</text>
+      <rect x="650" y="24" width="180" height="46" rx="10" fill="#f1eef8" stroke="#6b5bb2"/>
+      <text x="740" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="#0d1b2a">Facilitator</text>
+
+      <line x1="120" y1="70" x2="120" y2="440" stroke="#e0dbd1" stroke-width="2"/>
+      <line x1="430" y1="70" x2="430" y2="440" stroke="#e0dbd1" stroke-width="2"/>
+      <line x1="740" y1="70" x2="740" y2="440" stroke="#e0dbd1" stroke-width="2"/>
+
+      <line x1="120" y1="106" x2="424" y2="106" stroke="#3d5166" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="272" y="98" text-anchor="middle" font-size="13" fill="#3d5166">① GET /weather(无支付头)</text>
+
+      <line x1="430" y1="150" x2="126" y2="150" stroke="#c9761a" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="278" y="142" text-anchor="middle" font-size="13" fill="#c9761a">② 402 + PaymentRequirements</text>
+      <text x="278" y="167" text-anchor="middle" font-size="11.5" fill="#6b8299">金额 / 资产 / 网络 / 收款地址 / 有效期</text>
+
+      <rect x="34" y="188" width="172" height="44" rx="8" fill="#fff" stroke="#0f8a6a" stroke-dasharray="4 3"/>
+      <text x="120" y="206" text-anchor="middle" font-size="12" fill="#0d1b2a">③ 本地校验价格与策略</text>
+      <text x="120" y="223" text-anchor="middle" font-size="12" fill="#0d1b2a">用私钥签一份授权(不上链)</text>
+
+      <line x1="120" y1="256" x2="424" y2="256" stroke="#0f8a6a" stroke-width="2.4" marker-end="url(#ar-m)"/>
+      <text x="272" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#0f8a6a">④ 重发同一请求 + X-PAYMENT 头</text>
+
+      <line x1="430" y1="296" x2="734" y2="296" stroke="#3d5166" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="582" y="288" text-anchor="middle" font-size="13" fill="#3d5166">⑤ /verify:验签、查余额、比对参数</text>
+
+      <line x1="740" y1="334" x2="436" y2="334" stroke="#3d5166" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="588" y="326" text-anchor="middle" font-size="13" fill="#3d5166">⑥ valid = true</text>
+
+      <rect x="344" y="352" width="172" height="30" rx="8" fill="#fff" stroke="#c9761a" stroke-dasharray="4 3"/>
+      <text x="430" y="372" text-anchor="middle" font-size="12" fill="#0d1b2a">⑦ 真正执行业务逻辑</text>
+
+      <line x1="430" y1="404" x2="126" y2="404" stroke="#0f8a6a" stroke-width="2.4" marker-end="url(#ar-m)"/>
+      <text x="278" y="396" text-anchor="middle" font-size="13" font-weight="700" fill="#0f8a6a">⑧ 200 OK + X-PAYMENT-RESPONSE</text>
+
+      <line x1="436" y1="438" x2="734" y2="438" stroke="#b23a48" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ar)"/>
+      <text x="585" y="430" text-anchor="middle" font-size="13" fill="#b23a48">⑨ /settle:异步上链(在响应之后)</text>
+    </svg>
+    <figcaption>图 1:x402 一次完整往返。注意第 ⑨ 步在第 ⑧ 步<b>之后</b>——这条时序线是大部分安全问题的源头。</figcaption>
+  </figure>
+
+  <figure class="en">
+    <svg viewBox="0 0 860 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="x402 payment flow diagram">
+      <defs>
+        <marker id="ar-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#3d5166"/>
+        </marker>
+        <marker id="ar-m-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0f8a6a"/>
+        </marker>
+      </defs>
+      <rect x="30" y="24" width="180" height="46" rx="10" fill="#e3f4ee" stroke="#0f8a6a"/>
+      <text x="120" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="#0d1b2a">Agent (client)</text>
+      <rect x="340" y="24" width="180" height="46" rx="10" fill="#fbeeda" stroke="#c9761a"/>
+      <text x="430" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="#0d1b2a">Resource server</text>
+      <rect x="650" y="24" width="180" height="46" rx="10" fill="#f1eef8" stroke="#6b5bb2"/>
+      <text x="740" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="#0d1b2a">Facilitator</text>
+
+      <line x1="120" y1="70" x2="120" y2="440" stroke="#e0dbd1" stroke-width="2"/>
+      <line x1="430" y1="70" x2="430" y2="440" stroke="#e0dbd1" stroke-width="2"/>
+      <line x1="740" y1="70" x2="740" y2="440" stroke="#e0dbd1" stroke-width="2"/>
+
+      <line x1="120" y1="106" x2="424" y2="106" stroke="#3d5166" stroke-width="2" marker-end="url(#ar-e)"/>
+      <text x="272" y="98" text-anchor="middle" font-size="13" fill="#3d5166">① GET /weather (no payment header)</text>
+
+      <line x1="430" y1="150" x2="126" y2="150" stroke="#c9761a" stroke-width="2" marker-end="url(#ar-e)"/>
+      <text x="278" y="142" text-anchor="middle" font-size="13" fill="#c9761a">② 402 + PaymentRequirements</text>
+      <text x="278" y="167" text-anchor="middle" font-size="11.5" fill="#6b8299">amount / asset / network / payTo / validity</text>
+
+      <rect x="34" y="188" width="172" height="44" rx="8" fill="#fff" stroke="#0f8a6a" stroke-dasharray="4 3"/>
+      <text x="120" y="206" text-anchor="middle" font-size="12" fill="#0d1b2a">③ Check price against policy,</text>
+      <text x="120" y="223" text-anchor="middle" font-size="12" fill="#0d1b2a">sign an authorization (off-chain)</text>
+
+      <line x1="120" y1="256" x2="424" y2="256" stroke="#0f8a6a" stroke-width="2.4" marker-end="url(#ar-m-e)"/>
+      <text x="272" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#0f8a6a">④ Retry same request + X-PAYMENT</text>
+
+      <line x1="430" y1="296" x2="734" y2="296" stroke="#3d5166" stroke-width="2" marker-end="url(#ar-e)"/>
+      <text x="582" y="288" text-anchor="middle" font-size="13" fill="#3d5166">⑤ /verify: signature, balance, params</text>
+
+      <line x1="740" y1="334" x2="436" y2="334" stroke="#3d5166" stroke-width="2" marker-end="url(#ar-e)"/>
+      <text x="588" y="326" text-anchor="middle" font-size="13" fill="#3d5166">⑥ valid = true</text>
+
+      <rect x="344" y="352" width="172" height="30" rx="8" fill="#fff" stroke="#c9761a" stroke-dasharray="4 3"/>
+      <text x="430" y="372" text-anchor="middle" font-size="12" fill="#0d1b2a">⑦ Run the actual handler</text>
+
+      <line x1="430" y1="404" x2="126" y2="404" stroke="#0f8a6a" stroke-width="2.4" marker-end="url(#ar-m-e)"/>
+      <text x="278" y="396" text-anchor="middle" font-size="13" font-weight="700" fill="#0f8a6a">⑧ 200 OK + X-PAYMENT-RESPONSE</text>
+
+      <line x1="436" y1="438" x2="734" y2="438" stroke="#b23a48" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ar-e)"/>
+      <text x="585" y="430" text-anchor="middle" font-size="13" fill="#b23a48">⑨ /settle: on-chain, after the response</text>
+    </svg>
+    <figcaption>Figure 1: one complete x402 round-trip. Note that step ⑨ happens <b>after</b> step ⑧ — that ordering is the source of most of the security problems.</figcaption>
+  </figure>
+
+  <h3 class="zh">402 响应体长什么样</h3>
+  <h3 class="en">What the 402 response body looks like</h3>
+
+  <p class="zh">服务端在 402 里返回一份结构化的支付要求,告诉客户端:多少钱、什么资产、哪条链、付给谁、这份报价多久失效。<span class="tag infer">推断</span>字段名在不同实现与版本间略有出入,以你选用的 SDK 文档为准;下面是概念示意:</p>
+  <p class="en">The server returns a structured set of payment requirements inside the 402: how much, which asset, which network, who gets paid, and how long the quote is good for. <span class="tag infer">inference</span> Exact field names vary a little across implementations and versions, so follow your SDK's docs; the shape below is illustrative:</p>
+
+<pre><code>HTTP/1.1 402 Payment Required
+Content-Type: application/json
+
+{
+  "accepts": [{
+    "scheme":    "exact",
+    "network":   "base",
+    "asset":     "USDC",
+    "maxAmountRequired": "1000",        // 最小单位 / smallest unit
+    "payTo":     "0xYourPayoutAddress",
+    "resource":  "https://api.example.com/weather",
+    "maxTimeoutSeconds": 60
+  }]
+}</code></pre>
+
+  <p class="zh">客户端读懂后构造签名载荷,base64 编码放进 <code>X-PAYMENT</code> 头重发原请求。服务端在放行前把这个头交给 facilitator 的 <code>/verify</code>;返回给客户端的 200 里带 <code>X-PAYMENT-RESPONSE</code>,里面是结算凭据(交易哈希等)。</p>
+  <p class="en">The client builds a signed payload, base64-encodes it into the <code>X-PAYMENT</code> header, and retries the original request. Before serving, the server hands that header to the facilitator's <code>/verify</code>; the 200 that goes back carries <code>X-PAYMENT-RESPONSE</code> with the settlement receipt (transaction hash and so on).</p>
+</section>
+
+<!-- ===================== TECH ===================== -->
+<section id="s-tech">
+  <h2 class="zh">4 · 关键机制:gasless 签名与 facilitator</h2>
+  <h2 class="en">4 · Key mechanics: gasless signatures and the facilitator</h2>
+
+  <h3 class="zh">为什么必须是 EIP-3009 资产</h3>
+  <h3 class="en">Why it has to be an EIP-3009 asset</h3>
+
+  <p class="zh">x402 把付款塞在<b>请求头</b>里,这就要求:客户端只出一个签名,由别人代为提交上链,而且<b>事先不需要 approve 额度</b>。EVM 上恰好有这么一个标准——<b>EIP-3009 的 <code>transferWithAuthorization</code></b>,USDC 实现了它。<span class="tag fact">事实</span> 不支持 EIP-3009 的普通 ERC-20 走 Permit2 路线。</p>
+  <p class="en">x402 puts the payment in a <b>request header</b>, which requires that the client produce only a signature, that someone else submits it on-chain, and that <b>no allowance is set up beforehand</b>. On EVM there is exactly one standard for that — <b>EIP-3009's <code>transferWithAuthorization</code></b>, which USDC implements. <span class="tag fact">fact</span> Plain ERC-20s without EIP-3009 go through Permit2 instead.</p>
+
+  <div class="callout">
+    <b class="zh">gasless 的真正含义</b>
+    <b class="en">What "gasless" actually means</b>
+    <p class="zh" style="margin:0">不是「没有 gas」,而是<b>付款方不出 gas</b>。用户/agent 只做链下签名,由 facilitator 这个 relayer 掏 gas 把交易打上链。这也意味着:<b>agent 的钱包里只需要有稳定币,不需要持有原生代币</b>——对一个自动创建的 agent 钱包来说,这个差别是「能不能用」的级别。<span class="tag infer">推断</span></p>
+    <p class="en" style="margin:0">Not "no gas" — <b>the payer pays no gas</b>. The user or agent only signs off-chain, and the facilitator, acting as a relayer, pays the gas to land the transaction. Which also means <b>the agent's wallet needs only stablecoins, not the chain's native token</b> — for an automatically provisioned agent wallet that difference is the difference between usable and not. <span class="tag infer">inference</span></p>
+  </div>
+
+  <h3 class="zh">facilitator 到底在做什么</h3>
+  <h3 class="en">What the facilitator actually does</h3>
+
+  <p class="zh">facilitator 把「懂区块链」这件事从服务端剥离出去,分两个阶段:</p>
+  <p class="en">The facilitator takes "knowing about blockchains" off the server's plate, in two phases:</p>
+
+  <div class="tbl"><table class="zh">
+    <tr><th>阶段</th><th>时机</th><th>做什么</th><th>失败会怎样</th></tr>
+    <tr><td><code>/verify</code></td><td>业务逻辑执行<b>之前</b></td><td>校验 EIP-3009 签名、检查付款方余额、比对付款参数是否与报价一致</td><td>服务端拒绝请求,不执行业务逻辑</td></tr>
+    <tr><td><code>/settle</code></td><td>响应发回客户端<b>之后</b>(异步)</td><td>把签名提交上链,执行实际转账</td><td>钱没到账,但资源<b>已经给出去了</b></td></tr>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <tr><th>Phase</th><th>When</th><th>What it does</th><th>What failure means</th></tr>
+    <tr><td><code>/verify</code></td><td><b>Before</b> the handler runs</td><td>Validates the EIP-3009 signature, checks the payer's balance, confirms the payment parameters match the quote</td><td>Server rejects the request and never runs the handler</td></tr>
+    <tr><td><code>/settle</code></td><td><b>After</b> the response is sent (async)</td><td>Submits the signature on-chain and executes the actual transfer</td><td>The money never arrives — but the resource <b>has already been handed over</b></td></tr>
+  </table></div>
+
+  <p class="zh">Coinbase 通过 CDP 提供公共 facilitator,覆盖 Base、Solana、Stellar,<b>免费</b>。<span class="tag fact">事实</span> 你也可以自建 facilitator——代价是你要自己处理 RPC、nonce、gas 与重试。</p>
+  <p class="en">Coinbase runs public facilitators through CDP for Base, Solana, and Stellar, <b>at no cost</b>. <span class="tag fact">fact</span> You can also self-host one — at the cost of owning RPC access, nonces, gas, and retries yourself.</p>
+
+  <figure class="zh">
+    <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="职责分层图">
+      <rect x="24" y="20" width="812" height="60" rx="10" fill="#e3f4ee" stroke="#0f8a6a"/>
+      <text x="44" y="46" font-size="15" font-weight="700" fill="#0f8a6a">应用层 · 你写的代码</text>
+      <text x="44" y="68" font-size="13" fill="#3d5166">定价策略 · 花费上限 · 幂等键 · 审计日志 · 「先收钱还是先干活」的决策</text>
+
+      <rect x="24" y="94" width="812" height="60" rx="10" fill="#fbeeda" stroke="#c9761a"/>
+      <text x="44" y="120" font-size="15" font-weight="700" fill="#c9761a">协议层 · x402</text>
+      <text x="44" y="142" font-size="13" fill="#3d5166">402 报价格式 · X-PAYMENT / X-PAYMENT-RESPONSE 头 · scheme 与 network 协商</text>
+
+      <rect x="24" y="168" width="812" height="60" rx="10" fill="#f1eef8" stroke="#6b5bb2"/>
+      <text x="44" y="194" font-size="15" font-weight="700" fill="#6b5bb2">中继层 · Facilitator</text>
+      <text x="44" y="216" font-size="13" fill="#3d5166">验签 · 查余额 · 代付 gas · 提交上链 · 返回交易凭据</text>
+
+      <rect x="24" y="242" width="812" height="46" rx="10" fill="#eceae4" stroke="#e0dbd1"/>
+      <text x="44" y="271" font-size="14" font-weight="700" fill="#3d5166">结算层 · 链与稳定币(Base / Solana / Ethereum / Arbitrum / Polygon,USDC 等 EIP-3009 资产)</text>
+    </svg>
+    <figcaption>图 2:四层职责划分。<b>最上面一层协议不管</b>——所有花费控制与业务安全都是你自己的活。</figcaption>
+  </figure>
+
+  <figure class="en">
+    <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Responsibility layers diagram">
+      <rect x="24" y="20" width="812" height="60" rx="10" fill="#e3f4ee" stroke="#0f8a6a"/>
+      <text x="44" y="46" font-size="15" font-weight="700" fill="#0f8a6a">Application layer · your code</text>
+      <text x="44" y="68" font-size="13" fill="#3d5166">Pricing policy · spend caps · idempotency keys · audit logs · "charge first or work first"</text>
+
+      <rect x="24" y="94" width="812" height="60" rx="10" fill="#fbeeda" stroke="#c9761a"/>
+      <text x="44" y="120" font-size="15" font-weight="700" fill="#c9761a">Protocol layer · x402</text>
+      <text x="44" y="142" font-size="13" fill="#3d5166">402 quote format · X-PAYMENT / X-PAYMENT-RESPONSE headers · scheme and network negotiation</text>
+
+      <rect x="24" y="168" width="812" height="60" rx="10" fill="#f1eef8" stroke="#6b5bb2"/>
+      <text x="44" y="194" font-size="15" font-weight="700" fill="#6b5bb2">Relay layer · facilitator</text>
+      <text x="44" y="216" font-size="13" fill="#3d5166">Verify signature · check balance · pay gas · submit on-chain · return the receipt</text>
+
+      <rect x="24" y="242" width="812" height="46" rx="10" fill="#eceae4" stroke="#e0dbd1"/>
+      <text x="44" y="271" font-size="14" font-weight="700" fill="#3d5166">Settlement layer · chains and stablecoins (Base / Solana / Ethereum / Arbitrum / Polygon; USDC and other EIP-3009 assets)</text>
+    </svg>
+    <figcaption>Figure 2: four layers of responsibility. <b>The protocol owns none of the top layer</b> — spend control and business safety are entirely yours.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== USE ===================== -->
+<section id="s-use">
+  <h2 class="zh">5 · 怎么用:服务端、MCP server、客户端</h2>
+  <h2 class="en">5 · How to use it: server, MCP server, client</h2>
+
+  <h3 class="zh">5.1 给一个 Express 路由加价格</h3>
+  <h3 class="en">5.1 Putting a price on an Express route</h3>
+
+  <p class="zh">最小接入是一行中间件:声明收款地址和每条路由的价格。中间件负责在没有 <code>X-PAYMENT</code> 头时返回 402,在有的时候完成验证再让 handler 执行。</p>
+  <p class="en">The minimum integration is one middleware line: declare your payout address and a price per route. The middleware returns a 402 when there is no <code>X-PAYMENT</code> header, and verifies before letting the handler run when there is.</p>
+
+<pre><code>import express from "express";
+import { paymentMiddleware } from "@x402/express";
+
+const app = express();
+
+app.use(paymentMiddleware(
+  "0xYourPayoutAddress",          // 收款地址 / payout address
+  { "/weather": "$0.001" }        // 每次调用 0.001 美元 / $0.001 per call
+));
+
+app.get("/weather", (req, res) =&gt; {
+  // 走到这里说明支付已验证通过
+  // reaching here means the payment already verified
+  res.json({ tempC: 21, city: "Shanghai" });
+});
+
+app.listen(3000);</code></pre>
+
+  <div class="callout note">
+    <b class="zh">这一行代码没帮你做的事</b>
+    <b class="en">What that one line does not do for you</b>
+    <p class="zh" style="margin:0">中间件默认在 <code>/verify</code> 通过后就放行 handler,而 <code>/settle</code> 是响应之后才发生的。也就是说,<b>「已验证」不等于「已到账」</b>。对于单次成本很低的只读接口这没问题;对于每次调用要烧掉几秒 GPU 的接口,你需要自己决定是否等结算确认——这正是「白嫖算力」那篇论文的攻击面。</p>
+    <p class="en" style="margin:0">By default the middleware lets the handler run once <code>/verify</code> passes, while <code>/settle</code> happens after the response. So <b>"verified" is not "settled"</b>. For cheap read-only endpoints that's fine; for an endpoint that burns seconds of GPU per call, you have to decide for yourself whether to wait for settlement — which is precisely the attack surface in the free-riding paper.</p>
+  </div>
+
+  <h3 class="zh">5.2 让 MCP server 按工具收费</h3>
+  <h3 class="en">5.2 Charging per tool on an MCP server</h3>
+
+  <p class="zh">模式很清晰:<b><code>tools/list</code> 保持免费</b>(否则 agent 连你有什么工具都不知道,更不会付钱),<b>把付费工具的 <code>tools/call</code> 挡在 402 后面</b>。Vercel 的 <code>x402-mcp</code> 是 <code>mcp-handler</code> 的薄封装,支持定义带价格的 <code>paidTools</code>;FlowMCP 的 <code>x402-mcp-middleware</code> 是 Express 兼容的网关型实现,在缺少支付签名头时查工具的价格元数据、构造 402 信封(链、资产、金额、收款方、nonce 窗口)返回。</p>
+  <p class="en">The pattern is clean: <b>keep <code>tools/list</code> free</b> (otherwise the agent never learns what you sell, let alone pays for it), and <b>gate <code>tools/call</code> for priced tools behind a 402</b>. Vercel's <code>x402-mcp</code> is a thin wrapper over <code>mcp-handler</code> that lets you declare <code>paidTools</code> with prices; FlowMCP's <code>x402-mcp-middleware</code> is an Express-compatible gateway that, when the payment signature header is missing, looks up the tool's price metadata and returns a 402 envelope (chain, asset, amount, recipient, nonce window).</p>
+
+<pre><code>// 概念示意 / conceptual sketch
+paidTools: {
+  "generate_report": {
+    price: "$0.05",
+    network: "base",
+    handler: async (args) =&gt; { /* ... */ }
+  }
+}
+// tools/list 免费:agent 先看得见,才谈得上买
+// tools/list stays free: the agent must see it before it can buy it</code></pre>
+
+  <h3 class="zh">5.3 客户端:让 agent 自动付</h3>
+  <h3 class="en">5.3 Client side: letting the agent pay automatically</h3>
+
+  <p class="zh">客户端 SDK 通常包装成一个 fetch 拦截器:遇到 402 → 读报价 → 对照策略 → 签名 → 自动重发。<b>「对照策略」这一步是你必须自己写的部分</b>,至少要有:单次上限、单会话累计上限、允许的收款地址白名单或允许的资产/网络白名单、以及重复付款的去重键。</p>
+  <p class="en">Client SDKs typically wrap this as a fetch interceptor: see a 402 → read the quote → check it against policy → sign → retry automatically. <b>The "check against policy" step is the part you must write yourself</b>, and it needs at minimum: a per-call cap, a per-session cumulative cap, an allowlist of payee addresses or of assets and networks, and a dedupe key for repeat payments.</p>
+
+  <div class="callout warn">
+    <b class="zh">一个真实存在的失败模式</b>
+    <b class="en">A failure mode that actually happens</b>
+    <p class="zh" style="margin:0">恶意的 402 服务端可以回一个<b>虚高的价格</b>、一个<b>伪造的 facilitator 地址</b>、或者一个<b>循环重定向</b>来触发反复微支付。没有花费策略的 agent <b>没有任何断路器</b>。这不是理论——它是 Halborn 与多篇论文共同点名的头号风险。</p>
+    <p class="en" style="margin:0">A malicious 402 server can return an <b>inflated price</b>, a <b>falsified facilitator address</b>, or a <b>looping redirect</b> that triggers repeated micropayments. An agent with no spending policy has <b>no circuit breaker at all</b>. This isn't theoretical — it's the number-one risk named by both Halborn and multiple papers.</p>
+  </div>
+</section>
+
+<!-- ===================== WHEN ===================== -->
+<section id="s-when">
+  <h2 class="zh">6 · 什么场景用:和 AP2 / ACP / MPP 的分工</h2>
+  <h2 class="en">6 · When to use it: x402 vs AP2 / ACP / MPP</h2>
+
+  <p class="zh">2026 年的代理支付格局大致落定为四个协议,它们<b>大体互补而非互斥</b>——搞混它们是最常见的选型错误。</p>
+  <p class="en">By 2026 the agentic-payments landscape settled into four protocols, and they are <b>largely complementary rather than competing</b> — confusing them is the most common selection mistake.</p>
+
+  <div class="tbl"><table class="zh">
+    <tr><th>协议</th><th>主导方</th><th>解决什么</th><th>典型场景</th></tr>
+    <tr><td><b>x402</b></td><td>Coinbase(x402 基金会,与 Cloudflare 共治)</td><td><b>执行层</b>:按次结算,钱怎么当场付</td><td>API、数据、算力、内容的按请求付费</td></tr>
+    <tr><td><b>AP2</b></td><td>Google</td><td><b>授权层</b>:agent 有没有权限代表用户花这笔钱;它是框架不是支付轨道</td><td>商家 / 支付机构 / 用户三方之间的意图与授权证明</td></tr>
+    <tr><td><b>ACP</b></td><td>OpenAI + Stripe(规范开源,beta)</td><td><b>商务层</b>:agent 在商家处完成结账的交互模型</td><td>商品 feed、支付委托、订单生命周期(如 ChatGPT Instant Checkout)</td></tr>
+    <tr><td><b>MPP</b></td><td>—</td><td><b>会话层</b>:基于 session 的机器花费</td><td>一段持续交互内的额度管理</td></tr>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <tr><th>Protocol</th><th>Driven by</th><th>What it solves</th><th>Typical use</th></tr>
+    <tr><td><b>x402</b></td><td>Coinbase (x402 Foundation, co-governed with Cloudflare)</td><td><b>Execution layer</b>: per-request settlement — how the money actually moves, now</td><td>Pay-per-request for APIs, data, compute, content</td></tr>
+    <tr><td><b>AP2</b></td><td>Google</td><td><b>Authorization layer</b>: whether an agent had permission to spend on the user's behalf; a framework, not a payment rail</td><td>Proof of intent and authorization across merchant / PSP / user</td></tr>
+    <tr><td><b>ACP</b></td><td>OpenAI + Stripe (open spec, in beta)</td><td><b>Commerce layer</b>: the interaction model for an agent checking out at a merchant</td><td>Product feeds, payment delegation, order lifecycle (e.g. ChatGPT Instant Checkout)</td></tr>
+    <tr><td><b>MPP</b></td><td>—</td><td><b>Session layer</b>: session-based machine spending</td><td>Budget management across a continuing interaction</td></tr>
+  </table></div>
+
+  <h3 class="zh">选它的判断标准</h3>
+  <h3 class="en">How to decide</h3>
+
+  <p class="zh"><b>适合 x402:</b>单价极低(几厘到几分)、调用方是软件而非人、资源是<b>可即时交付</b>的数字产品(一次 API 响应、一段数据、一次推理)、你不想也不需要建账号体系。</p>
+  <p class="en"><b>Good fit for x402:</b> very low unit price (fractions of a cent up), the caller is software rather than a person, the resource is a <b>deliverable-on-the-spot</b> digital good (one API response, one dataset, one inference), and you neither want nor need an account system.</p>
+
+  <p class="zh"><b>不适合 x402:</b>需要退款、争议处理、发票与合规凭证的交易(链上转账天然不可逆);单笔金额大到值得攻击的场景;涉及实物商品与履约周期的电商(那是 ACP 的地盘);需要向监管解释「这笔钱是谁授权的」(那是 AP2 要回答的问题)。<span class="tag infer">推断</span></p>
+  <p class="en"><b>Poor fit for x402:</b> transactions that need refunds, dispute resolution, invoices, or compliance receipts (on-chain transfers are inherently irreversible); amounts large enough to be worth attacking; e-commerce with physical goods and fulfillment windows (that's ACP's territory); anything where you must explain to a regulator who authorized the spend (that's AP2's question to answer). <span class="tag infer">inference</span></p>
+</section>
+
+<!-- ===================== RISK ===================== -->
+<section id="s-risk">
+  <h2 class="zh">7 · 安全与常见坑:三篇论文说了什么</h2>
+  <h2 class="en">7 · Security and pitfalls: what three papers found</h2>
+
+  <p class="zh">这是本文最该被读完的一节。2026 年围绕 x402 出现了一批安全研究,共同结论是:<b>协议在设计与实现两个层面都存在可利用的弱点</b>,而这些弱点的根源是那条「同步授权 + 异步结算」的缝。</p>
+  <p class="en">This is the section most worth finishing. A cluster of 2026 security research on x402 converges on one conclusion: <b>the protocol is exploitable at both the design and the implementation level</b>, and the root cause is that "synchronous authorization plus asynchronous settlement" seam.</p>
+
+  <h3 class="zh">7.1 五类攻击(arXiv:2605.11781)</h3>
+  <h3 class="en">7.1 Five attacks (arXiv:2605.11781)</h3>
+
+  <p class="zh">论文《Five Attacks on x402 Agentic Payment Protocol》给出五个具体攻击,覆盖<b>授权、绑定、重放保护、Web 层处理</b>四个薄弱面。被点名的攻击类别包括:</p>
+  <p class="en">"Five Attacks on x402 Agentic Payment Protocol" presents five concrete attacks across four weak spots — <b>authorization, binding, replay protection, and web-layer handling</b>. The named classes include:</p>
+
+  <ul class="zh">
+    <li><b>结算路径不一致(settlement-path inconsistencies)</b>:验证时看到的参数与最终上链的参数可以不同。</li>
+    <li><b>重放 / 幂等性攻击</b>:签名的付款载荷是 <b>bearer credential</b>——被截获后可以再次提交给 facilitator,把 agent 的钱包<b>二次扣款</b>。协议本身<b>没有应用层 nonce</b>。</li>
+    <li><b>头部 / 代理混淆(header & proxy confusion)</b>:中间代理对头的处理差异可被利用。</li>
+    <li><b>agent 的服务端选择被操纵</b>:诱导 agent 选择攻击者控制的收款方。</li>
+  </ul>
+  <ul class="en">
+    <li><b>Settlement-path inconsistencies</b>: the parameters seen at verification time can differ from the ones that finally land on-chain.</li>
+    <li><b>Replay / idempotency attacks</b>: a signed payment payload is a <b>bearer credential</b> — intercept it and resubmit it to the facilitator to <b>debit the agent's wallet twice</b>. The protocol has <b>no application-layer nonce</b> of its own.</li>
+    <li><b>Header and proxy confusion</b>: differences in how intermediate proxies handle the headers are exploitable.</li>
+    <li><b>Agent server-selection manipulation</b>: steering the agent toward an attacker-controlled payee.</li>
+  </ul>
+
+  <h3 class="zh">7.2 双向的「白嫖」(arXiv:2605.30998)</h3>
+  <h3 class="en">7.2 Free-riding, in both directions (arXiv:2605.30998)</h3>
+
+  <p class="zh">《Free-Riding the Agentic Web》指出这条缝会同时坑两边:<b>逻辑缺陷让请求方消耗算力却不付钱</b>,<b>结算缺陷让商家收了钱却不干活</b>。论文观察到,早期部署里<b>前者更常见</b>——因为 Web 服务倾向于优先保证客户体验和响应速度,于是在「资金真正落定之前就开始干活」这件事上留出了窗口。</p>
+  <p class="en">"Free-Riding the Agentic Web" shows the seam cuts both ways: <b>logic flaws let requesters consume compute without paying</b>, and <b>settlement flaws let merchants collect funds without delivering work</b>. The paper observes that in early deployments <b>the former dominates</b>, because web services err toward customer experience and speed — which opens a window where compute starts before funds are truly secured.</p>
+
+  <div class="callout warn">
+    <b class="zh">对应到你的代码</b>
+    <b class="en">What this means in your code</b>
+    <p class="zh" style="margin:0">如果你的付费接口每次调用成本可观(GPU 推理、第三方转发计费、长时间任务),<b>不要在 <code>/verify</code> 通过后就无条件开工</b>。可选做法:对高成本操作等待结算确认;或先返回一个便宜的「任务已受理」响应,等结算落定后再执行;或对同一付款方设置未结算敞口上限。</p>
+    <p class="en" style="margin:0">If each call to your paid endpoint costs real money (GPU inference, metered third-party calls, long jobs), <b>do not start work unconditionally the moment <code>/verify</code> passes</b>. Options: wait for settlement confirmation on expensive operations; return a cheap "accepted" response first and execute after settlement lands; or cap the unsettled exposure you'll carry for any one payer.</p>
+  </div>
+
+  <h3 class="zh">7.3 支付元数据里的隐私(arXiv:2604.11430)</h3>
+  <h3 class="en">7.3 Privacy in payment metadata (arXiv:2604.11430)</h3>
+
+  <p class="zh">《Hardening x402: PII-Safe Agentic Payments via Pre-Execution Metadata Filtering》关注一个容易忽略的点:支付流转的元数据里可能夹带个人信息,方案是在执行前对元数据做过滤。<span class="tag infer">推断</span>对国内团队而言,这条和数据出境、个人信息保护的合规要求直接相关,接入前值得先过一遍法务。</p>
+  <p class="en">"Hardening x402: PII-Safe Agentic Payments via Pre-Execution Metadata Filtering" targets an easily missed issue: payment metadata can carry personal information, and the proposal is to filter it before execution. <span class="tag infer">inference</span> For teams under privacy regimes like GDPR or China's PIPL, this maps directly onto data-transfer and personal-information rules, and is worth a legal review before you integrate.</p>
+
+  <h3 class="zh">7.4 上线前的最小检查清单</h3>
+  <h3 class="en">7.4 A minimum pre-launch checklist</h3>
+
+  <ul class="zh">
+    <li><b>付款方(agent)侧</b>:单次上限、会话累计上限、收款地址白名单、资产与网络白名单、拒绝异常高价的报价、限制自动重试次数(防循环重定向)。</li>
+    <li><b>收款方(服务)侧</b>:应用层幂等键、付款载荷去重(防重放)、验证参数与上链参数一一比对、高成本操作等待结算、单付款方未结算敞口上限。</li>
+    <li><b>传输侧</b>:强制 HTTPS,不信任任何中间代理改写的支付头;明确你部署环境里哪些代理会重写 header。</li>
+    <li><b>运营侧</b>:全量记录 402 报价与 <code>X-PAYMENT-RESPONSE</code> 凭据,便于对账与事后取证;链上转账不可逆,<b>对账是唯一的补救入口</b>。</li>
+  </ul>
+  <ul class="en">
+    <li><b>Payer (agent) side</b>: per-call cap, cumulative session cap, payee allowlist, asset and network allowlist, reject implausibly high quotes, bound automatic retries (against looping redirects).</li>
+    <li><b>Payee (service) side</b>: application-level idempotency keys, dedupe payment payloads (against replay), compare verified parameters against what settles on-chain, wait for settlement on expensive operations, cap unsettled exposure per payer.</li>
+    <li><b>Transport</b>: require HTTPS and distrust payment headers rewritten by any intermediary; know exactly which proxies in your deployment touch headers.</li>
+    <li><b>Operations</b>: log every 402 quote and every <code>X-PAYMENT-RESPONSE</code> receipt for reconciliation and forensics — on-chain transfers are irreversible, so <b>reconciliation is your only remedy</b>.</li>
+  </ul>
+</section>
+
+<!-- ===================== STATUS ===================== -->
+<section id="s-status">
+  <h2 class="zh">8 · 生态现状与数据</h2>
+  <h2 class="en">8 · Ecosystem status and numbers</h2>
+
+  <div class="tbl"><table class="zh">
+    <tr><th>项</th><th>情况</th><th>日期 / 口径</th></tr>
+    <tr><td>累计交易量</td><td>Base 逾 1.19 亿笔,Solana 3500 万笔;年化约 6 亿美元;协议层零手续费</td><td>截至 2026-03(Chainalysis)<span class="tag fact">事实</span></td></tr>
+    <tr><td>版本</td><td>白皮书 2025-05-06;V2 于 2025-12 发布</td><td>—<span class="tag fact">事实</span></td></tr>
+    <tr><td>支持网络</td><td>Base、Ethereum、Arbitrum、Polygon、Solana;CDP 公共 facilitator 覆盖 Base / Solana / Stellar</td><td>2026<span class="tag fact">事实</span></td></tr>
+    <tr><td>治理</td><td>x402 基金会,由 Coinbase 与 Cloudflare 共治</td><td>2026<span class="tag fact">事实</span></td></tr>
+    <tr><td>主要集成</td><td>Stripe(2026-02,Base 上)、Cloudflare Workers、Solana 原生开发工具、World 的 AgentKit</td><td>2026<span class="tag fact">事实</span></td></tr>
+    <tr><td>最新推进</td><td>Cloudflare 在 Agents Week 随 Kitesurf 一起上线 x402 支持,20+ 家公司参与 agent 发起的支付流</td><td>2026-08-06 前后<span class="tag fact">事实</span></td></tr>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <tr><th>Item</th><th>Status</th><th>Date / basis</th></tr>
+    <tr><td>Cumulative volume</td><td>119M+ transactions on Base, 35M on Solana; ~$600M annualized; zero protocol fees</td><td>as of Mar 2026 (Chainalysis)<span class="tag fact">fact</span></td></tr>
+    <tr><td>Versions</td><td>Whitepaper 2025-05-06; V2 shipped Dec 2025</td><td>—<span class="tag fact">fact</span></td></tr>
+    <tr><td>Networks</td><td>Base, Ethereum, Arbitrum, Polygon, Solana; CDP public facilitators cover Base / Solana / Stellar</td><td>2026<span class="tag fact">fact</span></td></tr>
+    <tr><td>Governance</td><td>x402 Foundation, co-governed by Coinbase and Cloudflare</td><td>2026<span class="tag fact">fact</span></td></tr>
+    <tr><td>Notable integrations</td><td>Stripe (Feb 2026, on Base), Cloudflare Workers, Solana native dev tooling, World's AgentKit</td><td>2026<span class="tag fact">fact</span></td></tr>
+    <tr><td>Most recent move</td><td>Cloudflare shipped x402 support alongside Kitesurf during Agents Week, with 20+ companies in agent-initiated payment flows</td><td>around 2026-08-06<span class="tag fact">fact</span></td></tr>
+  </table></div>
+
+  <p class="zh"><b>怎么读这组数字</b> <span class="tag infer">推断</span>:1.19 亿笔配 6 亿美元年化,意味着<b>平均单笔金额极小</b>——这与「按 API 请求付费」的画像一致,而不是电商。换句话说,x402 目前跑的是机器与机器之间的微支付,而不是人在买东西。判断它是否成功,应该看<b>有多少真实服务把价格挂上去</b>,而不是看交易笔数——笔数在微支付里很容易被少数高频循环撑起来。</p>
+  <p class="en"><b>How to read these numbers</b> <span class="tag infer">inference</span>: 119M transactions against ~$600M annualized implies a <b>very small average ticket</b> — consistent with pay-per-API-request, not with retail. In other words, what x402 is running today is machine-to-machine micropayments, not people buying things. The honest success metric is <b>how many real services have put a price up</b>, not transaction count — in micropayments, count is easily inflated by a handful of high-frequency loops.</p>
+</section>
+
+<!-- ===================== GLOSSARY ===================== -->
+<section id="s-glossary">
+  <h2 class="zh">9 · 术语表</h2>
+  <h2 class="en">9 · Glossary</h2>
+
+  <div class="tbl"><table class="zh">
+    <tr><th>术语</th><th>含义</th></tr>
+    <tr><td><b>x402</b></td><td>基于 HTTP 402 状态码的开放支付协议,由 Coinbase Developer Platform 提出。</td></tr>
+    <tr><td><b>facilitator</b></td><td>中继方。负责验签(<code>/verify</code>)与上链结算(<code>/settle</code>),让服务端不必自己接区块链。</td></tr>
+    <tr><td><b>EIP-3009 / <code>transferWithAuthorization</code></b></td><td>以太坊标准,允许用户只出签名、由第三方提交转账,无需事先 approve 额度。USDC 实现了它。</td></tr>
+    <tr><td><b>Permit2</b></td><td>面向不支持 EIP-3009 的 ERC-20 的替代授权方案。</td></tr>
+    <tr><td><b>gasless</b></td><td>付款方不出 gas,由 relayer(facilitator)代付。不是「没有 gas」。</td></tr>
+    <tr><td><b><code>X-PAYMENT</code></b></td><td>客户端重发请求时携带的头,内含 base64 编码的签名付款授权。</td></tr>
+    <tr><td><b><code>X-PAYMENT-RESPONSE</code></b></td><td>服务端在成功响应里回给客户端的结算凭据。</td></tr>
+    <tr><td><b>bearer credential</b></td><td>「持有即有效」的凭据。谁拿到都能用,因此必须自己做重放防护。</td></tr>
+    <tr><td><b>AP2 / ACP / MPP</b></td><td>分别是 Google 的授权框架、OpenAI+Stripe 的商务结账协议、基于 session 的机器花费协议。</td></tr>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td><b>x402</b></td><td>An open payment protocol built on the HTTP 402 status code, originated by Coinbase Developer Platform.</td></tr>
+    <tr><td><b>facilitator</b></td><td>The relay. Handles signature verification (<code>/verify</code>) and on-chain settlement (<code>/settle</code>) so the server never touches a blockchain.</td></tr>
+    <tr><td><b>EIP-3009 / <code>transferWithAuthorization</code></b></td><td>An Ethereum standard letting a user produce only a signature while a third party submits the transfer, with no prior allowance. USDC implements it.</td></tr>
+    <tr><td><b>Permit2</b></td><td>The alternative authorization path for ERC-20 tokens that don't support EIP-3009.</td></tr>
+    <tr><td><b>gasless</b></td><td>The payer pays no gas; a relayer (the facilitator) covers it. Not "no gas exists."</td></tr>
+    <tr><td><b><code>X-PAYMENT</code></b></td><td>The header the client attaches on retry, carrying a base64-encoded signed payment authorization.</td></tr>
+    <tr><td><b><code>X-PAYMENT-RESPONSE</code></b></td><td>The settlement receipt the server returns inside a successful response.</td></tr>
+    <tr><td><b>bearer credential</b></td><td>A credential valid for whoever holds it. Anyone who intercepts it can use it, so replay protection is on you.</td></tr>
+    <tr><td><b>AP2 / ACP / MPP</b></td><td>Google's authorization framework, OpenAI+Stripe's merchant checkout protocol, and a session-based machine-spending protocol, respectively.</td></tr>
+  </table></div>
+</section>
+
+<!-- ===================== SOURCES ===================== -->
+<section id="s-sources">
+  <h2 class="zh">10 · 来源清单</h2>
+  <h2 class="en">10 · Sources</h2>
+
+  <p class="src zh">本文所有事实性陈述均来自以下公开来源;标注「推断」的是作者基于这些来源做出的判断,请自行验证。</p>
+  <p class="src en">Every factual claim above comes from the public sources below; anything tagged "inference" is the author's reading of them and should be verified independently.</p>
+
+  <ul class="src zh">
+    <li>Chainalysis,《Inside x402: 100M Agentic Payments on Base》—— <a href="https://www.chainalysis.com/blog/x402-agentic-payments-adoption/">链接</a>(交易量与年化规模)</li>
+    <li>Crossmint,《Agentic payments protocols compared (MPP, ACP, AP2, x402)》—— <a href="https://www.crossmint.com/learn/agentic-payments-protocols-compared">链接</a>(四协议分工、Stripe 集成时间)</li>
+    <li>Allium,《x402 Protocol Explained》—— <a href="https://www.allium.so/blog/x402-explained-the-internet-native-payments-standard-for-apis-data-and-agent-commerce/">链接</a></li>
+    <li>Eco,《x402 Protocol Explained》/《Build an MCP Server with x402 Monetization》—— <a href="https://eco.com/support/en/articles/14839402-x402-protocol-explained">链接 1</a> · <a href="https://eco.com/support/en/articles/14846276-build-an-mcp-server-with-x402-monetization">链接 2</a></li>
+    <li>Avalanche Builder Hub,《X-PAYMENT header》—— <a href="https://build.avax.network/academy/blockchain/x402-payment-infrastructure/03-technical-architecture/03-x-payment-header">链接</a></li>
+    <li>Coinbase CDP,《Facilitator / network support》—— <a href="https://docs.cdp.coinbase.com/x402/network-support">链接</a></li>
+    <li>Vercel,《Introducing x402-mcp: Open protocol payments for MCP tools》—— <a href="https://vercel.com/blog/introducing-x402-mcp-open-protocol-payments-for-mcp-tools">链接</a></li>
+    <li>FlowMCP,《x402-mcp-middleware》—— <a href="https://github.com/FlowMCP/x402-mcp-middleware">链接</a></li>
+    <li>arXiv:2605.11781,《Five Attacks on x402 Agentic Payment Protocol》—— <a href="https://arxiv.org/abs/2605.11781">链接</a></li>
+    <li>arXiv:2605.30998,《Free-Riding the Agentic Web: A Systematic Security Analysis of x402 Payments》—— <a href="https://arxiv.org/pdf/2605.30998">链接</a></li>
+    <li>arXiv:2604.11430,《Hardening x402: PII-Safe Agentic Payments via Pre-Execution Metadata Filtering》—— <a href="https://arxiv.org/pdf/2604.11430">链接</a></li>
+    <li>Halborn,《x402 Explained: Security Risks &amp; Controls for HTTP 402 Micropayments》—— <a href="https://www.halborn.com/blog/post/x402-explained-security-risks-and-controls-for-http-402-micropayments">链接</a></li>
+    <li>TechCrunch,《Cloudflare launches Kitesurf, a browser built for AI agents》(2026-08-07)—— <a href="https://techcrunch.com/2026/08/07/cloudflare-launches-kitesurf-a-browser-built-for-ai-agents/">链接</a></li>
+    <li>Model Context Protocol Blog,《The New MCP Roadmap》(2026-08-22)—— <a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">链接</a></li>
+    <li>Model Context Protocol Blog,《The 2026-07-28 Specification》—— <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">链接</a></li>
+  </ul>
+  <ul class="src en">
+    <li>Chainalysis, "Inside x402: 100M Agentic Payments on Base" — <a href="https://www.chainalysis.com/blog/x402-agentic-payments-adoption/">link</a> (volume and annualized figures)</li>
+    <li>Crossmint, "Agentic payments protocols compared (MPP, ACP, AP2, x402)" — <a href="https://www.crossmint.com/learn/agentic-payments-protocols-compared">link</a> (protocol division of labor, Stripe integration date)</li>
+    <li>Allium, "x402 Protocol Explained" — <a href="https://www.allium.so/blog/x402-explained-the-internet-native-payments-standard-for-apis-data-and-agent-commerce/">link</a></li>
+    <li>Eco, "x402 Protocol Explained" / "Build an MCP Server with x402 Monetization" — <a href="https://eco.com/support/en/articles/14839402-x402-protocol-explained">link 1</a> · <a href="https://eco.com/support/en/articles/14846276-build-an-mcp-server-with-x402-monetization">link 2</a></li>
+    <li>Avalanche Builder Hub, "X-PAYMENT header" — <a href="https://build.avax.network/academy/blockchain/x402-payment-infrastructure/03-technical-architecture/03-x-payment-header">link</a></li>
+    <li>Coinbase CDP, "Facilitator / network support" — <a href="https://docs.cdp.coinbase.com/x402/network-support">link</a></li>
+    <li>Vercel, "Introducing x402-mcp: Open protocol payments for MCP tools" — <a href="https://vercel.com/blog/introducing-x402-mcp-open-protocol-payments-for-mcp-tools">link</a></li>
+    <li>FlowMCP, "x402-mcp-middleware" — <a href="https://github.com/FlowMCP/x402-mcp-middleware">link</a></li>
+    <li>arXiv:2605.11781, "Five Attacks on x402 Agentic Payment Protocol" — <a href="https://arxiv.org/abs/2605.11781">link</a></li>
+    <li>arXiv:2605.30998, "Free-Riding the Agentic Web: A Systematic Security Analysis of x402 Payments" — <a href="https://arxiv.org/pdf/2605.30998">link</a></li>
+    <li>arXiv:2604.11430, "Hardening x402: PII-Safe Agentic Payments via Pre-Execution Metadata Filtering" — <a href="https://arxiv.org/pdf/2604.11430">link</a></li>
+    <li>Halborn, "x402 Explained: Security Risks &amp; Controls for HTTP 402 Micropayments" — <a href="https://www.halborn.com/blog/post/x402-explained-security-risks-and-controls-for-http-402-micropayments">link</a></li>
+    <li>TechCrunch, "Cloudflare launches Kitesurf, a browser built for AI agents" (2026-08-07) — <a href="https://techcrunch.com/2026/08/07/cloudflare-launches-kitesurf-a-browser-built-for-ai-agents/">link</a></li>
+    <li>Model Context Protocol Blog, "The New MCP Roadmap" (2026-08-22) — <a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">link</a></li>
+    <li>Model Context Protocol Blog, "The 2026-07-28 Specification" — <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">link</a></li>
+  </ul>
+
+  <footer>
+    <p class="zh">本文由自动化调研流程生成于 2026-08-24,代码片段为概念示意,接入前请以对应 SDK 的官方文档为准。文中涉及数字资产与支付合规的内容仅为技术介绍,不构成任何法律或财务建议;不同司法辖区对稳定币支付的监管差异很大,落地前请咨询专业人士。</p>
+    <p class="en">Generated by an automated research pipeline on 2026-08-24. Code snippets are conceptual; follow the official SDK documentation before integrating. Material touching digital assets and payments compliance is a technical overview only and is not legal or financial advice — regulation of stablecoin payments varies widely by jurisdiction, so consult a professional before deploying.</p>
+  </footer>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var body = document.body, btn = document.getElementById('langBtn');
+
+  function readStored(){
+    try { return localStorage.getItem('x402-lang'); } catch(e){ return null; }
+  }
+  function store(v){
+    try { localStorage.setItem('x402-lang', v); } catch(e){}
+  }
+
+  var initial = readStored();
+  if(!initial){
+    var nav = (navigator.language || 'en').toLowerCase();
+    initial = nav.indexOf('zh') === 0 ? 'zh' : 'en';
+  }
+  apply(initial);
+
+  function apply(lang){
+    body.setAttribute('data-lang', lang);
+    document.documentElement.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+    btn.textContent = lang === 'zh' ? 'EN' : '中';
+    btn.setAttribute('aria-label', lang === 'zh' ? 'Switch to English' : '切换到中文');
+  }
+
+  btn.addEventListener('click', function(){
+    var next = body.getAttribute('data-lang') === 'zh' ? 'en' : 'zh';
+    apply(next);
+    store(next);
+    refreshFigures();
+  });
+
+  // ---- figure reveal ----
+  var io = null;
+  if('IntersectionObserver' in window){
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, {threshold: 0.12});
+  }
+
+  function refreshFigures(){
+    var figs = document.querySelectorAll('figure:not(.in)');
+    for(var i=0;i<figs.length;i++){
+      var f = figs[i];
+      if(getComputedStyle(f).display === 'none') continue;
+      var r = f.getBoundingClientRect();
+      if(r.top < window.innerHeight && r.bottom > 0){
+        f.classList.add('in');
+      } else if(io){
+        io.observe(f);
+      } else {
+        f.classList.add('in');
+      }
+    }
+  }
+  refreshFigures();
+  window.addEventListener('load', refreshFigures);
+
+  // ---- reading progress ----
+  var prog = document.getElementById('prog');
+  function onScroll(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? (window.scrollY / h) * 100 : 0;
+    prog.style.width = Math.min(100, Math.max(0, p)) + '%';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
