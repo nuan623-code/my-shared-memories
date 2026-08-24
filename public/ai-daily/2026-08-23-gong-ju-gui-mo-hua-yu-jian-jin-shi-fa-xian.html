@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工具规模化:Tool Search 与渐进式工具发现 | Scaling Agent Toolsets: Tool Search &amp; Progressive Discovery</title>
+<style>
+:root{
+  --bg:#f7f4ec; --paper:#fffdf8; --ink:#1c2321; --ink-2:#3b4a46; --muted:#6f7d78;
+  --line:#e2dbc9; --line-2:#cfc6ae;
+  --teal:#0d7a6f; --teal-deep:#08544c; --teal-soft:#e2f0ed;
+  --clay:#bd5f37; --clay-soft:#fbeadf;
+  --sand:#efe7d4;
+  --code-bg:#1e2a27; --code-ink:#e8f0ed;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(28,35,33,.05), 0 8px 26px rgba(28,35,33,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.82;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Georgia,serif;
+ -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Georgia,"Times New Roman",serif}
+
+/* progress */
+#prog{position:fixed;top:0;left:0;height:3px;width:0;z-index:99;
+ background:linear-gradient(90deg,var(--teal),var(--clay));transition:width .1s linear}
+
+/* lang switch */
+#langbtn{position:fixed;top:14px;right:16px;z-index:100;border:1.5px solid var(--line-2);
+ background:var(--paper);color:var(--teal-deep);font-weight:800;font-size:13.5px;letter-spacing:.04em;
+ padding:8px 15px;border-radius:99px;cursor:pointer;box-shadow:var(--shadow);font-family:inherit}
+#langbtn:hover{border-color:var(--teal);color:var(--teal)}
+
+/* hero */
+header.hero{background:
+  linear-gradient(180deg,rgba(255,253,248,.0) 0%,rgba(255,253,248,.9) 88%),
+  repeating-linear-gradient(90deg,transparent 0 38px,rgba(13,122,111,.07) 38px 39px),
+  repeating-linear-gradient(0deg,transparent 0 38px,rgba(13,122,111,.07) 38px 39px),
+  var(--sand);
+  border-bottom:1px solid var(--line-2)}
+.hin{max-width:900px;margin:0 auto;padding:74px 24px 44px}
+.kicker{display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+ color:var(--teal-deep);background:var(--teal-soft);border:1px solid #bcdcd6;padding:5px 13px;border-radius:99px;margin-bottom:20px}
+h1{font-size:clamp(28px,6vw,46px);line-height:1.24;margin:0 0 16px;font-weight:850;letter-spacing:-.02em}
+h1 .hl{color:var(--teal)}
+.dek{font-size:clamp(16px,2.4vw,19px);color:var(--ink-2);margin:0;max-width:44em}
+.meta{margin-top:26px;font-size:13.5px;color:var(--muted);border-top:1px dashed var(--line-2);padding-top:14px}
+
+/* layout */
+.shell{max-width:1180px;margin:0 auto;display:flex;gap:34px;padding:0 24px 90px;align-items:flex-start}
+main{flex:1;min-width:0;max-width:820px;margin:0 auto}
+nav.toc{position:sticky;top:22px;width:236px;flex:0 0 236px;margin-top:34px;
+ background:rgba(255,253,248,.72);backdrop-filter:blur(11px);-webkit-backdrop-filter:blur(11px);
+ border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);
+ max-height:calc(100vh - 60px);overflow-y:auto}
+nav.toc b{display:block;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 10px 6px}
+nav.toc a{display:block;font-size:13.6px;line-height:1.5;color:var(--ink-2);text-decoration:none;
+ padding:6px 9px;border-radius:8px;border-left:2.5px solid transparent;margin-bottom:1px}
+nav.toc a:hover{background:var(--teal-soft);color:var(--teal-deep)}
+nav.toc a.on{background:var(--teal-soft);color:var(--teal-deep);font-weight:750;border-left-color:var(--teal)}
+#tocToggle{display:none}
+
+section{padding-top:38px;scroll-margin-top:22px}
+h2{font-size:clamp(21px,3.6vw,27px);margin:0 0 6px;font-weight:820;letter-spacing:-.01em;line-height:1.35}
+h2::before{content:"";display:block;width:44px;height:3px;background:var(--teal);border-radius:2px;margin-bottom:14px}
+h3{font-size:18.5px;margin:30px 0 8px;font-weight:780;color:var(--teal-deep)}
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px;padding-left:1.35em}
+li{margin-bottom:7px}
+strong{font-weight:760}
+a{color:var(--teal);text-underline-offset:3px}
+.lead{font-size:18.5px;color:var(--ink-2)}
+
+/* components */
+.def{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--teal);
+ border-radius:var(--radius);padding:18px 20px;margin:18px 0;box-shadow:var(--shadow)}
+.def .t{display:block;font-weight:820;font-size:16.5px;margin-bottom:6px;color:var(--teal-deep)}
+.def p:last-child{margin-bottom:0}
+
+.callout{border-radius:var(--radius);padding:16px 19px;margin:18px 0;font-size:16px;border:1px solid}
+.callout p:last-child{margin-bottom:0}
+.callout .lbl{display:block;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.callout.key{background:var(--teal-soft);border-color:#bcdcd6;color:#0a3f39}
+.callout.key .lbl{color:var(--teal-deep)}
+.callout.warn{background:var(--clay-soft);border-color:#eccdb9;color:#6b2f16}
+.callout.warn .lbl{color:var(--clay)}
+.callout.quote{background:var(--paper);border-color:var(--line);color:var(--ink-2);font-style:italic}
+.callout.quote .lbl{color:var(--muted);font-style:normal}
+
+.steps{counter-reset:s;list-style:none;padding:0;margin:18px 0}
+.steps li{counter-increment:s;position:relative;padding:12px 0 12px 46px;border-bottom:1px dashed var(--line);margin:0}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:12px;width:29px;height:29px;border-radius:50%;
+ background:var(--teal);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow)}
+.stat .n{display:block;font-size:25px;font-weight:850;color:var(--clay);line-height:1.2;font-variant-numeric:tabular-nums}
+.stat .l{display:block;font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:15px;background:var(--paper);
+ border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--sand);font-weight:800;font-size:13.5px;color:var(--teal-deep)}
+tr:last-child td{border-bottom:none}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:15px 17px;overflow-x:auto;
+ font-size:13.3px;line-height:1.62;margin:15px 0;border:1px solid #16211f}
+pre code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+p code,li code,td code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.88em;
+ background:#eee7d6;border:1px solid var(--line-2);padding:1px 5px;border-radius:5px;color:#134a44}
+.srcline{font-size:13px;color:var(--muted);margin:-8px 0 18px}
+.srcline a{color:var(--teal)}
+
+.analogy{background:linear-gradient(160deg,#fffdf8,#f6efdf);border:1px dashed var(--line-2);
+ border-radius:var(--radius);padding:17px 20px;margin:18px 0}
+.analogy .t{font-weight:800;color:var(--clay);font-size:15px;display:block;margin-bottom:5px}
+
+details.rephrase{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:11px 16px;margin:16px 0}
+details.rephrase summary{cursor:pointer;font-weight:750;font-size:15px;color:var(--teal-deep);list-style:none}
+details.rephrase summary::-webkit-details-marker{display:none}
+details.rephrase summary::before{content:"▸ ";color:var(--teal)}
+details.rephrase[open] summary::before{content:"▾ "}
+details.rephrase p{margin:10px 0 2px;font-size:15.5px;color:var(--ink-2)}
+
+.glossary{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:6px 20px;margin:18px 0;box-shadow:var(--shadow)}
+.glossary dt{font-weight:800;color:var(--teal-deep);margin-top:13px;font-size:15.5px}
+.glossary dd{margin:3px 0 13px;color:var(--ink-2);font-size:15.5px}
+
+/* figures */
+.figure{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+ padding:18px 16px 12px;margin:24px 0;box-shadow:var(--shadow);
+ opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.2px;color:var(--muted);margin:10px 4px 0;line-height:1.6;text-align:center}
+.figure [data-draw]{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600);transition:stroke-dashoffset 1.5s ease .25s}
+.figure.in [data-draw]{stroke-dashoffset:0}
+@media(prefers-reduced-motion:reduce){
+  .figure{opacity:1;transform:none;transition:none}
+  .figure [data-draw]{stroke-dashoffset:0;transition:none}
+  html{scroll-behavior:auto}
+}
+
+footer{border-top:1px solid var(--line-2);background:var(--paper);margin-top:40px}
+.fin{max-width:900px;margin:0 auto;padding:34px 24px 60px;font-size:14.5px;color:var(--ink-2)}
+.fin h3{margin-top:0}
+.fin ol{padding-left:1.3em}
+.fin li{margin-bottom:6px;font-size:14px}
+.fin a{word-break:break-all}
+
+@media(max-width:960px){
+  nav.toc{position:fixed;top:0;left:0;bottom:0;width:270px;flex:none;margin:0;border-radius:0;z-index:98;
+    transform:translateX(-102%);transition:transform .28s ease;max-height:100vh;padding-top:62px;
+    background:rgba(255,253,248,.97)}
+  nav.toc.open{transform:none}
+  #tocToggle{display:flex;position:fixed;top:14px;left:16px;z-index:100;width:42px;height:38px;
+    align-items:center;justify-content:center;border:1.5px solid var(--line-2);background:var(--paper);
+    border-radius:10px;font-size:17px;cursor:pointer;box-shadow:var(--shadow);color:var(--teal-deep)}
+  .shell{display:block;padding:0 18px 70px}
+  main{max-width:none}
+  .hin{padding:66px 18px 36px}
+  body{font-size:16.5px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="☰ 中 / EN 深度学习 · 2026-08-23 Deep Dive · 2026-08-23 工具规模化: Tool Search 与渐进式工具发现 Scaling Agent Toolsets: Tool Sea…">
+<meta property="og:title" content="工具规模化:Tool Search 与渐进式工具发现 | Scaling Agent Toolsets: Tool Search &amp;amp; Progressive Discovery">
+<meta property="og:description" content="☰ 中 / EN 深度学习 · 2026-08-23 Deep Dive · 2026-08-23 工具规模化: Tool Search 与渐进式工具发现 Scaling Agent Toolsets: Tool Sea…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-23-gong-ju-gui-mo-hua-yu-jian-jin-shi-fa-xian.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-23-gong-ju-gui-mo-hua-yu-jian-jin-shi-fa-xian.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "工具规模化:Tool Search 与渐进式工具发现 | Scaling Agent Toolsets: Tool Search &amp; Progressive Discovery", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-23-gong-ju-gui-mo-hua-yu-jian-jin-shi-fa-xian.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-23", "dateModified": "2026-08-24"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="prog"></div>
+<button id="tocToggle" aria-label="目录 / Contents">☰</button>
+<button id="langbtn" type="button">中 / EN</button>
+
+<header class="hero">
+  <div class="hin">
+    <span class="kicker zh">深度学习 · 2026-08-23</span>
+    <span class="kicker en">Deep Dive · 2026-08-23</span>
+    <h1 class="zh">工具规模化:<span class="hl">Tool Search</span> 与渐进式工具发现</h1>
+    <h1 class="en">Scaling Agent Toolsets: <span class="hl">Tool Search</span> &amp; Progressive Discovery</h1>
+    <p class="dek zh">你的 agent 接了五个 MCP server,用户还没说第一句话,五万多 token 已经花在「工具说明书」上了——而且工具越多,模型越挑不对。这份文档讲清楚这个问题是怎么来的、官方给了哪几种解法、每一层怎么配、以及什么时候<em>不该</em>用。</p>
+    <p class="dek en">Your agent connects five MCP servers, and 55K tokens are gone on tool definitions before the user says a word — and the more tools you add, the worse the model picks. This guide covers where that cost comes from, the official fixes, how to configure each layer, and when <em>not</em> to use them.</p>
+    <p class="meta zh">调研时间:2026-08-23 · 主要来源:Claude Platform Docs、Claude Code Docs、Anthropic Engineering、Model Context Protocol Blog · 快速迭代领域,配置细节请以官方最新文档为准</p>
+    <p class="meta en">Researched: 2026-08-23 · Primary sources: Claude Platform Docs, Claude Code Docs, Anthropic Engineering, Model Context Protocol Blog · This area moves fast; always check the current official docs for configuration details.</p>
+  </div>
+</header>
+
+<div class="shell">
+<nav class="toc" id="toc">
+  <b><span class="zh">目录</span><span class="en">Contents</span></b>
+  <a href="#overview"><span class="zh">1 · 30 秒速览</span><span class="en">1 · The 30-second version</span></a>
+  <a href="#why"><span class="zh">2 · 问题从哪来:两笔账</span><span class="en">2 · Where the problem comes from</span></a>
+  <a href="#concepts"><span class="zh">3 · 核心概念</span><span class="en">3 · Core concepts</span></a>
+  <a href="#howto"><span class="zh">4 · 怎么用:三层落地</span><span class="en">4 · How to use it: three layers</span></a>
+  <a href="#cases"><span class="zh">5 · 场景与真实案例</span><span class="en">5 · Scenarios &amp; real cases</span></a>
+  <a href="#compare"><span class="zh">6 · 对比与选型</span><span class="en">6 · Alternatives &amp; trade-offs</span></a>
+  <a href="#pitfalls"><span class="zh">7 · 常见坑与限制</span><span class="en">7 · Pitfalls &amp; limits</span></a>
+  <a href="#roadmap"><span class="zh">8 · 协议侧:MCP 新路线图</span><span class="en">8 · Protocol side: the new MCP roadmap</span></a>
+  <a href="#resources"><span class="zh">9 · 学习资源</span><span class="en">9 · Resources</span></a>
+</nav>
+
+<main>
+
+<!-- ===== 1 ===== -->
+<section id="overview">
+  <h2 class="zh">1 · 30 秒速览</h2>
+  <h2 class="en">1 · The 30-second version</h2>
+
+  <p class="lead zh">一句话:<strong>工具定义是要占上下文的,而且是每一轮都占。</strong>当工具从十几个涨到上百个,你会同时踩到两个坑——token 账单变贵、模型选错工具变多。解法的共同思路是:<strong>别一开始就把所有工具说明书塞进去,让模型需要的时候再去「查目录」。</strong></p>
+  <p class="lead en">In one line: <strong>tool definitions consume context, and they do it on every turn.</strong> Once your toolset grows from a dozen to a few hundred, you hit two problems at once — a bigger token bill and more wrong-tool selections. Every fix shares the same idea: <strong>don't load the whole manual upfront; let the model look things up when it actually needs them.</strong></p>
+
+  <div class="def zh">
+    <span class="t">Tool Search Tool(工具搜索工具)</span>
+    <p>Anthropic 在 Claude 平台上提供的一个内置能力。你照旧把<strong>所有</strong>工具定义发给 API,但在不常用的工具上打一个 <code>defer_loading: true</code> 的标记。开局时模型的上下文里只有「搜索工具」这一个入口;等它真需要某个能力,就自己发起一次搜索,API 把命中的几个工具展开成完整定义塞进对话——用完就一直可用。</p>
+  </div>
+  <div class="def en">
+    <span class="t">The Tool Search Tool</span>
+    <p>A built-in capability on the Claude platform. You still send <strong>every</strong> tool definition to the API, but you mark the less-used ones with <code>defer_loading: true</code>. At the start, the model's context holds only the search tool itself. When it needs a capability, it runs a search; the API expands the matching tools into full definitions inline, and they stay available for the rest of the conversation.</p>
+  </div>
+
+  <div class="stats zh">
+    <div class="stat"><span class="n">~55K</span><span class="l">五个 MCP server(GitHub/Slack/Sentry/Grafana/Splunk,共 58 个工具)开局就吃掉的 token</span></div>
+    <div class="stat"><span class="n">&gt;85%</span><span class="l">开启 tool search 后典型的 token 降幅(官方口径)</span></div>
+    <div class="stat"><span class="n">30–50</span><span class="l">官方给出的经验阈值:工具超过这个数,选择准确率开始下降</span></div>
+    <div class="stat"><span class="n">79.5%→88.1%</span><span class="l">Opus 4.5 在 MCP 评测上开启 tool search 前后的准确率(内部测试)</span></div>
+  </div>
+  <div class="stats en">
+    <div class="stat"><span class="n">~55K</span><span class="l">Tokens burned at startup by five MCP servers (GitHub/Slack/Sentry/Grafana/Splunk, 58 tools)</span></div>
+    <div class="stat"><span class="n">&gt;85%</span><span class="l">Typical token reduction once tool search is on (Anthropic's figure)</span></div>
+    <div class="stat"><span class="n">30–50</span><span class="l">The official rule of thumb: past this many tools, selection accuracy degrades</span></div>
+    <div class="stat"><span class="n">79.5%→88.1%</span><span class="l">Opus 4.5 on MCP evals, without vs. with tool search (internal testing)</span></div>
+  </div>
+
+  <p class="srcline zh">来源:<a href="https://www.anthropic.com/engineering/advanced-tool-use">Anthropic Engineering, Introducing advanced tool use(2025-11-24)</a> · <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool">Tool search tool, Claude Platform Docs</a></p>
+  <p class="srcline en">Sources: <a href="https://www.anthropic.com/engineering/advanced-tool-use">Anthropic Engineering, "Introducing advanced tool use" (Nov 24, 2025)</a> · <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool">Tool search tool, Claude Platform Docs</a></p>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="传统方式与 tool search 的上下文占用对比图">
+      <defs>
+        <marker id="ar-z" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#0d7a6f"/>
+        </marker>
+      </defs>
+      <text x="20" y="26" font-size="14" font-weight="700" fill="#1c2321" font-family="sans-serif">传统方式:所有工具定义开局全塞进去</text>
+      <rect x="20" y="40" width="720" height="46" rx="8" fill="#f7f4ec" stroke="#cfc6ae"/>
+      <rect x="22" y="42" width="500" height="42" rx="7" fill="#bd5f37" opacity=".85"/>
+      <text x="272" y="68" font-size="13" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">工具定义 ~72K token(50+ MCP 工具)</text>
+      <text x="631" y="68" font-size="12.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">留给对话的空间</text>
+      <text x="20" y="112" font-size="12" fill="#6f7d78" font-family="sans-serif">开工前上下文消耗约 77K,其中绝大部分是这次任务根本用不到的工具</text>
+
+      <line x1="380" y1="128" x2="380" y2="160" stroke="#0d7a6f" stroke-width="2" marker-end="url(#ar-z)" data-draw style="--len:40"/>
+
+      <text x="20" y="192" font-size="14" font-weight="700" fill="#1c2321" font-family="sans-serif">开启 Tool Search:只带一个「入口」,用到再取</text>
+      <rect x="20" y="206" width="720" height="46" rx="8" fill="#f7f4ec" stroke="#cfc6ae"/>
+      <rect x="22" y="208" width="26" height="42" rx="6" fill="#0d7a6f"/>
+      <rect x="50" y="208" width="52" height="42" rx="6" fill="#0d7a6f" opacity=".55"/>
+      <text x="35" y="234" font-size="10" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">搜索</text>
+      <text x="76" y="234" font-size="10" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">3–5 个</text>
+      <text x="430" y="234" font-size="12.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">留给对话的空间(保留约 95% 上下文窗口)</text>
+      <text x="20" y="278" font-size="12" fill="#6f7d78" font-family="sans-serif">搜索工具本身约 500 token + 命中的 3–5 个工具约 3K,合计约 8.7K</text>
+    </svg>
+    <p class="fig-cap">图 1:同一套工具库,两种加载方式的上下文占用对比。数字来自 Anthropic Engineering 官方文章。</p>
+  </div>
+  <div class="figure en">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context consumption compared: upfront loading vs tool search">
+      <defs>
+        <marker id="ar-e" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#0d7a6f"/>
+        </marker>
+      </defs>
+      <text x="20" y="26" font-size="14" font-weight="700" fill="#1c2321" font-family="sans-serif">Traditional: every tool definition loaded upfront</text>
+      <rect x="20" y="40" width="720" height="46" rx="8" fill="#f7f4ec" stroke="#cfc6ae"/>
+      <rect x="22" y="42" width="500" height="42" rx="7" fill="#bd5f37" opacity=".85"/>
+      <text x="272" y="68" font-size="13" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">Tool definitions ~72K tokens (50+ MCP tools)</text>
+      <text x="631" y="68" font-size="12.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">Room left for work</text>
+      <text x="20" y="112" font-size="12" fill="#6f7d78" font-family="sans-serif">~77K tokens spent before any work begins — most of it tools this task will never call</text>
+
+      <line x1="380" y1="128" x2="380" y2="160" stroke="#0d7a6f" stroke-width="2" marker-end="url(#ar-e)" data-draw style="--len:40"/>
+
+      <text x="20" y="192" font-size="14" font-weight="700" fill="#1c2321" font-family="sans-serif">With Tool Search: one entry point, fetch on demand</text>
+      <rect x="20" y="206" width="720" height="46" rx="8" fill="#f7f4ec" stroke="#cfc6ae"/>
+      <rect x="22" y="208" width="26" height="42" rx="6" fill="#0d7a6f"/>
+      <rect x="50" y="208" width="52" height="42" rx="6" fill="#0d7a6f" opacity=".55"/>
+      <text x="35" y="234" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">search</text>
+      <text x="76" y="234" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">3–5 tools</text>
+      <text x="430" y="234" font-size="12.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">Room left for work (~95% of the window preserved)</text>
+      <text x="20" y="278" font-size="12" fill="#6f7d78" font-family="sans-serif">~500 tokens for the search tool + ~3K for the 3–5 tools it finds = ~8.7K total</text>
+    </svg>
+    <p class="fig-cap">Figure 1: The same tool library, two loading strategies. Figures from Anthropic's engineering post.</p>
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section id="why">
+  <h2 class="zh">2 · 问题从哪来:你其实在付两笔账</h2>
+  <h2 class="en">2 · Where the problem comes from: you're paying two bills</h2>
+
+  <p class="zh">先讲清楚一个容易被忽略的机制:模型不会「知道」你有哪些工具,你必须<strong>在每一次请求里,把每个工具的名字、说明、参数结构(JSON Schema)全部写给它</strong>。这堆说明书通常放在系统提示词的前缀里,是对话的固定开销。</p>
+  <p class="en">Start with a mechanism that's easy to overlook: the model has no innate knowledge of your tools. You must <strong>send every tool's name, description, and parameter schema (JSON Schema) with every request</strong>. That bundle normally sits in the system-prompt prefix — a fixed overhead on the whole conversation.</p>
+
+  <h3 class="zh">第一笔账:token</h3>
+  <h3 class="en">Bill #1: tokens</h3>
+  <p class="zh">Anthropic 官方给出的一组实测数字,是一个很典型的「五个 server」配置:</p>
+  <p class="en">Anthropic published measurements for a typical five-server setup:</p>
+
+  <div class="tw"><table class="zh">
+    <tr><th>MCP server</th><th>工具数</th><th>大致 token</th></tr>
+    <tr><td>GitHub</td><td>35</td><td>~26K</td></tr>
+    <tr><td>Slack</td><td>11</td><td>~21K</td></tr>
+    <tr><td>Sentry</td><td>5</td><td>~3K</td></tr>
+    <tr><td>Grafana</td><td>5</td><td>~3K</td></tr>
+    <tr><td>Splunk</td><td>2</td><td>~2K</td></tr>
+    <tr><td><strong>合计</strong></td><td><strong>58</strong></td><td><strong>~55K</strong></td></tr>
+  </table></div>
+  <div class="tw"><table class="en">
+    <tr><th>MCP server</th><th>Tools</th><th>Approx. tokens</th></tr>
+    <tr><td>GitHub</td><td>35</td><td>~26K</td></tr>
+    <tr><td>Slack</td><td>11</td><td>~21K</td></tr>
+    <tr><td>Sentry</td><td>5</td><td>~3K</td></tr>
+    <tr><td>Grafana</td><td>5</td><td>~3K</td></tr>
+    <tr><td>Splunk</td><td>2</td><td>~2K</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>58</strong></td><td><strong>~55K</strong></td></tr>
+  </table></div>
+
+  <p class="zh">再加一个 Jira(单独约 17K),很快就逼近 10 万 token 的开销。官方还提到:<strong>在 Anthropic 内部,曾出现工具定义在优化前吃掉 134K token 的情况。</strong></p>
+  <p class="en">Add Jira (~17K on its own) and you're closing in on 100K+ of overhead. Anthropic also notes that <strong>internally they have seen tool definitions consume 134K tokens before optimization.</strong></p>
+
+  <h3 class="zh">第二笔账:准确率</h3>
+  <h3 class="en">Bill #2: accuracy</h3>
+  <p class="zh">这笔账更隐蔽,但往往更致命。官方原话是:「最常见的失败是<strong>选错工具</strong>和<strong>参数给错</strong>,尤其当工具名字很像的时候」——例如 <code>notification-send-user</code> 和 <code>notification-send-channel</code>。Claude Platform 文档进一步给出量化边界:<strong>一旦可用工具超过 30–50 个,Claude 挑对工具的能力就开始下降。</strong></p>
+  <p class="en">This one is subtler but often more damaging. In Anthropic's words: "the most common failures are <strong>wrong tool selection</strong> and <strong>incorrect parameters</strong>, especially when tools have similar names" — think <code>notification-send-user</code> vs. <code>notification-send-channel</code>. The platform docs put a number on it: <strong>Claude's ability to pick the right tool degrades once you exceed 30–50 available tools.</strong></p>
+
+  <div class="analogy zh">
+    <span class="t">一个类比</span>
+    <p>把工具目录想成一间五金店。传统做法是:顾客一进门,店员先把全店三千件商品的说明书念一遍,然后才问「您要修什么?」——顾客又累又记不住,还容易把螺丝刀听成起子。Tool search 的做法是:门口只放一个「问导购」的按钮,顾客说「我要通马桶」,导购直接递上三样相关的东西。</p>
+  </div>
+  <div class="analogy en">
+    <span class="t">An analogy</span>
+    <p>Think of the tool catalog as a hardware store. The traditional approach: the moment a customer walks in, a clerk reads out the spec sheet for all three thousand items, <em>then</em> asks "what are you fixing?" The customer is exhausted, remembers little, and confuses similar-sounding items. Tool search puts a single "ask the clerk" button at the door: the customer says "my drain is clogged," and the clerk hands over three relevant things.</p>
+  </div>
+
+  <details class="rephrase zh">
+    <summary>换个说法:为什么「工具多」会让模型变笨?</summary>
+    <p>模型选工具本质上是一个分类问题——在 N 个候选里挑一个。N 越大,相似选项越多,分类边界越模糊,这跟人在长下拉菜单里选错项是同一类现象。另外,工具定义占掉的上下文,是从「模型用来思考任务本身」的预算里扣的:定义越长,留给推理和对话历史的空间越少。所以「token 贵」和「选得差」不是两个独立问题,而是同一个约束的两面。</p>
+  </details>
+  <details class="rephrase en">
+    <summary>Put another way: why do more tools make the model worse?</summary>
+    <p>Tool selection is fundamentally a classification problem — pick one out of N. As N grows, near-duplicate options multiply and the decision boundary blurs. It's the same phenomenon as a human misclicking in a very long dropdown. On top of that, context spent on definitions is subtracted from the budget the model uses to reason about the actual task: longer definitions mean less room for reasoning and conversation history. So "expensive tokens" and "poor selection" aren't two separate problems — they're two faces of one constraint.</p>
+  </details>
+</section>
+
+<!-- ===== 3 ===== -->
+<section id="concepts">
+  <h2 class="zh">3 · 核心概念:五个词看懂机制</h2>
+  <h2 class="en">3 · Core concepts: five terms that explain the mechanism</h2>
+
+  <dl class="glossary zh">
+    <dt><code>defer_loading</code>(延迟加载标记)</dt>
+    <dd>打在单个工具定义上的布尔值。<strong>它控制的是「什么进上下文窗口」,不是「什么发给 API」</strong>——你每次请求依然要把所有工具的完整定义发过去,因为服务端要靠它们来跑搜索和展开引用。至少要有一个工具不被延迟(通常就是搜索工具本身),否则 API 直接返回 400。</dd>
+    <dt><code>tool_reference</code>(工具引用块)</dt>
+    <dd>搜索命中后 API 返回的一个轻量指针,只带工具名。API 会在把内容交给模型之前,自动把它<strong>展开</strong>成完整定义。你不需要、也不应该自己展开。</dd>
+    <dt><code>server_tool_use</code>(服务端工具调用)</dt>
+    <dd>搜索这一步是在 Anthropic 服务器上跑的,不需要你执行。它的 id 形如 <code>srvtoolu_...</code>——<strong>绝对不要给这个 id 回 <code>tool_result</code></strong>,API 会拒绝整个请求。</dd>
+    <dt>regex 变体 vs BM25 变体</dt>
+    <dd>两种搜索算法。<code>tool_search_tool_regex_20251119</code> 让 Claude 写 Python <code>re.search()</code> 正则(大小写不敏感,模式最长 200 字符);<code>tool_search_tool_bm25_20251119</code> 让 Claude 用自然语言查询(最长 500 字符)。两者都会搜索工具名、描述、<strong>参数名和参数描述</strong>。</dd>
+    <dt>Progressive discovery(渐进式发现)</dt>
+    <dd>更上位的一个模式名:server 先只暴露一个很小的入口,随着对话收敛再逐步露出更多目录。Tool Search 是这个模式在 Anthropic 平台上的一种实现;截至调研时,它<strong>还不是 MCP 协议本身的一部分</strong>,但已被 2026-08-22 的新版 MCP 路线图列为优先方向(见第 8 节)。</dd>
+  </dl>
+  <dl class="glossary en">
+    <dt><code>defer_loading</code></dt>
+    <dd>A boolean on an individual tool definition. <strong>It controls what enters the context window, not what you send in the request</strong> — you still ship every full definition on every request, because the server needs them to run the search and expand references. At least one tool must stay non-deferred (normally the search tool itself), or the API returns a 400.</dd>
+    <dt><code>tool_reference</code></dt>
+    <dd>A lightweight pointer the API returns for each search hit, carrying only a tool name. The API <strong>expands</strong> it into the full definition before the model sees it. You neither need to nor should expand it yourself.</dd>
+    <dt><code>server_tool_use</code></dt>
+    <dd>The search step runs on Anthropic's servers; you don't execute it. Its id looks like <code>srvtoolu_...</code> — <strong>never return a <code>tool_result</code> for that id</strong>, or the API rejects the request.</dd>
+    <dt>regex variant vs. BM25 variant</dt>
+    <dd>Two search algorithms. With <code>tool_search_tool_regex_20251119</code> Claude writes Python <code>re.search()</code> patterns (case-insensitive, max 200 characters). With <code>tool_search_tool_bm25_20251119</code> Claude writes natural-language queries (max 500 characters). Both search tool names, descriptions, <strong>argument names and argument descriptions</strong>.</dd>
+    <dt>Progressive discovery</dt>
+    <dd>The umbrella pattern: a server exposes a small entry point first and reveals more of its catalog as the conversation narrows. Tool Search is Anthropic's platform implementation of it. As of this research it is <strong>not part of the MCP specification itself</strong>, but the MCP roadmap published on 2026-08-22 names it a priority (see §8).</dd>
+  </dl>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tool search 的六步流程图">
+      <defs>
+        <marker id="fl-z" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#0d7a6f"/>
+        </marker>
+      </defs>
+      <rect x="14" y="16" width="200" height="58" rx="10" fill="#e2f0ed" stroke="#bcdcd6"/>
+      <text x="114" y="40" font-size="12.5" font-weight="700" fill="#08544c" text-anchor="middle" font-family="sans-serif">① 请求里带上全部工具</text>
+      <text x="114" y="59" font-size="11" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">不常用的打 defer_loading</text>
+
+      <line x1="214" y1="45" x2="266" y2="45" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-z)" data-draw style="--len:60"/>
+
+      <rect x="270" y="16" width="200" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="370" y="40" font-size="12.5" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">② 模型上下文里只有</text>
+      <text x="370" y="59" font-size="11" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">搜索工具 + 未延迟的工具</text>
+
+      <line x1="470" y1="45" x2="522" y2="45" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-z)" data-draw style="--len:60"/>
+
+      <rect x="526" y="16" width="220" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="636" y="40" font-size="12.5" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">③ 缺能力时发起搜索</text>
+      <text x="636" y="59" font-size="11" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">regex 模式 或 自然语言</text>
+
+      <path d="M636,74 L636,104 L114,104 L114,132" fill="none" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-z)" data-draw style="--len:750"/>
+
+      <rect x="14" y="136" width="200" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="114" y="160" font-size="12.5" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">④ 服务端跑搜索</text>
+      <text x="114" y="179" font-size="11" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">默认返回最多 5 个命中</text>
+
+      <line x1="214" y1="165" x2="266" y2="165" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-z)" data-draw style="--len:60"/>
+
+      <rect x="270" y="136" width="200" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="370" y="160" font-size="12.5" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">⑤ 展开 tool_reference</text>
+      <text x="370" y="179" font-size="11" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">变成完整工具定义</text>
+
+      <line x1="470" y1="165" x2="522" y2="165" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-z)" data-draw style="--len:60"/>
+
+      <rect x="526" y="136" width="220" height="58" rx="10" fill="#e2f0ed" stroke="#bcdcd6"/>
+      <text x="636" y="160" font-size="12.5" font-weight="700" fill="#08544c" text-anchor="middle" font-family="sans-serif">⑥ 模型调用发现的工具</text>
+      <text x="636" y="179" font-size="11" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">你照常执行并回 tool_result</text>
+
+      <rect x="14" y="222" width="732" height="100" rx="10" fill="#f7f4ec" stroke="#cfc6ae" stroke-dasharray="5 4"/>
+      <text x="30" y="248" font-size="12.5" font-weight="700" fill="#bd5f37" font-family="sans-serif">关键设计:为什么不破坏 prompt 缓存?</text>
+      <text x="30" y="272" font-size="11.5" fill="#3b4a46" font-family="sans-serif">延迟的工具被排除在「系统提示词前缀」之外 → 前缀不变 → 缓存命中不受影响。</text>
+      <text x="30" y="292" font-size="11.5" fill="#3b4a46" font-family="sans-serif">发现的工具是以 tool_reference 块的形式,追加在对话正文里(inline),不动前缀。</text>
+      <text x="30" y="312" font-size="11.5" fill="#3b4a46" font-family="sans-serif">后续轮次可直接复用已发现的工具,无需重新搜索。</text>
+    </svg>
+    <p class="fig-cap">图 2:Tool search 的完整流程,以及它不破坏 prompt 缓存的原因。依据 Claude Platform Docs 的 "How tool search works" 与 "Prompt caching" 两节。</p>
+  </div>
+  <div class="figure en">
+    <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six-step flow of tool search">
+      <defs>
+        <marker id="fl-e" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#0d7a6f"/>
+        </marker>
+      </defs>
+      <rect x="14" y="16" width="200" height="58" rx="10" fill="#e2f0ed" stroke="#bcdcd6"/>
+      <text x="114" y="40" font-size="12" font-weight="700" fill="#08544c" text-anchor="middle" font-family="sans-serif">① Send all tools</text>
+      <text x="114" y="59" font-size="10.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">defer_loading on rare ones</text>
+
+      <line x1="214" y1="45" x2="266" y2="45" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-e)" data-draw style="--len:60"/>
+
+      <rect x="270" y="16" width="200" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="370" y="40" font-size="12" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">② Context holds only</text>
+      <text x="370" y="59" font-size="10.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">search tool + non-deferred</text>
+
+      <line x1="470" y1="45" x2="522" y2="45" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-e)" data-draw style="--len:60"/>
+
+      <rect x="526" y="16" width="220" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="636" y="40" font-size="12" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">③ Model runs a search</text>
+      <text x="636" y="59" font-size="10.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">regex pattern or NL query</text>
+
+      <path d="M636,74 L636,104 L114,104 L114,132" fill="none" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-e)" data-draw style="--len:750"/>
+
+      <rect x="14" y="136" width="200" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="114" y="160" font-size="12" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">④ Search runs server-side</text>
+      <text x="114" y="179" font-size="10.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">up to 5 hits by default</text>
+
+      <line x1="214" y1="165" x2="266" y2="165" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-e)" data-draw style="--len:60"/>
+
+      <rect x="270" y="136" width="200" height="58" rx="10" fill="#fffdf8" stroke="#cfc6ae"/>
+      <text x="370" y="160" font-size="12" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">⑤ tool_reference expanded</text>
+      <text x="370" y="179" font-size="10.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">into full definitions</text>
+
+      <line x1="470" y1="165" x2="522" y2="165" stroke="#0d7a6f" stroke-width="2" marker-end="url(#fl-e)" data-draw style="--len:60"/>
+
+      <rect x="526" y="136" width="220" height="58" rx="10" fill="#e2f0ed" stroke="#bcdcd6"/>
+      <text x="636" y="160" font-size="12" font-weight="700" fill="#08544c" text-anchor="middle" font-family="sans-serif">⑥ Model calls the tool</text>
+      <text x="636" y="179" font-size="10.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">you execute, return tool_result</text>
+
+      <rect x="14" y="222" width="732" height="100" rx="10" fill="#f7f4ec" stroke="#cfc6ae" stroke-dasharray="5 4"/>
+      <text x="30" y="248" font-size="12.5" font-weight="700" fill="#bd5f37" font-family="sans-serif">Key design: why prompt caching survives</text>
+      <text x="30" y="272" font-size="11.5" fill="#3b4a46" font-family="sans-serif">Deferred tools are excluded from the system-prompt prefix → the prefix is untouched → cache hits hold.</text>
+      <text x="30" y="292" font-size="11.5" fill="#3b4a46" font-family="sans-serif">Discovered tools arrive as tool_reference blocks appended inline in the conversation, not in the prefix.</text>
+      <text x="30" y="312" font-size="11.5" fill="#3b4a46" font-family="sans-serif">Later turns reuse already-discovered tools without searching again.</text>
+    </svg>
+    <p class="fig-cap">Figure 2: The full tool-search flow, and why it doesn't break prompt caching. Based on "How tool search works" and "Prompt caching" in the Claude Platform Docs.</p>
+  </div>
+
+  <div class="callout key zh">
+    <span class="lbl">最容易搞错的一点</span>
+    <p><code>defer_loading: true</code> <strong>不会</strong>减少你请求体的大小。所有工具定义每次都要完整发送——省的是<strong>进入模型上下文窗口</strong>的那部分。把这两件事混为一谈,是读文档时最常见的误解。</p>
+  </div>
+  <div class="callout key en">
+    <span class="lbl">The single most confusing point</span>
+    <p><code>defer_loading: true</code> does <strong>not</strong> shrink your request payload. Every tool definition is still sent in full on every request — what it saves is what enters <strong>the model's context window</strong>. Conflating those two is the most common misreading of the docs.</p>
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section id="howto">
+  <h2 class="zh">4 · 怎么用:三层落地</h2>
+  <h2 class="en">4 · How to use it: three layers</h2>
+
+  <p class="zh">同一个能力在三个层面上暴露给你,配置方式完全不同。搞清楚你在哪一层,能省掉大量试错。</p>
+  <p class="en">The same capability is exposed at three levels, each configured differently. Knowing which level you're on saves a lot of trial and error.</p>
+
+  <h3 class="zh">4.1 API 层:显式打标记</h3>
+  <h3 class="en">4.1 API level: mark tools explicitly</h3>
+  <p class="zh">把搜索工具放进 <code>tools</code> 数组,给不常用的工具加 <code>defer_loading: true</code>:</p>
+  <p class="en">Put a search tool in the <code>tools</code> array and add <code>defer_loading: true</code> to the less-used tools:</p>
+
+<pre class="zh"><code>response = client.messages.create(
+    model="claude-opus-5",
+    max_tokens=2048,
+    messages=[{"role": "user", "content": "旧金山天气怎么样?"}],
+    tools=[
+        # 搜索工具本身:绝不能延迟加载
+        {"type": "tool_search_tool_regex_20251119", "name": "tool_search_tool_regex"},
+        {
+            "name": "get_weather",
+            "description": "Get the weather at a specific location",
+            "input_schema": { ... },
+            "defer_loading": True,       # ← 用到再加载
+        },
+        {
+            "name": "search_files",
+            "description": "Search through files in the workspace",
+            "input_schema": { ... },
+            "defer_loading": True,
+        },
+    ],
+)</code></pre>
+<pre class="en"><code>response = client.messages.create(
+    model="claude-opus-5",
+    max_tokens=2048,
+    messages=[{"role": "user", "content": "What is the weather in San Francisco?"}],
+    tools=[
+        # The search tool itself: never defer this one
+        {"type": "tool_search_tool_regex_20251119", "name": "tool_search_tool_regex"},
+        {
+            "name": "get_weather",
+            "description": "Get the weather at a specific location",
+            "input_schema": { ... },
+            "defer_loading": True,       # ← loaded on demand
+        },
+        {
+            "name": "search_files",
+            "description": "Search through files in the workspace",
+            "input_schema": { ... },
+            "defer_loading": True,
+        },
+    ],
+)</code></pre>
+
+  <p class="zh">如果工具来自 MCP 连接器,<strong>不要</strong>在单个工具上打标记,而是在 <code>mcp_toolset</code> 条目上按 server 整体设置,再对个别高频工具开例外:</p>
+  <p class="en">If the tools come from the MCP connector, <strong>don't</strong> mark individual tools. Set it once on the <code>mcp_toolset</code> entry for the whole server, then make exceptions for high-use tools:</p>
+
+<pre class="zh"><code>{
+  "type": "mcp_toolset",
+  "mcp_server_name": "google-drive",
+  "default_config": { "defer_loading": true },   // 整个 server 延迟
+  "configs": {
+    "search_files": { "defer_loading": false }   // 最常用的那个保持常驻
+  }
+}</code></pre>
+<pre class="en"><code>{
+  "type": "mcp_toolset",
+  "mcp_server_name": "google-drive",
+  "default_config": { "defer_loading": true },   // defer the whole server
+  "configs": {
+    "search_files": { "defer_loading": false }   // keep the most-used tool loaded
+  }
+}</code></pre>
+  <p class="srcline zh">代码来自 <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool">Claude Platform Docs · Tool search tool</a> 与 <a href="https://www.anthropic.com/engineering/advanced-tool-use">Anthropic Engineering</a>,已按中文语境改写注释与 prompt。</p>
+  <p class="srcline en">Code adapted from <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool">Claude Platform Docs · Tool search tool</a> and <a href="https://www.anthropic.com/engineering/advanced-tool-use">Anthropic Engineering</a>.</p>
+
+  <h3 class="zh">4.2 Agent SDK 层:默认已开,用阈值调</h3>
+  <h3 class="en">4.2 Agent SDK level: on by default, tuned by threshold</h3>
+  <p class="zh">在 Claude Agent SDK 里,<strong>tool search 默认就是开的</strong>,你不用做任何事。要调的话用 <code>ENABLE_TOOL_SEARCH</code> 环境变量:</p>
+  <p class="en">In the Claude Agent SDK, <strong>tool search is on by default</strong> — you don't have to do anything. To tune it, use the <code>ENABLE_TOOL_SEARCH</code> environment variable:</p>
+
+  <div class="tw"><table class="zh">
+    <tr><th>值</th><th>行为</th></tr>
+    <tr><td>(不设置)</td><td>开启。在 Google Cloud Agent Platform 上早于 Claude 4.5 代的模型、非一方 <code>ANTHROPIC_BASE_URL</code>、以及 Azure 上托管的 Microsoft Foundry 部署,会回退为「全部上前加载」。</td></tr>
+    <tr><td><code>true</code></td><td>强制开启(上述 Azure Foundry 与旧代 GCP 模型的例外仍然生效)。会把 beta 头透过代理发出去,不支持 <code>tool_reference</code> 的代理会请求失败。</td></tr>
+    <tr><td><code>auto</code></td><td>数一数「可被延迟的工具定义」总 token,和模型上下文窗口比。<strong>达到窗口的 10% 才启用</strong>,否则全部前加载。</td></tr>
+    <tr><td><code>auto:N</code></td><td>同上但自定百分比。<code>auto:5</code> 表示到 5% 就启用——数值越小越早启用。</td></tr>
+    <tr><td><code>false</code></td><td>关闭,每轮加载全部工具定义。</td></tr>
+  </table></div>
+  <div class="tw"><table class="en">
+    <tr><th>Value</th><th>Behavior</th></tr>
+    <tr><td>(unset)</td><td>On. Falls back to upfront loading on Google Cloud Agent Platform models older than the Claude 4.5 generation, a non-first-party <code>ANTHROPIC_BASE_URL</code>, or a Microsoft Foundry deployment hosted on Azure.</td></tr>
+    <tr><td><code>true</code></td><td>Always on (the Azure Foundry and older-GCP exceptions above still apply). Sends the beta header through proxies; requests fail on proxies that don't support <code>tool_reference</code> blocks.</td></tr>
+    <tr><td><code>auto</code></td><td>Counts the tokens in the deferrable tool definitions against the model's context window. <strong>Activates once they reach 10% of the window</strong>; below that, everything loads upfront.</td></tr>
+    <tr><td><code>auto:N</code></td><td>Same, with a custom percentage. <code>auto:5</code> activates at 5% — lower values activate sooner.</td></tr>
+    <tr><td><code>false</code></td><td>Off. All tool definitions load into context on every turn.</td></tr>
+  </table></div>
+
+<pre class="zh"><code>import { query } from "@anthropic-ai/claude-agent-sdk";
+
+for await (const message of query({
+  prompt: "Find and run the appropriate database query",
+  options: {
+    mcpServers: {
+      "enterprise-tools": { type: "http", url: "https://tools.example.com/mcp" }
+    },
+    allowedTools: ["mcp__enterprise-tools__*"],   // 通配符预授权整个 server
+    env: {
+      ...process.env,          // TS 里 env 会替换子进程环境,必须展开继承变量
+      ENABLE_TOOL_SEARCH: "auto:5"
+    }
+  }
+})) { /* ... */ }</code></pre>
+<pre class="en"><code>import { query } from "@anthropic-ai/claude-agent-sdk";
+
+for await (const message of query({
+  prompt: "Find and run the appropriate database query",
+  options: {
+    mcpServers: {
+      "enterprise-tools": { type: "http", url: "https://tools.example.com/mcp" }
+    },
+    allowedTools: ["mcp__enterprise-tools__*"],   // wildcard pre-approves the server
+    env: {
+      ...process.env,          // in TS, env replaces the subprocess env — spread to keep inherited vars
+      ENABLE_TOOL_SEARCH: "auto:5"
+    }
+  }
+})) { /* ... */ }</code></pre>
+
+  <div class="callout warn zh">
+    <span class="lbl">注意</span>
+    <p>SDK <strong>永远前加载</strong> Bash、Read、Edit 这类核心内置工具,它们不计入 <code>auto</code> 的阈值。计入阈值的是:每个没被标 <code>alwaysLoad</code> 的 MCP 工具(不论来自哪个 server)+ 按需加载的内置工具。另外,设了 <code>CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS</code> 会强制关闭 tool search,<code>ENABLE_TOOL_SEARCH</code> 覆盖不了它。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Note</span>
+    <p>The SDK <strong>always loads</strong> core built-ins such as Bash, Read, and Edit upfront, and they don't count toward the <code>auto</code> threshold. What counts: every MCP tool not marked <code>alwaysLoad</code>, from any server, plus the built-ins that load on demand. Also, setting <code>CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS</code> keeps tool search off, and <code>ENABLE_TOOL_SEARCH</code> can't override it.</p>
+  </div>
+
+  <h3 class="zh">4.3 Claude Code CLI 层:用 <code>alwaysLoad</code> 开例外</h3>
+  <h3 class="en">4.3 Claude Code CLI level: carve out exceptions with <code>alwaysLoad</code></h3>
+  <p class="zh">日常用 Claude Code 时,tool search 同样默认开启。你唯一需要主动做的决定是:<strong>哪个 server 的工具必须每轮常驻?</strong>在它的配置上加 <code>alwaysLoad: true</code>,该 server 的工具就以完整 schema 在第一轮可用,豁免于 tool search 延迟。</p>
+  <p class="en">In day-to-day Claude Code use, tool search is likewise on by default. The one decision you actively make: <strong>which server's tools must be resident every turn?</strong> Set <code>alwaysLoad: true</code> on its config and that server's tools are available at full schema from the first turn, exempt from tool-search deferral.</p>
+
+<pre class="zh"><code>{
+  "mcpServers": {
+    "our-internal-api": {
+      "type": "http",
+      "url": "https://tools.internal.example.com/mcp",
+      "alwaysLoad": true          // 每轮都用 → 免去一次搜索往返
+    },
+    "jira": {
+      "type": "http",
+      "url": "https://jira.example.com/mcp"
+      // 不设 alwaysLoad → 交给 tool search 按需发现
+    }
+  }
+}</code></pre>
+<pre class="en"><code>{
+  "mcpServers": {
+    "our-internal-api": {
+      "type": "http",
+      "url": "https://tools.internal.example.com/mcp",
+      "alwaysLoad": true          // used every turn → skip the search round-trip
+    },
+    "jira": {
+      "type": "http",
+      "url": "https://jira.example.com/mcp"
+      // no alwaysLoad → discovered on demand by tool search
+    }
+  }
+}</code></pre>
+
+  <p class="zh"><code>alwaysLoad</code> 还有一个副作用值得知道:Claude Code 会在启动时<strong>等这个 server 的工具列表</strong>(受同一个连接超时上限约束),其它 server 继续在后台连接;如果是有缓存工具列表的远程 server,则无需连接即可提供。</p>
+  <p class="en">One side effect worth knowing: Claude Code <strong>waits at startup for that server's tools</strong> (capped by the same connection deadline) while other servers keep connecting in the background. A remote server with a cached tool list supplies them without connecting at all.</p>
+
+  <div class="callout key zh">
+    <span class="lbl">用量原则</span>
+    <p><code>alwaysLoad</code> 要<strong>省着用</strong>。每个常驻工具占掉的上下文,本来可以让 tool search 拿去换一个更贴题的工具。官方给的经验值是:保留 3–5 个最高频的工具常驻,其余全部延迟。</p>
+  </div>
+  <div class="callout key en">
+    <span class="lbl">Rule of thumb</span>
+    <p>Use <code>alwaysLoad</code> <strong>sparingly</strong>. Every always-loaded tool consumes context that tool search could otherwise spend surfacing a more relevant one. The official guidance: keep your 3–5 most-used tools resident and defer the rest.</p>
+  </div>
+  <p class="srcline zh">来源:<a href="https://code.claude.com/docs/en/agent-sdk/tool-search">Claude Code Docs · Scale to many tools with tool search</a> · <a href="https://code.claude.com/docs/en/agent-sdk/mcp">Connect to external tools with MCP</a></p>
+  <p class="srcline en">Sources: <a href="https://code.claude.com/docs/en/agent-sdk/tool-search">Claude Code Docs · Scale to many tools with tool search</a> · <a href="https://code.claude.com/docs/en/agent-sdk/mcp">Connect to external tools with MCP</a></p>
+
+  <h3 class="zh">4.4 让搜索搜得准:写好名字和描述</h3>
+  <h3 class="en">4.4 Make search work: names and descriptions matter</h3>
+  <p class="zh">搜索是<strong>按名字和描述匹配</strong>的,所以这两样东西的质量直接决定发现准确率。官方给的正反例:</p>
+  <p class="en">Search <strong>matches against names and descriptions</strong>, so their quality directly determines discovery accuracy. Anthropic's own good/bad example:</p>
+
+<pre class="zh"><code>// 好
+{
+  "name": "search_customer_orders",
+  "description": "Search for customer orders by date range, status, or total amount.
+                  Returns order details including items, shipping, and payment info."
+}
+
+// 差
+{
+  "name": "query_db_orders",
+  "description": "Execute order query"
+}</code></pre>
+<pre class="en"><code>// Good
+{
+  "name": "search_customer_orders",
+  "description": "Search for customer orders by date range, status, or total amount.
+                  Returns order details including items, shipping, and payment info."
+}
+
+// Bad
+{
+  "name": "query_db_orders",
+  "description": "Execute order query"
+}</code></pre>
+
+  <ul class="zh">
+    <li><strong>统一命名空间</strong>:用服务或资源做前缀(<code>github_</code>、<code>slack_</code>),一次搜索就能命中一整组。</li>
+    <li><strong>描述里放用户会用的词</strong>:用户怎么描述任务,描述里就该出现那些词。</li>
+    <li><strong>在系统提示词里加一段「有哪些类别」</strong>:比如「你可以搜索用于 Slack、GitHub、Jira 的工具」——让模型知道值得去搜什么。</li>
+    <li><strong>观察它实际发现了什么</strong>,反过来改描述。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Namespace consistently</strong>: prefix by service or resource (<code>github_</code>, <code>slack_</code>) so one search matches a whole group.</li>
+    <li><strong>Use the words your users use</strong>: descriptions should echo how people phrase the task.</li>
+    <li><strong>Add a category list to the system prompt</strong>: e.g. "You can search for tools to interact with Slack, GitHub, and Jira" — so the model knows what's worth searching for.</li>
+    <li><strong>Watch what it actually discovers</strong> and refine descriptions from there.</li>
+  </ul>
+</section>
+
+<!-- ===== 5 ===== -->
+<section id="cases">
+  <h2 class="zh">5 · 什么场景用:阈值、案例与真实数据</h2>
+  <h2 class="en">5 · When to use it: thresholds, cases, and real numbers</h2>
+
+  <h3 class="zh">官方给的判断标准</h3>
+  <h3 class="en">The official decision criteria</h3>
+  <div class="tw"><table class="zh">
+    <tr><th>该用 tool search</th><th>不必用(标准工具调用更合适)</th></tr>
+    <tr><td>可用工具 ≥ 10 个</td><td>工具少于 10 个</td></tr>
+    <tr><td>工具定义超过 10K token</td><td>工具定义很小(合计 &lt; 100 token)</td></tr>
+    <tr><td>随工具变多,选择准确率下降</td><td>每个工具在每次请求里都会用到</td></tr>
+    <tr><td>聚合了多个 MCP server(200+ 工具)</td><td>——</td></tr>
+    <tr><td>工具库会持续增长</td><td>——</td></tr>
+  </table></div>
+  <div class="tw"><table class="en">
+    <tr><th>Use tool search when</th><th>Skip it (standard tool calling fits better) when</th></tr>
+    <tr><td>You have 10+ tools available</td><td>You have fewer than 10 tools</td></tr>
+    <tr><td>Tool definitions exceed 10K tokens</td><td>Definitions are tiny (&lt;100 tokens total)</td></tr>
+    <tr><td>Selection accuracy drops as the toolset grows</td><td>Every tool is used in every request</td></tr>
+    <tr><td>You aggregate multiple MCP servers (200+ tools)</td><td>—</td></tr>
+    <tr><td>Your tool library grows over time</td><td>—</td></tr>
+  </table></div>
+
+  <h3 class="zh">案例:Amazon Prime Video 的自建渐进式发现</h3>
+  <h3 class="en">Case: Amazon Prime Video's home-grown progressive discovery</h3>
+  <p class="zh">据 ZenML 的 LLMOps 案例库记录,Amazon Prime Video 团队遇到的问题是:内部 agent 接入了<strong>集中式 MCP server,上面有数百个工具</strong>,上下文膨胀既拖慢性能又让幻觉变多。他们的做法是用 MCP 的协议通知(notifications)与会话追踪,<strong>初始化时只暴露一个「find tools」能力</strong>,agent 按问题类别动态发现并加载相关子集,把每个任务面对的工具数从数百个压到三四个。</p>
+  <p class="en">Per ZenML's LLMOps case database, the Amazon Prime Video team hit this: internal agents were connecting to a <strong>centralized MCP server carrying hundreds of tools</strong>, and the resulting context bloat both degraded performance and increased hallucinations. Their fix used MCP protocol notifications plus session tracking to <strong>expose a single "find tools" capability at initialization</strong>; agents then discovered and loaded a relevant subset per problem category, cutting tool exposure from hundreds down to three or four per task.</p>
+  <div class="callout quote zh">
+    <span class="lbl">团队自述(转述)</span>
+    <p>这套做法「效果很好」,让他们得以运营「一个 server,上面装的工具比我们过去能接受的数量多得多」。团队同时强调这<strong>不是普适方案</strong>,而是适配他们特定场景——跨团队、跨组织边界共享的集中式 MCP server。</p>
+  </div>
+  <div class="callout quote en">
+    <span class="lbl">The team's own framing (paraphrased)</span>
+    <p>The approach "worked really well," letting them run "one server with many more tools than we would have been okay with before." They stress it is <strong>not a universal solution</strong> but one fitted to their context: centralized MCP servers with cross-cutting capabilities shared across teams and organizational boundaries.</p>
+  </div>
+  <p class="srcline zh">来源:<a href="https://www.zenml.io/llmops-database/progressive-tool-discovery-for-mcp-servers-to-manage-context-at-scale">ZenML LLMOps Database · Amazon: Progressive Tool Discovery for MCP Servers</a>(第三方整理的案例记录,非 Amazon 一手公告,细节以原始演讲为准)</p>
+  <p class="srcline en">Source: <a href="https://www.zenml.io/llmops-database/progressive-tool-discovery-for-mcp-servers-to-manage-context-at-scale">ZenML LLMOps Database · "Amazon: Progressive Tool Discovery for MCP Servers"</a> — a third-party case write-up rather than a first-party Amazon announcement; check the original talk for details.</p>
+
+  <h3 class="zh">相邻案例:Claude for Excel 与程序化工具调用</h3>
+  <h3 class="en">Adjacent case: Claude for Excel and programmatic tool calling</h3>
+  <p class="zh">Anthropic 提到,<strong>Claude for Excel</strong> 使用的是同一批「高级工具使用」能力中的另一个——程序化工具调用(Programmatic Tool Calling),用来读写数千行的表格而不撑爆上下文。这说明一件事:<strong>「工具太多」和「工具结果太大」是两个不同的病,药也不同</strong>(下一节展开)。</p>
+  <p class="en">Anthropic notes that <strong>Claude for Excel</strong> uses a sibling capability from the same "advanced tool use" batch — Programmatic Tool Calling — to read and modify spreadsheets with thousands of rows without overloading context. The lesson: <strong>"too many tools" and "tool results too large" are different ailments with different cures</strong> (next section).</p>
+</section>
+
+<!-- ===== 6 ===== -->
+<section id="compare">
+  <h2 class="zh">6 · 对比与选型:三种「省上下文」的手段别搞混</h2>
+  <h2 class="en">6 · Alternatives &amp; trade-offs: three context-saving tools, don't mix them up</h2>
+
+  <p class="zh">官方建议是<strong>先找你最大的瓶颈,对症下一个药</strong>,再按需叠加——不要一上来就三个全开。</p>
+  <p class="en">Anthropic's advice: <strong>start with your biggest bottleneck and apply one fix</strong>, then layer more as needed — don't turn all three on upfront.</p>
+
+  <div class="tw"><table class="zh">
+    <tr><th>症状</th><th>对应手段</th><th>它在省什么</th></tr>
+    <tr><td>工具<strong>定义</strong>把上下文撑满</td><td>Tool Search Tool</td><td>省「说明书」的 token,官方口径降幅 &gt;85%</td></tr>
+    <tr><td>工具<strong>返回结果</strong>把上下文撑满</td><td>Programmatic Tool Calling(PTC)</td><td>让 Claude 写 Python 在沙箱里编排、过滤,只把最终结果给模型。官方数据:复杂研究任务平均从 43,588 降到 27,297 token(-37%)</td></tr>
+    <tr><td>参数写错、调用格式不对</td><td>Tool Use Examples(<code>input_examples</code>)</td><td>不省 token(反而增加),换的是准确率:内部测试复杂参数场景 72% → 90%</td></tr>
+  </table></div>
+  <div class="tw"><table class="en">
+    <tr><th>Symptom</th><th>Fix</th><th>What it saves</th></tr>
+    <tr><td>Tool <strong>definitions</strong> flood the context</td><td>Tool Search Tool</td><td>Tokens spent on "manuals" — &gt;85% reduction per Anthropic</td></tr>
+    <tr><td>Tool <strong>results</strong> flood the context</td><td>Programmatic Tool Calling (PTC)</td><td>Claude writes Python that orchestrates and filters in a sandbox; only the final output reaches the model. Anthropic: 43,588 → 27,297 tokens on complex research tasks (−37%)</td></tr>
+    <tr><td>Malformed parameters / wrong call shape</td><td>Tool Use Examples (<code>input_examples</code>)</td><td>Not tokens (it adds some) but accuracy: 72% → 90% on complex parameter handling in internal testing</td></tr>
+  </table></div>
+
+  <div class="figure zh">
+    <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="按瓶颈选择手段的决策分叉图">
+      <rect x="270" y="12" width="220" height="46" rx="10" fill="#0d7a6f"/>
+      <text x="380" y="41" font-size="13.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">先问:哪里最堵?</text>
+      <path d="M330,58 L150,96" stroke="#0d7a6f" stroke-width="2" fill="none" data-draw style="--len:200"/>
+      <path d="M380,58 L380,96" stroke="#0d7a6f" stroke-width="2" fill="none" data-draw style="--len:45"/>
+      <path d="M430,58 L610,96" stroke="#0d7a6f" stroke-width="2" fill="none" data-draw style="--len:200"/>
+
+      <rect x="24" y="100" width="252" height="82" rx="10" fill="#e2f0ed" stroke="#bcdcd6"/>
+      <text x="150" y="124" font-size="12.5" font-weight="700" fill="#08544c" text-anchor="middle" font-family="sans-serif">开局就吃掉几万 token</text>
+      <text x="150" y="146" font-size="12" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">→ Tool Search Tool</text>
+      <text x="150" y="167" font-size="11" fill="#6f7d78" text-anchor="middle" font-family="sans-serif">defer_loading / ENABLE_TOOL_SEARCH</text>
+
+      <rect x="288" y="100" width="184" height="82" rx="10" fill="#fbeadf" stroke="#eccdb9"/>
+      <text x="380" y="124" font-size="12.5" font-weight="700" fill="#6b2f16" text-anchor="middle" font-family="sans-serif">中间结果太大</text>
+      <text x="380" y="146" font-size="12" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">→ 程序化工具调用</text>
+      <text x="380" y="167" font-size="11" fill="#6f7d78" text-anchor="middle" font-family="sans-serif">allowed_callers + 代码执行</text>
+
+      <rect x="484" y="100" width="252" height="82" rx="10" fill="#f7f4ec" stroke="#cfc6ae"/>
+      <text x="610" y="124" font-size="12.5" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">调用格式老是错</text>
+      <text x="610" y="146" font-size="12" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">→ Tool Use Examples</text>
+      <text x="610" y="167" font-size="11" fill="#6f7d78" text-anchor="middle" font-family="sans-serif">input_examples,1–5 个/工具</text>
+
+      <rect x="24" y="200" width="712" height="46" rx="10" fill="#fffdf8" stroke="#cfc6ae" stroke-dasharray="5 4"/>
+      <text x="380" y="228" font-size="12" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">三者互补:搜索保证「找得到」,程序化保证「跑得省」,示例保证「调得对」——按需叠加,不必一次全开</text>
+    </svg>
+    <p class="fig-cap">图 3:按瓶颈选手段。依据 Anthropic Engineering 的 "Layer features strategically" 一节。</p>
+  </div>
+  <div class="figure en">
+    <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision branch: pick the fix that matches your bottleneck">
+      <rect x="270" y="12" width="220" height="46" rx="10" fill="#0d7a6f"/>
+      <text x="380" y="41" font-size="13" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">Ask: where's the bottleneck?</text>
+      <path d="M330,58 L150,96" stroke="#0d7a6f" stroke-width="2" fill="none" data-draw style="--len:200"/>
+      <path d="M380,58 L380,96" stroke="#0d7a6f" stroke-width="2" fill="none" data-draw style="--len:45"/>
+      <path d="M430,58 L610,96" stroke="#0d7a6f" stroke-width="2" fill="none" data-draw style="--len:200"/>
+
+      <rect x="24" y="100" width="252" height="82" rx="10" fill="#e2f0ed" stroke="#bcdcd6"/>
+      <text x="150" y="124" font-size="12" font-weight="700" fill="#08544c" text-anchor="middle" font-family="sans-serif">Tens of K gone at startup</text>
+      <text x="150" y="146" font-size="12" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">→ Tool Search Tool</text>
+      <text x="150" y="167" font-size="10.5" fill="#6f7d78" text-anchor="middle" font-family="sans-serif">defer_loading / ENABLE_TOOL_SEARCH</text>
+
+      <rect x="288" y="100" width="184" height="82" rx="10" fill="#fbeadf" stroke="#eccdb9"/>
+      <text x="380" y="124" font-size="12" font-weight="700" fill="#6b2f16" text-anchor="middle" font-family="sans-serif">Huge intermediate data</text>
+      <text x="380" y="146" font-size="12" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">→ Programmatic calling</text>
+      <text x="380" y="167" font-size="10.5" fill="#6f7d78" text-anchor="middle" font-family="sans-serif">allowed_callers + code exec</text>
+
+      <rect x="484" y="100" width="252" height="82" rx="10" fill="#f7f4ec" stroke="#cfc6ae"/>
+      <text x="610" y="124" font-size="12" font-weight="700" fill="#1c2321" text-anchor="middle" font-family="sans-serif">Malformed calls</text>
+      <text x="610" y="146" font-size="12" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">→ Tool Use Examples</text>
+      <text x="610" y="167" font-size="10.5" fill="#6f7d78" text-anchor="middle" font-family="sans-serif">input_examples, 1–5 per tool</text>
+
+      <rect x="24" y="200" width="712" height="46" rx="10" fill="#fffdf8" stroke="#cfc6ae" stroke-dasharray="5 4"/>
+      <text x="380" y="228" font-size="11.5" fill="#3b4a46" text-anchor="middle" font-family="sans-serif">Complementary: search makes tools findable, PTC makes execution cheap, examples make calls correct — layer as needed</text>
+    </svg>
+    <p class="fig-cap">Figure 3: Match the fix to the bottleneck. Based on "Layer features strategically" in Anthropic's engineering post.</p>
+  </div>
+
+  <h3 class="zh">还有哪些路子</h3>
+  <h3 class="en">Other approaches in the wild</h3>
+  <ul class="zh">
+    <li><strong>自定义搜索(嵌入 / 语义检索)</strong>:官方明确支持——你自己写一个搜索工具,返回 <code>tool_result</code> 里带 <code>tool_reference</code> 块即可,API 照样帮你展开。前提是被引用的工具在顶层 <code>tools</code> 里有定义(通常 <code>defer_loading: true</code>)。适合内置的 regex/BM25 匹配不动你的领域词汇时。</li>
+    <li><strong>server 侧自建渐进式发现</strong>:像 Prime Video 那样,在 MCP server 内部实现「先给一个 find_tools 入口」。好处是对任何客户端都生效、不依赖某家模型厂;代价是你要自己维护这套逻辑。</li>
+    <li><strong><code>tools/list</code> 分页</strong>:MCP 规范本身支持游标分页,客户端可以分批取工具。这是最"协议原生"的降载手段,但它解决的是<strong>传输</strong>层面的分批,不等于模型上下文里就少了工具——真正的收益取决于客户端怎么用。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Custom search (embeddings / semantic retrieval)</strong>: officially supported — write your own search tool and return <code>tool_reference</code> blocks inside a normal <code>tool_result</code>; the API expands them the same way. Every referenced tool must still have a definition in the top-level <code>tools</code> array, normally with <code>defer_loading: true</code>. Useful when built-in regex/BM25 matching doesn't fit your domain vocabulary.</li>
+    <li><strong>Server-side progressive discovery</strong>: as Prime Video did — implement a "find_tools" entry point inside the MCP server itself. It works for any client and doesn't depend on one model vendor; the cost is that you maintain the logic.</li>
+    <li><strong><code>tools/list</code> pagination</strong>: the MCP spec supports cursor-based pagination, so clients can fetch tools in chunks. It's the most protocol-native lever, but it batches <strong>transport</strong>, which isn't the same as fewer tools in the model's context — the actual benefit depends on what the client does with the pages.</li>
+  </ul>
+</section>
+
+<!-- ===== 7 ===== -->
+<section id="pitfalls">
+  <h2 class="zh">7 · 常见坑与限制</h2>
+  <h2 class="en">7 · Pitfalls &amp; limits</h2>
+
+  <ol class="steps zh">
+    <li><strong>把所有工具都延迟了 → 400 报错。</strong>至少要有一个 <code>defer_loading=false</code>。错误信息原文:<code>At least one tool must have defer_loading=false.</code> 别把搜索工具本身也标上延迟。</li>
+    <li><strong>给 <code>srvtoolu_...</code> 回了 <code>tool_result</code> → 请求被拒。</strong>搜索是服务端跑的,那一步不需要你返回结果。继续对话时,要把 <code>server_tool_use</code> 与 <code>tool_search_tool_result</code> 块<strong>原样</strong>放回消息历史,并且每次都发同一套完整 <code>tools</code> 数组。</li>
+    <li><strong>延迟的工具不能带 <code>cache_control</code> → 400。</strong>缓存断点要打在没被延迟的工具上。</li>
+    <li><strong>引用了没有定义的工具 → 400。</strong>报错原文:<code>Tool reference 'unknown_tool' not found in available tools</code>。自定义搜索时尤其容易踩。</li>
+    <li><strong>多了一次往返。</strong>首次发现某个工具时会多一个搜索步骤。工具少于 10 个、定义能舒服装进上下文时,全部前加载通常<strong>更快</strong>。这是一个真实的延迟代价,不是纯赚。</li>
+    <li><strong>长对话被压缩后,已发现的工具可能被清掉。</strong>SDK 压缩早期消息释放空间时,先前发现的工具可能一起消失,模型需要重新搜索。这是设计如此,但会影响你对延迟的预期。</li>
+    <li><strong>代理和第三方部署会静默改变行为。</strong><code>ANTHROPIC_BASE_URL</code> 指向非一方主机时,SDK <strong>默认关闭</strong> tool search(多数代理不转发 <code>tool_reference</code> 块);Azure 上托管的 Microsoft Foundry 部署会在服务端拒绝,<code>ENABLE_TOOL_SEARCH</code> 也覆盖不了。</li>
+    <li><strong>搜不到不报错,返回空数组。</strong>没命中时是一个 <code>tool_references</code> 为空的正常结果,不是错误——排查时别只盯着异常。</li>
+    <li><strong>模型有门槛。</strong>Claude Opus 4.1 及更早的模型不支持 tool search;Agent SDK 侧最低是 Sonnet 4.5 / Haiku 4.5 / Opus 4.5 及之后。</li>
+    <li><strong>规模上限。</strong>每次请求最多 10,000 个延迟工具;每次搜索默认返回最多 5 个命中(模型可自行把 <code>limit</code> 设到 1–10,000);regex 模式最长 200 字符,BM25 查询最长 500 字符。</li>
+  </ol>
+  <ol class="steps en">
+    <li><strong>Deferring every tool → 400.</strong> At least one tool needs <code>defer_loading=false</code>. The error reads: <code>At least one tool must have defer_loading=false.</code> Never defer the search tool itself.</li>
+    <li><strong>Returning a <code>tool_result</code> for <code>srvtoolu_...</code> → rejected.</strong> The search runs server-side; that step needs no result from you. When continuing, pass the <code>server_tool_use</code> and <code>tool_search_tool_result</code> blocks back <strong>unchanged</strong>, and send the same complete <code>tools</code> array every time.</li>
+    <li><strong>A deferred tool can't carry <code>cache_control</code> → 400.</strong> Put the cache breakpoint on a non-deferred tool.</li>
+    <li><strong>Referencing a tool with no definition → 400.</strong> The error reads: <code>Tool reference 'unknown_tool' not found in available tools</code>. Easy to hit with custom search implementations.</li>
+    <li><strong>You add a round-trip.</strong> The first time Claude discovers a tool there's an extra search step. With fewer than ~10 tools whose definitions fit comfortably, loading everything upfront is typically <strong>faster</strong>. This is a real latency cost, not a free win.</li>
+    <li><strong>Compaction can drop discovered tools.</strong> When the SDK compacts earlier messages to free space in a long conversation, previously discovered tools may be removed and the agent searches again. By design, but it shapes your latency expectations.</li>
+    <li><strong>Proxies and third-party deployments silently change behavior.</strong> With <code>ANTHROPIC_BASE_URL</code> pointed at a non-first-party host, the SDK <strong>disables</strong> tool search by default (most proxies don't forward <code>tool_reference</code> blocks). Microsoft Foundry deployments hosted on Azure reject it server-side, and <code>ENABLE_TOOL_SEARCH</code> can't override that.</li>
+    <li><strong>No match is not an error.</strong> A search that matches nothing returns a normal result with an empty <code>tool_references</code> array — don't debug by only watching for exceptions.</li>
+    <li><strong>Model floor.</strong> Claude Opus 4.1 and earlier don't support tool search. On the Agent SDK the minimum is Sonnet 4.5 / Haiku 4.5 / Opus 4.5 and later.</li>
+    <li><strong>Scale limits.</strong> Up to 10,000 deferred tools per request; each search returns up to 5 hits by default (the model may set <code>limit</code> from 1 to 10,000); regex patterns max 200 characters, BM25 queries max 500.</li>
+  </ol>
+
+  <div class="callout warn zh">
+    <span class="lbl">一个容易忽略的计费细节</span>
+    <p>Tool search <strong>不按服务端工具单独计费</strong>——响应的 <code>usage.server_tool_use</code> 里没有 tool search 字段。但搜索加载进上下文的那些工具定义,<strong>照常按输入 token 计费</strong>。也就是说省的是「没被加载的那部分」,不是「搜索本身免费所以随便搜」。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">A billing detail that's easy to miss</span>
+    <p>Tool search <strong>isn't metered as a separate server tool</strong> — there's no tool-search field in the response's <code>usage.server_tool_use</code>. But the tool definitions the search loads into context <strong>are billed as input tokens like any other</strong>. The savings come from what never loads, not from searches being free.</p>
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section id="roadmap">
+  <h2 class="zh">8 · 协议侧:2026-08-22 的新版 MCP 路线图</h2>
+  <h2 class="en">8 · Protocol side: the new MCP roadmap (2026-08-22)</h2>
+
+  <p class="zh">上面讲的都是<strong>某一家平台</strong>的实现。而就在 2026 年 8 月 22 日,MCP 核心维护者 David Soria Parra 与 Den Delimarsky 发布了新版路线图,把这件事抬到了<strong>协议级议程</strong>。路线图收敛为五个优先领域,其中「改进原语(Improved primitives)」一节直接点了这个问题:</p>
+  <p class="en">Everything above is <strong>one platform's</strong> implementation. On August 22, 2026, MCP lead maintainers David Soria Parra and Den Delimarsky published a new roadmap that raises the issue to the <strong>protocol agenda</strong>. It's organized into five priority areas, and the "Improved primitives" section names this problem directly:</p>
+
+  <div class="callout quote zh">
+    <span class="lbl">路线图原文(译)</span>
+    <p>「我们需要为原语解决的另一个挑战是它们不断增长的规模。连上一个有一百个工具的 server,意味着<strong>模型在用户提出第一个问题之前,就已经为整个工具面付了费</strong>,而且工具选择往往随列表变长而变差。我们正在启动一项渐进式发现工作,让 server 可以先提供一个小的入口点,再随着对话收敛逐步展示更多目录。」</p>
+  </div>
+  <div class="callout quote en">
+    <span class="lbl">From the roadmap</span>
+    <p>"The other challenge we need to address for primitive use is their ever-growing scale. Connecting to a server with a hundred tools means <strong>the model pays for that entire surface before the user has asked a single question</strong>, and tool selection tends to get worse as the list grows. We're starting a progressive discovery effort so a server can offer a small entry point and reveal more of its catalog as the conversation narrows."</p>
+  </div>
+
+  <p class="zh">同一节还提到另一件相关的事:<code>tools/call</code> 的响应<strong>可以用多种形式携带同一份输出</strong>,而 server 开发者今天没办法知道某个客户端会把哪一种形式呈现给模型——路线图的目标是收敛到一份清晰的契约。</p>
+  <p class="en">The same section flags a related issue: a <code>tools/call</code> response <strong>can carry the same output in more than one form</strong>, and a server developer has no way to know which form a given client will put in front of the model. The roadmap aims to standardize on one clear contract.</p>
+
+  <h3 class="zh">五个优先领域一览</h3>
+  <h3 class="en">The five priority areas at a glance</h3>
+  <div class="tw"><table class="zh">
+    <tr><th>领域</th><th>要点</th></tr>
+    <tr><td>Agentic messaging primitives</td><td>服务端主动事件(webhooks / channels,让客户端不必轮询);跨 Agents、Transports、Triggers &amp; Events 三个工作组做组合性评审;把 Tasks 扩展(SEP-2663)养熟后并入规范</td></tr>
+    <tr><td>HTTP 原生传输统一与加固</td><td>2026-07-28 版之后,远程 MCP server 与普通 HTTP 负载无异;下一步把这个模型延伸到更多部署形态,包括本地 server 通过 stdio 说 Streamable HTTP</td></tr>
+    <tr><td>Agent 身份与企业级安全</td><td>今天的授权围绕「人在浏览器里点同意」设计,但越来越多调用方是有自己身份的云上 agent;方向是 DPoP(RFC 9449)、Workload Identity Federation、EMA 背后的 ID-JAG 授权、标准 token exchange,并继续参与 IETF OAuth 与 WIMSE 工作组</td></tr>
+    <tr><td>改进原语</td><td>统一工具结果契约 + <strong>渐进式发现</strong></td></tr>
+    <tr><td>SDK 开发者体验</td><td>人体工学、规范一致性测试、跨语言文档质量——在「开发者把 agent 指向你的库来写代码」的时代尤其关键</td></tr>
+  </table></div>
+  <div class="tw"><table class="en">
+    <tr><th>Area</th><th>What it covers</th></tr>
+    <tr><td>Agentic messaging primitives</td><td>Server-initiated events (webhooks and channels, so clients aren't left polling); a composition review across the Agents, Transports, and Triggers &amp; Events Working Groups; maturing the Tasks extension (SEP-2663) so it can move into the specification</td></tr>
+    <tr><td>HTTP-native transport unification and hardening</td><td>Since the 2026-07-28 release a remote MCP server is no different from any other HTTP workload; next is stretching that model to more deployment modes, including local servers speaking Streamable HTTP over stdio</td></tr>
+    <tr><td>Agent identity and enterprise-ready security</td><td>Authorization today assumes a person approving access in a browser, but more callers are cloud agents with their own identity. Direction: DPoP (RFC 9449), Workload Identity Federation, the ID-JAG grant behind Enterprise-Managed Authorization, standard token exchange, plus continued engagement with the IETF OAuth and WIMSE working groups</td></tr>
+    <tr><td>Improved primitives</td><td>One clear tool-result contract + <strong>progressive discovery</strong></td></tr>
+    <tr><td>Improved SDK developer experience</td><td>Ergonomics, spec conformance testing, and documentation quality across languages — especially now that many developers build MCP clients and servers by pointing an agent at the libraries</td></tr>
+  </table></div>
+
+  <div class="callout key zh">
+    <span class="lbl">对你的实际影响</span>
+    <p>路线图直接决定 SEP(规范增强提案)的审阅优先级:落在这五个方向里的提案走<strong>快速通道</strong>,不在里面的「不会被自动拒绝,但维护者时间优先给路线图」。如果你在做 MCP server,这是未来数个规范版本该往哪投入的官方信号。</p>
+  </div>
+  <div class="callout key en">
+    <span class="lbl">What this means practically</span>
+    <p>The roadmap drives SEP (Specification Enhancement Proposal) review priority: proposals inside these five areas get <strong>expedited review</strong>, while those outside "aren't rejected automatically, but maintainer review time is scarce and goes to the roadmap first." If you build MCP servers, this is the official signal on where to invest over the next few spec releases.</p>
+  </div>
+  <p class="srcline zh">来源:<a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap(2026-08-22)</a> · <a href="https://modelcontextprotocol.io/development/roadmap">路线图页面</a></p>
+  <p class="srcline en">Sources: <a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap (Aug 22, 2026)</a> · <a href="https://modelcontextprotocol.io/development/roadmap">The roadmap page</a></p>
+
+  <div class="callout warn zh">
+    <span class="lbl">时效提醒</span>
+    <p>截至本文调研时(2026-08-23),渐进式发现<strong>尚未写入 MCP 规范</strong>,仍是路线图上的工作项。现在能用的是各家自己的实现(Anthropic 的 Tool Search、Amazon 的 find_tools 模式等)。请以官方规范页面的当前状态为准。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Timeliness note</span>
+    <p>As of this research (2026-08-23), progressive discovery is <strong>not yet in the MCP specification</strong> — it's a roadmap work item. What's usable today are vendor implementations (Anthropic's Tool Search, Amazon's find_tools pattern, and others). Check the official specification pages for current status.</p>
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section id="resources">
+  <h2 class="zh">9 · 学习资源</h2>
+  <h2 class="en">9 · Resources</h2>
+  <ul class="zh">
+    <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool">Tool search tool — Claude Platform Docs</a>:API 层最完整的参考,含响应格式、错误码、限制、自定义搜索实现。</li>
+    <li><a href="https://code.claude.com/docs/en/agent-sdk/tool-search">Scale to many tools with tool search — Claude Code Docs</a>:Agent SDK 侧的默认行为与 <code>ENABLE_TOOL_SEARCH</code> 全部取值。</li>
+    <li><a href="https://code.claude.com/docs/en/agent-sdk/mcp">Connect to external tools with MCP — Claude Code Docs</a>:<code>alwaysLoad</code>、连接时序、<code>allowedTools</code> 权限、错误排查。</li>
+    <li><a href="https://www.anthropic.com/engineering/advanced-tool-use">Introducing advanced tool use — Anthropic Engineering</a>:三个能力的设计动机与实测数字的一手出处。</li>
+    <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling">Programmatic tool calling — Claude Platform Docs</a>:结果太大时的对症方案。</li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap</a> 与 <a href="https://modelcontextprotocol.io/development/roadmap">roadmap 页面</a>:协议未来方向。</li>
+    <li><a href="https://github.com/anthropics/claude-cookbooks/blob/main/tool_use/tool_search_with_embeddings.ipynb">Cookbook:用嵌入做工具搜索</a>:自定义搜索的完整示例。</li>
+  </ul>
+  <ul class="en">
+    <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool">Tool search tool — Claude Platform Docs</a>: the fullest API-level reference, including response format, error codes, limits, and custom search implementations.</li>
+    <li><a href="https://code.claude.com/docs/en/agent-sdk/tool-search">Scale to many tools with tool search — Claude Code Docs</a>: SDK defaults and every value of <code>ENABLE_TOOL_SEARCH</code>.</li>
+    <li><a href="https://code.claude.com/docs/en/agent-sdk/mcp">Connect to external tools with MCP — Claude Code Docs</a>: <code>alwaysLoad</code>, connection timing, <code>allowedTools</code> permissions, troubleshooting.</li>
+    <li><a href="https://www.anthropic.com/engineering/advanced-tool-use">Introducing advanced tool use — Anthropic Engineering</a>: first-party source for the design rationale and the measured numbers.</li>
+    <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling">Programmatic tool calling — Claude Platform Docs</a>: the fix when results, not definitions, are the problem.</li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap</a> and the <a href="https://modelcontextprotocol.io/development/roadmap">roadmap page</a>: where the protocol is heading.</li>
+    <li><a href="https://github.com/anthropics/claude-cookbooks/blob/main/tool_use/tool_search_with_embeddings.ipynb">Cookbook: tool search with embeddings</a>: a complete custom-search example.</li>
+  </ul>
+
+  <div class="callout key zh">
+    <span class="lbl">如果只带走三句话</span>
+    <p>① 工具定义是每轮固定开销,过了 30–50 个工具,省 token 和保准确率变成同一件事。② 大多数人今天该做的第一件事不是写代码,而是<strong>检查 <code>alwaysLoad</code> 有没有滥用、工具名和描述写得够不够像人话</strong>。③ 工具太多用 tool search,结果太大用程序化调用,调不对用示例——别拿一个药治三种病。</p>
+  </div>
+  <div class="callout key en">
+    <span class="lbl">Three things to take away</span>
+    <p>① Tool definitions are a per-turn fixed cost; past 30–50 tools, saving tokens and preserving accuracy become the same problem. ② For most people the first move isn't writing code — it's <strong>auditing whether <code>alwaysLoad</code> is overused and whether tool names and descriptions read like human language</strong>. ③ Too many tools → tool search; results too large → programmatic tool calling; malformed calls → tool use examples. Don't use one remedy for three ailments.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <div class="fin">
+    <h3 class="zh">来源清单</h3>
+    <h3 class="en">Source list</h3>
+    <p class="zh">调研时间:2026-08-23。本文所有数字与配置项均来自下列公开来源;标注为「内部测试」的数据出自 Anthropic 自述,未经独立验证。MCP 渐进式发现截至调研时仍是路线图工作项,尚未进入规范。此领域迭代很快,配置细节请以官方最新文档为准。</p>
+    <p class="en">Researched 2026-08-23. Every figure and configuration item here comes from the public sources below; data labeled "internal testing" is Anthropic's own and independently unverified. MCP progressive discovery remains a roadmap work item, not yet in the specification, as of this research. This area moves quickly — always confirm configuration details against the current official docs.</p>
+    <ol class="zh">
+      <li>Claude Platform Docs, "Tool search tool" — https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool(访问于 2026-08-23)</li>
+      <li>Claude Code Docs, "Scale to many tools with tool search" — https://code.claude.com/docs/en/agent-sdk/tool-search(访问于 2026-08-23)</li>
+      <li>Claude Code Docs, "Connect to external tools with MCP" — https://code.claude.com/docs/en/agent-sdk/mcp(访问于 2026-08-23)</li>
+      <li>Anthropic Engineering, "Introducing advanced tool use on the Claude Developer Platform",发布于 2025-11-24 — https://www.anthropic.com/engineering/advanced-tool-use</li>
+      <li>Model Context Protocol Blog, "The New MCP Roadmap",发布于 2026-08-22 — https://blog.modelcontextprotocol.io/posts/mcp-roadmap/</li>
+      <li>Model Context Protocol, Roadmap — https://modelcontextprotocol.io/development/roadmap</li>
+      <li>ZenML LLMOps Database, "Amazon: Progressive Tool Discovery for MCP Servers to Manage Context at Scale" — https://www.zenml.io/llmops-database/progressive-tool-discovery-for-mcp-servers-to-manage-context-at-scale(第三方整理,非一手公告)</li>
+    </ol>
+    <ol class="en">
+      <li>Claude Platform Docs, "Tool search tool" — https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool (accessed 2026-08-23)</li>
+      <li>Claude Code Docs, "Scale to many tools with tool search" — https://code.claude.com/docs/en/agent-sdk/tool-search (accessed 2026-08-23)</li>
+      <li>Claude Code Docs, "Connect to external tools with MCP" — https://code.claude.com/docs/en/agent-sdk/mcp (accessed 2026-08-23)</li>
+      <li>Anthropic Engineering, "Introducing advanced tool use on the Claude Developer Platform," published 2025-11-24 — https://www.anthropic.com/engineering/advanced-tool-use</li>
+      <li>Model Context Protocol Blog, "The New MCP Roadmap," published 2026-08-22 — https://blog.modelcontextprotocol.io/posts/mcp-roadmap/</li>
+      <li>Model Context Protocol, Roadmap — https://modelcontextprotocol.io/development/roadmap</li>
+      <li>ZenML LLMOps Database, "Amazon: Progressive Tool Discovery for MCP Servers to Manage Context at Scale" — https://www.zenml.io/llmops-database/progressive-tool-discovery-for-mcp-servers-to-manage-context-at-scale (third-party write-up, not a first-party announcement)</li>
+    </ol>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---- language ----
+  var body=document.body, btn=document.getElementById('langbtn');
+  function stored(){try{return localStorage.getItem('aidaily-lang');}catch(e){return null;}}
+  function save(v){try{localStorage.setItem('aidaily-lang',v);}catch(e){}}
+  var init=stored();
+  if(!init){init=(navigator.language||'en').toLowerCase().indexOf('zh')===0?'zh':'en';}
+  function apply(l){
+    body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang', l==='zh'?'zh-CN':'en');
+    btn.textContent = l==='zh' ? 'EN' : '中';
+    btn.setAttribute('aria-label', l==='zh'?'Switch to English':'切换到中文');
+    refreshFigures();
+  }
+  btn.addEventListener('click',function(){
+    var next = body.getAttribute('data-lang')==='zh' ? 'en' : 'zh';
+    save(next); apply(next);
+  });
+
+  // ---- figure animation ----
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    },{threshold:.12});
+  }
+  function refreshFigures(){
+    var figs=document.querySelectorAll('.figure');
+    for(var i=0;i<figs.length;i++){
+      var f=figs[i];
+      if(f.classList.contains('in')) continue;
+      // display:none elements never fire IntersectionObserver — handle visible ones directly
+      if(f.offsetParent===null && f.getClientRects().length===0){ continue; }
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight*0.92 && r.bottom > 0){ f.classList.add('in'); }
+      else if(io){ io.observe(f); }
+    }
+  }
+  apply(init);
+  window.addEventListener('load',refreshFigures);
+
+  // ---- progress + toc highlight ----
+  var prog=document.getElementById('prog');
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement;
+    var max=h.scrollHeight-h.clientHeight;
+    prog.style.width = (max>0 ? (h.scrollTop||document.body.scrollTop)/max*100 : 0)+'%';
+    var idx=0;
+    for(var i=0;i<secs.length;i++){
+      if(secs[i] && secs[i].getBoundingClientRect().top <= 110) idx=i;
+    }
+    links.forEach(function(a,i){ a.classList.toggle('on', i===idx); });
+    refreshFigures();
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',refreshFigures);
+  onScroll();
+
+  // ---- mobile toc ----
+  var toc=document.getElementById('toc'), tg=document.getElementById('tocToggle');
+  tg.addEventListener('click',function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click',function(e){ if(e.target.tagName==='A') toc.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>
