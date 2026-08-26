@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MCP Tasks 扩展与异步长任务 | MCP Tasks and Asynchronous Long-Running Operations</title>
+<style>
+:root{
+  --bg:#f5f6f3; --surface:#ffffff; --surface-2:#eef1ed;
+  --ink:#16202b; --ink-2:#48565f; --ink-3:#77848c;
+  --line:#dde2dd; --line-2:#c8d0c9;
+  --teal:#0f766e; --teal-2:#14958a; --teal-soft:#e2f2f0;
+  --amber:#b45309; --amber-soft:#fdf1e0;
+  --rose:#9f1239; --rose-soft:#fce8ec;
+  --slate:#334155; --slate-soft:#e8ecf1;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(22,32,43,.05),0 6px 18px rgba(22,32,43,.05);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,sans-serif;
+  font-size:16.5px;line-height:1.78;-webkit-text-size-adjust:100%}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+
+/* progress */
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--teal),var(--amber));z-index:60}
+
+/* topbar */
+#top{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.9);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line)}
+#top .in{max-width:940px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:12px}
+#top .brand{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+#top .sp{flex:1}
+#lang{border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;
+  font:600 13px/1 var(--mono);padding:8px 14px;cursor:pointer}
+#lang:hover{border-color:var(--teal);color:var(--teal)}
+
+.wrap{max-width:940px;margin:0 auto;padding:0 20px 90px}
+
+/* hero */
+header.hero{padding:56px 0 32px;border-bottom:2px solid var(--ink)}
+.kicker{font:700 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+h1{font-size:clamp(28px,5.2vw,44px);line-height:1.2;margin:0 0 14px;letter-spacing:-.02em}
+.lede{font-size:18px;color:var(--ink-2);margin:0 0 20px;max-width:70ch}
+.meta{font:500 13px/1.7 var(--mono);color:var(--ink-3)}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.pill{font:600 12px/1 var(--mono);padding:7px 11px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+
+/* toc */
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 22px;margin:30px 0 10px;box-shadow:var(--shadow)}
+nav.toc .th{font:700 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px}
+nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:32px}
+nav.toc li{margin:5px 0;break-inside:avoid}
+nav.toc a{color:var(--ink-2);text-decoration:none;font-size:15px}
+nav.toc a:hover{color:var(--teal);text-decoration:underline}
+
+section{padding:40px 0 8px;border-top:1px solid var(--line);margin-top:24px}
+section:first-of-type{border-top:none}
+h2{font-size:clamp(21px,3.4vw,28px);margin:0 0 6px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:12px}
+h2 .n{font:800 13px/1 var(--mono);color:var(--teal);flex:none;padding-top:4px}
+h3{font-size:18px;margin:30px 0 8px;color:var(--ink)}
+p{margin:0 0 14px}
+a{color:var(--teal)}
+strong{font-weight:700}
+code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:2px 6px;border-radius:5px;
+  border:1px solid var(--line);color:var(--slate);white-space:nowrap}
+pre{background:#16202b;color:#e6edf3;border-radius:var(--radius);padding:16px 18px;overflow-x:auto;
+  font-family:var(--mono);font-size:13.5px;line-height:1.65;margin:0 0 16px;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:inherit;white-space:pre}
+ul,ol{margin:0 0 16px;padding-left:22px}
+li{margin:6px 0}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;margin:0 0 16px;box-shadow:var(--shadow)}
+.card .ct{font-weight:700;margin-bottom:6px;font-size:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}nav.toc ol{columns:1}}
+
+.callout{border-left:4px solid var(--teal);background:var(--teal-soft);border-radius:0 var(--radius) var(--radius) 0;
+  padding:14px 18px;margin:0 0 16px}
+.callout.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout.stop{border-left-color:var(--rose);background:var(--rose-soft)}
+.callout .lbl{font:700 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:7px}
+.callout p:last-child{margin-bottom:0}
+
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:0 0 18px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);display:table}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface-2);font-weight:700;font-size:13px;letter-spacing:.02em}
+tr:last-child td{border-bottom:none}
+.tw{overflow-x:auto;margin-bottom:18px}
+.tw table{margin-bottom:0;min-width:520px}
+
+figure{margin:26px 0;opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+figure.in{opacity:1;transform:none}
+figure svg{width:100%;height:auto;display:block;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow)}
+figcaption{font-size:13.5px;color:var(--ink-3);margin-top:9px;text-align:center;font-style:italic}
+
+.src{font-size:13px;color:var(--ink-3);margin-top:-6px;margin-bottom:18px}
+.src a{color:var(--ink-3)}
+footer{border-top:2px solid var(--ink);margin-top:46px;padding-top:22px;font-size:13.5px;color:var(--ink-3)}
+footer a{color:var(--ink-3)}
+.srclist{font-size:14px}
+.srclist li{margin:8px 0}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="AI 每日 · 深度学习 AI Daily · Deep Dive 中 / EN 2026-08-26 · Agent 工程 · MCP 扩展 2026-08-26 · Agent Engineering · MCP E…">
+<meta property="og:title" content="MCP Tasks 扩展与异步长任务 | MCP Tasks and Asynchronous Long-Running Operations">
+<meta property="og:description" content="AI 每日 · 深度学习 AI Daily · Deep Dive 中 / EN 2026-08-26 · Agent 工程 · MCP 扩展 2026-08-26 · Agent Engineering · MCP E…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-26-mcptasks-yi-bu-zhang-ren-wu.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-26-mcptasks-yi-bu-zhang-ren-wu.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "MCP Tasks 扩展与异步长任务 | MCP Tasks and Asynchronous Long-Running Operations", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-26-mcptasks-yi-bu-zhang-ren-wu.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-26", "dateModified": "2026-08-26"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="prog"></div>
+
+<div id="top"><div class="in">
+  <span class="brand zh">AI 每日 · 深度学习</span>
+  <span class="brand en">AI Daily · Deep Dive</span>
+  <span class="sp"></span>
+  <button id="lang" type="button">中 / EN</button>
+</div></div>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker zh">2026-08-26 · Agent 工程 · MCP 扩展</div>
+  <div class="kicker en">2026-08-26 · Agent Engineering · MCP Extensions</div>
+  <h1 class="zh">MCP Tasks 扩展与异步长任务</h1>
+  <h1 class="en">MCP Tasks: Asynchronous Long-Running Operations</h1>
+  <p class="lede zh">当一次工具调用要跑五分钟、要等人审批、要熬过一次客户端重启——阻塞连接就不再是答案。Tasks 用一个持久句柄换掉了长连接,把「等结果」变成一件可恢复、可取消、可中途追问的事。</p>
+  <p class="lede en">When a single tool call takes five minutes, waits on a human approval, or has to survive a client restart, holding the connection open stops being an answer. Tasks trade the long-lived connection for a durable handle, turning "waiting for a result" into something resumable, cancellable, and interruptible.</p>
+  <div class="meta zh">阅读时间约 16 分钟 · 全部内容基于 2026-08-26 前公开的官方文档与规范</div>
+  <div class="meta en">~16 min read · Based entirely on official docs and specs published before 2026-08-26</div>
+  <div class="pills zh">
+    <span class="pill">SEP-2663</span><span class="pill">io.modelcontextprotocol/tasks</span><span class="pill">tasks/get</span><span class="pill">input_required</span><span class="pill">subscriptions/listen</span><span class="pill">MRTR</span>
+  </div>
+  <div class="pills en">
+    <span class="pill">SEP-2663</span><span class="pill">io.modelcontextprotocol/tasks</span><span class="pill">tasks/get</span><span class="pill">input_required</span><span class="pill">subscriptions/listen</span><span class="pill">MRTR</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="th zh">目录</div>
+  <div class="th en">Contents</div>
+  <ol>
+    <li><a href="#why"><span class="zh">为什么阻塞不够用</span><span class="en">Why blocking is not enough</span></a></li>
+    <li><a href="#what"><span class="zh">Tasks 是什么:六步机制</span><span class="en">What Tasks are: the six-step mechanism</span></a></li>
+    <li><a href="#lifecycle"><span class="zh">任务生命周期与状态机</span><span class="en">Task lifecycle and state machine</span></a></li>
+    <li><a href="#wire"><span class="zh">线上长什么样:实际报文</span><span class="en">On the wire: actual messages</span></a></li>
+    <li><a href="#impl"><span class="zh">怎么实现:客户端与服务端清单</span><span class="en">How to implement: client and server checklists</span></a></li>
+    <li><a href="#compare"><span class="zh">Tasks / MRTR / subscriptions 怎么选</span><span class="en">Choosing between Tasks, MRTR, subscriptions</span></a></li>
+    <li><a href="#when"><span class="zh">什么场景该用 Tasks</span><span class="en">When to reach for Tasks</span></a></li>
+    <li><a href="#pitfalls"><span class="zh">六个常见坑</span><span class="en">Six common pitfalls</span></a></li>
+    <li><a href="#roadmap"><span class="zh">它在路线图上的位置</span><span class="en">Where it sits on the roadmap</span></a></li>
+    <li><a href="#sources"><span class="zh">来源清单</span><span class="en">Sources</span></a></li>
+  </ol>
+</nav>
+
+<section id="why">
+  <h2><span class="n">01</span><span class="zh">为什么阻塞不够用</span><span class="en">Why blocking is not enough</span></h2>
+
+  <p class="zh">最朴素的做法是:工具调用发出去,连接一直挂着,直到活干完再返回结果。对一个 200 毫秒的数据库查询,这完全没问题。问题出在那些「不是立刻返回」的操作上——CI 流水线、批量数据处理、人工审批。官方文档给出了四个阻塞解决不了的问题,每一个都对应一类真实故障:</p>
+  <p class="en">The naive approach is simple: fire the tool call, hold the connection open, return the result when the work finishes. For a 200 ms database query that is entirely fine. The trouble starts with operations that do not return immediately — CI pipelines, batch processing, human approvals. The official docs list four problems blocking cannot solve, and each maps to a real class of failure:</p>
+
+  <div class="grid2">
+    <div class="card zh">
+      <div class="ct">① 不要长连接</div>
+      <p style="margin:0">阻塞会把一条连接占满整个操作时长。大量客户端和中间层(负载均衡、网关、WAF)都有超时,超过几秒就不现实了。</p>
+    </div>
+    <div class="card en">
+      <div class="ct">① No long-lived connections</div>
+      <p style="margin:0">Blocking ties up a connection for the whole operation. Many clients and transport intermediaries impose timeouts that make this impractical beyond a few seconds.</p>
+    </div>
+    <div class="card zh">
+      <div class="ct">② 崩溃可恢复</div>
+      <p style="margin:0">task ID 是一个<b>持久句柄</b>。客户端断线或重启后,拿同一个 ID 继续轮询即可,活还在那儿。</p>
+    </div>
+    <div class="card en">
+      <div class="ct">② Crash resilience</div>
+      <p style="margin:0">A task ID is a <b>durable handle</b>. If the client disconnects or restarts, it resumes polling with the same ID — the work is still there.</p>
+    </div>
+    <div class="card zh">
+      <div class="ct">③ 进度可见</div>
+      <p style="margin:0">任务自带状态元数据(<code>working</code>、<code>input_required</code>、<code>completed</code>、<code>failed</code>、<code>cancelled</code>)和可选状态消息,客户端能看到进展。</p>
+    </div>
+    <div class="card en">
+      <div class="ct">③ Progress visibility</div>
+      <p style="margin:0">Tasks carry status metadata (<code>working</code>, <code>input_required</code>, <code>completed</code>, <code>failed</code>, <code>cancelled</code>) plus optional status messages, so clients can see progress.</p>
+    </div>
+    <div class="card zh">
+      <div class="ct">④ 中途可交互</div>
+      <p style="margin:0">任务需要输入时(例如一次用户确认的 elicitation)转入 <code>input_required</code> 并把请求暴露出来,客户端用 <code>tasks/update</code> 回应——<b>不需要第二条连接,也不需要服务端主动推消息</b>。</p>
+    </div>
+    <div class="card en">
+      <div class="ct">④ Mid-flight interaction</div>
+      <p style="margin:0">When a task needs input (an elicitation for user confirmation, say) it moves to <code>input_required</code> and surfaces the request. The client answers via <code>tasks/update</code> — <b>no second connection and no unsolicited server-to-client messages required</b>.</p>
+    </div>
+  </div>
+
+  <p class="zh">还有第五条,是设计上最容易被忽略但工程上最省事的一条:<b>是否转任务由服务端逐请求决定</b>。客户端只需要在能力里声明一次「我支持 Tasks」,然后准备好接收两种形状的结果即可——不需要给每个工具做预热,也不需要在每次请求上打标记。</p>
+  <p class="en">There is a fifth property, easy to overlook in the design but the one that saves the most engineering effort: <b>the server decides per request whether to create a task</b>. The client opts in once through the extension capability and then handles whichever result shape arrives — no per-tool warmup, no per-request flag.</p>
+
+  <div class="callout zh">
+    <span class="lbl">背景</span>
+    <p>Tasks 由 <b>AWS 贡献</b>,是 MCP 首批官方扩展之一。在 <code>2026-07-28</code> 规范中它从实验性核心正式移入 <code>io.modelcontextprotocol/tasks</code> 扩展(<a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2663">SEP-2663</a>),同时引入基于轮询的 <code>tasks/get</code> 和新的 <code>tasks/update</code>。</p>
+  </div>
+  <div class="callout en">
+    <span class="lbl">Background</span>
+    <p>Tasks was <b>contributed by AWS</b> and is one of MCP's first official extensions. In the <code>2026-07-28</code> specification it moved out of the experimental core and into the <code>io.modelcontextprotocol/tasks</code> extension (<a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2663">SEP-2663</a>), together with a poll-based <code>tasks/get</code> and a new <code>tasks/update</code>.</p>
+  </div>
+</section>
+
+<section id="what">
+  <h2><span class="n">02</span><span class="zh">Tasks 是什么:六步机制</span><span class="en">What Tasks are: the six-step mechanism</span></h2>
+
+  <p class="zh">Tasks 不是一套新的请求方法,而是<b>对标准请求流程的一层扩展</b>。当服务端判断某个请求会跑很久,它返回的不是最终结果,而是一个任务句柄;客户端随后轮询直到终态。整个过程分六步:</p>
+  <p class="en">Tasks are not a new family of request methods; they are <b>an extension of the standard request flow</b>. When the server decides a request will be long-running, it returns a task handle instead of the final result, and the client polls until a terminal state. The whole process has six steps:</p>
+
+  <ol class="zh">
+    <li><b>能力协商。</b>客户端在<b>每个请求</b>的能力字段里带上 <code>io.modelcontextprotocol/tasks</code>;服务端在自己的 <code>server/discover</code> 能力里声明同一个扩展。</li>
+    <li><b>任务创建。</b>服务端返回 <code>CreateTaskResult</code>(以 <code>resultType: "task"</code> 标识),内含 <code>taskId</code>、初始状态、TTL 和建议轮询间隔。<b>任务必须在响应发出之前就已持久化创建。</b></li>
+    <li><b>轮询。</b>客户端拿 <code>taskId</code> 调 <code>tasks/get</code>,响应携带当前状态;终态时携带最终结果或错误。</li>
+    <li><b>中途输入。</b>任务转入 <code>input_required</code> 时,<code>tasks/get</code> 的响应里会带一个 <code>inputRequests</code> 映射(elicitation 或其它服务端请求),客户端通过 <code>tasks/update</code> 逐一回填。</li>
+    <li><b>完成。</b>状态到 <code>completed</code> 时,<code>result</code> 字段里就是「如果同步执行本来会返回的东西」;状态是 <code>failed</code> 时,<code>error</code> 字段里是 JSON-RPC 错误。</li>
+    <li><b>取消。</b>客户端随时可以发 <code>tasks/cancel</code>。<b>取消是协作式的</b>——服务端确认收到意图,但没有义务真的停下来。</li>
+  </ol>
+  <ol class="en">
+    <li><b>Capability negotiation.</b> The client includes <code>io.modelcontextprotocol/tasks</code> in its <b>per-request</b> capabilities; the server advertises the same extension in its own <code>server/discover</code> capabilities.</li>
+    <li><b>Task creation.</b> The server returns a <code>CreateTaskResult</code> (identified by <code>resultType: "task"</code>) containing a <code>taskId</code>, an initial status, a TTL, and a suggested polling interval. <b>The task must be durably created before the response is sent.</b></li>
+    <li><b>Polling.</b> The client calls <code>tasks/get</code> with the <code>taskId</code>. The response carries the current status and, for terminal states, the final result or error.</li>
+    <li><b>Mid-flight input.</b> If the task moves to <code>input_required</code>, the <code>tasks/get</code> response includes an <code>inputRequests</code> map with elicitations or other server requests. The client fulfills these via <code>tasks/update</code>.</li>
+    <li><b>Completion.</b> When the status reaches <code>completed</code>, the <code>result</code> field contains what the original request would have returned synchronously. If the status is <code>failed</code>, the <code>error</code> field carries the JSON-RPC error.</li>
+    <li><b>Cancellation.</b> The client can send <code>tasks/cancel</code> at any time. <b>Cancellation is cooperative</b> — the server acknowledges the intent but is not obligated to stop the work.</li>
+  </ol>
+
+  <figure class="zh">
+    <svg viewBox="0 0 880 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tasks 交互时序图">
+      <defs>
+        <marker id="arZ1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#48565f"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="880" height="430" fill="#ffffff"/>
+      <rect x="90" y="22" width="150" height="34" rx="8" fill="#e2f2f0" stroke="#0f766e"/>
+      <text x="165" y="44" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#0f766e">MCP 客户端</text>
+      <rect x="640" y="22" width="150" height="34" rx="8" fill="#fdf1e0" stroke="#b45309"/>
+      <text x="715" y="44" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#b45309">MCP 服务端</text>
+      <line x1="165" y1="60" x2="165" y2="410" stroke="#c8d0c9" stroke-width="2" stroke-dasharray="5 5"/>
+      <line x1="715" y1="60" x2="715" y2="410" stroke="#c8d0c9" stroke-width="2" stroke-dasharray="5 5"/>
+
+      <line x1="165" y1="92" x2="705" y2="92" stroke="#48565f" stroke-width="1.6" marker-end="url(#arZ1)"/>
+      <text x="435" y="85" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#16202b">tools/call(带 tasks 能力声明)</text>
+
+      <line x1="715" y1="126" x2="175" y2="126" stroke="#0f766e" stroke-width="1.6" marker-end="url(#arZ1)"/>
+      <text x="445" y="119" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#0f766e">CreateTaskResult { taskId, status: working }</text>
+
+      <rect x="180" y="146" width="520" height="66" rx="8" fill="#f5f6f3" stroke="#dde2dd"/>
+      <text x="196" y="167" font-family="sans-serif" font-size="12.5" fill="#77848c">循环:按 pollIntervalMs 轮询,直到终态</text>
+      <line x1="200" y1="182" x2="690" y2="182" stroke="#48565f" stroke-width="1.4" marker-end="url(#arZ1)"/>
+      <text x="445" y="177" text-anchor="middle" font-family="monospace" font-size="12" fill="#16202b">tasks/get(taskId)</text>
+      <line x1="690" y1="202" x2="200" y2="202" stroke="#48565f" stroke-width="1.4" marker-end="url(#arZ1)"/>
+      <text x="445" y="197" text-anchor="middle" font-family="monospace" font-size="12" fill="#16202b">Task { status: working }</text>
+
+      <text x="440" y="238" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-style="italic" fill="#9f1239">服务端需要用户输入</text>
+      <line x1="715" y1="262" x2="175" y2="262" stroke="#9f1239" stroke-width="1.6" marker-end="url(#arZ1)"/>
+      <text x="445" y="255" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#9f1239">Task { status: input_required, inputRequests }</text>
+      <line x1="165" y1="294" x2="705" y2="294" stroke="#9f1239" stroke-width="1.6" marker-end="url(#arZ1)"/>
+      <text x="435" y="287" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#9f1239">tasks/update(taskId, inputResponses)</text>
+
+      <line x1="715" y1="338" x2="175" y2="338" stroke="#48565f" stroke-width="1.4" marker-end="url(#arZ1)"/>
+      <text x="445" y="331" text-anchor="middle" font-family="monospace" font-size="12" fill="#16202b">ack(继续轮询…)</text>
+
+      <line x1="715" y1="386" x2="175" y2="386" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arZ1)"/>
+      <text x="445" y="379" text-anchor="middle" font-family="monospace" font-size="12.5" font-weight="700" fill="#0f766e">Task { status: completed, result }</text>
+    </svg>
+    <figcaption>图 1 · Tasks 的完整交互时序:创建句柄 → 轮询 → 中途回填输入 → 终态取结果</figcaption>
+  </figure>
+
+  <figure class="en">
+    <svg viewBox="0 0 880 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tasks interaction sequence diagram">
+      <defs>
+        <marker id="arE1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#48565f"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="880" height="430" fill="#ffffff"/>
+      <rect x="90" y="22" width="150" height="34" rx="8" fill="#e2f2f0" stroke="#0f766e"/>
+      <text x="165" y="44" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#0f766e">MCP Client</text>
+      <rect x="640" y="22" width="150" height="34" rx="8" fill="#fdf1e0" stroke="#b45309"/>
+      <text x="715" y="44" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#b45309">MCP Server</text>
+      <line x1="165" y1="60" x2="165" y2="410" stroke="#c8d0c9" stroke-width="2" stroke-dasharray="5 5"/>
+      <line x1="715" y1="60" x2="715" y2="410" stroke="#c8d0c9" stroke-width="2" stroke-dasharray="5 5"/>
+
+      <line x1="165" y1="92" x2="705" y2="92" stroke="#48565f" stroke-width="1.6" marker-end="url(#arE1)"/>
+      <text x="435" y="85" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#16202b">tools/call (with tasks capability)</text>
+
+      <line x1="715" y1="126" x2="175" y2="126" stroke="#0f766e" stroke-width="1.6" marker-end="url(#arE1)"/>
+      <text x="445" y="119" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#0f766e">CreateTaskResult { taskId, status: working }</text>
+
+      <rect x="180" y="146" width="520" height="66" rx="8" fill="#f5f6f3" stroke="#dde2dd"/>
+      <text x="196" y="167" font-family="sans-serif" font-size="12.5" fill="#77848c">loop: poll at pollIntervalMs until terminal</text>
+      <line x1="200" y1="182" x2="690" y2="182" stroke="#48565f" stroke-width="1.4" marker-end="url(#arE1)"/>
+      <text x="445" y="177" text-anchor="middle" font-family="monospace" font-size="12" fill="#16202b">tasks/get (taskId)</text>
+      <line x1="690" y1="202" x2="200" y2="202" stroke="#48565f" stroke-width="1.4" marker-end="url(#arE1)"/>
+      <text x="445" y="197" text-anchor="middle" font-family="monospace" font-size="12" fill="#16202b">Task { status: working }</text>
+
+      <text x="440" y="238" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-style="italic" fill="#9f1239">server needs user input</text>
+      <line x1="715" y1="262" x2="175" y2="262" stroke="#9f1239" stroke-width="1.6" marker-end="url(#arE1)"/>
+      <text x="445" y="255" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#9f1239">Task { status: input_required, inputRequests }</text>
+      <line x1="165" y1="294" x2="705" y2="294" stroke="#9f1239" stroke-width="1.6" marker-end="url(#arE1)"/>
+      <text x="435" y="287" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#9f1239">tasks/update (taskId, inputResponses)</text>
+
+      <line x1="715" y1="338" x2="175" y2="338" stroke="#48565f" stroke-width="1.4" marker-end="url(#arE1)"/>
+      <text x="445" y="331" text-anchor="middle" font-family="monospace" font-size="12" fill="#16202b">ack (keep polling…)</text>
+
+      <line x1="715" y1="386" x2="175" y2="386" stroke="#0f766e" stroke-width="2.2" marker-end="url(#arE1)"/>
+      <text x="445" y="379" text-anchor="middle" font-family="monospace" font-size="12.5" font-weight="700" fill="#0f766e">Task { status: completed, result }</text>
+    </svg>
+    <figcaption>Figure 1 · The full Tasks exchange: mint a handle → poll → answer mid-flight input → collect the terminal result</figcaption>
+  </figure>
+
+  <p class="src zh">来源:<a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · How Tasks work</a></p>
+  <p class="src en">Source: <a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · How Tasks work</a></p>
+</section>
+
+<section id="lifecycle">
+  <h2><span class="n">03</span><span class="zh">任务生命周期与状态机</span><span class="en">Task lifecycle and state machine</span></h2>
+
+  <p class="zh">五个状态,三个是终态。终态的定义很硬:<b>一旦到达,任务状态就不再改变</b>。这条约束是客户端能安全停止轮询、安全落盘归档的基础。</p>
+  <p class="en">Five statuses, three of them terminal. The definition of terminal is strict: <b>once reached, the task's state does not change</b>. That constraint is what lets a client safely stop polling and safely archive the outcome.</p>
+
+  <div class="tw zh">
+  <table>
+    <tr><th style="width:150px">状态</th><th>含义</th><th style="width:80px">终态</th></tr>
+    <tr><td><code>working</code></td><td>操作正在进行中。</td><td>否</td></tr>
+    <tr><td><code>input_required</code></td><td>服务端需要客户端提供输入才能继续,详见 <code>inputRequests</code>。</td><td>否</td></tr>
+    <tr><td><code>completed</code></td><td>操作完成,<code>result</code> 字段是最终输出。</td><td><b>是</b></td></tr>
+    <tr><td><code>failed</code></td><td>执行过程中发生 JSON-RPC 错误,<code>error</code> 字段含细节。</td><td><b>是</b></td></tr>
+    <tr><td><code>cancelled</code></td><td>操作被取消(<b>不保证一定被采纳</b>)。</td><td><b>是</b></td></tr>
+  </table>
+  </div>
+  <div class="tw en">
+  <table>
+    <tr><th style="width:150px">Status</th><th>Meaning</th><th style="width:90px">Terminal</th></tr>
+    <tr><td><code>working</code></td><td>The operation is in progress.</td><td>No</td></tr>
+    <tr><td><code>input_required</code></td><td>The server needs client input before continuing. See <code>inputRequests</code>.</td><td>No</td></tr>
+    <tr><td><code>completed</code></td><td>The operation finished. The <code>result</code> field contains the final output.</td><td><b>Yes</b></td></tr>
+    <tr><td><code>failed</code></td><td>A JSON-RPC error occurred during execution. The <code>error</code> field has details.</td><td><b>Yes</b></td></tr>
+    <tr><td><code>cancelled</code></td><td>The operation was cancelled (<b>not always honored</b>).</td><td><b>Yes</b></td></tr>
+  </table>
+  </div>
+
+  <figure class="zh">
+    <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="任务状态机">
+      <defs>
+        <marker id="arZ2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#48565f"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="880" height="330" fill="#ffffff"/>
+
+      <rect x="26" y="130" width="128" height="52" rx="26" fill="#e8ecf1" stroke="#334155" stroke-width="1.6"/>
+      <text x="90" y="153" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#334155">请求到达</text>
+      <text x="90" y="170" text-anchor="middle" font-family="monospace" font-size="11" fill="#48565f">tools/call</text>
+
+      <rect x="216" y="128" width="150" height="56" rx="12" fill="#e2f2f0" stroke="#0f766e" stroke-width="2"/>
+      <text x="291" y="152" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#0f766e">working</text>
+      <text x="291" y="171" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">正在执行</text>
+
+      <rect x="216" y="18" width="150" height="56" rx="12" fill="#fce8ec" stroke="#9f1239" stroke-width="2"/>
+      <text x="291" y="42" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#9f1239">input_required</text>
+      <text x="291" y="61" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">等待客户端回填</text>
+
+      <rect x="620" y="24" width="180" height="52" rx="12" fill="#e2f2f0" stroke="#0f766e" stroke-width="2.4"/>
+      <text x="710" y="47" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#0f766e">completed</text>
+      <text x="710" y="65" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">result 里是最终输出</text>
+
+      <rect x="620" y="128" width="180" height="52" rx="12" fill="#fdf1e0" stroke="#b45309" stroke-width="2.4"/>
+      <text x="710" y="151" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#b45309">failed</text>
+      <text x="710" y="169" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">error 里是 JSON-RPC 错误</text>
+
+      <rect x="620" y="232" width="180" height="52" rx="12" fill="#e8ecf1" stroke="#334155" stroke-width="2.4"/>
+      <text x="710" y="255" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#334155">cancelled</text>
+      <text x="710" y="273" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">协作式,不保证生效</text>
+
+      <line x1="156" y1="156" x2="208" y2="156" stroke="#48565f" stroke-width="1.8" marker-end="url(#arZ2)"/>
+      <path d="M266,128 L266,80" fill="none" stroke="#9f1239" stroke-width="1.8" marker-end="url(#arZ2)"/>
+      <path d="M320,74 L320,122" fill="none" stroke="#9f1239" stroke-width="1.8" marker-end="url(#arZ2)"/>
+      <text x="196" y="106" font-family="monospace" font-size="10.5" fill="#9f1239">需要输入</text>
+      <text x="330" y="106" font-family="monospace" font-size="10.5" fill="#9f1239">tasks/update</text>
+
+      <path d="M366,142 L612,54" fill="none" stroke="#0f766e" stroke-width="2" marker-end="url(#arZ2)"/>
+      <line x1="366" y1="156" x2="612" y2="154" stroke="#b45309" stroke-width="1.8" marker-end="url(#arZ2)"/>
+      <path d="M366,172 L612,252" fill="none" stroke="#334155" stroke-width="1.8" marker-end="url(#arZ2)"/>
+      <text x="492" y="286" text-anchor="middle" font-family="monospace" font-size="11" fill="#334155">tasks/cancel</text>
+
+      <rect x="216" y="240" width="330" height="58" rx="10" fill="#f5f6f3" stroke="#dde2dd"/>
+      <text x="232" y="262" font-family="sans-serif" font-size="12" fill="#48565f">客户端在非终态时按 pollIntervalMs 调</text>
+      <text x="232" y="282" font-family="monospace" font-size="12" fill="#0f766e">tasks/get(taskId)</text>
+      <text x="232" y="298" font-family="sans-serif" font-size="0" fill="#48565f"> </text>
+      <path d="M291,240 L291,190" fill="none" stroke="#0f766e" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arZ2)"/>
+    </svg>
+    <figcaption>图 2 · 任务状态机:三个终态一旦到达即冻结,<code>input_required</code> 是唯一会「退回」<code>working</code> 的中间态</figcaption>
+  </figure>
+
+  <figure class="en">
+    <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Task state machine">
+      <defs>
+        <marker id="arE2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#48565f"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="880" height="330" fill="#ffffff"/>
+
+      <rect x="26" y="130" width="128" height="52" rx="26" fill="#e8ecf1" stroke="#334155" stroke-width="1.6"/>
+      <text x="90" y="153" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#334155">request in</text>
+      <text x="90" y="170" text-anchor="middle" font-family="monospace" font-size="11" fill="#48565f">tools/call</text>
+
+      <rect x="216" y="128" width="150" height="56" rx="12" fill="#e2f2f0" stroke="#0f766e" stroke-width="2"/>
+      <text x="291" y="152" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#0f766e">working</text>
+      <text x="291" y="171" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">in progress</text>
+
+      <rect x="216" y="18" width="150" height="56" rx="12" fill="#fce8ec" stroke="#9f1239" stroke-width="2"/>
+      <text x="291" y="42" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#9f1239">input_required</text>
+      <text x="291" y="61" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">waiting on client</text>
+
+      <rect x="620" y="24" width="180" height="52" rx="12" fill="#e2f2f0" stroke="#0f766e" stroke-width="2.4"/>
+      <text x="710" y="47" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#0f766e">completed</text>
+      <text x="710" y="65" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">final output in result</text>
+
+      <rect x="620" y="128" width="180" height="52" rx="12" fill="#fdf1e0" stroke="#b45309" stroke-width="2.4"/>
+      <text x="710" y="151" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#b45309">failed</text>
+      <text x="710" y="169" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">JSON-RPC error in error</text>
+
+      <rect x="620" y="232" width="180" height="52" rx="12" fill="#e8ecf1" stroke="#334155" stroke-width="2.4"/>
+      <text x="710" y="255" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#334155">cancelled</text>
+      <text x="710" y="273" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#48565f">cooperative, not guaranteed</text>
+
+      <line x1="156" y1="156" x2="208" y2="156" stroke="#48565f" stroke-width="1.8" marker-end="url(#arE2)"/>
+      <path d="M266,128 L266,80" fill="none" stroke="#9f1239" stroke-width="1.8" marker-end="url(#arE2)"/>
+      <path d="M320,74 L320,122" fill="none" stroke="#9f1239" stroke-width="1.8" marker-end="url(#arE2)"/>
+      <text x="188" y="106" font-family="monospace" font-size="10.5" fill="#9f1239">needs input</text>
+      <text x="330" y="106" font-family="monospace" font-size="10.5" fill="#9f1239">tasks/update</text>
+
+      <path d="M366,142 L612,54" fill="none" stroke="#0f766e" stroke-width="2" marker-end="url(#arE2)"/>
+      <line x1="366" y1="156" x2="612" y2="154" stroke="#b45309" stroke-width="1.8" marker-end="url(#arE2)"/>
+      <path d="M366,172 L612,252" fill="none" stroke="#334155" stroke-width="1.8" marker-end="url(#arE2)"/>
+      <text x="492" y="286" text-anchor="middle" font-family="monospace" font-size="11" fill="#334155">tasks/cancel</text>
+
+      <rect x="216" y="240" width="330" height="58" rx="10" fill="#f5f6f3" stroke="#dde2dd"/>
+      <text x="232" y="262" font-family="sans-serif" font-size="12" fill="#48565f">while non-terminal, the client calls</text>
+      <text x="232" y="282" font-family="monospace" font-size="12" fill="#0f766e">tasks/get (taskId)</text>
+      <text x="232" y="298" font-family="sans-serif" font-size="0" fill="#48565f"> </text>
+      <path d="M291,240 L291,190" fill="none" stroke="#0f766e" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arE2)"/>
+    </svg>
+    <figcaption>Figure 2 · The task state machine: the three terminal states freeze on arrival; <code>input_required</code> is the only intermediate state that hands control back to <code>working</code></figcaption>
+  </figure>
+
+  <div class="callout warn zh">
+    <span class="lbl">容易读错的一点</span>
+    <p><code>cancelled</code> 是终态,但「发了 <code>tasks/cancel</code>」不等于「任务会变成 <code>cancelled</code>」。取消是<b>协作式</b>的:服务端确认收到,但任务完全可能继续跑完并落到 <code>completed</code>。客户端逻辑必须能接受「我取消了,结果还是回来了」。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Easy to misread</span>
+    <p><code>cancelled</code> is terminal, but "I sent <code>tasks/cancel</code>" does not mean "the task will become <code>cancelled</code>". Cancellation is <b>cooperative</b>: the server acknowledges it, yet the task may well run to completion and land on <code>completed</code>. Client logic has to tolerate "I cancelled and the result came back anyway".</p>
+  </div>
+</section>
+
+<section id="wire">
+  <h2><span class="n">04</span><span class="zh">线上长什么样:实际报文</span><span class="en">On the wire: actual messages</span></h2>
+
+  <p class="zh">先看客户端怎么声明支持。注意它放在 <b>每个请求的 <code>_meta</code></b> 里,不是一次性握手——这是 <code>2026-07-28</code> 无状态核心带来的直接后果:<code>initialize</code>/<code>initialized</code> 握手和 <code>Mcp-Session-Id</code> 头都已被移除,<b>每个请求必须自描述</b>。</p>
+  <p class="en">Start with how the client declares support. Note that it lives in <b>each request's <code>_meta</code></b>, not in a one-time handshake — a direct consequence of the <code>2026-07-28</code> stateless core: the <code>initialize</code>/<code>initialized</code> exchange and the <code>Mcp-Session-Id</code> header are both gone, so <b>every request must be self-describing</b>.</p>
+
+  <pre class="zh"><code>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "run_ci_pipeline",
+    "arguments": { "branch": "main" },
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "extensions": {
+          "io.modelcontextprotocol/tasks": {}
+        }
+      }
+    }
+  }
+}</code></pre>
+  <pre class="en"><code>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "run_ci_pipeline",
+    "arguments": { "branch": "main" },
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "extensions": {
+          "io.modelcontextprotocol/tasks": {}
+        }
+      }
+    }
+  }
+}</code></pre>
+
+  <p class="zh">服务端在 <code>server/discover</code> 的能力里声明同一个扩展:</p>
+  <p class="en">The server advertises the same extension in its <code>server/discover</code> capabilities:</p>
+
+  <pre class="zh"><code>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "capabilities": {
+      "extensions": {
+        "io.modelcontextprotocol/tasks": {}
+      }
+    }
+  }
+}</code></pre>
+  <pre class="en"><code>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "capabilities": {
+      "extensions": {
+        "io.modelcontextprotocol/tasks": {}
+      }
+    }
+  }
+}</code></pre>
+
+  <p class="zh">于是同一个 <code>tools/call</code> 可能回来<b>两种形状</b>之一。这是客户端最需要适配的地方——<b>结果是多态的</b>:</p>
+  <p class="en">As a result, the same <code>tools/call</code> can come back in <b>one of two shapes</b>. This is the main thing a client has to adapt to — <b>results are polymorphic</b>:</p>
+
+  <div class="grid2">
+    <div class="card zh">
+      <div class="ct">形状 A:普通同步结果</div>
+      <p style="margin:0">就是你一直在处理的那个 <code>tools/call</code> 结果,没有 <code>resultType: "task"</code>。</p>
+    </div>
+    <div class="card en">
+      <div class="ct">Shape A: an ordinary synchronous result</div>
+      <p style="margin:0">The <code>tools/call</code> result you have always handled, with no <code>resultType: "task"</code>.</p>
+    </div>
+    <div class="card zh">
+      <div class="ct">形状 B:<code>CreateTaskResult</code></div>
+      <p style="margin:0"><code>resultType: "task"</code>,内含 <code>taskId</code>、<code>status</code>、<code>ttlMs</code>、<code>pollIntervalMs</code>。</p>
+    </div>
+    <div class="card en">
+      <div class="ct">Shape B: a <code>CreateTaskResult</code></div>
+      <p style="margin:0"><code>resultType: "task"</code> with a <code>taskId</code>, a <code>status</code>, a <code>ttlMs</code>, and a <code>pollIntervalMs</code>.</p>
+    </div>
+  </div>
+
+  <p class="zh">轮询与回填的骨架代码(伪代码,任何语言 SDK 思路一致):</p>
+  <p class="en">The skeleton of polling and answering (pseudocode; the shape is the same in every SDK):</p>
+
+  <pre class="zh"><code>result = call_tool("run_ci_pipeline", {branch: "main"})
+
+if result.resultType != "task":
+    return result                      # 形状 A:直接就是答案
+
+task_id = result.taskId
+persist(task_id)                       # 关键:落盘,进程挂了还能续
+interval = result.pollIntervalMs
+
+while True:
+    task = rpc("tasks/get", {taskId: task_id})
+
+    if task.status == "input_required":
+        answers = {}
+        for key, req in task.inputRequests.items():
+            answers[key] = ask_user_or_model(req)
+        rpc("tasks/update", {taskId: task_id, inputResponses: answers})
+        continue                       # 回填后继续轮询
+
+    if task.status == "completed":  return task.result
+    if task.status == "failed":     raise TaskError(task.error)
+    if task.status == "cancelled":  return None
+
+    sleep(interval)                    # 尊重服务端建议的间隔</code></pre>
+  <pre class="en"><code>result = call_tool("run_ci_pipeline", {branch: "main"})
+
+if result.resultType != "task":
+    return result                      # Shape A: this is already the answer
+
+task_id = result.taskId
+persist(task_id)                       # Key step: durable, so a crash can resume
+interval = result.pollIntervalMs
+
+while True:
+    task = rpc("tasks/get", {taskId: task_id})
+
+    if task.status == "input_required":
+        answers = {}
+        for key, req in task.inputRequests.items():
+            answers[key] = ask_user_or_model(req)
+        rpc("tasks/update", {taskId: task_id, inputResponses: answers})
+        continue                       # keep polling after answering
+
+    if task.status == "completed":  return task.result
+    if task.status == "failed":     raise TaskError(task.error)
+    if task.status == "cancelled":  return None
+
+    sleep(interval)                    # respect the server's suggested interval</code></pre>
+
+  <p class="src zh">来源:<a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · Implementation guide</a> · <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">2026-07-28 规范:无握手无会话</a></p>
+  <p class="src en">Sources: <a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · Implementation guide</a> · <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">The 2026-07-28 Specification: no handshake or sessions</a></p>
+</section>
+
+<section id="impl">
+  <h2><span class="n">05</span><span class="zh">怎么实现:客户端与服务端清单</span><span class="en">How to implement: client and server checklists</span></h2>
+
+  <h3 class="zh">客户端五步</h3>
+  <h3 class="en">Five steps for a client</h3>
+  <ol class="zh">
+    <li><b>声明支持</b>——把扩展写进每个请求的 <code>_meta</code> 能力字段。</li>
+    <li><b>处理多态结果</b>——发 <code>tools/call</code> 这类支持的请求时,准备好接收标准结果或 <code>CreateTaskResult</code>。</li>
+    <li><b>轮询到终态</b>——用 <code>tasks/get</code>,<b>尊重 <code>pollIntervalMs</code></b>,直到 <code>completed</code> / <code>failed</code> / <code>cancelled</code>。</li>
+    <li><b>处理输入请求</b>——状态是 <code>input_required</code> 时读 <code>inputRequests</code>,把请求呈现给用户或模型,用 <code>tasks/update</code> 提交回应。</li>
+    <li><b>持久化 task ID</b>——落盘保存,这样客户端崩溃或重启后能恢复轮询。<b>这一步是 Tasks 全部价值的兑现点,漏了等于白做。</b></li>
+  </ol>
+  <ol class="en">
+    <li><b>Declare support</b> — put the extension in the capabilities <code>_meta</code> of every request.</li>
+    <li><b>Handle polymorphic results</b> — when issuing a supported request such as <code>tools/call</code>, be ready for either the standard result or a <code>CreateTaskResult</code>.</li>
+    <li><b>Poll to a terminal state</b> — call <code>tasks/get</code>, <b>respect <code>pollIntervalMs</code></b>, and continue until <code>completed</code> / <code>failed</code> / <code>cancelled</code>.</li>
+    <li><b>Handle input requests</b> — on <code>input_required</code>, read <code>inputRequests</code>, present them to the user or the model, and submit answers via <code>tasks/update</code>.</li>
+    <li><b>Persist task IDs</b> — store them durably so polling can resume after a client crash or restart. <b>This is where the whole value of Tasks is cashed in; skip it and you have gained nothing.</b></li>
+  </ol>
+
+  <h3 class="zh">服务端六步</h3>
+  <h3 class="en">Six steps for a server</h3>
+  <ol class="zh">
+    <li><b>声明支持</b>——把扩展写进 <code>server/discover</code> 的 capabilities。</li>
+    <li><b>先检查客户端能力</b>——返回 <code>CreateTaskResult</code> 之前,必须确认客户端在本次请求里声明了该扩展。<b>永远不要给没声明支持的客户端返回任务。</b></li>
+    <li><b>返回 <code>CreateTaskResult</code></b>——<code>resultType: "task"</code>,带唯一 <code>taskId</code>、初始状态、<code>ttlMs</code>、<code>pollIntervalMs</code>。<b>任务必须在响应发出之前完成持久化创建。</b></li>
+    <li><b>实现 <code>tasks/get</code></b>——每次轮询返回当前状态;终态时带上 <code>result</code>(completed)或 <code>error</code>(failed)。</li>
+    <li><b>实现 <code>tasks/update</code></b>——接受与未决 <code>inputRequests</code> 对应的 <code>inputResponses</code>,用空结果确认;对未知的或已满足的 key 直接忽略。</li>
+    <li><b>实现 <code>tasks/cancel</code></b>——用空结果确认。尽量执行,但要记住取消是协作式的,任务仍可能落到非 <code>cancelled</code> 的终态。</li>
+  </ol>
+  <ol class="en">
+    <li><b>Advertise support</b> — include the extension in your <code>server/discover</code> capabilities.</li>
+    <li><b>Check client capabilities first</b> — before returning a <code>CreateTaskResult</code>, verify that the client declared the extension on this request. <b>Never return a task to a client that did not declare support.</b></li>
+    <li><b>Return a <code>CreateTaskResult</code></b> — <code>resultType: "task"</code> with a unique <code>taskId</code>, an initial status, <code>ttlMs</code>, and <code>pollIntervalMs</code>. <b>The task must be durably created before the response is sent.</b></li>
+    <li><b>Serve <code>tasks/get</code></b> — return the current state on each poll; for terminal states include <code>result</code> (on completed) or <code>error</code> (on failed).</li>
+    <li><b>Handle <code>tasks/update</code></b> — accept <code>inputResponses</code> keyed to outstanding <code>inputRequests</code>, acknowledge with an empty result, and ignore responses for unknown or already-satisfied keys.</li>
+    <li><b>Handle <code>tasks/cancel</code></b> — acknowledge with an empty result. Honor it when possible, but remember cancellation is cooperative and the task may still reach a non-<code>cancelled</code> terminal status.</li>
+  </ol>
+
+  <div class="callout zh">
+    <span class="lbl">省一次往返:通知</span>
+    <p>服务端可以通过 <code>notifications/tasks</code> 推送状态更新,客户端通过 <code>subscriptions/listen</code> 机制按通知类型逐个订阅。<b>每条通知携带完整任务状态</b>,因此省掉一次额外的 <code>tasks/get</code> 往返。但要记住:<b>轮询是默认路径</b>,通知是可选优化——只有当服务端支持时,客户端才能依赖它代替轮询。</p>
+  </div>
+  <div class="callout en">
+    <span class="lbl">Saving a round-trip: notifications</span>
+    <p>Servers can push status updates via <code>notifications/tasks</code>, which clients opt into per notification type through the <code>subscriptions/listen</code> mechanism. <b>Each notification carries the full task state</b>, eliminating the extra <code>tasks/get</code> round-trip. Keep in mind, though: <b>polling is the default</b>. Notifications are an optional optimization — a client can rely on them instead of polling only if the server supports them.</p>
+  </div>
+
+  <p class="src zh">来源:<a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · For MCP clients / For MCP servers / Notifications</a></p>
+  <p class="src en">Sources: <a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · For MCP clients / For MCP servers / Notifications</a></p>
+</section>
+
+<section id="compare">
+  <h2><span class="n">06</span><span class="zh">Tasks / MRTR / subscriptions 怎么选</span><span class="en">Choosing between Tasks, MRTR, subscriptions</span></h2>
+
+  <p class="zh"><code>2026-07-28</code> 一次性引入了三套「不是普通一问一答」的机制,很容易搞混。它们解决的是<b>三个不同的问题</b>:</p>
+  <p class="en">The <code>2026-07-28</code> release introduced three mechanisms that go beyond plain request-and-response, and they are easy to confuse. They solve <b>three different problems</b>:</p>
+
+  <div class="tw zh">
+  <table>
+    <tr><th style="width:120px">机制</th><th>解决什么</th><th>关键形状</th><th>什么时候用</th></tr>
+    <tr>
+      <td><b>Tasks</b><br><span style="font-size:12px;color:#77848c">扩展</span></td>
+      <td>操作<b>时间太长</b>,不能占着连接等</td>
+      <td>返回 <code>resultType: "task"</code> + <code>taskId</code>,之后走 <code>tasks/get</code></td>
+      <td>CI、批处理、审批、外部 job 系统、弱网客户端</td>
+    </tr>
+    <tr>
+      <td><b>MRTR</b><br><span style="font-size:12px;color:#77848c">核心规范</span></td>
+      <td>工具执行中途<b>缺一个输入</b>,但整体很快</td>
+      <td>返回 <code>resultType: "input_required"</code>,客户端<b>带着答案重试原调用</b></td>
+      <td>删数据前确认、创建付费资源前确认、补一个缺失参数</td>
+    </tr>
+    <tr>
+      <td><b>subscriptions/listen</b><br><span style="font-size:12px;color:#77848c">核心规范</span></td>
+      <td>客户端不想一直<b>主动拉</b></td>
+      <td>单一订阅流,按通知类型 opt-in</td>
+      <td>已有长任务想省掉轮询开销;资源变更通知</td>
+    </tr>
+  </table>
+  </div>
+  <div class="tw en">
+  <table>
+    <tr><th style="width:130px">Mechanism</th><th>What it solves</th><th>Key shape</th><th>When to use it</th></tr>
+    <tr>
+      <td><b>Tasks</b><br><span style="font-size:12px;color:#77848c">extension</span></td>
+      <td>The operation <b>takes too long</b> to hold a connection for</td>
+      <td>Returns <code>resultType: "task"</code> + a <code>taskId</code>, then <code>tasks/get</code></td>
+      <td>CI, batch jobs, approvals, external job systems, flaky clients</td>
+    </tr>
+    <tr>
+      <td><b>MRTR</b><br><span style="font-size:12px;color:#77848c">core spec</span></td>
+      <td>A tool is <b>missing one input</b> mid-call but is otherwise fast</td>
+      <td>Returns <code>resultType: "input_required"</code>; the client <b>retries the original call with the answers</b></td>
+      <td>Confirm before deleting data, confirm before creating a billable resource, supply a missing parameter</td>
+    </tr>
+    <tr>
+      <td><b>subscriptions/listen</b><br><span style="font-size:12px;color:#77848c">core spec</span></td>
+      <td>The client would rather not <b>keep pulling</b></td>
+      <td>A single subscription stream, opted into per notification type</td>
+      <td>An existing long task where you want to drop the polling overhead; resource change notifications</td>
+    </tr>
+  </table>
+  </div>
+
+  <figure class="zh">
+    <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三种机制的选择决策树">
+      <defs>
+        <marker id="arZ3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#48565f"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="880" height="300" fill="#ffffff"/>
+      <rect x="300" y="16" width="280" height="46" rx="10" fill="#e8ecf1" stroke="#334155" stroke-width="1.8"/>
+      <text x="440" y="45" text-anchor="middle" font-family="sans-serif" font-size="14.5" font-weight="700" fill="#334155">一次工具调用没法立刻返回</text>
+
+      <path d="M400,62 L200,104" fill="none" stroke="#48565f" stroke-width="1.6" marker-end="url(#arZ3)"/>
+      <path d="M480,62 L680,104" fill="none" stroke="#48565f" stroke-width="1.6" marker-end="url(#arZ3)"/>
+      <text x="240" y="86" font-family="sans-serif" font-size="12.5" fill="#9f1239">因为缺一个输入</text>
+      <text x="560" y="86" font-family="sans-serif" font-size="12.5" fill="#0f766e">因为活本身就久</text>
+
+      <rect x="60" y="110" width="280" height="58" rx="10" fill="#fce8ec" stroke="#9f1239" stroke-width="2"/>
+      <text x="200" y="134" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#9f1239">MRTR</text>
+      <text x="200" y="155" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#48565f">input_required → 带答案重试原调用</text>
+
+      <rect x="540" y="110" width="280" height="58" rx="10" fill="#e2f2f0" stroke="#0f766e" stroke-width="2"/>
+      <text x="680" y="134" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#0f766e">Tasks</text>
+      <text x="680" y="155" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#48565f">拿到 taskId,轮询到终态</text>
+
+      <path d="M680,168 L680,206" fill="none" stroke="#48565f" stroke-width="1.6" marker-end="url(#arZ3)"/>
+      <text x="694" y="192" font-family="sans-serif" font-size="12" fill="#77848c">轮询太贵?</text>
+
+      <rect x="540" y="212" width="280" height="58" rx="10" fill="#fdf1e0" stroke="#b45309" stroke-width="2"/>
+      <text x="680" y="236" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#b45309">subscriptions/listen</text>
+      <text x="680" y="257" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#48565f">订阅 notifications/tasks 推送</text>
+
+      <rect x="60" y="196" width="380" height="76" rx="10" fill="#f5f6f3" stroke="#dde2dd"/>
+      <text x="78" y="220" font-family="sans-serif" font-size="12.5" font-weight="700" fill="#334155">两者可以叠加</text>
+      <text x="78" y="240" font-family="sans-serif" font-size="12" fill="#48565f">一个长任务跑到一半需要审批时,任务转入</text>
+      <text x="78" y="258" font-family="sans-serif" font-size="12" fill="#48565f">input_required,用 tasks/update 回填,不用 MRTR 重试。</text>
+    </svg>
+    <figcaption>图 3 · 选择路径:缺输入走 MRTR,活久走 Tasks;两者叠加时由 Tasks 的 <code>input_required</code> + <code>tasks/update</code> 承接</figcaption>
+  </figure>
+
+  <figure class="en">
+    <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision tree for choosing between the three mechanisms">
+      <defs>
+        <marker id="arE3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#48565f"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="880" height="300" fill="#ffffff"/>
+      <rect x="290" y="16" width="300" height="46" rx="10" fill="#e8ecf1" stroke="#334155" stroke-width="1.8"/>
+      <text x="440" y="45" text-anchor="middle" font-family="sans-serif" font-size="14.5" font-weight="700" fill="#334155">A tool call cannot return immediately</text>
+
+      <path d="M400,62 L200,104" fill="none" stroke="#48565f" stroke-width="1.6" marker-end="url(#arE3)"/>
+      <path d="M480,62 L680,104" fill="none" stroke="#48565f" stroke-width="1.6" marker-end="url(#arE3)"/>
+      <text x="218" y="86" font-family="sans-serif" font-size="12.5" fill="#9f1239">because an input is missing</text>
+      <text x="546" y="86" font-family="sans-serif" font-size="12.5" fill="#0f766e">because the work is long</text>
+
+      <rect x="60" y="110" width="280" height="58" rx="10" fill="#fce8ec" stroke="#9f1239" stroke-width="2"/>
+      <text x="200" y="134" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#9f1239">MRTR</text>
+      <text x="200" y="155" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#48565f">input_required → retry the call with answers</text>
+
+      <rect x="540" y="110" width="280" height="58" rx="10" fill="#e2f2f0" stroke="#0f766e" stroke-width="2"/>
+      <text x="680" y="134" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#0f766e">Tasks</text>
+      <text x="680" y="155" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#48565f">take the taskId, poll to a terminal state</text>
+
+      <path d="M680,168 L680,206" fill="none" stroke="#48565f" stroke-width="1.6" marker-end="url(#arE3)"/>
+      <text x="694" y="192" font-family="sans-serif" font-size="12" fill="#77848c">polling too costly?</text>
+
+      <rect x="540" y="212" width="280" height="58" rx="10" fill="#fdf1e0" stroke="#b45309" stroke-width="2"/>
+      <text x="680" y="236" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#b45309">subscriptions/listen</text>
+      <text x="680" y="257" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#48565f">subscribe to notifications/tasks</text>
+
+      <rect x="60" y="196" width="380" height="76" rx="10" fill="#f5f6f3" stroke="#dde2dd"/>
+      <text x="78" y="220" font-family="sans-serif" font-size="12.5" font-weight="700" fill="#334155">The two compose</text>
+      <text x="78" y="240" font-family="sans-serif" font-size="12" fill="#48565f">When a long task needs an approval halfway through, it</text>
+      <text x="78" y="258" font-family="sans-serif" font-size="12" fill="#48565f">moves to input_required and you answer via tasks/update.</text>
+    </svg>
+    <figcaption>Figure 3 · The path: missing input goes to MRTR, long work goes to Tasks; when both apply, Tasks' <code>input_required</code> + <code>tasks/update</code> carries the interaction</figcaption>
+  </figure>
+
+  <p class="zh">这里有个容易混淆的细节值得单独点出:<b><code>input_required</code> 这个词在两处出现,含义相近但机制不同</b>。在 MRTR 里它是 <code>resultType</code>,客户端的动作是<b>带着 <code>inputResponses</code> 重试原始调用</b>;在 Tasks 里它是 <code>status</code>,客户端的动作是<b>调 <code>tasks/update</code> 回填</b>,原始调用不重发。判断依据很简单:你手上有没有 <code>taskId</code>。</p>
+  <p class="en">One detail is worth calling out because it trips people up: <b>the phrase <code>input_required</code> appears in two places with related meanings but different mechanics</b>. Under MRTR it is a <code>resultType</code>, and the client's move is to <b>retry the original call with <code>inputResponses</code> attached</b>. Under Tasks it is a <code>status</code>, and the client's move is to <b>call <code>tasks/update</code></b> — the original call is not re-sent. The test is simple: do you hold a <code>taskId</code>?</p>
+
+  <p class="src zh">来源:<a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">2026-07-28 规范:MRTR / Tasks</a> · <a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions">subscriptions 模式</a></p>
+  <p class="src en">Sources: <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">The 2026-07-28 Specification: MRTR / Tasks</a> · <a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions">Subscriptions pattern</a></p>
+</section>
+
+<section id="when">
+  <h2><span class="n">07</span><span class="zh">什么场景该用 Tasks</span><span class="en">When to reach for Tasks</span></h2>
+
+  <p class="zh">官方文档给了五类场景。它们的共同点不是「慢」,而是<b>「结果的到达时间与请求的发出时间解耦」</b>:</p>
+  <p class="en">The official docs list five scenarios. What they share is not slowness but <b>the decoupling of when a result arrives from when the request was made</b>:</p>
+
+  <div class="grid2">
+    <div class="card zh"><div class="ct">长时运行的操作</div><p style="margin:0">CI 流水线、批量数据处理、模型训练任务——分钟级到小时级。</p></div>
+    <div class="card en"><div class="ct">Long-running operations</div><p style="margin:0">CI pipelines, batch data processing, or model training jobs that take minutes or hours.</p></div>
+    <div class="card zh"><div class="ct">人在环路中</div><p style="margin:0">审批门、复核步骤,或任何需要暂停等用户确认的操作——任务转入 <code>input_required</code>,客户端把请求呈现出来。</p></div>
+    <div class="card en"><div class="ct">Human-in-the-loop</div><p style="margin:0">Approval gates, review steps, or any operation that pauses for user confirmation. The task moves to <code>input_required</code> and the client presents the request.</p></div>
+    <div class="card zh"><div class="ct">外部作业系统</div><p style="margin:0">如果你的 server 包着一个本来就用 job ID 的 API(云部署、异步 API、队列),那就在创建 job 时返回 task,job 完成时解析它。<b>这是改造成本最低的一类。</b></p></div>
+    <div class="card en"><div class="ct">External job systems</div><p style="margin:0">If your server wraps an API that already uses job IDs (cloud deployments, async APIs, queued work), return a task when you create the job and resolve it when the job completes. <b>This is the cheapest kind to retrofit.</b></p></div>
+    <div class="card zh"><div class="ct">不可靠连接</div><p style="margin:0">移动端、断续网络,或任何连接会掉的环境——<b>task ID 能挺过断线</b>。</p></div>
+    <div class="card en"><div class="ct">Unreliable connections</div><p style="margin:0">Mobile clients, intermittent networks, or environments where connections drop — <b>task IDs survive disconnects</b>.</p></div>
+    <div class="card zh"><div class="ct">批处理</div><p style="margin:0">处理大量条目的操作(批量导入、批量更新),<b>部分进度本身就有意义</b>,状态消息可以汇报进度。</p></div>
+    <div class="card en"><div class="ct">Batch processing</div><p style="margin:0">Operations that process many items (bulk imports, mass updates) where partial progress is meaningful. Status messages report progress.</p></div>
+  </div>
+
+  <p class="zh">反过来,<b>不该用 Tasks 的情形</b>也很清楚:如果操作在一两秒内稳定返回,直接同步返回就好——多引入的持久化、轮询和状态管理都是净成本。Tasks 是给「不得不异步」的场景准备的,不是默认选项。</p>
+  <p class="en">Conversely, <b>when not to use Tasks</b> is equally clear: if the operation reliably returns within a second or two, just return synchronously. The extra persistence, polling, and state management are pure overhead. Tasks exist for work that has no choice but to be asynchronous; they are not a default.</p>
+
+  <p class="src zh">来源:<a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · When to use Tasks</a></p>
+  <p class="src en">Source: <a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks · When to use Tasks</a></p>
+</section>
+
+<section id="pitfalls">
+  <h2><span class="n">08</span><span class="zh">六个常见坑</span><span class="en">Six common pitfalls</span></h2>
+
+  <div class="callout stop zh">
+    <span class="lbl">坑一 · 响应发出后才创建任务</span>
+    <p>规范要求任务<b>在响应发出之前</b>就已持久化创建。反过来做的话,会出现一个致命窗口:客户端拿到 <code>taskId</code> 立刻发 <code>tasks/get</code>,而服务端还没写库,返回「任务不存在」。分布式部署下这个窗口尤其明显。</p>
+  </div>
+  <div class="callout stop en">
+    <span class="lbl">Pitfall 1 · Creating the task after sending the response</span>
+    <p>The spec requires the task to be durably created <b>before</b> the response is sent. Do it the other way around and you open a fatal window: the client receives the <code>taskId</code>, immediately issues <code>tasks/get</code>, and the server — which has not written to storage yet — answers "no such task". The window is especially wide in a distributed deployment.</p>
+  </div>
+
+  <div class="callout stop zh">
+    <span class="lbl">坑二 · 给没声明支持的客户端返回任务</span>
+    <p>服务端<b>必须</b>先检查客户端在本次请求的能力里带了 <code>io.modelcontextprotocol/tasks</code>。老客户端拿到 <code>resultType: "task"</code> 只会当成一个看不懂的结果,把 <code>taskId</code> 当答案塞进模型上下文——比直接报错更难排查。</p>
+  </div>
+  <div class="callout stop en">
+    <span class="lbl">Pitfall 2 · Returning a task to a client that never opted in</span>
+    <p>The server <b>must</b> first verify that the client included <code>io.modelcontextprotocol/tasks</code> in this request's capabilities. An older client that receives <code>resultType: "task"</code> will simply treat it as an unintelligible result and feed the <code>taskId</code> to the model as if it were the answer — far harder to debug than a clean error.</p>
+  </div>
+
+  <div class="callout warn zh">
+    <span class="lbl">坑三 · 忽略 <code>pollIntervalMs</code></span>
+    <p><code>pollIntervalMs</code> 是服务端<b>建议</b>的轮询间隔,不是装饰。用固定 100ms 死循环轮询,一个跑两小时的任务能给服务端打出 7 万次请求。反过来间隔过长又让「完成」延迟暴露给用户。照服务端说的做。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Pitfall 3 · Ignoring <code>pollIntervalMs</code></span>
+    <p><code>pollIntervalMs</code> is the server's <b>suggested</b> interval, not decoration. A hard loop at a fixed 100 ms will send roughly 70,000 requests to the server over a two-hour task. Poll too slowly, on the other hand, and completion reaches the user late. Do what the server asks.</p>
+  </div>
+
+  <div class="callout warn zh">
+    <span class="lbl">坑四 · 只在内存里存 task ID</span>
+    <p>Tasks 的核心卖点就是崩溃可恢复,而这个卖点<b>完全依赖客户端把 task ID 落盘</b>。存在进程内存里,进程一挂,任务变成孤儿——服务端还在烧钱跑,没人来收结果。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Pitfall 4 · Keeping task IDs only in memory</span>
+    <p>Crash resilience is the headline benefit of Tasks, and it <b>depends entirely on the client persisting task IDs</b>. Keep them in process memory and a crash orphans the task — the server keeps burning money on work nobody will ever collect.</p>
+  </div>
+
+  <div class="callout warn zh">
+    <span class="lbl">坑五 · 忘了 TTL</span>
+    <p><code>CreateTaskResult</code> 里带 <code>ttlMs</code>。任务不是永久的,过期后服务端可以清理。恢复轮询前先看看句柄是不是已经过了 TTL,别对着一个早被 GC 的 ID 重试到天荒地老。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Pitfall 5 · Forgetting the TTL</span>
+    <p><code>CreateTaskResult</code> carries a <code>ttlMs</code>. Tasks are not permanent; a server may reclaim them after expiry. Check whether a handle is past its TTL before resuming polling, instead of retrying forever against an ID that was garbage-collected long ago.</p>
+  </div>
+
+  <div class="callout warn zh">
+    <span class="lbl">坑六 · 假设取消一定生效</span>
+    <p>见第 03 节:<code>tasks/cancel</code> 只是表达意图。UI 上写「已取消」而不等终态确认,会和最终落到 <code>completed</code> 的现实打架。正确做法是显示「取消中」,以终态为准。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Pitfall 6 · Assuming cancellation takes effect</span>
+    <p>See section 03: <code>tasks/cancel</code> only expresses intent. Rendering "cancelled" in the UI without waiting for a terminal state will contradict reality when the task lands on <code>completed</code>. Show "cancelling" and let the terminal state decide.</p>
+  </div>
+
+  <p class="zh"><b>关于本节的说明:</b>坑一、二、五、六直接对应官方文档中的规范性要求;坑三、四是从文档明确写出的「尊重 <code>pollIntervalMs</code>」「持久化 task ID」两条实现要求推演出的常见后果,属于工程推断而非规范原文。</p>
+  <p class="en"><b>A note on this section:</b> pitfalls 1, 2, 5, and 6 map directly to normative requirements in the official docs. Pitfalls 3 and 4 are engineering inferences drawn from two implementation requirements the docs state explicitly — "respect <code>pollIntervalMs</code>" and "persist task IDs" — rather than verbatim spec text.</p>
+</section>
+
+<section id="roadmap">
+  <h2><span class="n">09</span><span class="zh">它在路线图上的位置</span><span class="en">Where it sits on the roadmap</span></h2>
+
+  <p class="zh">2026 年 8 月 22 日,MCP 核心维护者 David Soria Parra 与 Den Delimarsky 发布了新版路线图,分为五个优先领域,<b>「智能体消息原语」排在第一位</b>。原文对这个方向的定位是:现代智能体负载已经不再适配标准的请求-响应模式——循环会跑更久、服务端会推流式结果、还需要在执行中途调整方向。</p>
+  <p class="en">On 22 August 2026, MCP lead maintainers David Soria Parra and Den Delimarsky published a new roadmap organized into five priority areas, with <b>agentic messaging primitives listed first</b>. The stated framing: modern agentic workloads no longer fit the standard request-and-response pattern — loops run longer, servers push streamed results, and there is a clear need to steer work mid-flight.</p>
+
+  <p class="zh">这个方向下有三件具体的事,Tasks 占了其中一件:</p>
+  <p class="en">Three concrete pieces of work sit under that area, and Tasks is one of them:</p>
+
+  <ol class="zh">
+    <li><b>服务端主动事件</b>——webhooks 与 channels,「让客户端不必再为结果一直轮询」。</li>
+    <li><b>组合性评审</b>——跨 Agents、Transports、Triggers &amp; Events 三个工作组,确认这些原语彼此配合得好,而不只是各自可用。</li>
+    <li><b>Tasks 扩展成熟化</b>(SEP-2663)——目标是<b>让它能进入规范正文</b>。</li>
+  </ol>
+  <ol class="en">
+    <li><b>Server-initiated events</b> — webhooks and channels, "so clients aren't left polling for results".</li>
+    <li><b>A composition review</b> across the Agents, Transports, and Triggers &amp; Events Working Groups, to confirm these primitives work well together rather than merely working individually.</li>
+    <li><b>Maturing the Tasks extension</b> (SEP-2663) — the goal being <b>to move it into the specification</b>.</li>
+  </ol>
+
+  <div class="callout zh">
+    <span class="lbl">对你的实际影响</span>
+    <p>路线图明确写了:落在这五个优先领域里的 SEP <b>获得加速评审、通过概率最高</b>;领域之外的提案不会被自动拒绝,但维护者的评审时间稀缺,会优先给这些方向。所以如果你正在做 MCP server 的异步能力,现在按 Tasks 扩展实现,是<b>与规范演进方向一致</b>的押注,而不是在赌一个可能被废弃的实验特性。</p>
+  </div>
+  <div class="callout en">
+    <span class="lbl">What this means for you</span>
+    <p>The roadmap says it plainly: SEPs that fall within these five priority areas <b>get expedited review and have the best chance of acceptance</b>. Proposals outside them are not rejected automatically, but maintainer review time is scarce and goes to these areas first. So if you are building asynchronous capability into an MCP server, implementing against the Tasks extension today is a bet <b>aligned with where the spec is going</b>, not a gamble on an experimental feature that might be dropped.</p>
+  </div>
+
+  <p class="zh">值得留意的一个张力:Tasks 目前是<b>轮询优先</b>的设计(通知是可选优化),而路线图第一条就是要做服务端主动推送。两者不冲突——通知机制早已经通过 <code>subscriptions/listen</code> 存在,webhooks/channels 是把「推」的能力扩展到「客户端不在线」的场景。但如果你现在就把架构死绑在轮询上,未来接推送时要动的地方会比预期多。<b>建议把「怎么拿到状态」抽象成一层,轮询只是它的第一个实现。</b></p>
+  <p class="en">One tension worth watching: Tasks today is <b>poll-first</b> by design, with notifications as an optional optimization, while the first item on the roadmap is server-initiated push. These do not conflict — a notification path already exists through <code>subscriptions/listen</code>, and webhooks/channels extend push to the case where the client is offline. But if you hard-wire your architecture to polling now, wiring in push later will touch more code than you expect. <b>Abstract "how status arrives" behind one seam, and treat polling as its first implementation.</b></p>
+
+  <p class="src zh">来源:<a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap · 2026-08-22</a> · <a href="https://modelcontextprotocol.io/development/roadmap">官方路线图页</a></p>
+  <p class="src en">Sources: <a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap · 2026-08-22</a> · <a href="https://modelcontextprotocol.io/development/roadmap">Official roadmap page</a></p>
+</section>
+
+<section id="sources">
+  <h2><span class="n">10</span><span class="zh">来源清单</span><span class="en">Sources</span></h2>
+
+  <p class="zh">本文全部事实性内容来自以下公开来源,均于 2026-08-26 访问。文中凡属工程推断而非规范原文之处,已在对应位置标注。</p>
+  <p class="en">Every factual claim in this document comes from the public sources below, all accessed on 2026-08-26. Wherever a statement is an engineering inference rather than verbatim spec text, it is flagged in place.</p>
+
+  <ol class="srclist zh">
+    <li><a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks — Asynchronous task execution for long-running MCP operations</a>(官方扩展文档:机制、状态表、实现指南、通知)</li>
+    <li><a href="https://github.com/modelcontextprotocol/ext-tasks">modelcontextprotocol/ext-tasks</a>(Tasks 完整规范与文档仓库)</li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap</a> · 2026-08-22 · David Soria Parra、Den Delimarsky(五大优先领域;Tasks 转正目标)</li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">The 2026-07-28 Specification</a> · 2026-07-28(无状态核心、MRTR、Tasks 移入扩展、AWS 贡献、SDK 状态)</li>
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28">MCP 规范 2026-07-28</a> 与 <a href="https://modelcontextprotocol.io/specification/2026-07-28/changelog">完整变更日志</a></li>
+    <li><a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2663">SEP-2663 — Tasks extension</a> · <a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2322">SEP-2322 — Multi Round-Trip Requests</a> · <a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2575">SEP-2575 — Stateless MCP</a></li>
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions">subscriptions/listen 模式</a> · <a href="https://modelcontextprotocol.io/extensions/client-matrix">扩展客户端支持矩阵</a></li>
+    <li><a href="https://modelcontextprotocol.io/development/roadmap">MCP 官方路线图页</a></li>
+  </ol>
+  <ol class="srclist en">
+    <li><a href="https://modelcontextprotocol.io/extensions/tasks/overview">MCP Tasks — Asynchronous task execution for long-running MCP operations</a> (official extension docs: mechanism, status table, implementation guide, notifications)</li>
+    <li><a href="https://github.com/modelcontextprotocol/ext-tasks">modelcontextprotocol/ext-tasks</a> (full specification and documentation repository for Tasks)</li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/mcp-roadmap/">The New MCP Roadmap</a> · 2026-08-22 · David Soria Parra and Den Delimarsky (five priority areas; the goal of moving Tasks into the spec)</li>
+    <li><a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">The 2026-07-28 Specification</a> · 2026-07-28 (stateless core, MRTR, Tasks moving into an extension, the AWS contribution, SDK status)</li>
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28">MCP specification 2026-07-28</a> and its <a href="https://modelcontextprotocol.io/specification/2026-07-28/changelog">full changelog</a></li>
+    <li><a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2663">SEP-2663 — Tasks extension</a> · <a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2322">SEP-2322 — Multi Round-Trip Requests</a> · <a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2575">SEP-2575 — Stateless MCP</a></li>
+    <li><a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions">The subscriptions/listen pattern</a> · <a href="https://modelcontextprotocol.io/extensions/client-matrix">Extension client support matrix</a></li>
+    <li><a href="https://modelcontextprotocol.io/development/roadmap">The official MCP roadmap page</a></li>
+  </ol>
+
+  <div class="callout warn zh">
+    <span class="lbl">免责声明</span>
+    <p>本文为学习整理,不是官方文档。Tasks 目前是<b>扩展</b>而非规范正文,客户端支持情况因宿主而异——落地前请查<a href="https://modelcontextprotocol.io/extensions/client-matrix">客户端支持矩阵</a>并以 <a href="https://github.com/modelcontextprotocol/ext-tasks">ext-tasks 仓库</a>中的规范原文为准。规范仍在演进中,本文内容对应 2026-08-26 的状态。</p>
+  </div>
+  <div class="callout warn en">
+    <span class="lbl">Disclaimer</span>
+    <p>This is a study write-up, not official documentation. Tasks is currently an <b>extension</b> rather than part of the specification proper, and client support varies by host — check the <a href="https://modelcontextprotocol.io/extensions/client-matrix">client matrix</a> before shipping, and treat the spec in the <a href="https://github.com/modelcontextprotocol/ext-tasks">ext-tasks repository</a> as authoritative. The specification is still evolving; this document reflects its state as of 2026-08-26.</p>
+  </div>
+</section>
+
+<footer>
+  <p class="zh">AI 每日 · 深度学习文档 · 2026-08-26 · 主题:MCP Tasks 扩展与异步长任务</p>
+  <p class="en">AI Daily · Deep Dive · 2026-08-26 · Topic: MCP Tasks and asynchronous long-running operations</p>
+  <p class="zh">全文中英双语,内容一一对应。点击右上角「中 / EN」切换语言。</p>
+  <p class="en">Fully bilingual, with the two versions corresponding one to one. Use the "中 / EN" button at the top right to switch.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var body = document.body, btn = document.getElementById('lang');
+
+  function readStored(){ try { return localStorage.getItem('aid-lang'); } catch(e){ return null; } }
+  function writeStored(v){ try { localStorage.setItem('aid-lang', v); } catch(e){} }
+
+  var initial = readStored();
+  if (initial !== 'zh' && initial !== 'en') {
+    var nav = (navigator.language || 'en').toLowerCase();
+    initial = nav.indexOf('zh') === 0 ? 'zh' : 'en';
+  }
+  apply(initial);
+
+  function apply(lang){
+    body.setAttribute('data-lang', lang);
+    document.documentElement.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+    btn.textContent = lang === 'zh' ? '中 / EN' : 'EN / 中';
+    refreshFigures();
+  }
+
+  btn.addEventListener('click', function(){
+    apply(body.getAttribute('data-lang') === 'zh' ? 'en' : 'zh');
+    writeStored(body.getAttribute('data-lang'));
+  });
+
+  // figure entrance animation
+  var io = null;
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {threshold: 0.12});
+  }
+
+  function refreshFigures(){
+    var figs = document.querySelectorAll('figure');
+    for (var i = 0; i < figs.length; i++) {
+      var f = figs[i];
+      if (f.classList.contains('in')) continue;
+      var visible = f.offsetParent !== null || f.getClientRects().length > 0;
+      if (!visible) continue;
+      var r = f.getBoundingClientRect();
+      if (r.top < (window.innerHeight || 0) && r.bottom > 0) { f.classList.add('in'); if (io) io.unobserve(f); }
+      else if (io) { io.observe(f); }
+    }
+  }
+
+  window.addEventListener('load', refreshFigures);
+  refreshFigures();
+
+  // reading progress
+  var prog = document.getElementById('prog');
+  function onScroll(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    prog.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>
