@@ -58,13 +58,30 @@
   - [x] 分页:单栏目 24 条一页,`?page=` 超界夹回末页(claude-code 39 条 → 24 + 15)
   - [x] 中英一致:`validateResourcesSearch` 由 /resources 与 /en/resources 共用
 
-### 阶段 2 期间记到的待办(不属于阶段 2,未处理)
-- **全站 hydration 失败**:每页控制台报 `Hydration failed` + `Invalid DOM property hreflang`。
-  源头是 `lib/i18n/head.ts` 用小写 `hreflang` 作 links 的键 —— SSR 输出正确,但客户端 React
-  认为是非法属性并丢弃,于是 head 对不上,React 丢掉整份 SSR HTML 重渲染。
-  这直接抵消了 resources.tsx 里 SSR 预取的初衷(给不执行 JS 的 AI/搜索爬虫看)。
-  在 /about(本次完全没动过的页)上稳定复现,与阶段 1/2 的改动无关。改法要验证
-  TanStack 的 head 渲染器在客户端认不认驼峰,得单独跑一轮,别顺手改。
+### /resources 的 hydration 失败(2026-08-26 已定位并修掉)
+先纠正一个此前的错误结论:**不是「全站每页都失败」**。那个判断来自累积的控制台缓冲。
+用干净标签页逐页复测,`/`、`/about`、`/daily` 都干净,**只有 `/resources` 会失败**,而且是间歇性的。
+
+根因(结构性证据,非猜测):
+- `/resources` 是全站**唯一**用 `useQuery` + `isLoading` 在骨架屏与真实列表之间切换的路由;
+  `index.tsx` / `daily.tsx` / `about.tsx` 都用 `useSuspenseQuery`,三者从未失败。
+- 机制:loader 已 await 过数据,所以**服务端一定渲染完整列表**;而客户端 hydration 有可能抢在
+  react-query 的脱水数据落地之前跑,那一刻 `useQuery` 报 `isLoading=true`、渲染骨架屏 ——
+  与服务端的完整列表是两棵完全不同的树,于是整份 SSR HTML 被丢弃重渲染。
+  竞态决定了它时有时无。
+- 把阶段 2 之前的旧版 `resources.tsx` 换回去同样失败,证明与阶段 2 重写无关 —— 两版共用这个 `useQuery` 门。
+
+修法:`/resources` 换成 `useSuspenseQuery`(与其余三个路由一致),删掉组件内的 `isLoading` 与 `error` 分支;
+骨架屏改挂到路由的 `pendingComponent`(只在客户端导航时出现,SSR 不渲染),
+错误交给路由的 `errorComponent`(补了 `router.invalidate()` 重试,不丢原有 UX)。
+修完客户端首帧不再存在「可能渲染出另一棵树」的路径。
+**诚实说明**:这个 bug 无法按需复现,所以修复的依据是「机制被移除」而不是「复现后验证消失」。
+
+### 仍未处理:`Invalid DOM property hreflang`
+每页控制台仍有这条警告。源头是 `lib/i18n/head.ts` 用小写 `hreflang` 作 links 的键 ——
+SSR 输出正确(`hreflang` 是合法 HTML 属性),但客户端 React 认为是非法 DOM 属性。
+它是**警告**,不是 hydration 失败,与上面那条是两回事。改动要先验证 TanStack 的 head 渲染器
+在客户端认不认驼峰(那行代码上方的注释说选小写是深思熟虑过的),得单独跑一轮,别顺手改。
 ### 阶段 3:视觉统一(方向 A 深蓝传承)✅ 2026-08-26 实现,本地实测通过,待部署与验收
 - 内容:选定方向落成 design token;主站/学习站/归档页/文章外壳四类页面统一;暗色按方向处理(激活或移除死代码)。
 - 做法:**以学习站 `public/claude-code/assets/shared.css` 为基准,让主站对齐它**,而不是反过来 ——
@@ -143,3 +160,4 @@ Hero 数据条最初写的是「连更 N 天」。2026-08-26 上线后实测露�
   阶段 1 遗留的三条待办(①摘要空 ②Footer 占位 ③日期错位)已在保鲜改造里全部处理。
 - 2026-08-26:阶段 3 已实现(见上),tsc + build + 浏览器实测通过,**未提交未部署**。
 - 2026-08-26:阶段 1–3 已部署上线(commit 73ce233);阶段 4 已实现,待部署。四个阶段至此全部落地。
+- 2026-08-26:定位并修掉 /resources 的 hydration 失败(useQuery+isLoading 门 → useSuspenseQuery)。

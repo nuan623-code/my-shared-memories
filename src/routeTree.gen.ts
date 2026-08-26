@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as NotesRouteImport } from './routes/notes'
@@ -50,6 +51,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RssDotxmlRoute = RssDotxmlRouteImport.update({
+  id: '/rss.xml',
+  path: '/rss.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
+  '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tools': typeof ToolsRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
+  '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tools': typeof ToolsRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/notes': typeof NotesRoute
   '/resources': typeof ResourcesRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
+  '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tools': typeof ToolsRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/resources'
     | '/robots.txt'
+    | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
     | '/tools'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/resources'
     | '/robots.txt'
+    | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
     | '/tools'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/resources'
     | '/robots.txt'
+    | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
     | '/tools'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   NotesRoute: typeof NotesRoute
   ResourcesRoute: typeof ResourcesRouteWithChildren
   RobotsDottxtRoute: typeof RobotsDottxtRoute
+  RssDotxmlRoute: typeof RssDotxmlRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ToolsRoute: typeof ToolsRoute
@@ -394,6 +407,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rss.xml': {
+      id: '/rss.xml'
+      path: '/rss.xml'
+      fullPath: '/rss.xml'
+      preLoaderRoute: typeof RssDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -602,6 +622,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotesRoute: NotesRoute,
   ResourcesRoute: ResourcesRouteWithChildren,
   RobotsDottxtRoute: RobotsDottxtRoute,
+  RssDotxmlRoute: RssDotxmlRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ToolsRoute: ToolsRoute,

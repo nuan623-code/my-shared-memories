@@ -1,5 +1,5 @@
-import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
-import { useQuery, queryOptions } from "@tanstack/react-query";
+import { createFileRoute, useSearch, useNavigate, useRouter } from "@tanstack/react-router";
+import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { fetchResources } from "@/lib/resources";
 import { ResourceMasonry } from "@/components/ResourceMasonry";
@@ -58,10 +58,30 @@ export const Route = createFileRoute("/resources")({
       description: "按栏目浏览全部文章:手写长文与三个每日栏目(AI 简报、AI 深度学习、Claude Code)。",
     }),
   component: ResourcesPage,
-  errorComponent: ({ error }) => (
-    <div className="p-8 text-center text-sm text-muted-foreground">出错了：{error.message}</div>
-  ),
+  // 骨架屏不再由组件内的 isLoading 控制(那正是 hydration 失配的来源),
+  // 交给路由:只在客户端导航等待时出现,SSR 阶段不会渲染它。
+  pendingComponent: ResourcesPendingPage,
+  errorComponent: ResourcesErrorPage,
 });
+
+/** 取数失败:useSuspenseQuery 把错误抛给路由,重试走 router.invalidate 重新跑 loader */
+function ResourcesErrorPage({ error }: { error: Error }) {
+  const router = useRouter();
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">资源库</h1>
+      <p className="mt-3 text-sm text-muted-foreground">
+        {error.message || "加载失败,请稍后重试。"}
+      </p>
+      <button
+        onClick={() => router.invalidate()}
+        className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+      >
+        重新加载
+      </button>
+    </div>
+  );
+}
 
 function ResourcesPendingPage() {
   return (
@@ -113,7 +133,13 @@ export function ResourcesPage() {
   const navigate = useNavigate();
   // strict:false 以便 /en/resources 薄封装路由复用本组件时也能读到查询参数
   const search = useSearch({ strict: false }) as ResourcesSearch;
-  const { data: resources = [], isLoading, error, refetch } = useQuery(allResourcesQO);
+  // 必须是 useSuspenseQuery,不能是 useQuery:
+  // loader 已经 await 过数据,所以服务端一定渲染完整列表;而客户端 hydration 有可能
+  // 抢在 react-query 的脱水数据落地之前跑,那时 useQuery 会报 isLoading=true、
+  // 渲染出骨架屏 —— 与服务端的完整列表是两棵完全不同的树,于是 hydration 整个失败,
+  // React 丢掉 SSR HTML 重渲染(正好抵消上面 loader 预取的意义)。
+  // 首页 / /daily / /about 都用 useSuspenseQuery,都没有这个问题。
+  const { data: resources } = useSuspenseQuery(allResourcesQO);
 
   const visible = useMemo(() => {
     const deduped = dedupeByLocale(resources, locale);
@@ -148,23 +174,6 @@ export function ResourcesPage() {
       }),
       resetScroll: true,
     });
-
-  if (isLoading) return <ResourcesPendingPage />;
-
-  if (error) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t("res.title")}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{t("res.error")}</p>
-        <button
-          onClick={() => refetch()}
-          className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          {t("res.retry")}
-        </button>
-      </div>
-    );
-  }
 
   const families: SectionFamily[] = ["longform", "daily"];
 
