@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>112 Days Late: I Built a Product Anthropic Had Already Shipped</title>
+<style>
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --surface2:#f2efe9; --border:#e2ddd2;
+  --text:#1a1814; --muted:#6d675c; --accent:#b45309; --accent-soft:#b4530912;
+  --bad:#a8321f; --bad-soft:#a8321f10;
+  --good:#15694a; --good-soft:#15694a10;
+  --cool:#31567a; --cool-soft:#31567a10;
+  --grid:#00000006;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+}
+html[data-theme="dark"]{
+  --bg:#100f0c; --surface:#191712; --surface2:#211e18; --border:#2f2b23;
+  --text:#eae6dd; --muted:#9a9285; --accent:#e0a458; --accent-soft:#e0a45816;
+  --bad:#f0846c; --bad-soft:#f0846c14;
+  --good:#5cc79b; --good-soft:#5cc79b14;
+  --cool:#7fabd8; --cool-soft:#7fabd814;
+  --grid:#ffffff05;
+}
+@media (prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+    --bg:#100f0c; --surface:#191712; --surface2:#211e18; --border:#2f2b23;
+    --text:#eae6dd; --muted:#9a9285; --accent:#e0a458; --accent-soft:#e0a45816;
+    --bad:#f0846c; --bad-soft:#f0846c14;
+    --good:#5cc79b; --good-soft:#5cc79b14;
+    --cool:#7fabd8; --cool-soft:#7fabd814;
+    --grid:#ffffff05;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+  font-size:16.5px; line-height:1.72; -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:30px 30px;
+}
+#bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0;z-index:60;transition:width .1s}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:218px minmax(0,1fr);gap:48px}
+nav{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:26px 0 40px;font-size:13px}
+nav .nt{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin:0 0 12px}
+nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 11px;border-left:2px solid var(--border);line-height:1.4}
+nav a:hover{color:var(--text);border-left-color:var(--accent)}
+nav a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+.tt{display:flex;gap:4px;margin:22px 0 0;padding-left:11px}
+.tt button{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:3px 7px;cursor:pointer}
+.tt button.on{color:var(--accent);border-color:var(--accent)}
+main{padding:0 0 120px;min-width:0}
+header.hero{padding:74px 0 40px;border-bottom:1px solid var(--border);margin-bottom:46px}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+h1{font-size:clamp(30px,5.2vw,48px);line-height:1.13;margin:0 0 20px;letter-spacing:-.025em;font-weight:750}
+.lede{font-size:18.5px;color:var(--muted);max-width:64ch;margin:0 0 30px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.stats div{background:var(--surface);padding:15px 16px}
+.stats b{display:block;font-family:var(--mono);font-size:25px;line-height:1.2;letter-spacing:-.03em}
+.stats span{display:block;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+.s-bad b{color:var(--bad)} .s-good b{color:var(--good)} .s-cool b{color:var(--cool)}
+section{margin:0 0 62px;scroll-margin-top:20px}
+h2{font-size:clamp(21px,3vw,29px);line-height:1.28;margin:0 0 10px;letter-spacing:-.015em;font-weight:720}
+h2 .num{font-family:var(--mono);font-size:11.5px;color:var(--accent);display:block;margin-bottom:7px;letter-spacing:.12em}
+h3{font-size:18px;margin:36px 0 10px;font-weight:660;letter-spacing:-.01em}
+h4{font-size:14px;margin:24px 0 8px;font-weight:660;color:var(--muted);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px;padding-left:22px} li{margin:0 0 8px}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface2);padding:1.5px 5px;border-radius:4px;border:1px solid var(--border)}
+a{color:var(--accent)}
+.tw{overflow-x:auto;margin:0 0 20px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:620px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+th{background:var(--surface2);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.n,th.n{font-family:var(--mono);white-space:nowrap}
+.box{border:1px solid var(--border);border-left:3px solid var(--accent);background:var(--surface);border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 22px}
+.box.bad{border-left-color:var(--bad)} .box.good{border-left-color:var(--good)} .box.cool{border-left-color:var(--cool)}
+.box .bt{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:7px}
+.box.bad .bt{color:var(--bad)} .box.good .bt{color:var(--good)} .box.cool .bt{color:var(--cool)}
+.box p:last-child{margin-bottom:0}
+figure{margin:26px 0;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px 16px;overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;min-width:540px}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:11px;text-align:center;line-height:1.55}
+.src li{font-size:14px;margin-bottom:9px}
+hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+.big{font-family:var(--mono);font-size:clamp(46px,10vw,92px);line-height:1;letter-spacing:-.05em;color:var(--bad);margin:8px 0 4px;font-weight:600}
+@media(max-width:900px){
+  .wrap{grid-template-columns:1fr;gap:0}
+  nav{position:static;max-height:none;padding:18px 0 0;border-bottom:1px solid var(--border);margin-bottom:8px}
+  nav a{display:inline-block;border-left:none;border-bottom:2px solid var(--border);margin:0 8px 6px 0;padding:3px 0}
+  nav a.on{border-left:none;border-bottom-color:var(--accent)}
+  .tt{padding-left:0}
+  header.hero{padding:32px 0 28px}
+}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div class="wrap">
+<nav>
+  <p class="nt">Contents</p>
+  <a href="#s0">The number</a>
+  <a href="#s1">What I built</a>
+  <a href="#s2">The audit</a>
+  <a href="#s3">How I missed it</a>
+  <a href="#s4">What 22 days bought</a>
+  <a href="#s5">Six incidents</a>
+  <a href="#s6">Rules I'd keep</a>
+  <a href="#s7">What survives</a>
+  <a href="#s8">Honest limits</a>
+  <a href="#s9">Data appendix</a>
+  <a href="#s10">Sources</a>
+  <div class="tt">
+    <button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button>
+  </div>
+</nav>
+<main>
+
+<header class="hero">
+  <p class="kicker">Field report · published 2026-08-26</p>
+  <h1>112 days late</h1>
+  <p class="lede">I spent 22 days building a macOS app to manage Claude Code sessions.
+  Anthropic had shipped most of it 112 days before I wrote my first line — and I never checked.
+  This is the full record, with dates, commit counts, and the audit that found out.</p>
+  <div class="stats">
+    <div class="s-bad"><b>112</b><span>days between their launch and my start</span></div>
+    <div><b>22</b><span>days I worked on it</span></div>
+    <div class="s-cool"><b>215</b><span>commits</span></div>
+    <div class="s-cool"><b>25,284</b><span>lines of Swift</span></div>
+    <div class="s-bad"><b>18/48</b><span>features already replaced</span></div>
+    <div class="s-good"><b>15/48</b><span>still not replaced</span></div>
+  </div>
+</header>
+
+<section id="s0">
+  <h2><span class="num">01</span>The number that reframes everything</h2>
+  <p>The story I told myself for three weeks was the familiar one: <em>I was building something,
+  and the platform vendor shipped it out from under me.</em> It is a comfortable story. It casts you
+  as unlucky rather than careless.</p>
+  <p>Then I actually checked the dates.</p>
+  <div class="big">112</div>
+  <p style="margin-top:0;color:var(--muted);font-size:15px">days between Anthropic shipping the thing and me starting to build it.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Event</th><th class="n">Date</th><th class="n">Δ from their launch</th></tr></thead>
+    <tbody>
+      <tr><td>Anthropic ships the Claude Code desktop redesign — multi-session sidebar, per-session git worktrees, integrated terminal and file editor, split panes, preview pane. Routines ship the same day.</td><td class="n">2026-04-14</td><td class="n">day 0</td></tr>
+      <tr><td>Mobile push notifications land in v2.1.110 — including "push when actions required," for permission prompts</td><td class="n">2026-04-16</td><td class="n">+2</td></tr>
+      <tr><td><strong>I create the first file in my project</strong> (a UI mockup, <code>19:56</code> local time)</td><td class="n">2026-08-04</td><td class="n"><strong>+112</strong></td></tr>
+      <tr><td>I run my one and only competitive check before this audit</td><td class="n">2026-08-08</td><td class="n">+116</td></tr>
+      <tr><td>First git commit, <code>00:00:16</code></td><td class="n">2026-08-09</td><td class="n">+117</td></tr>
+      <tr><td>I finally do a line-by-line audit and find out</td><td class="n">2026-08-24</td><td class="n">+132</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box bad">
+    <p class="bt">The actual failure</p>
+    <p>Nobody overtook me. <strong>I started building a product that substantially existed, and I shipped 215 commits
+    before anyone checked whether it did.</strong> That is not bad luck. That is a missing step in how I start projects —
+    and it is a step that would have cost about forty minutes.</p>
+  </div>
+  <p>I am writing this down because the forty-minute version of this check is easy to describe and easy to reuse,
+  and because the 22 days were not wasted — just not in the way I planned. Both halves are below, with the data.</p>
+</section>
+
+<section id="s1">
+  <h2><span class="num">02</span>What I actually built</h2>
+  <p>A native macOS menu-bar app. Three things it does: watch every Claude Code session on the machine,
+  collect risky operations into one approval console, and host sessions directly in an embedded terminal.</p>
+  <p>Twelve delivery stages, all with written acceptance contracts. Here is the shipping record —
+  dates are the day each stage was accepted, not the day work began.</p>
+  <div class="tw"><table>
+    <thead><tr><th class="n">Stage</th><th>What shipped</th><th class="n">Accepted</th><th class="n">PR</th></tr></thead>
+    <tbody>
+      <tr><td class="n">2</td><td>UI design frozen — 9-page information architecture, 5 visual mockups</td><td class="n">2026-08-04</td><td class="n">—</td></tr>
+      <tr><td class="n">1</td><td>Technical spike — proved the two risky assumptions (three-channel external monitoring; SwiftTerm can host the Claude TUI, detection→UI measured at 14ms)</td><td class="n">2026-08-05</td><td class="n">—</td></tr>
+      <tr><td class="n">3</td><td>Monitoring MVP — menu-bar icon, quick panel. New sessions appear in <strong>2.0s</strong> (target was 10s)</td><td class="n">2026-08-05</td><td class="n">—</td></tr>
+      <tr><td class="n">4</td><td>Main control center, read-only</td><td class="n">2026-08-05</td><td class="n">—</td></tr>
+      <tr><td class="n">5</td><td>Embedded terminal host — PTY, tabs, split panes, birth registry, three injection automations</td><td class="n">2026-08-06</td><td class="n">—</td></tr>
+      <tr><td class="n">6</td><td>Approval center + notifications — 10 risk predicates, decisions written into the hook response body</td><td class="n">2026-08-08</td><td class="n">—</td></tr>
+      <tr><td class="n">7</td><td>Task triage and dispatch — headless CLI triage (25.8s: 3 tasks → 4 sessions), git worktree isolation</td><td class="n">2026-08-09</td><td class="n">—</td></tr>
+      <tr><td class="n">8</td><td>Animated mascot — 7 states; plus the <strong>binary fingerprint gate</strong> that caught a real "you didn't swap the binary" on its first day</td><td class="n">2026-08-11</td><td class="n">—</td></tr>
+      <tr><td class="n">9</td><td>Topic tracking — 8/8 criteria green, 3 runs at 100/100/100% precision, 89/94/94% recall</td><td class="n">2026-08-19</td><td class="n">#4</td></tr>
+      <tr><td class="n">10</td><td>Projects / History / browser pane / settings — 8 criteria, started and accepted the same day</td><td class="n">2026-08-19</td><td class="n">#5</td></tr>
+      <tr><td class="n">X</td><td>Multi-source progress tracking — 7 criteria</td><td class="n">2026-08-20</td><td class="n">#6</td></tr>
+      <tr><td class="n">11</td><td>Multi-agent abstraction — zero brand literals left in the core layer</td><td class="n">2026-08-21</td><td class="n">#7</td></tr>
+      <tr><td class="n">12a</td><td>Codex CLI read-only support — second agent provider, shipped same day it started</td><td class="n">2026-08-21</td><td class="n">#9</td></tr>
+      <tr><td class="n">Y1</td><td>Background execution base — 6 criteria, full regression 103 ✅ / 0 ❌</td><td class="n">2026-08-21</td><td class="n">#10</td></tr>
+      <tr><td class="n">N</td><td>Panel noise filtering + a reusable evidence-gate protocol</td><td class="n">2026-08-23</td><td class="n">#12</td></tr>
+      <tr><td class="n">Y2a</td><td>Execution-target advisor</td><td class="n">2026-08-24</td><td class="n">#12</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Size, measured not estimated</h4>
+  <div class="tw"><table>
+    <thead><tr><th>Metric</th><th class="n">Value</th><th>How it was counted</th></tr></thead>
+    <tbody>
+      <tr><td>Calendar days from first artifact to the audit</td><td class="n">20</td><td>2026-08-04 → 2026-08-24</td></tr>
+      <tr><td>Git commits</td><td class="n">215</td><td><code>git rev-list --count HEAD</code>, all in August 2026</td></tr>
+      <tr><td>Busiest single day</td><td class="n">61 commits</td><td>2026-08-21 (stages 11, 12a and Y1 all landed)</td></tr>
+      <tr><td>Second busiest</td><td class="n">43 commits</td><td>2026-08-23</td></tr>
+      <tr><td>Swift source</td><td class="n">76 files / 25,284 lines</td><td>Core 10,957 · UI 9,435 · Providers 2,109 · Terminal 1,488</td></tr>
+      <tr><td>Design and process docs</td><td class="n">6,202 lines</td><td>20 markdown files under <code>docs/</code></td></tr>
+      <tr><td>Regression scripts</td><td class="n">12</td><td>one per stage, each chaining all earlier ones</td></tr>
+      <tr><td>Evidence artifacts on disk</td><td class="n">530 files</td><td>logs, screenshots, JSON snapshots under <code>spike/out/</code></td></tr>
+      <tr><td>Pull requests</td><td class="n">12 (10 merged)</td><td>#1 through #12; #11 and #12 still open</td></tr>
+    </tbody>
+  </table></div>
+  <p>I mention the size not to impress anyone. I mention it because <strong>the point of this article is that all of it
+  happened after the thing already existed</strong>, and volume of work is exactly what makes that failure invisible from the inside.
+  Every one of those 22 days felt productive. Most of them were, locally. None of them were, strategically.</p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">03</span>The audit: 48 features, line by line</h2>
+  <p>On 2026-08-24 I stopped building and did the check I should have done on day zero.
+  I took the 48 features from my own internal feature matrix — the authoritative one, so I could not cherry-pick —
+  and went through Anthropic's current documentation feature by feature.</p>
+  <p>Evidence rules, in order of weight: official documentation text first; release notes and reporting only to
+  establish <em>when</em> something shipped; public issue-tracker status only to establish that something
+  <em>does not yet exist</em>, which is stronger evidence than documentation silence.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="48 features split into replaced, overlapping, and still unique">
+      <g font-family="-apple-system,Inter,sans-serif" fill="currentColor">
+        <rect x="30" y="52" width="292" height="58" rx="8" fill="#a8321f" opacity=".16"/>
+        <rect x="30" y="52" width="292" height="58" rx="8" fill="none" stroke="#a8321f" stroke-width="1.4"/>
+        <text x="176" y="80" font-size="26" font-family="ui-monospace,Menlo,monospace" fill="#a8321f" text-anchor="middle" font-weight="600">18</text>
+        <text x="176" y="99" font-size="12" text-anchor="middle" opacity=".75">already replaced</text>
+
+        <rect x="332" y="52" width="243" height="58" rx="8" fill="#b45309" opacity=".14"/>
+        <rect x="332" y="52" width="243" height="58" rx="8" fill="none" stroke="#b45309" stroke-width="1.4"/>
+        <text x="453" y="80" font-size="26" font-family="ui-monospace,Menlo,monospace" fill="#b45309" text-anchor="middle" font-weight="600">15</text>
+        <text x="453" y="99" font-size="12" text-anchor="middle" opacity=".75">partial overlap</text>
+
+        <rect x="585" y="52" width="243" height="58" rx="8" fill="#15694a" opacity=".14"/>
+        <rect x="585" y="52" width="243" height="58" rx="8" fill="none" stroke="#15694a" stroke-width="1.4"/>
+        <text x="706" y="80" font-size="26" font-family="ui-monospace,Menlo,monospace" fill="#15694a" text-anchor="middle" font-weight="600">15</text>
+        <text x="706" y="99" font-size="12" text-anchor="middle" opacity=".75">still unique</text>
+
+        <text x="30" y="34" font-size="12.5" opacity=".6">48 features from my own feature matrix, judged against official docs on 2026-08-24</text>
+
+        <text x="30" y="140" font-size="11.5" opacity=".7" font-weight="600">Heaviest losses:</text>
+        <text x="30" y="160" font-size="11.5" opacity=".62">embedded terminal · split panes · git worktree isolation · browser pane · execution-target picker</text>
+        <text x="30" y="178" font-size="11.5" opacity=".62">context usage meter · session filtering · diff review · remote terminal · device pairing · mobile push</text>
+        <text x="30" y="202" font-size="11.5" opacity=".7" font-weight="600">Survivors that matter: <tspan fill="#15694a">cross-vendor abstraction · seeing terminal sessions · the approval console</tspan></text>
+      </g>
+    </svg>
+    <figcaption>Roughly a third replaced, a third overlapping, a third untouched. The split is mine, so treat it as an order of magnitude, not a measurement.</figcaption>
+  </figure>
+
+  <h3>What the desktop redesign took</h3>
+  <p>These are the ones that hurt, because they were my stages 5, 7 and 10 — the load-bearing ones:</p>
+  <ul>
+    <li><strong>Per-session git worktree isolation.</strong> Mine was stage 7. Theirs defaults to
+      <code>&lt;project-root&gt;/.claude/worktrees/</code>, has a configurable location and branch prefix,
+      a <code>.worktreeinclude</code> file for pulling gitignored files like <code>.env</code> into the worktree,
+      and auto-archives when the PR merges. Theirs is more complete than mine.</li>
+    <li><strong>Integrated terminal, file editor, split panes, drag-and-drop layout.</strong> My stage 5.</li>
+    <li><strong>App preview pane and external site browsing.</strong> My stage 10, which I had not even started.</li>
+    <li><strong>An execution-target picker.</strong> Local / Cloud / SSH / WSL, chosen when you start a session.
+      I had decomposed this into five stages (Y1–Y5) and finished two of them. It is a dropdown they shipped in April.</li>
+    <li><strong>A usage ring</strong> showing per-session context consumption and plan usage for the period.
+      My context meter, plus a layer I did not have.</li>
+    <li><strong>Session sidebar</strong> with filtering by status, project, and environment, and grouping by project.</li>
+  </ul>
+
+  <h3>What Remote Control took</h3>
+  <p>Remote Control connects a local CLI session to <code>claude.ai/code</code> and the mobile apps.
+  Two lines from the official documentation:</p>
+  <ul>
+    <li><code>/config</code> offers <strong>"Push when actions required"</strong> — for "permission prompts and questions."</li>
+    <li>"Claude Code keeps permission prompts and <code>AskUserQuestion</code> questions open until you answer them."</li>
+  </ul>
+  <p>So approving a permission from your phone, and answering a multiple-choice prompt from your phone,
+  are both free and official. Worth noting: I had explicitly declared remote answering of multiple-choice prompts
+  a <em>red line we will never cross</em>. Anthropic just shipped it. <strong>On that specific point they were more
+  aggressive than I was willing to be</strong>, which is its own kind of feedback about my product instincts.</p>
+
+  <h3>What survived, and why</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Survivor</th><th>Why it survived</th><th>Durability</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Cross-vendor abstraction</strong> — a core layer that knows no agent brand; Claude Code, Codex and opencode are all just providers</td><td>Anthropic will never build an abstraction whose purpose is to also manage Codex</td><td><strong>Structural.</strong> Not a roadmap gap — a thing they cannot want</td></tr>
+      <tr><td><strong>Seeing sessions started in a plain terminal</strong></td><td>Official docs are explicit: the desktop app sees only sessions it runs itself — not ones you started from the terminal CLI or the VS Code extension, "even in worktrees of the same project." There is an open feature request for it</td><td><strong>Time-limited.</strong> The day they unify the session store, this is gone</td></tr>
+      <tr><td><strong>The approval console</strong> — one inbox across sessions, three risk tiers with impact text, an append-only decision log, per-event-type notification switches</td><td>Official permission modes grade <em>autonomy</em> (Manual / Accept edits / Plan / Auto / Bypass), not <em>the risk of one request</em>. And on notifications the docs say plainly: "Beyond the two on/off toggles below, there is no per-event configuration"</td><td><strong>Structural-ish.</strong> Their Auto mode is explicitly designed to <em>reduce</em> permission prompts. We are pointed in opposite directions</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box cool">
+    <p class="bt">The distinction that took me three weeks to see</p>
+    <p>"Can you approve remotely?" — <strong>yes, officially, free, since April.</strong><br>
+    "Can you see all pending approvals in one place, ranked by risk, with a record of what you approved?" — <strong>not in any documentation I can find.</strong><br><br>
+    I had been selling the first sentence. Only the second one was ever true.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="num">04</span>How I missed it for 132 days</h2>
+  <p>Here is the part I find genuinely useful, because the failure is specific and repeatable rather than
+  "I should have researched more."</p>
+  <p>I <em>did</em> research. On 2026-08-08 — day 5 of the project — I ran a competitive check that was,
+  by its own standards, rigorous. I pulled the official documentation rather than trusting secondhand write-ups.
+  I found two research summaries that contradicted each other about whether you could approve permissions from a
+  phone, went to the source, and established that you could — and that the summary claiming otherwise was stale.
+  I enumerated eight hard limits of Remote Control. I deleted two of my own selling points on the spot because
+  the evidence killed them.</p>
+  <p>The method was fine. <strong>The scope was drawn wrong.</strong></p>
+  <div class="box bad">
+    <p class="bt">The scoping error, stated precisely</p>
+    <p>The question I asked was: <em>"Can Anthropic's mobile offering replace my mobile offering?"</em><br><br>
+    So I checked Remote Control, Dispatch, Channels, scheduled tasks — everything on the phone line. Thoroughly.<br><br>
+    The desktop redesign was not in that question's blast radius, <strong>because it is not a mobile feature</strong>.
+    It had shipped 116 days earlier and it was the single biggest hit to my core product.
+    I checked the line I was anxious about instead of the line they were shipping on.</p>
+  </div>
+  <p>The reusable form of the lesson:</p>
+  <ul>
+    <li><strong>Scope a competitive check by the opponent's product lines, not by the line you are worried about.</strong>
+      Anxiety is a terrible index. Read their whole changelog, not the part that maps onto your fear.</li>
+    <li><strong>Do it before the first commit, then on a schedule.</strong> Mine happened on day 5 and then never again for 16 days —
+      during which I shipped nine stages. A recurring calendar entry would have caught it.</li>
+    <li><strong>Write the result into the repo, not into a chat log.</strong> My August 8 findings did land in a spec file,
+      which is why I could reconstruct exactly what I checked and what I did not. That part worked.
+      Had it been a conversation, this article would have no evidence in it.</li>
+  </ul>
+  <p>There is a smaller, more embarrassing corollary. Four months of platform releases changed the nature of at least
+  18 features in my product, and <strong>my project documentation contains no trace of any of it</strong>.
+  I have 6,202 lines of design docs and a defect genealogy going back to day one, and not one line saying
+  "the platform shipped X, here is what it means for us." I instrumented my code exhaustively and my market not at all.</p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">05</span>What the 22 days actually bought</h2>
+  <p>Not a product. What I got instead was a set of engineering results with numbers attached,
+  and those numbers turned out to be more transferable than the code.</p>
+
+  <h3>The review economics</h3>
+  <p>For stages 4 through 8 I ran multi-agent code review rounds — fan out reviewers across dimensions,
+  then adversarially verify each finding. I kept the receipts.</p>
+  <div class="tw"><table>
+    <thead><tr><th class="n">Stage</th><th>Review scale</th><th class="n">Confirmed findings</th><th class="n">Hit rate</th></tr></thead>
+    <tbody>
+      <tr><td class="n">4</td><td>18 agents (4 dimensions → adversarial verify)</td><td class="n">8</td><td class="n">—</td></tr>
+      <tr><td class="n">5 · round 1</td><td>38 agents (4 dimensions)</td><td class="n">29</td><td class="n">—</td></tr>
+      <tr><td class="n">5 · round 2</td><td>33 agents (reviewing round 1's fixes)</td><td class="n">20</td><td class="n">—</td></tr>
+      <tr><td class="n">6 · round 1</td><td>10 agents (5 dimensions)</td><td class="n">47</td><td class="n">—</td></tr>
+      <tr><td class="n">6 · round 2</td><td>7 agents</td><td class="n">12</td><td class="n">—</td></tr>
+      <tr><td class="n">7 · three rounds</td><td>37 + 20 + 13 = <strong>70 agents</strong></td><td class="n">28+</td><td class="n">—</td></tr>
+      <tr><td class="n">8 · round 1</td><td>6 dimensions + per-finding adversarial verify</td><td class="n"><strong>14</strong> (from 42 raised)</td><td class="n"><strong>33%</strong></td></tr>
+      <tr><td class="n">8 · round 2</td><td>reviewing round 1's fixes</td><td class="n">6</td><td class="n">—</td></tr>
+      <tr><td colspan="1" class="n"><strong>Total</strong></td><td><strong>~190 agents</strong></td><td class="n"><strong>~170</strong></td><td class="n">—</td></tr>
+    </tbody>
+  </table></div>
+  <p>Three findings fell out of that table that I did not expect:</p>
+
+  <h4>1. Two thirds of what review agents raise is not real</h4>
+  <p>Stage 8, round one: 42 findings raised, <strong>14 survived adversarial verification. A 33% hit rate.</strong>
+  Two thirds of the spend went into refuting problems that did not exist. The 28 that got knocked down were almost
+  entirely pure code-reading inferences — "this looks like it would break."</p>
+
+  <h4>2. The findings that mattered came from running, not reading</h4>
+  <p>Both CRITICALs in that same stage came from execution, not analysis:</p>
+  <ul>
+    <li>One had an actual crash report on disk — <code>AgentCompanion-2026-08-10-131832.ips</code>.
+      A <code>null</code> inside a tool's input JSON reached <code>dataWithJSONObject</code> and aborted the process.</li>
+    <li>One was measured with <code>ps</code>: <strong>20.3% CPU still burning after the panel was closed</strong>,
+      against 0.5% with animation off. Nobody reads their way to that number.</li>
+  </ul>
+  <p>Later I ran two entire stages — X and 11 — with <strong>zero review agents</strong>, and they still surfaced
+  real crashes and real latent defects, because the work involved actually running the thing.
+  By my count this pattern has now held five separate times in one project.</p>
+
+  <h4>3. Reviewing the fix code always found a critical. Five stages, no exceptions</h4>
+  <div class="tw"><table>
+    <thead><tr><th class="n">Stage</th><th>Worst thing found in round 1's own fixes</th></tr></thead>
+    <tbody>
+      <tr><td class="n">5</td><td>The injection gate was reading the scrollback buffer instead of the live viewport bottom — <strong>fail-open</strong>. A keystroke delayed by 0.25s never re-checked the gate</td></tr>
+      <tr><td class="n">6</td><td>Two sides of <code>resolveExternally</code> used different keys, so "answer it in the terminal → the card disappears" <strong>was a dead path end to end</strong></td></tr>
+      <tr><td class="n">7</td><td>Multiple confirmed, <strong>three of them majors introduced by round 1's own fixes</strong></td></tr>
+      <tr><td class="n">8</td><td>A negative argument to a debug endpoint aborted the process; and the 20.3% idle CPU above</td></tr>
+    </tbody>
+  </table></div>
+  <p>If you take one operational thing from this article, take this: <strong>a fix is not a smaller change than the
+  thing it fixes. Review it like new code.</strong></p>
+
+  <h4>4. One module produced most of the criticals — and the root cause was undecidable</h4>
+  <p>The injection gate — the component that decides whether it is safe to send a keystroke into a live terminal —
+  produced more criticals than anything else in the project. Two in stage 5, two more in stage 5's second round
+  (oscillating between fail-open and fail-closed), and in stage 7's third round it <strong>locked itself</strong>:
+  the app blocked its own Enter key, permanently stalling three automation chains,
+  <strong>with no dialog visible on screen to explain why</strong>.</p>
+  <p>The root cause is written into my own notes and it is not a bug: the gate is a <em>lexical</em> predicate.
+  It matches strings to decide "is there a prompt on screen right now." That question is not decidable by string
+  matching, so no number of review rounds fixes it — each round just pushes you to the next counterexample.
+  <strong>Some defects are not defects. They are the shape of the design.</strong></p>
+</section>
+
+<section id="s5">
+  <h2><span class="num">06</span>Six incidents, dated</h2>
+  <p>These are the ones I would tell a friend about. Each is in the project's defect genealogy with a date,
+  because writing them down was a rule.</p>
+
+  <h3>2026-08-20 — a symlink ate 823MB and 15 transcripts, permanently</h3>
+  <p>A frozen test corpus, 823MB, gitignored, therefore not checked out into git worktrees.
+  The fix was to symlink it from the main tree. The fix became the bomb: a <code>.gitignore</code> pattern
+  written with a trailing slash matches <em>directories</em> and does not match symlinks, so the symlink got
+  committed. After merging, a checkout in the main tree dropped a <strong>self-pointing symlink</strong> at that path
+  and cleared the real corpus — git treats ignored files as expendable. <strong>15 transcripts gone for good.</strong></p>
+  <p>The tell was that the failure did not look like a missing fixture. It looked like a broken product:
+  "181 work threads (ground truth 178) / 0 continuation chains / ai-title coverage 0 of 181."
+  Absurd but specific numbers. The <code>.gitignore</code> now carries both the slashed and unslashed pattern,
+  and the repair command is guarded by <code>[ -e … ] ||</code> so it is a no-op in the main tree.</p>
+
+  <h3>2026-08-20 — macOS quietly mangles non-ASCII environment variables</h3>
+  <p>When the app relaunches itself from its bundle via <code>NSWorkspace</code>, non-ASCII environment variable
+  <em>values</em> get reinterpreted as Latin-1. My project path contains Chinese characters, so
+  <code>学习</code> arrived as <code>å­¦ä¹</code>. The isolation override silently failed and fell back to the real
+  directory — while an ASCII-valued variable in the same launch worked perfectly.
+  <strong>Test fixtures now live at ASCII-only paths, and the criterion asserts the override actually took effect.</strong></p>
+
+  <h3>2026-08-11 — the binary fingerprint gate caught a real one on day one</h3>
+  <p>Every regression run starts by asking the running app for its binary fingerprint and refusing to continue
+  if it does not match the build on disk. It caught a genuine "you did not actually swap the binary" the first
+  time it ran. The failure mode it prevents is the nastiest kind: <em>every subsequent test passes, against the
+  old code, with no errors anywhere.</em> The cause turned out to be mundane — an open terminal pane triggers a
+  quit-confirmation dialog that silently blocks the kill, so the restart <em>looks</em> successful.</p>
+  <p>Amusingly, the first version of the fingerprint criterion was itself wrong: it ignored that
+  <code>codesign --force</code> rewrites the binary in place, so the two sides were permanently 480 bytes apart.</p>
+
+  <h3>2026-08-21 — another session swapped the binary mid-regression</h3>
+  <p>One machine, one app instance, one port. Two Claude Code sessions working in parallel on the same repo,
+  each with its own build. Whoever launches the app wins, and the other side's evidence is all invalid.
+  Cost: a full regression run discarded halfway. The rule that came out of it is deliberately strict —
+  <strong>handoffs count only on an explicit ping at both start and end.</strong> Reachability, uptime,
+  fingerprints, "they've been quiet a while" — none of those count as a handoff.</p>
+
+  <h3>Undated but recurring — I misjudged a running process as my own test fixture</h3>
+  <p>I once identified a process as a leftover regression harness and killed it. It was the user's live work.
+  The rule now: <strong>never kill, restart, or replace any running process without asking first</strong>,
+  and by default assume every running process on the machine belongs to someone else.</p>
+
+  <h3>2026-08-19 — the criterion that "passed" because it had no data</h3>
+  <p>A screenshot criterion used <code>screencapture</code> without screen-recording permission.
+  It captured nothing. The criterion counted "no data" as "no change" and printed a green check.
+  This sits in a whole family I ended up cataloguing as <em>fake evidence</em>: verification paths that route around
+  the mechanism they claim to test. An offscreen redraw that reported "correct" while the real render function
+  was never called. An animation test where the window was occluded, the gate correctly closed,
+  all 16 frames came out identical — and the criterion nearly filed correct behaviour as a fault.</p>
+</section>
+
+<section id="s6">
+  <h2><span class="num">07</span>The rules I'm keeping</h2>
+  <p>Seven things earned their place. I state them the way they are written in the repo, because the wording is
+  load-bearing.</p>
+  <ol>
+    <li><strong>Every new criterion must be made to fail on purpose first.</strong> Break the thing it tests,
+      watch it go red, then fix it. An assertion never observed failing is not an assertion.
+      This project logs its red proofs — stage N had 56 of them, stage Y2a had 54, all hitting.</li>
+    <li><strong>Static checks are not behavioural evidence.</strong> Learned expensively: a gate-detection layer in
+      this codebase matched nothing at all for two entire stages while its static check stayed green.
+      Every lexical predicate must be paired with a runtime case.</li>
+    <li><strong>When a test goes red, first decide: product defect or rotten fixture?</strong>
+      Fixture rot is the normal case, not the exception — hardcoded search terms that expired,
+      a regex where <code>All|Bulk</code> matched the "All" inside "Allow for This Session",
+      a test binary path pointing into a directory that gets cleaned.</li>
+    <li><strong>One idempotent, sub-second evidence command per acceptance criterion, written when the stage starts.</strong>
+      Retrofitted evidence is not evidence — you write it to pass.</li>
+    <li><strong>Resolve spec ambiguity at kickoff, in writing, in a comment at the top of the code, pinned by a test case.</strong>
+      Not in a chat message. Chat messages do not survive.</li>
+    <li><strong>Overwrite the status document; never append.</strong> One file, under 80 lines, describing only
+      <em>right now</em>: current stage, what was finished, what is next, what is unresolved.
+      History goes to an archive and is never rewritten.</li>
+    <li><strong>Acceptance criteria are a contract. No measurable evidence means not done.</strong>
+      No checking boxes you cannot prove. When something is missing, write down what is missing.</li>
+  </ol>
+  <div class="box good">
+    <p class="bt">And the one I'd add after this article</p>
+    <p><strong>Rule 8: date the platform.</strong> Before the first commit, write down what the platform vendor
+    shipped in the last 6 months and what it means for each thing you plan to build. Then repeat it on a fixed
+    schedule — not when you get nervous. Keep it in the repo next to the acceptance contracts,
+    because it <em>is</em> an acceptance contract: it is the one that decides whether the rest are worth passing.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="num">08</span>What I'm doing with it</h2>
+  <p>Not shutting it down. Repointing it.</p>
+  <p>The audit says the honest position is not <em>"a control panel for Claude Code"</em> — that is a race against a
+  vendor who is inside the process, has all the information, and moves faster. It is
+  <strong>"one approval console for every coding agent."</strong> That target sits in their structural blind spot:
+  they will not manage Codex, ever.</p>
+  <p>The useful thing about that repositioning is that <strong>it needs no new features</strong>.
+  The cross-vendor line was already underway — stage 11 emptied the core layer of brand literals,
+  stage 12a added Codex as the second provider, stage 13 targets a third. What it needs is
+  <em>stopping</em> four other things: the browser pane, the diff and task tabs for my own sessions,
+  the mobile terminal mirror, and most of the execution-target work.</p>
+  <p>There is also a competitive fact I did not have before the audit: <strong>the cross-vendor menu-bar niche
+  is no longer empty.</strong> There are several tools tracking Claude Code and Codex sessions from the menu bar
+  now, one of which explicitly claims to cover CLI, Xcode, desktop app and Codex, and one of which is already
+  charging for it. Every one of them stops at usage metering. Not one touches permission requests —
+  because that requires hooking the permission channel, building a risk model, and handling timeout policy.
+  <strong>The unoccupied square is the intersection, not either axis.</strong></p>
+  <p>And a small one that matters more than it should: my dispatch feature has the same name as an official
+  Anthropic feature that does an adjacent thing. That needs to change.</p>
+</section>
+
+<section id="s8">
+  <h2><span class="num">09</span>Where this article is soft</h2>
+  <p>An audit that does not say where it is weak is marketing.</p>
+  <ul>
+    <li><strong>"Not in the documentation" is not "does not exist."</strong> Most of the 15 survivors are judged on
+      documentation silence. Vendors ship faster than they document. The approval-console claims are the most
+      exposed to this.</li>
+    <li><strong>I did not install the official desktop app and click through it.</strong> Every judgement about their
+      capabilities comes from documentation text. The gap between "documented" and "actually good" is unmeasured
+      in both directions.</li>
+    <li><strong>The 18/15/15 split is mine.</strong> I chose the granularity of the 48 features and I drew the line
+      between "partial overlap" and "replaced." Someone else would get different numbers.
+      Treat it as an order of magnitude.</li>
+    <li><strong>The review-economics numbers come from my own delivery notes</strong>, written at the time but by
+      the person being measured. Stage 8's two rounds did not record per-round agent counts, which is why
+      the total is "about 190."</li>
+    <li><strong>The competitor claims are unverified.</strong> I read their marketing; I did not install them.
+      If the one claiming to see CLI sessions actually does, the second-ranked moat is weaker than I said.</li>
+    <li><strong>One thing I did not check at all:</strong> whether anybody wants any of this. Twenty-two days,
+      zero users. The audit measures uniqueness, not demand — and 15 unique features that nobody has asked for
+      is not obviously better than 18 replaced ones.</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="num">10</span>Data appendix</h2>
+  <p>Everything numeric in this article, with how it was obtained. All timestamps are local time, UTC+08:00.</p>
+
+  <h4>Publication record</h4>
+  <div class="tw"><table>
+    <thead><tr><th>Artifact</th><th class="n">Committed</th><th class="n">Commit</th><th>Deployment</th></tr></thead>
+    <tbody>
+      <tr><td>The full feature-by-feature audit (Chinese)</td><td class="n">2026-08-24T21:58:29+08:00</td><td class="n"><code>b84233d</code></td><td>Cloudflare Workers, version <code>3bf5f25d-5312-497c-bd46-6edc1cd8af03</code>; 1 new asset uploaded, 360 unchanged; live checks returned 200 for both the article shell and the direct file; Supabase index gained 1 row</td></tr>
+      <tr><td>This article</td><td class="n">__PUBDATE__</td><td class="n"><code>__PUBHASH__</code></td><td>Same pipeline: build → Cloudflare Workers → Supabase sync → push to <code>prod</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Project timeline, exact</h4>
+  <div class="tw"><table>
+    <thead><tr><th class="n">Timestamp</th><th>Event</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="n">2026-04-14</td><td>Claude Code desktop redesign ships; Routines enter research preview</td><td>Anthropic announcement + press coverage</td></tr>
+      <tr><td class="n">2026-04-16</td><td>Mobile push notifications ship in v2.1.110</td><td>release notes</td></tr>
+      <tr><td class="n">2026-08-04 19:56</td><td>First file in my project — <code>docs/ui-mockups/vA.html</code></td><td>filesystem mtime</td></tr>
+      <tr><td class="n">2026-08-04 20:07</td><td>UI design spec written</td><td>filesystem mtime</td></tr>
+      <tr><td class="n">2026-08-08</td><td>My one pre-audit competitive check</td><td>dated section in the launch spec</td></tr>
+      <tr><td class="n">2026-08-09 00:00:16</td><td>First git commit — "Initial commit: Agent Companion for macOS"</td><td><code>git log --reverse</code></td></tr>
+      <tr><td class="n">2026-08-10 13:18:32</td><td>Crash: <code>null</code> in tool input reaches <code>dataWithJSONObject</code></td><td><code>AgentCompanion-2026-08-10-131832.ips</code>, cited in the project retrospective</td></tr>
+      <tr><td class="n">2026-08-17</td><td>First pull request opened and merged (#1)</td><td>GitHub</td></tr>
+      <tr><td class="n">2026-08-20</td><td>823MB frozen corpus destroyed; 15 transcripts lost</td><td>defect genealogy §2.5</td></tr>
+      <tr><td class="n">2026-08-21</td><td>Peak day — 61 commits; stages 11, 12a and Y1 all land (PRs #7, #9, #10)</td><td><code>git log</code> + GitHub</td></tr>
+      <tr><td class="n">2026-08-24 17:36</td><td>Last engineering commit before the audit</td><td><code>git log</code></td></tr>
+      <tr><td class="n">2026-08-24 21:58</td><td>Audit published</td><td>site repo</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Commits per day</h4>
+  <div class="tw"><table>
+    <thead><tr><th class="n">Date</th><th class="n">Commits</th><th>What was going on</th></tr></thead>
+    <tbody>
+      <tr><td class="n">2026-08-09</td><td class="n">2</td><td>repo initialised at midnight</td></tr>
+      <tr><td class="n">2026-08-10</td><td class="n">4</td><td>stage 7 post-review fixes</td></tr>
+      <tr><td class="n">2026-08-11</td><td class="n">14</td><td>stage 8 accepted</td></tr>
+      <tr><td class="n">2026-08-12</td><td class="n">9</td><td>stage 9 deviations logged</td></tr>
+      <tr><td class="n">2026-08-14</td><td class="n">5</td><td>—</td></tr>
+      <tr><td class="n">2026-08-17</td><td class="n">1</td><td>PR #1</td></tr>
+      <tr><td class="n">2026-08-18</td><td class="n">10</td><td>stage X registered</td></tr>
+      <tr><td class="n">2026-08-19</td><td class="n">28</td><td>stages 9 and 10 both accepted, same day</td></tr>
+      <tr><td class="n">2026-08-20</td><td class="n">13</td><td>stage X accepted; corpus incident</td></tr>
+      <tr><td class="n">2026-08-21</td><td class="n">61</td><td>stages 11, 12a, Y1</td></tr>
+      <tr><td class="n">2026-08-22</td><td class="n">5</td><td>stage N queue-jumped in</td></tr>
+      <tr><td class="n">2026-08-23</td><td class="n">43</td><td>stage N accepted; evidence-gate protocol built</td></tr>
+      <tr><td class="n">2026-08-24</td><td class="n">20</td><td>stage Y2a accepted; then the audit</td></tr>
+      <tr><td class="n"><strong>Total</strong></td><td class="n"><strong>215</strong></td><td>13 working days across a 16-day span</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Verification volume</h4>
+  <div class="tw"><table>
+    <thead><tr><th>Measure</th><th class="n">Value</th></tr></thead>
+    <tbody>
+      <tr><td>Regression scripts (each chains all earlier stages)</td><td class="n">12</td></tr>
+      <tr><td>Evidence artifacts on disk</td><td class="n">530 files</td></tr>
+      <tr><td>Stage 9 acceptance</td><td class="n">8/8 criteria; 3 runs at 100/100/100% precision, 89/94/94% recall; regression 17 ✅ / 0 ❌ / 1 honestly skipped</td></tr>
+      <tr><td>Stage Y1 acceptance</td><td class="n">6 criteria; regression across 6 layers, 103 ✅ / 0 ❌ / 0 skipped</td></tr>
+      <tr><td>Stage N evidence gate</td><td class="n">7 evidence packs, 5 stamped, 56 red-proofs all hitting; 2 packs honestly left unstamped</td></tr>
+      <tr><td>Stage Y2a</td><td class="n">4 criteria stamped, 54 red-proofs</td></tr>
+      <tr><td>Regression state at time of writing</td><td class="n">21 pass / 2 fail on one chain, 7 pass / 1 fail on the other — both failures attributed, neither a product defect</td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:13.5px;color:var(--muted)">Two of those rows are deliberately unflattering. A stage that reports
+  "all green" while quietly skipping things is worth less than one that reports 5 of 7 and says which 2 and why.
+  That was the rule, so the numbers here follow it too.</p>
+</section>
+
+<section id="s10">
+  <h2><span class="num">11</span>Sources</h2>
+  <h4>Official documentation — the basis for every capability judgement</h4>
+  <ul class="src">
+    <li><a href="https://code.claude.com/docs/en/desktop">Desktop application</a> — the session sidebar and its filters, per-session worktrees, split panes, usage ring, permission-mode table, tasks pane, cross-session messaging, cloud and SSH environments; and the passage stating that Claude does not see sessions started from the terminal CLI or the VS Code extension</li>
+    <li><a href="https://code.claude.com/docs/en/remote-control">Remote Control</a> — answering permission prompts from a phone, the <code>Push when actions required</code> toggle, "there is no per-event configuration," where transcripts are stored, and the conditions that disable Remote Control entirely</li>
+    <li><a href="https://code.claude.com/docs/en/worktrees">Worktrees</a> · <a href="https://code.claude.com/docs/en/permission-modes">Permission modes</a> · <a href="https://code.claude.com/docs/en/desktop-scheduled-tasks">Desktop scheduled tasks</a></li>
+  </ul>
+  <h4>Release dating</h4>
+  <ul class="src">
+    <li><a href="https://www.macrumors.com/2026/04/15/anthropic-rebuilds-claude-code-desktop-app/">Anthropic Rebuilds Claude Code Desktop App Around Parallel Sessions</a> — 2026-04-14</li>
+    <li><a href="https://www.buildfastwithai.com/blogs/claude-code-desktop-redesign-2026">Claude Code Desktop Redesign: Multi-Sessions + Routines</a></li>
+    <li><a href="https://note.com/fuma_ai_lab/n/n660ce26c57f0?hl=en-US">Push notifications in v2.1.110</a> — 2026-04-16</li>
+  </ul>
+  <h4>Public issue tracker — used only to establish absence</h4>
+  <ul class="src">
+    <li><a href="https://github.com/anthropics/claude-code/issues/43786">Desktop app sidebar should show CLI-created sessions</a></li>
+  </ul>
+  <h4>Companion piece</h4>
+  <ul class="src">
+    <li><a href="https://mingyuyang.com/articles/ai-notes-oriel-vs-official-claude-code">The full feature-by-feature audit</a> (Chinese) — all 48 rows, the evidence for each judgement, and the roadmap consequences. This article is the story; that one is the worksheet.</li>
+  </ul>
+  <hr>
+  <p style="font-size:13.5px;color:var(--muted)">
+    Capability judgements reflect documentation publicly available on 2026-08-24. Anything shipped after that date
+    is outside this article's scope. Project figures come from the repository itself — git history, file counts,
+    and the delivery notes written at the time.
+  </p>
+</section>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var html=document.documentElement, KEY='late112-theme';
+  var saved=localStorage.getItem(KEY)||'auto';
+  html.setAttribute('data-theme',saved);
+  document.querySelectorAll('.tt button').forEach(function(b){
+    if(b.dataset.t===saved) b.classList.add('on'); else b.classList.remove('on');
+    b.addEventListener('click',function(){
+      html.setAttribute('data-theme',b.dataset.t);
+      localStorage.setItem(KEY,b.dataset.t);
+      document.querySelectorAll('.tt button').forEach(function(x){x.classList.toggle('on',x===b)});
+    });
+  });
+  var bar=document.getElementById('bar');
+  var links=[].slice.call(document.querySelectorAll('nav a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))}).filter(Boolean);
+  function onScroll(){
+    var h=document.documentElement;
+    bar.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+    var cur=null;
+    secs.forEach(function(s){ if(s.getBoundingClientRect().top<160) cur=s; });
+    links.forEach(function(a){ a.classList.toggle('on', cur && a.getAttribute('href')==='#'+cur.id); });
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>
