@@ -8,7 +8,6 @@ import {
   Sparkles,
   Clock,
   CalendarDays,
-  Mail,
   Wrench,
   User,
 } from "lucide-react";
@@ -23,7 +22,7 @@ import {
 import { fetchTopViewed } from "@/lib/views";
 import { computeSiteStats } from "@/lib/site-stats";
 import { categories, catLabel } from "@/lib/data";
-import { SubscribeForm } from "@/components/SubscribeForm";
+import { SubscribeCard } from "@/components/SubscribeCard";
 import { ToolCard } from "@/components/ToolCard";
 import { TOOLS } from "@/lib/tools";
 import { DAILY_COLUMNS } from "@/lib/columns";
@@ -61,7 +60,8 @@ export const Route = createFileRoute("/")({
       path: "/",
       locale: "zh",
       title: "Mingyu's Library — 每天讲透一个 AI 主题",
-      description: "AI 简报、深度解读、Claude Code 实战课,三条内容线每日更新;外加手写长文与开发工具。",
+      description:
+        "AI 简报、深度解读、Claude Code 实战课,三条内容线每日更新;外加手写长文与开发工具。",
     }),
   loader: ({ context }) =>
     Promise.all([
@@ -142,10 +142,15 @@ export function HomePage() {
   const lastUpdated = useMemo(() => {
     if (!stats.latestDay) return null;
     const d = new Date(`${stats.latestDay}T12:00:00Z`);
-    return d.toLocaleDateString(locale === "en" ? "en-US" : "zh-CN", { year: "numeric", month: "long", day: "numeric" });
+    return d.toLocaleDateString(locale === "en" ? "en-US" : "zh-CN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   }, [stats.latestDay, locale]);
 
-  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const scrollTo = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   return (
     <div className="flex flex-col">
@@ -190,7 +195,12 @@ export function HomePage() {
           {/* 「这站还活着」数据条(2026-08-26):连更天数是回访读者最认的信号 */}
           <dl className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
             {[
-              { key: "streak", value: stats.streak, label: t("home.stats.streak"), accent: true },
+              {
+                key: "active",
+                value: stats.activeDays,
+                label: t("home.stats.active"),
+                accent: true,
+              },
               { key: "total", value: stats.total, label: t("home.stats.total") },
               { key: "longform", value: stats.longform, label: t("home.stats.longform") },
             ].map((s) => (
@@ -234,7 +244,9 @@ export function HomePage() {
                 <CalendarDays className="h-3.5 w-3.5" />
                 {t("home.today.kicker")}
               </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.today.title")}</h2>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                {t("home.today.title")}
+              </h2>
             </div>
             <Link
               to={lp("/daily")}
@@ -300,7 +312,9 @@ export function HomePage() {
                 <Sparkles className="h-3.5 w-3.5" />
                 {t("home.featured.kicker")}
               </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.featured.title")}</h2>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                {t("home.featured.title")}
+              </h2>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -318,7 +332,10 @@ export function HomePage() {
                       <div className="mb-3 flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                           {cat && (
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: cat.color }}
+                            />
                           )}
                           {cat ? catLabel(cat, locale) : t("res.uncategorized")}
                         </span>
@@ -327,7 +344,9 @@ export function HomePage() {
                         {r.title || t("home.untitled")}
                       </h3>
                       {r.summary && (
-                        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{r.summary}</p>
+                        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                          {r.summary}
+                        </p>
                       )}
                     </div>
                     <div className="relative mt-4 flex items-center justify-between text-xs text-muted-foreground">
@@ -369,7 +388,9 @@ export function HomePage() {
                 <CalendarDays className="h-3.5 w-3.5" />
                 {t("home.columns.kicker")}
               </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.columns.title")}</h2>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                {t("home.columns.title")}
+              </h2>
             </div>
             <Link
               to={lp("/daily")}
@@ -399,7 +420,9 @@ export function HomePage() {
                   <p className="text-sm text-muted-foreground">{t(col.descKey)}</p>
                   {item && (
                     <p className="mt-3 line-clamp-1 text-xs text-muted-foreground">
-                      <span className="font-medium text-primary/80">{t("home.columns.latest")}:</span>{" "}
+                      <span className="font-medium text-primary/80">
+                        {t("home.columns.latest")}:
+                      </span>{" "}
                       {item.title}
                     </p>
                   )}
@@ -428,7 +451,9 @@ export function HomePage() {
                 <Wrench className="h-3.5 w-3.5" />
                 {t("home.works.kicker")}
               </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.works.title")}</h2>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                {t("home.works.title")}
+              </h2>
             </div>
             <Link
               to={lp("/tools")}
@@ -459,7 +484,9 @@ export function HomePage() {
                 <User className="h-3.5 w-3.5" />
                 {t("home.more.about")}
               </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("home.outro.title")}</h2>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                {t("home.outro.title")}
+              </h2>
               <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t("home.outro.desc")}</p>
               <Link
                 to={lp("/about")}
@@ -470,16 +497,7 @@ export function HomePage() {
               </Link>
             </div>
           </div>
-          <aside className="rounded-3xl border border-border bg-card p-8">
-            <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
-              <Mail className="h-3.5 w-3.5" /> {t("home.sub.kicker")}
-            </div>
-            <h3 className="text-xl font-semibold text-foreground">{t("home.sub.title")}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{t("home.sub.desc")}</p>
-            <div className="mt-4">
-              <SubscribeForm />
-            </div>
-          </aside>
+          <SubscribeCard />
         </div>
       </section>
     </div>

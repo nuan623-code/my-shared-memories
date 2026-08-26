@@ -1,5 +1,16 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, CalendarDays, ExternalLink, MessageSquarePlus, MessageSquareOff, Clock, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  ExternalLink,
+  MessageSquarePlus,
+  MessageSquareOff,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
 import { absUrl, SHARE_IMAGE } from "@/lib/site";
 import { ShareButton } from "@/components/ShareButton";
@@ -7,8 +18,19 @@ import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchResourceBySlug, fetchResources, fetchTranslations, formatDate } from "@/lib/resources";
-import { fetchAdjacentArticles, fetchRelatedArticles, fetchSeriesAdjacent, isDatedSeries, seriesAdjacentFrom } from "@/lib/related";
+import {
+  fetchResourceBySlug,
+  fetchResources,
+  fetchTranslations,
+  formatDate,
+} from "@/lib/resources";
+import {
+  fetchAdjacentArticles,
+  fetchRelatedArticles,
+  fetchSeriesAdjacent,
+  isDatedSeries,
+  seriesAdjacentFrom,
+} from "@/lib/related";
 import { useAuth } from "@/hooks/use-auth";
 import { trackView } from "@/lib/views";
 import { readingMinutes } from "@/lib/article-utils";
@@ -17,7 +39,7 @@ import { Comments } from "@/components/Comments";
 import { SelectionToolbar } from "@/components/SelectionToolbar";
 import { HighlightLayer } from "@/components/HighlightLayer";
 import { SuiReadPromo } from "@/components/SuiReadPromo";
-
+import { SubscribeCard } from "@/components/SubscribeCard";
 
 export const Route = createFileRoute("/articles/$slug")({
   loader: async ({ params }) => {
@@ -53,10 +75,19 @@ export const Route = createFileRoute("/articles/$slug")({
         { property: "og:image:height", content: "1024" },
         { property: "og:image:alt", content: a?.title ?? "Mingyu's Library" },
         { property: "og:site_name", content: "Mingyu's Library" },
-        ...(a?.published_at ? [{ property: "article:published_time", content: new Date(a.published_at).toISOString() }] : []),
-        ...(a?.updated_at ? [{ property: "article:modified_time", content: new Date(a.updated_at).toISOString() }] : []),
+        ...(a?.published_at
+          ? [
+              {
+                property: "article:published_time",
+                content: new Date(a.published_at).toISOString(),
+              },
+            ]
+          : []),
+        ...(a?.updated_at
+          ? [{ property: "article:modified_time", content: new Date(a.updated_at).toISOString() }]
+          : []),
         ...(a?.category ? [{ property: "article:section", content: a.category }] : []),
-        ...((a?.tags ?? []).map((t) => ({ property: "article:tag", content: t }))),
+        ...(a?.tags ?? []).map((t) => ({ property: "article:tag", content: t })),
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
@@ -75,9 +106,7 @@ export const Route = createFileRoute("/articles/$slug")({
               {
                 rel: "alternate",
                 hreflang: "x-default",
-                href: absUrl(
-                  `/articles/${alts.find((t) => t.lang !== "en")?.slug ?? params.slug}`,
-                ),
+                href: absUrl(`/articles/${alts.find((t) => t.lang !== "en")?.slug ?? params.slug}`),
               },
             ]
           : []),
@@ -128,9 +157,16 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
   const [annotationsOn, setAnnotationsOn] = useState<boolean>(true);
   const [annotationsHydrated, setAnnotationsHydrated] = useState(false);
   const [tocOpen, setTocOpen] = useState<boolean>(true);
-  const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({ prev: null, next: null });
+  const [adjacent, setAdjacent] = useState<{ prev: Resource | null; next: Resource | null }>({
+    prev: null,
+    next: null,
+  });
   // 每日连载栏目(简报/深度学习)的前一天、后一天
-  const [series, setSeries] = useState<{ prev: Resource | null; next: Resource | null; inSeries: boolean }>({ prev: null, next: null, inSeries: false });
+  const [series, setSeries] = useState<{
+    prev: Resource | null;
+    next: Resource | null;
+    inSeries: boolean;
+  }>({ prev: null, next: null, inSeries: false });
   // iframe 每次载入完自增,让键盘监听重新挂到新的 contentDocument 上
   const [frameLoads, setFrameLoads] = useState(0);
   const navigate = useNavigate();
@@ -161,9 +197,15 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
   }, [annotationsOn, annotationsHydrated]);
   useEffect(() => {
     trackView(article.id, user?.id ?? null).catch(() => {});
-    fetchAdjacentArticles(article).then(setAdjacent).catch(() => {});
-    fetchSeriesAdjacent(article).then(setSeries).catch(() => {});
-    fetchRelatedArticles(article).then(setRelated).catch(() => {});
+    fetchAdjacentArticles(article)
+      .then(setAdjacent)
+      .catch(() => {});
+    fetchSeriesAdjacent(article)
+      .then(setSeries)
+      .catch(() => {});
+    fetchRelatedArticles(article)
+      .then(setRelated)
+      .catch(() => {});
   }, [article, user?.id]);
 
   // 全量列表:既为返回资料库时预热缓存,也用来就地算同栏目的前后一天
@@ -218,9 +260,6 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
       doc?.removeEventListener("keydown", handler);
     };
   }, [navPrev, navNext, navigate, frameLoads]);
-
-
-
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -306,10 +345,7 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
 
         // 让 iframe 高度自适应文章内容:文章随整页滚动,而不是挤在小窗口里。
         const measure = () => {
-          const h = Math.max(
-            doc.documentElement.scrollHeight,
-            doc.body.scrollHeight,
-          );
+          const h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
           if (h) setFrameHeight((prev) => (prev && Math.abs(prev - h) < 2 ? prev : h));
           cacheHeadings();
         };
@@ -481,7 +517,10 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
             </span>
             <LikeButton resourceId={article.id} />
             <ReadingStatusButtons resourceId={article.id} showLabel />
-            <ShareButton title={article.title ?? "Mingyu's Library"} url={absUrl(`/articles/${article.slug}`)} />
+            <ShareButton
+              title={article.title ?? "Mingyu's Library"}
+              url={absUrl(`/articles/${article.slug}`)}
+            />
           </div>
 
           <div className="flex items-center gap-3">
@@ -561,9 +600,7 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
                       : active.parent
                     : toc.find((t) => t.level === 2)?.id;
                   const hasH2 = toc.some((t) => t.level === 2);
-                  return toc.filter(
-                    (t) => t.level === 2 || !hasH2 || t.parent === activeParent,
-                  );
+                  return toc.filter((t) => t.level === 2 || !hasH2 || t.parent === activeParent);
                 })().map((item) => (
                   <li key={item.id}>
                     <button
@@ -571,9 +608,7 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
                       onClick={() => jumpTo(item.id)}
                       style={{ paddingLeft: item.level === 3 ? 14 : 0 }}
                       className={`block w-full truncate text-left text-sm leading-6 transition-colors hover:text-foreground ${
-                        activeId === item.id
-                          ? "font-medium text-primary"
-                          : "text-muted-foreground"
+                        activeId === item.id ? "font-medium text-primary" : "text-muted-foreground"
                       }`}
                       title={item.text}
                     >
@@ -603,9 +638,7 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
                   {annotationsOn && (
                     <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
                       <MessageSquarePlus className="h-3.5 w-3.5 text-primary" />
-                      <span>
-                        选中正文中任意文字,即可弹出「高亮 / 评论」工具条。
-                      </span>
+                      <span>选中正文中任意文字,即可弹出「高亮 / 评论」工具条。</span>
                     </div>
                   )}
                   <iframe
@@ -644,42 +677,70 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
           )}
 
           <SuiReadPromo
-            url={
-              article.url && !/^https?:\/\//i.test(article.url)
-                ? article.url
-                : undefined
-            }
+            url={article.url && !/^https?:\/\//i.test(article.url) ? article.url : undefined}
             title={article.title ?? undefined}
           />
 
           {(navPrev || navNext) && (
             <nav className="mt-8 grid gap-3 sm:grid-cols-2">
               {navPrev ? (
-                <Link to="/articles/$slug" params={{ slug: navPrev.slug! }}
-                  className="group rounded-lg border border-border bg-card p-4 transition hover:border-primary/40 hover:bg-muted/50">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><ChevronLeft className="h-3 w-3" /> {prevLabel}<span className="ml-1 opacity-60">←</span></div>
-                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{navPrev.title}</div>
+                <Link
+                  to="/articles/$slug"
+                  params={{ slug: navPrev.slug! }}
+                  className="group rounded-lg border border-border bg-card p-4 transition hover:border-primary/40 hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <ChevronLeft className="h-3 w-3" /> {prevLabel}
+                    <span className="ml-1 opacity-60">←</span>
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">
+                    {navPrev.title}
+                  </div>
                 </Link>
-              ) : <div />}
+              ) : (
+                <div />
+              )}
               {navNext ? (
-                <Link to="/articles/$slug" params={{ slug: navNext.slug! }}
-                  className="group rounded-lg border border-border bg-card p-4 text-right transition hover:border-primary/40 hover:bg-muted/50">
-                  <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground"><span className="mr-1 opacity-60">→</span>{nextLabel} <ChevronRight className="h-3 w-3" /></div>
-                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">{navNext.title}</div>
+                <Link
+                  to="/articles/$slug"
+                  params={{ slug: navNext.slug! }}
+                  className="group rounded-lg border border-border bg-card p-4 text-right transition hover:border-primary/40 hover:bg-muted/50"
+                >
+                  <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                    <span className="mr-1 opacity-60">→</span>
+                    {nextLabel} <ChevronRight className="h-3 w-3" />
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-sm font-medium text-foreground group-hover:text-primary">
+                    {navNext.title}
+                  </div>
                 </Link>
-              ) : <div />}
+              ) : (
+                <div />
+              )}
             </nav>
           )}
+
+          {/* 文末订阅入口(阶段 4「承接转化」):读完一篇正是最愿意订阅的时刻,
+              上面刚给了同栏目下一篇,这里给长期关注的口子。 */}
+          <SubscribeCard variant="inline" className="mt-8" />
 
           {related.length > 0 && (
             <section className="mt-8 rounded-lg border border-border bg-card p-5">
               <h3 className="mb-3 text-sm font-semibold text-foreground">相关推荐</h3>
               <div className="grid gap-2">
                 {related.map((r) => (
-                  <Link key={r.id} to="/articles/$slug" params={{ slug: r.slug! }}
-                    className="flex items-start gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground">
+                  <Link
+                    key={r.id}
+                    to="/articles/$slug"
+                    params={{ slug: r.slug! }}
+                    className="flex items-start gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                  >
                     <span className="line-clamp-1 flex-1">{r.title}</span>
-                    {r.tags?.[0] && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{r.tags[0]}</span>}
+                    {r.tags?.[0] && (
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
+                        {r.tags[0]}
+                      </span>
+                    )}
                   </Link>
                 ))}
               </div>
@@ -691,7 +752,6 @@ export function ArticleDetailPage({ article }: { article: Resource }) {
           </div>
         </div>
       </div>
-
     </div>
   );
 }

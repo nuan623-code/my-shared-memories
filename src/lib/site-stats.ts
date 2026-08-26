@@ -7,13 +7,18 @@ export interface SiteStats {
   total: number;
   /** 手写长文数(不含三个每日栏目) */
   longform: number;
-  /** 连更天数:从今天(今天还没更就从昨天)往回数,连续有产出的天数 */
-  streak: number;
+  /** 最近 windowDays 天里有产出的天数 */
+  activeDays: number;
+  /** 上面那个数的统计窗口(天) */
+  windowDays: number;
   /** 最新一天更新了几条 */
   latestCount: number;
   /** 最新一天(YYYY-MM-DD),空库时为 null */
   latestDay: string | null;
 }
+
+/** 活跃天数的统计窗口 */
+const WINDOW_DAYS = 30;
 
 /** 本地时区的 YYYY-MM-DD —— 与 contentDay 同口径比较 */
 function todayKey(now: Date): string {
@@ -28,7 +33,14 @@ function shiftDay(day: string, delta: number): string {
 
 export function computeSiteStats(resources: Resource[], now = new Date()): SiteStats {
   if (!resources.length) {
-    return { total: 0, longform: 0, streak: 0, latestCount: 0, latestDay: null };
+    return {
+      total: 0,
+      longform: 0,
+      activeDays: 0,
+      windowDays: WINDOW_DAYS,
+      latestCount: 0,
+      latestDay: null,
+    };
   }
 
   const days = new Map<string, number>();
@@ -39,21 +51,20 @@ export function computeSiteStats(resources: Resource[], now = new Date()): SiteS
 
   const latestDay = [...days.keys()].sort().pop() ?? null;
 
-  // 连更从【最近一次出刊那天】往回数,不从今天数:
-  // 简报常清晨才入库,今天没出刊不等于断更,更不该把数字打成 0。
-  // 站真的停更了,旁边的「更新于 X 月 X 日」会照实说,这里不必再罚一次。
+  // 口径是「最近 30 天更新了几天」,不是「连更多少天」。
+  // 连更太脆:2026-08-25 空了一天,连更就从 8 打回 1,而同期实际更新了 22/30 天 ——
+  // 这个数字本来是要说明「这站还活着」,漏一天就归零等于把话讲反。
   const today = todayKey(now);
-  let cursor = days.has(today) ? today : (latestDay ?? today);
-  let streak = 0;
-  while (days.has(cursor)) {
-    streak += 1;
-    cursor = shiftDay(cursor, -1);
+  let activeDays = 0;
+  for (let i = 0; i < WINDOW_DAYS; i += 1) {
+    if (days.has(shiftDay(today, -i))) activeDays += 1;
   }
 
   return {
     total: resources.length,
     longform: resources.filter((r) => !isDailyColumn(r)).length,
-    streak,
+    activeDays,
+    windowDays: WINDOW_DAYS,
     latestCount: latestDay ? (days.get(latestDay) ?? 0) : 0,
     latestDay,
   };
