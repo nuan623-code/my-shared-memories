@@ -11,7 +11,9 @@ function alreadyViewedToday(resourceId: string): boolean {
     map[resourceId] = today;
     window.localStorage.setItem(SEEN_KEY, JSON.stringify(map));
     return false;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 export async function trackView(resourceId: string, userId: string | null): Promise<void> {
@@ -19,15 +21,23 @@ export async function trackView(resourceId: string, userId: string | null): Prom
   await supabase.from("article_views").insert({ resource_id: resourceId, viewer_id: userId });
 }
 
-export async function fetchTopViewed(days = 30, limit = 5): Promise<Array<{ resource_id: string; views: number }>> {
+export async function fetchTopViewed(
+  days = 30,
+  limit = 5,
+): Promise<Array<{ resource_id: string; views: number }>> {
   const since = new Date(Date.now() - days * 86400_000).toISOString();
   const { data } = await supabase
     .from("article_views")
     .select("resource_id")
     .gte("viewed_at", since)
-    .limit(2000);
+    // PostgREST 单次最多回 1000 行:不排序的话拿到的是窗口最早那 1000 条,
+    // 排名会被一个月前的旧数据主导。按时间倒序才是「最近的热读」。
+    .order("viewed_at", { ascending: false })
+    .limit(1000);
   const counts = new Map<string, number>();
-  (data ?? []).forEach((row: { resource_id: string }) => counts.set(row.resource_id, (counts.get(row.resource_id) ?? 0) + 1));
+  (data ?? []).forEach((row: { resource_id: string }) =>
+    counts.set(row.resource_id, (counts.get(row.resource_id) ?? 0) + 1),
+  );
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)

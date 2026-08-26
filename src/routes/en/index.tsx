@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HomePage, resourcesQO } from "../index";
+import { HomePage, resourcesQO, topViewedQO } from "../index";
 import { i18nHead } from "@/lib/i18n/head";
 
 export const Route = createFileRoute("/en/")({
@@ -11,7 +11,11 @@ export const Route = createFileRoute("/en/")({
       description:
         "A daily AI briefing, a daily deep dive and a Claude Code course — three threads updated every day, plus long-form notes and tools.",
     }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(resourcesQO),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(resourcesQO),
+      context.queryClient.ensureQueryData(topViewedQO),
+    ]),
   component: HomePage,
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-2xl p-8 text-center text-sm text-muted-foreground">

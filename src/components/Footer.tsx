@@ -1,4 +1,4 @@
-import { Github, Linkedin, Mail, Smartphone } from "lucide-react";
+import { Github, Linkedin, Mail, Rss, Smartphone } from "lucide-react";
 import { SUIREAD_APP_STORE_URL } from "@/components/SuiReadPromo";
 
 export function Footer() {
@@ -20,7 +20,7 @@ export function Footer() {
               <Smartphone className="h-4 w-4" /> 随读 App
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/nuan623-code"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground transition-colors hover:text-foreground"
@@ -29,7 +29,7 @@ export function Footer() {
               <Github className="h-4 w-4" />
             </a>
             <a
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/in/mingyu-yang-7048389b/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground transition-colors hover:text-foreground"
@@ -38,7 +38,14 @@ export function Footer() {
               <Linkedin className="h-4 w-4" />
             </a>
             <a
-              href="mailto:hello@example.com"
+              href="/rss.xml"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="RSS"
+            >
+              <Rss className="h-4 w-4" />
+            </a>
+            <a
+              href="mailto:nuan623@gmail.com"
               className="text-muted-foreground transition-colors hover:text-foreground"
               aria-label="Email"
             >

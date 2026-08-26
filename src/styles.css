@@ -2,7 +2,15 @@
 @source "../src";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* 暗色的判定与学习站(public/claude-code/assets/shared.css + site.js)保持同一套约定:
+   未标 data-theme = 跟随系统;html[data-theme="light"|"dark"] = 手动覆盖。
+   两边共用 localStorage 键 cc-theme,于是主站与学习站之间切换不会掉主题。 */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]) *) { @slot; }
+  }
+  &:where(:root[data-theme="dark"] *) { @slot; }
+}
 
 @theme inline {
   --font-sans: "Figtree Variable", "Figtree", sans-serif;
@@ -63,26 +71,28 @@
 :root {
   --radius: 0.75rem;
 
-  /* Light mode - Deeper Blue theme */
-  --background: oklch(0.962 0.022 250);
-  --foreground: oklch(0.22 0.05 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.05 260);
+  /* 方向 A「深蓝传承」。数值即学习站 shared.css 的调色板(#f4f8fd / #16233d / #1a63ff …),
+     写成 oklch 只是与本文件其余部分保持同一种记法,回环到 hex 完全一致。
+     改配色请改这里和 shared.css 两处 —— 两边是同一套设计,别只改一边。 */
+  --background: oklch(0.9775 0.0079 253.85);   /* #f4f8fd */
+  --foreground: oklch(0.2588 0.0524 263.09);   /* #16233d */
+  --card: oklch(1 0 0);                        /* #ffffff */
+  --card-foreground: oklch(0.2588 0.0524 263.09);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.05 260);
-  --primary: oklch(0.48 0.18 260);
+  --popover-foreground: oklch(0.2588 0.0524 263.09);
+  --primary: oklch(0.5608 0.2418 262.64);      /* #1a63ff */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.68 0.13 235);
   --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.92 0.03 250);
-  --muted-foreground: oklch(0.45 0.05 260);
+  --muted: oklch(0.9555 0.0142 254.61);        /* #eaf1fa */
+  --muted-foreground: oklch(0.4423 0.0477 264.56); /* #46536e */
   --accent: oklch(0.60 0.15 245);
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.86 0.035 250);
-  --input: oklch(0.86 0.035 250);
-  --ring: oklch(0.48 0.18 260);
+  --border: oklch(0.9209 0.0196 252.88);       /* #dce6f2 */
+  --input: oklch(0.9209 0.0196 252.88);
+  --ring: oklch(0.5608 0.2418 262.64);
 
   --chart-1: oklch(0.48 0.18 260);
   --chart-2: oklch(0.60 0.15 245);
@@ -107,50 +117,110 @@
   --cat-article: oklch(0.798 0.1161 19.96);
 }
 
-.dark {
-  --background: oklch(0.15 0.03 260);
-  --foreground: oklch(0.95 0.01 250);
-  --card: oklch(0.22 0.03 260);
-  --card-foreground: oklch(0.95 0.01 250);
-  --popover: oklch(0.22 0.03 260);
-  --popover-foreground: oklch(0.95 0.01 250);
-  --primary: oklch(0.7 0.15 262.50);
-  --primary-foreground: oklch(0.15 0.03 260);
-  --secondary: oklch(0.6 0.08 223.26);
-  --secondary-foreground: oklch(0.95 0.01 250);
-  --muted: oklch(0.25 0.03 260);
-  --muted-foreground: oklch(0.65 0.04 260);
-  --accent: oklch(0.75 0.08 9.09);
-  --accent-foreground: oklch(0.15 0.03 260);
+/* 暗色三档,与学习站同构:
+   ① 没标 data-theme → 跟随系统 ② data-theme="light" → 强制浅 ③ data-theme="dark" → 强制深。
+   两条规则写的是同一份变量,改一处记得改另一处(或改成 @apply 之类的共享写法)。 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  /* 数值同学习站 shared.css 的暗色档(#0a1424 / #101d33 / #e7eefb / #76a5ff …)。
+     原来的 .dark 类是死代码 —— 全站没有一处给元素加过 .dark,等于永远走不到。 */
+  --background: oklch(0.1910 0.0359 259.45);   /* #0a1424 */
+  --foreground: oklch(0.9476 0.0191 263.01);   /* #e7eefb */
+  --card: oklch(0.2315 0.0466 260.39);         /* #101d33 */
+  --card-foreground: oklch(0.9476 0.0191 263.01);
+  --popover: oklch(0.2315 0.0466 260.39);
+  --popover-foreground: oklch(0.9476 0.0191 263.01);
+  --primary: oklch(0.7271 0.1411 262.47);      /* #76a5ff */
+  --primary-foreground: oklch(0.1910 0.0359 259.45);
+  --secondary: oklch(0.55 0.11 240);
+  --secondary-foreground: oklch(0.9476 0.0191 263.01);
+  --muted: oklch(0.2575 0.0490 261.90);        /* #16233b */
+  --muted-foreground: oklch(0.7802 0.0433 262.96); /* #a9b8d4 */
+  --accent: oklch(0.2912 0.0782 261.26);       /* #142a52 */
+  --accent-foreground: oklch(0.9476 0.0191 263.01);
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.95 0.01 250);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.15 262.50);
+  --destructive-foreground: oklch(0.9476 0.0191 263.01);
+  --border: oklch(0.3172 0.0611 259.79);       /* #1f3251 */
+  --input: oklch(0.3172 0.0611 259.79);
+  --ring: oklch(0.7271 0.1411 262.47);
 
-  --chart-1: oklch(0.7 0.15 262.50);
-  --chart-2: oklch(0.6 0.08 223.26);
+  --chart-1: oklch(0.7271 0.1411 262.47);
+  --chart-2: oklch(0.55 0.11 240);
   --chart-3: oklch(0.869 0.1066 150.22);
   --chart-4: oklch(0.815 0.1044 295.79);
   --chart-5: oklch(0.891 0.0738 62.67);
 
-  --sidebar: oklch(0.22 0.03 260);
-  --sidebar-foreground: oklch(0.95 0.01 250);
-  --sidebar-primary: oklch(0.7 0.15 262.50);
-  --sidebar-primary-foreground: oklch(0.15 0.03 260);
-  --sidebar-accent: oklch(0.6 0.08 223.26);
-  --sidebar-accent-foreground: oklch(0.95 0.01 250);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.7 0.15 262.50);
+  --sidebar: oklch(0.2315 0.0466 260.39);
+  --sidebar-foreground: oklch(0.9476 0.0191 263.01);
+  --sidebar-primary: oklch(0.7271 0.1411 262.47);
+  --sidebar-primary-foreground: oklch(0.1910 0.0359 259.45);
+  --sidebar-accent: oklch(0.2912 0.0782 261.26);
+  --sidebar-accent-foreground: oklch(0.9476 0.0191 263.01);
+  --sidebar-border: oklch(0.3172 0.0611 259.79);
+  --sidebar-ring: oklch(0.7271 0.1411 262.47);
 
-  --cat-web: oklch(0.65 0.1066 150.22);
-  --cat-game: oklch(0.6 0.1044 295.79);
-  --cat-ai: oklch(0.65 0.0738 62.67);
-  --cat-homework: oklch(0.6 0.0819 225.75);
-  --cat-article: oklch(0.65 0.1161 19.96);
+  /* 分类色在深底上要提亮,否则色点糊成一团 */
+  --cat-web: oklch(0.72 0.1066 150.22);
+  --cat-game: oklch(0.70 0.1044 295.79);
+  --cat-ai: oklch(0.75 0.0738 62.67);
+  --cat-homework: oklch(0.70 0.0819 225.75);
+  --cat-article: oklch(0.72 0.1161 19.96);
+  }
+}
+
+:root[data-theme="dark"] {
+  /* 数值同学习站 shared.css 的暗色档(#0a1424 / #101d33 / #e7eefb / #76a5ff …)。
+     原来的 .dark 类是死代码 —— 全站没有一处给元素加过 .dark,等于永远走不到。 */
+  --background: oklch(0.1910 0.0359 259.45);   /* #0a1424 */
+  --foreground: oklch(0.9476 0.0191 263.01);   /* #e7eefb */
+  --card: oklch(0.2315 0.0466 260.39);         /* #101d33 */
+  --card-foreground: oklch(0.9476 0.0191 263.01);
+  --popover: oklch(0.2315 0.0466 260.39);
+  --popover-foreground: oklch(0.9476 0.0191 263.01);
+  --primary: oklch(0.7271 0.1411 262.47);      /* #76a5ff */
+  --primary-foreground: oklch(0.1910 0.0359 259.45);
+  --secondary: oklch(0.55 0.11 240);
+  --secondary-foreground: oklch(0.9476 0.0191 263.01);
+  --muted: oklch(0.2575 0.0490 261.90);        /* #16233b */
+  --muted-foreground: oklch(0.7802 0.0433 262.96); /* #a9b8d4 */
+  --accent: oklch(0.2912 0.0782 261.26);       /* #142a52 */
+  --accent-foreground: oklch(0.9476 0.0191 263.01);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.9476 0.0191 263.01);
+  --border: oklch(0.3172 0.0611 259.79);       /* #1f3251 */
+  --input: oklch(0.3172 0.0611 259.79);
+  --ring: oklch(0.7271 0.1411 262.47);
+
+  --chart-1: oklch(0.7271 0.1411 262.47);
+  --chart-2: oklch(0.55 0.11 240);
+  --chart-3: oklch(0.869 0.1066 150.22);
+  --chart-4: oklch(0.815 0.1044 295.79);
+  --chart-5: oklch(0.891 0.0738 62.67);
+
+  --sidebar: oklch(0.2315 0.0466 260.39);
+  --sidebar-foreground: oklch(0.9476 0.0191 263.01);
+  --sidebar-primary: oklch(0.7271 0.1411 262.47);
+  --sidebar-primary-foreground: oklch(0.1910 0.0359 259.45);
+  --sidebar-accent: oklch(0.2912 0.0782 261.26);
+  --sidebar-accent-foreground: oklch(0.9476 0.0191 263.01);
+  --sidebar-border: oklch(0.3172 0.0611 259.79);
+  --sidebar-ring: oklch(0.7271 0.1411 262.47);
+
+  /* 分类色在深底上要提亮,否则色点糊成一团 */
+  --cat-web: oklch(0.72 0.1066 150.22);
+  --cat-game: oklch(0.70 0.1044 295.79);
+  --cat-ai: oklch(0.75 0.0738 62.67);
+  --cat-homework: oklch(0.70 0.0819 225.75);
+  --cat-article: oklch(0.72 0.1161 19.96);
 }
 
 @layer base {
+  /* 让浏览器原生件(滚动条、表单控件、输入光标)跟着主题走,
+     否则深色页面上会挂一条亮白滚动条。 */
+  :root { color-scheme: light dark; }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+
   * {
     border-color: var(--color-border);
   }

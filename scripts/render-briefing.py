@@ -23,9 +23,11 @@ gtag('js', new Date());
 gtag('config', 'G-3GRX3Y2VQJ');
 </script>
 <style>
-:root{{--bg:#f4f8fd;--card:#fff;--ink:#1a2b47;--ink-soft:#43516b;--line:#dce6f2;--accent:#1a63ff;--accent-soft:#e8f0ff;--hero1:#0b1f3f;--hero2:#123a7a}}
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Figtree:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+:root{{--bg:#f4f8fd;--card:#fff;--ink:#16233d;--ink-soft:#46536e;--line:#dce6f2;--accent:#1a63ff;--accent-soft:#e8f0ff;--hero1:#0b1f3f;--hero2:#123a7a}}
 *{{box-sizing:border-box}}
-body{{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB",sans-serif;font-size:16.5px;line-height:1.85}}
+body{{margin:0;background:var(--bg);color:var(--ink);font-family:'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;font-size:16.5px;line-height:1.85}}
+h1,h2,h3,h4{{font-family:'Outfit', 'Figtree', -apple-system, 'PingFang SC', sans-serif;line-height:1.35}}
 .hero{{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;padding:46px 0 38px}}
 .wrap{{max-width:860px;margin:0 auto;padding:0 22px}}
 .hero h1{{margin:0 0 8px;font-size:26px;font-weight:800;line-height:1.35}}
@@ -56,7 +58,7 @@ footer a{{color:var(--accent);text-decoration:none}}
 </style>
 </head>
 <body>
-<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 14px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18)">← 主页</a>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 14px;border-radius:999px;font-size:13px;text-decoration:none;font-family:'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18)">← 主页</a>
 <header class="hero"><div class="wrap">
   <span class="date">{cn_date}</span>
   <h1>{title}</h1>

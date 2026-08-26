@@ -12,7 +12,16 @@ import {
   Wrench,
   User,
 } from "lucide-react";
-import { fetchResources, resourceHref, isNew, type Resource } from "@/lib/resources";
+import {
+  fetchResources,
+  resourceHref,
+  isNew,
+  contentDate,
+  isDailyColumn,
+  type Resource,
+} from "@/lib/resources";
+import { fetchTopViewed } from "@/lib/views";
+import { computeSiteStats } from "@/lib/site-stats";
 import { categories, catLabel } from "@/lib/data";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { ToolCard } from "@/components/ToolCard";
@@ -30,26 +39,21 @@ export const resourcesQO = queryOptions({
   queryFn: () => fetchResources({}),
 });
 
-// 招牌精选:人工钉选的代表作,不随时间自动变(重构方案·首页区块 3)。
-// 想换钉哪几篇,改这里的 slug 数组即可(slug 见 /admin 资料管理或 resources 表)。
-const FEATURED_SLUGS: Record<Locale, string[]> = {
-  zh: [
-    "ai-notes-multi-session-vs-multi-agent",
-    "ai-notes-supabase-in-my-website",
-    "ai-notes-claude-code-codex-collaboration",
-    "ai-notes-how-anthropic-uses-claude-code",
-    "ai-notes-supabase-interview-guide",
-    "overseas-ios-first-launch-attribution",
-  ],
-  en: [
-    "ai-notes-multi-session-vs-multi-agent-en",
-    "ai-notes-supabase-pgvector-afternoon",
-    "ai-notes-claude-code-codex-collaboration",
-    "ai-notes-how-anthropic-uses-claude-code",
-    "ai-notes-supabase-interview-guide",
-    "overseas-ios-first-launch-attribution",
-  ],
+// 招牌精选(2026-08-26 改为半自动):前两格是人工钉选的门面,永远在;
+// 后面几格自动补 —— 先按最近 30 天阅读量,不够再按内容日期补最新长文。
+// 于是首页每周自然换血,不用再记得手动改数组。想换门面改 PINNED_SLUGS 即可。
+const FEATURED_COUNT = 6;
+const PINNED_SLUGS: Record<Locale, string[]> = {
+  zh: ["ai-notes-multi-session-vs-multi-agent", "overseas-ios-first-launch-attribution"],
+  en: ["ai-notes-multi-session-vs-multi-agent-en", "overseas-ios-first-launch-attribution"],
 };
+
+// 阅读量榜单单独取:挂了也只是退化成「按最新补位」,不能拖垮首页。
+export const topViewedQO = queryOptions({
+  queryKey: ["resources", "home", "topViewed"],
+  queryFn: () => fetchTopViewed(30, 30).catch(() => []),
+  staleTime: 5 * 60_000,
+});
 
 export const Route = createFileRoute("/")({
   head: () =>
@@ -59,7 +63,11 @@ export const Route = createFileRoute("/")({
       title: "Mingyu's Library — 每天讲透一个 AI 主题",
       description: "AI 简报、深度解读、Claude Code 实战课,三条内容线每日更新;外加手写长文与开发工具。",
     }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(resourcesQO),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(resourcesQO),
+      context.queryClient.ensureQueryData(topViewedQO),
+    ]),
   component: HomePage,
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-2xl p-8 text-center text-sm text-muted-foreground">
@@ -71,6 +79,38 @@ export const Route = createFileRoute("/")({
 function fmtShortDate(iso: string): string {
   const d = new Date(iso);
   return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * 招牌精选选片:钉选 → 30 天热读 → 最新长文,按序补满 FEATURED_COUNT。
+ * 只从「手写长文」里挑(三个每日栏目有自己的今日更新条与栏目导览,不占精选位)。
+ */
+function pickFeatured(
+  resources: Resource[],
+  topViewed: Array<{ resource_id: string }>,
+  locale: Locale,
+): Resource[] {
+  const picked: Resource[] = [];
+  const seen = new Set<string>();
+  const take = (r: Resource | undefined | null) => {
+    if (!r || seen.has(r.id) || picked.length >= FEATURED_COUNT) return;
+    seen.add(r.id);
+    picked.push(r);
+  };
+
+  for (const slug of PINNED_SLUGS[locale]) take(resources.find((r) => r.slug === slug));
+
+  const pool = resources.filter(
+    (r) => !isDailyColumn(r) && (r.lang ?? "zh") === locale && Boolean(r.slug),
+  );
+  const byId = new Map(pool.map((r) => [r.id, r]));
+
+  for (const { resource_id } of topViewed) take(byId.get(resource_id));
+
+  const byDate = [...pool].sort((a, b) => (contentDate(a) < contentDate(b) ? 1 : -1));
+  for (const r of byDate) take(r);
+
+  return picked;
 }
 
 /** 每栏目取最新一条:优先当前界面语言,该语言没有时回落任意语言 */
@@ -90,19 +130,20 @@ export function HomePage() {
 
   const today = useMemo(() => latestPerColumn(resources, locale), [resources, locale]);
 
+  const { data: topViewed } = useSuspenseQuery(topViewedQO);
+
   const featured = useMemo(
-    () =>
-      FEATURED_SLUGS[locale]
-        .map((slug) => resources.find((r) => r.slug === slug))
-        .filter((r): r is Resource => Boolean(r)),
-    [resources, locale],
+    () => pickFeatured(resources, topViewed, locale),
+    [resources, topViewed, locale],
   );
 
+  const stats = useMemo(() => computeSiteStats(resources), [resources]);
+
   const lastUpdated = useMemo(() => {
-    if (!resources.length) return null;
-    const d = new Date(resources[0].published_at);
+    if (!stats.latestDay) return null;
+    const d = new Date(`${stats.latestDay}T12:00:00Z`);
     return d.toLocaleDateString(locale === "en" ? "en-US" : "zh-CN", { year: "numeric", month: "long", day: "numeric" });
-  }, [resources, locale]);
+  }, [stats.latestDay, locale]);
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
@@ -145,6 +186,25 @@ export function HomePage() {
           <p className="mt-5 max-w-2xl text-sm text-muted-foreground sm:text-base">
             {t("home.hero.desc")}
           </p>
+
+          {/* 「这站还活着」数据条(2026-08-26):连更天数是回访读者最认的信号 */}
+          <dl className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+            {[
+              { key: "streak", value: stats.streak, label: t("home.stats.streak"), accent: true },
+              { key: "total", value: stats.total, label: t("home.stats.total") },
+              { key: "longform", value: stats.longform, label: t("home.stats.longform") },
+            ].map((s) => (
+              <div key={s.key} className="flex items-baseline gap-1.5">
+                <dt className="sr-only">{s.label}</dt>
+                <dd
+                  className={`text-2xl font-bold tabular-nums ${s.accent ? "text-primary" : "text-foreground"}`}
+                >
+                  {s.value}
+                </dd>
+                <span className="text-xs text-muted-foreground">{s.label}</span>
+              </div>
+            ))}
+          </dl>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <button
@@ -194,9 +254,9 @@ export function HomePage() {
                 <article className="group flex h-full flex-col rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
                   <div className="mb-2 flex items-center justify-between text-xs">
                     <span className="font-medium text-primary">
-                      {t(col.titleKey)} · {fmtShortDate(item.published_at)}
+                      {t(col.titleKey)} · {fmtShortDate(contentDate(item))}
                     </span>
-                    {isNew(item.published_at) && (
+                    {isNew(contentDate(item)) && (
                       <span className="rounded-full bg-primary px-1.5 py-px text-[10px] font-semibold text-primary-foreground">
                         {t("home.badge.new")}
                       </span>
@@ -205,6 +265,12 @@ export function HomePage() {
                   <h3 className="line-clamp-2 text-base font-semibold text-foreground transition group-hover:text-primary">
                     {item.title || t("home.untitled")}
                   </h3>
+                  {/* 简报的标题只有日期,没有摘要就是一张空卡 —— 摘要由管线补齐后显示 */}
+                  {item.summary?.trim() && (
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                      {item.summary}
+                    </p>
+                  )}
                   <span className="mt-3 inline-flex items-center gap-1 text-xs text-primary opacity-0 transition group-hover:opacity-100">
                     {t("home.read")}
                     <ArrowUpRight className="h-3 w-3" />

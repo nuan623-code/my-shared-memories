@@ -5,8 +5,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAdminStatus } from "@/hooks/use-is-admin";
 import { NotificationBell } from "@/components/NotificationBell";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 import { useLocale, useT } from "@/lib/i18n/use-t";
-
 
 // 导航项按当前语言指向对应前缀,英文页里点导航不会掉回中文站。
 // 2026-08-08 重构阶段1:导航对应内容三分法(每日更新/文章/工具);
@@ -37,7 +37,6 @@ export function Header() {
   const navItems = NAV[locale];
   const home = locale === "en" ? ("/en" as const) : ("/" as const);
   const search = locale === "en" ? ("/en/search" as const) : ("/search" as const);
-
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -72,9 +71,9 @@ export function Header() {
             <Search className="h-4 w-4" />
           </Link>
           <LanguageSwitcher />
+          <ThemeSwitch className="ml-1 hidden sm:inline-flex" />
           <NotificationBell />
           {user ? (
-
             <>
               {isAdmin && (
                 <Link

@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ArrowRight, ArrowUpRight, CalendarDays } from "lucide-react";
 import { resourcesQO } from "./index";
-import { resourceHref, isNew, type Resource } from "@/lib/resources";
+import { resourceHref, isNew, contentDate, type Resource } from "@/lib/resources";
 import { DAILY_COLUMNS } from "@/lib/columns";
 import { useT, useLocale } from "@/lib/i18n/use-t";
 import { i18nHead } from "@/lib/i18n/head";
@@ -14,7 +14,8 @@ export const Route = createFileRoute("/daily")({
       path: "/daily",
       locale: "zh",
       title: "每日更新 — Mingyu's Library",
-      description: "三条内容线每天自动出刊:AI 简报速览今天,深度解读讲透一个主题,Claude Code 实战课持续连载。",
+      description:
+        "三条内容线每天自动出刊:AI 简报速览今天,深度解读讲透一个主题,Claude Code 实战课持续连载。",
     }),
   loader: ({ context }) => context.queryClient.ensureQueryData(resourcesQO),
   component: DailyPage,
@@ -53,7 +54,9 @@ export function DailyPage() {
             {t("home.columns.kicker")}
           </div>
           <h1 className="text-3xl font-bold text-foreground sm:text-4xl">{t("daily.title")}</h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">{t("daily.desc")}</p>
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            {t("daily.desc")}
+          </p>
         </div>
 
         <div className="flex flex-col gap-8">
@@ -102,7 +105,7 @@ function DailyRow({ r }: { r: Resource }) {
   const row = (
     <span className="flex items-center gap-3 px-4 py-2.5 transition group-hover:bg-muted/40">
       <span className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
-        {new Date(r.published_at).toLocaleDateString("zh-CN", {
+        {new Date(contentDate(r)).toLocaleDateString("zh-CN", {
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
@@ -111,7 +114,7 @@ function DailyRow({ r }: { r: Resource }) {
       <span className="line-clamp-1 flex-1 text-sm text-foreground transition group-hover:text-primary">
         {r.title || t("home.untitled")}
       </span>
-      {isNew(r.published_at) && (
+      {isNew(contentDate(r)) && (
         <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
           {t("home.badge.new")}
         </span>

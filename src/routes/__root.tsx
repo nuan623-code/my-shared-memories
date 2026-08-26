@@ -111,8 +111,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "apple-touch-icon", href: "/favicon.svg" },
+      // RSS 自动发现:阅读器只认 <head> 里的这一行(2026-08-26)
+      {
+        rel: "alternate",
+        type: "application/rss+xml",
+        title: "Mingyu's Library",
+        href: "/rss.xml",
+      },
     ],
     scripts: [
+      // 主题必须在首帧之前定下来,否则选了深色的人每次刷新都先闪一下白。
+      // 键名 cc-theme 与学习站 site.js 是同一个,两站之间跳转不掉主题。
+      // 只在手动档写 data-theme;system 档不写,交给 prefers-color-scheme。
+      {
+        children:
+          `try{var m=localStorage.getItem('cc-theme');` +
+          `if(m==='light'||m==='dark')document.documentElement.setAttribute('data-theme',m);}catch(e){}`,
+      },
       {
         src: `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`,
         async: true,
@@ -133,7 +148,11 @@ function RootShell({ children }: { children: ReactNode }) {
   // 纯函数派生自 pathname,服务端与客户端结果一致,不会 hydration mismatch。
   const locale = useRouterState({ select: (s) => localeFromPath(s.location.pathname) });
   return (
-    <html lang={HTML_LANG[locale]}>
+    // suppressHydrationWarning 只作用于 <html> 自身的属性:
+    // data-theme 由 head 里那段 pre-hydration 脚本在 React 之前写上(服务端不可能知道
+    // 用户存在 localStorage 里的选择),两边必然对不上。这是该属性的既定用法,
+    // 不会掩盖子树里的任何 mismatch。
+    <html lang={HTML_LANG[locale]} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

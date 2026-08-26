@@ -40,10 +40,7 @@ export async function fetchResources(opts?: {
   type?: ResourceType;
   limit?: number;
 }): Promise<Resource[]> {
-  let q = supabase
-    .from("resources")
-    .select("*")
-    .order("published_at", { ascending: false });
+  let q = supabase.from("resources").select("*").order("published_at", { ascending: false });
   if (opts?.type) q = q.eq("type", opts.type);
   if (opts?.limit) q = q.limit(opts.limit);
   const { data, error } = await q;
@@ -136,4 +133,29 @@ export async function fetchTranslations(
     slug: r.slug as string,
     url: (r.url as string) ?? null,
   }));
+}
+
+/**
+ * 内容的真实日期(ISO 串)。
+ * 每日栏目的 published_at 存的是【入库时间】,常比内容日期晚一天
+ * (例:8/21 的简报 published_at 是 8/22T01:05)。slug 与 url 里带的
+ * YYYY-MM-DD 才是内容日期,优先取它;取不到时回落 published_at。
+ * 用 T12:00:00Z(正午)而非 T00,免得读者所在时区把日期读退一天。
+ */
+export function contentDate(r: Pick<Resource, "slug" | "url" | "published_at">): string {
+  const m = `${r.slug ?? ""} ${r.url ?? ""}`.match(/(\d{4}-\d{2}-\d{2})/);
+  return m ? `${m[1]}T12:00:00Z` : r.published_at;
+}
+
+/** YYYY-MM-DD(按内容日期,不按入库时间) */
+export function contentDay(r: Pick<Resource, "slug" | "url" | "published_at">): string {
+  return contentDate(r).slice(0, 10);
+}
+
+/** 三个每日栏目的 subcategory —— 与 lib/columns.ts 的 DAILY_COLUMNS 对应 */
+const DAILY_SUBS = new Set(["briefing", "daily", "claude-code"]);
+
+/** 是不是每日栏目产出(简报/深度/Claude Code);false 表示手写长文 */
+export function isDailyColumn(r: Pick<Resource, "subcategory">): boolean {
+  return DAILY_SUBS.has(r.subcategory ?? "");
 }
