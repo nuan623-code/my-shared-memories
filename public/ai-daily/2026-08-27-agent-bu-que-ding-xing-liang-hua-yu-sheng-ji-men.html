@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent 不确定性量化与升级门控 | Agent Uncertainty Quantification &amp; Escalation Gating</title>
+<style>
+:root{
+  --paper:#f6f3ec; --surface:#fffdf8; --ink:#1b2429; --ink-2:#3d4a52; --muted:#7b8890;
+  --line:#e0d9cc; --line-2:#cdc3b2;
+  --teal:#14606b; --teal-deep:#0c454e; --teal-soft:#e2eeef;
+  --amber:#b45913; --amber-soft:#fbeadb;
+  --plum:#6b3f6e; --plum-soft:#f0e6f1;
+  --code-bg:#132025; --code-ink:#dfe8e6;
+  --radius:14px; --shadow:0 1px 2px rgba(27,36,41,.05),0 8px 24px -14px rgba(27,36,41,.22);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Noto Serif SC","Songti SC",Georgia,"Times New Roman",-apple-system,BlinkMacSystemFont,"Segoe UI",serif;
+  font-size:17px;line-height:1.85;-webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-family:Georgia,"Iowan Old Style","Times New Roman",serif}
+
+/* progress + lang toggle */
+#prog{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--teal),var(--amber));transition:width .1s linear}
+#langbtn{position:fixed;top:14px;right:16px;z-index:70;border:1px solid var(--line-2);
+  background:rgba(255,253,248,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  color:var(--teal-deep);border-radius:999px;padding:7px 15px;font-size:13.5px;font-weight:700;
+  letter-spacing:.03em;cursor:pointer;box-shadow:var(--shadow);
+  font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}
+#langbtn:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+/* hero */
+header.hero{position:relative;overflow:hidden;background:var(--surface);border-bottom:1px solid var(--line)}
+header.hero::before{content:"";position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 70% at 78% 12%,#000,transparent 72%);
+  mask-image:radial-gradient(ellipse 80% 70% at 78% 12%,#000,transparent 72%)}
+.hin{position:relative;max-width:940px;margin:0 auto;padding:74px 30px 46px}
+.kicker{display:inline-block;font-family:ui-sans-serif,system-ui,sans-serif;font-size:12px;font-weight:800;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--amber);background:var(--amber-soft);
+  border:1px solid #eed7c1;border-radius:999px;padding:5px 13px;margin-bottom:18px}
+h1{margin:0 0 14px;font-size:clamp(28px,5vw,44px);line-height:1.24;letter-spacing:-.01em;color:var(--teal-deep)}
+.lede{margin:0;font-size:clamp(16px,2.3vw,19px);color:var(--ink-2);max-width:62ch}
+.hmeta{margin-top:24px;font-family:ui-sans-serif,system-ui,sans-serif;font-size:12.5px;color:var(--muted);
+  border-top:1px solid var(--line);padding-top:14px}
+
+/* layout */
+.shell{max-width:1180px;margin:0 auto;padding:0 30px;display:flex;gap:38px;align-items:flex-start}
+nav.toc{position:sticky;top:78px;flex:0 0 218px;margin-top:44px;
+  background:rgba(255,253,248,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);
+  font-family:ui-sans-serif,system-ui,sans-serif;font-size:13.5px;max-height:calc(100vh - 110px);overflow:auto}
+nav.toc .tt{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 8px;border-radius:7px;line-height:1.45;
+  border-left:2px solid transparent}
+nav.toc a:hover{background:var(--teal-soft);color:var(--teal-deep)}
+nav.toc a.act{background:var(--teal-soft);color:var(--teal-deep);font-weight:700;border-left-color:var(--teal)}
+#tocToggle{display:none}
+main{flex:1;min-width:0;padding:44px 0 60px}
+
+section{margin-bottom:52px;scroll-margin-top:78px}
+h2{font-size:clamp(21px,3.4vw,27px);line-height:1.34;margin:0 0 6px;color:var(--teal-deep);
+  letter-spacing:-.005em}
+h2 .num{font-family:ui-sans-serif,system-ui,sans-serif;font-size:12px;font-weight:800;color:var(--amber);
+  display:block;letter-spacing:.14em;margin-bottom:5px}
+h3{font-size:18.5px;margin:30px 0 8px;color:var(--teal-deep)}
+p{margin:0 0 15px;color:var(--ink-2)}
+ul,ol{margin:0 0 15px;padding-left:22px;color:var(--ink-2)}
+li{margin-bottom:7px}
+b,strong{color:var(--ink)}
+a{color:var(--teal)}
+hr.rule{border:0;border-top:1px solid var(--line);margin:0 0 22px}
+
+/* components */
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--teal);
+  border-radius:var(--radius);padding:16px 20px;margin:0 0 20px;box-shadow:var(--shadow)}
+.def .dt{font-family:ui-sans-serif,system-ui,sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+.def p:last-child{margin-bottom:0}
+.callout{border-radius:var(--radius);padding:15px 19px;margin:0 0 20px;border:1px solid;font-size:16px}
+.callout p:last-child{margin-bottom:0}
+.callout.key{background:var(--teal-soft);border-color:#bcd8da;color:var(--teal-deep)}
+.callout.key p{color:var(--teal-deep)}
+.callout.warn{background:var(--amber-soft);border-color:#eed7c1;color:#7a3c0c}
+.callout.warn p{color:#7a3c0c}
+.callout.quote{background:var(--plum-soft);border-color:#e0cfe2;color:#4d2c50;font-style:italic}
+.callout.quote p{color:#4d2c50}
+.callout .ct{font-family:ui-sans-serif,system-ui,sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;display:block;margin-bottom:5px;opacity:.85}
+.steps{counter-reset:st;list-style:none;padding:0;margin:0 0 20px}
+.steps li{counter-increment:st;position:relative;padding:12px 16px 12px 50px;background:var(--surface);
+  border:1px solid var(--line);border-radius:11px;margin-bottom:9px}
+.steps li::before{content:counter(st);position:absolute;left:15px;top:12px;width:23px;height:23px;border-radius:50%;
+  background:var(--teal);color:#fff;font-family:ui-sans-serif,system-ui,sans-serif;font-size:12.5px;font-weight:800;
+  display:flex;align-items:center;justify-content:center}
+.tbl{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+  box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:15px;font-family:ui-sans-serif,system-ui,sans-serif}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+th{background:var(--teal-soft);color:var(--teal-deep);font-weight:800;font-size:13px;letter-spacing:.02em;
+  border-bottom:1px solid #bcd8da;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:15px 17px;overflow-x:auto;
+  font-size:13.5px;line-height:1.62;margin:0 0 20px;box-shadow:var(--shadow)}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+p code,li code,td code{background:var(--teal-soft);color:var(--teal-deep);padding:1px 5px;border-radius:5px}
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:6px 20px;
+  margin:0 0 20px;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:800;color:var(--teal-deep);margin-top:14px;font-size:15.5px}
+.glossary dd{margin:3px 0 0;color:var(--ink-2);font-size:15.5px}
+.glossary dl>*:last-child{margin-bottom:14px}
+.rephrase{border:1px dashed var(--line-2);border-radius:11px;padding:0 16px;margin:0 0 20px;background:var(--surface)}
+.rephrase summary{cursor:pointer;padding:11px 0;font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px;
+  font-weight:700;color:var(--teal);list-style:none}
+.rephrase summary::-webkit-details-marker{display:none}
+.rephrase summary::before{content:"↻ ";}
+.rephrase p{font-size:15.5px;padding-bottom:4px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.stat .v{font-family:ui-sans-serif,system-ui,sans-serif;font-size:24px;font-weight:800;color:var(--teal-deep);line-height:1.2}
+.stat .l{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+/* figures */
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px 12px;
+  margin:0 0 22px;box-shadow:var(--shadow)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-family:ui-sans-serif,system-ui,sans-serif;font-size:12.5px;color:var(--muted);
+  margin-top:10px;padding-top:9px;border-top:1px solid var(--line);line-height:1.6}
+.figure [data-anim]{opacity:0;transform:translateY(9px);transition:opacity .55s ease,transform .55s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure.in [data-anim="1"]{transition-delay:.05s}
+.figure.in [data-anim="2"]{transition-delay:.18s}
+.figure.in [data-anim="3"]{transition-delay:.31s}
+.figure.in [data-anim="4"]{transition-delay:.44s}
+.figure.in [data-anim="5"]{transition-delay:.57s}
+.figure [data-draw]{stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.1s ease .25s}
+.figure.in [data-draw]{stroke-dashoffset:0}
+@media(prefers-reduced-motion:reduce){
+  .figure [data-anim],.figure [data-draw]{opacity:1!important;transform:none!important;
+    stroke-dashoffset:0!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+
+/* sources */
+.srclist{font-family:ui-sans-serif,system-ui,sans-serif;font-size:13.5px;color:var(--ink-2)}
+.srclist li{margin-bottom:9px;line-height:1.6}
+.srclist .tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 7px;border-radius:5px;margin-right:7px;vertical-align:1px}
+.tag.off{background:var(--teal-soft);color:var(--teal-deep)}
+.tag.pap{background:var(--plum-soft);color:#5a3560}
+.tag.com{background:var(--amber-soft);color:#7a3c0c}
+footer{border-top:1px solid var(--line);background:var(--surface);margin-top:20px}
+.fin{max-width:1180px;margin:0 auto;padding:34px 30px 46px;font-family:ui-sans-serif,system-ui,sans-serif;
+  font-size:13.5px;color:var(--muted);line-height:1.75}
+.fin b{color:var(--ink-2)}
+
+@media(max-width:900px){
+  .shell{display:block;padding:0 20px}
+  nav.toc{position:static;width:100%;margin:22px 0 0;max-height:none}
+  nav.toc.collapsed .tocbody{display:none}
+  #tocToggle{display:block;width:100%;background:none;border:0;text-align:left;cursor:pointer;
+    font-family:ui-sans-serif,system-ui,sans-serif;font-size:13.5px;font-weight:800;color:var(--teal-deep);padding:2px}
+  nav.toc .tt{display:none}
+  main{padding:26px 0 40px}
+  .hin{padding:60px 20px 36px}
+  body{font-size:16.5px}
+  #langbtn{top:10px;right:12px;padding:6px 13px;font-size:13px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中 / EN 深度学习文档 · 2026-08-27 Deep Dive · 2026-08-27 Agent 不确定性量化 与升级门控 Agent Uncertainty Quantification &amp; Escala…">
+<meta property="og:title" content="Agent 不确定性量化与升级门控 | Agent Uncertainty Quantification &amp;amp; Escalation Gating">
+<meta property="og:description" content="中 / EN 深度学习文档 · 2026-08-27 Deep Dive · 2026-08-27 Agent 不确定性量化 与升级门控 Agent Uncertainty Quantification &amp; Escala…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-27-agent-bu-que-ding-xing-liang-hua-yu-sheng-ji-men.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-27-agent-bu-que-ding-xing-liang-hua-yu-sheng-ji-men.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent 不确定性量化与升级门控 | Agent Uncertainty Quantification &amp; Escalation Gating", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-27-agent-bu-que-ding-xing-liang-hua-yu-sheng-ji-men.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-27", "dateModified": "2026-08-27"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="prog"></div>
+<button id="langbtn" type="button" aria-label="Switch language">中 / EN</button>
+
+<header class="hero">
+  <div class="hin">
+    <span class="kicker zh">深度学习文档 · 2026-08-27</span>
+    <span class="kicker en">Deep Dive · 2026-08-27</span>
+    <h1 class="zh">Agent 不确定性量化<br>与升级门控</h1>
+    <h1 class="en">Agent Uncertainty Quantification<br>&amp; Escalation Gating</h1>
+    <p class="lede zh">几乎每个上生产的 Agent 都有一条「拿不准就转人工」的升级路径。但决定「什么时候拿不准」的那个信号,绝大多数团队从来没有校准过——他们直接用了模型自己说的「我有 95% 把握」。这份文档讲清楚:那个数字为什么不能用、有哪些能用的替代信号、怎么量化它们的偏差、以及怎么把它变成一个真正可靠的门控。</p>
+    <p class="lede en">Nearly every agent that reaches production has an escalation path: when it isn't sure, hand off to a human. But the signal that decides "isn't sure" is, for most teams, never calibrated — they simply use the model's own claim that it is "95% confident." This document covers why that number is unusable, which signals you can use instead, how to quantify their bias, and how to turn them into a gate you can actually trust.</p>
+    <div class="hmeta zh">调研时间:2026-08-27 · 阅读约 22 分钟 · 事实均标注来源,区分「论文结论」「官方说法」「厂商工程博客观点」</div>
+    <div class="hmeta en">Researched: 2026-08-27 · ~22 min read · Every claim is sourced, and labelled as peer-reviewed finding, official documentation, or vendor engineering blog.</div>
+  </div>
+</header>
+
+<div class="shell">
+<nav class="toc collapsed" id="toc">
+  <button id="tocToggle" type="button">☰ <span class="zh">目录</span><span class="en">Contents</span></button>
+  <div class="tt zh">目录</div>
+  <div class="tt en">Contents</div>
+  <div class="tocbody">
+    <a href="#s1"><span class="zh">1 · 30 秒速览</span><span class="en">1 · The 30-second version</span></a>
+    <a href="#s2"><span class="zh">2 · 为什么自述置信度是「表演」</span><span class="en">2 · Why stated confidence is theatre</span></a>
+    <a href="#s3"><span class="zh">3 · 三种能用的信号</span><span class="en">3 · Three usable signals</span></a>
+    <a href="#s4"><span class="zh">4 · 怎么衡量「偏了多少」</span><span class="en">4 · Measuring how far off you are</span></a>
+    <a href="#s5"><span class="zh">5 · 后处理校准</span><span class="en">5 · Post-hoc calibration</span></a>
+    <a href="#s6"><span class="zh">6 · Agent 特有:不确定性会累积</span><span class="en">6 · Agent-specific: uncertainty compounds</span></a>
+    <a href="#s7"><span class="zh">7 · 落地:三件套与门控</span><span class="en">7 · In production: the three pieces</span></a>
+    <a href="#s8"><span class="zh">8 · 对比与选型</span><span class="en">8 · Choosing an approach</span></a>
+    <a href="#s9"><span class="zh">9 · 常见坑与限制</span><span class="en">9 · Pitfalls and limits</span></a>
+    <a href="#s10"><span class="zh">10 · 术语表</span><span class="en">10 · Glossary</span></a>
+    <a href="#s11"><span class="zh">11 · 来源清单</span><span class="en">11 · Sources</span></a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <h2 class="zh"><span class="num">01</span>30 秒速览:这份文档在说什么</h2>
+  <h2 class="en"><span class="num">01</span>The 30-second version</h2>
+  <hr class="rule">
+
+  <p class="zh">先讲一个场景。一个客服 Agent 回答了用户关于处方剂量的问题,模型报告自己「0.92 置信」。答案是错的。事后复盘发现:在这家公司自己的标注留出集上,<b>模型说 0.9 的那批回答,实际准确率只有 64%</b>。上线前没有人测过校准。而升级规则写的是「置信度低于 0.5 就转人工」——可模型几乎从来不报低于 0.7 的数。</p>
+  <p class="en">Start with a scene. A support agent answers a question about prescription dosage. The model reports 0.92 confidence. The answer is wrong. The post-mortem finds that on the company's own labelled hold-out set, <b>answers where the model said 0.9 were correct only 64% of the time</b>. Nobody measured calibration before launch. And the escalation rule read "escalate if confidence is below 0.5" — while the model almost never reported below 0.7.</p>
+
+  <div class="callout key zh"><span class="ct">核心问题</span>
+    <p>这不是「模型不够聪明」的问题,是<b>门控信号本身没有被测量过</b>的问题。一个从未与真实正确率对照过的置信度数字,不管它长得多像概率,都不是概率。</p>
+  </div>
+  <div class="callout key en"><span class="ct">The core problem</span>
+    <p>This is not a "the model isn't smart enough" problem. It is a <b>the gating signal was never measured</b> problem. A confidence number that has never been checked against real correctness is not a probability, however much it looks like one.</p>
+  </div>
+
+  <p class="zh">整份文档要建立的,是下面这条流水线。你会发现它每一次都长成同一个形状:<b>采一个原始信号 → 在留出标注集上量出它偏了多少 → 拟合一个校准器把它映射成真正的概率 → 用这个概率设门槛 → 分布漂移时重新校准。</b></p>
+  <p class="en">What this document builds is the pipeline below. It has the same shape every time: <b>collect a raw signal → measure how miscalibrated it is on a held-out labelled set → fit a calibrator that maps it to a real probability → set your threshold on that probability → recalibrate when the distribution shifts.</b></p>
+
+  <div class="figure zh" id="f1">
+    <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="不确定性门控流水线示意图">
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="7.5" refY="3.2" orient="auto">
+          <path d="M0,0 L7.5,3.2 L0,6.4 z" fill="#14606b"/>
+        </marker>
+        <marker id="ah-a" markerWidth="9" markerHeight="9" refX="7.5" refY="3.2" orient="auto">
+          <path d="M0,0 L7.5,3.2 L0,6.4 z" fill="#b45913"/>
+        </marker>
+      </defs>
+      <g font-family="ui-sans-serif,system-ui,sans-serif">
+        <g data-anim="1">
+          <rect x="8" y="86" width="112" height="60" rx="11" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="64" y="110" text-anchor="middle" font-size="13" font-weight="700" fill="#0c454e">Agent 回答</text>
+          <text x="64" y="129" text-anchor="middle" font-size="11" fill="#7b8890">一次工具调用 / 一轮输出</text>
+        </g>
+        <line x1="122" y1="116" x2="152" y2="116" stroke="#14606b" stroke-width="1.8" marker-end="url(#ah)" data-anim="1"/>
+        <g data-anim="2">
+          <rect x="154" y="70" width="126" height="92" rx="11" fill="#fffdf8" stroke="#cdc3b2"/>
+          <text x="217" y="92" text-anchor="middle" font-size="13" font-weight="700" fill="#0c454e">① 采原始信号</text>
+          <text x="217" y="112" text-anchor="middle" font-size="11" fill="#3d4a52">logprob 聚合</text>
+          <text x="217" y="129" text-anchor="middle" font-size="11" fill="#3d4a52">语义熵</text>
+          <text x="217" y="146" text-anchor="middle" font-size="11" fill="#3d4a52">(自述置信度仅作辅助)</text>
+        </g>
+        <line x1="282" y1="116" x2="312" y2="116" stroke="#14606b" stroke-width="1.8" marker-end="url(#ah)" data-anim="2"/>
+        <g data-anim="3">
+          <rect x="314" y="70" width="126" height="92" rx="11" fill="#fffdf8" stroke="#cdc3b2"/>
+          <text x="377" y="92" text-anchor="middle" font-size="13" font-weight="700" fill="#0c454e">② 校准器</text>
+          <text x="377" y="112" text-anchor="middle" font-size="11" fill="#3d4a52">Platt / 保序回归</text>
+          <text x="377" y="129" text-anchor="middle" font-size="11" fill="#3d4a52">在留出标注集上拟合</text>
+          <text x="377" y="146" text-anchor="middle" font-size="11" fill="#b45913">输出 p(正确)</text>
+        </g>
+        <line x1="442" y1="116" x2="472" y2="116" stroke="#14606b" stroke-width="1.8" marker-end="url(#ah)" data-anim="3"/>
+        <g data-anim="4">
+          <rect x="474" y="86" width="104" height="60" rx="11" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="526" y="110" text-anchor="middle" font-size="13" font-weight="700" fill="#0c454e">③ 门控</text>
+          <text x="526" y="129" text-anchor="middle" font-size="11" fill="#7b8890">阈值是业务决策</text>
+        </g>
+        <path d="M580,104 L612,66" stroke="#14606b" stroke-width="1.8" fill="none" marker-end="url(#ah)" data-anim="5"/>
+        <path d="M580,128 L612,168" stroke="#b45913" stroke-width="1.8" fill="none" marker-end="url(#ah-a)" data-anim="5"/>
+        <g data-anim="5">
+          <rect x="616" y="38" width="98" height="42" rx="10" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="665" y="64" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0c454e">自动执行</text>
+          <rect x="616" y="152" width="98" height="42" rx="10" fill="#fbeadb" stroke="#eed7c1"/>
+          <text x="665" y="178" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3c0c">升级人工</text>
+        </g>
+        <path d="M377,176 C377,222 217,222 217,182" stroke="#b45913" stroke-width="1.6" fill="none"
+              stroke-dasharray="5 4" data-draw marker-end="url(#ah-a)"/>
+        <text x="297" y="238" text-anchor="middle" font-size="11.5" fill="#b45913" data-anim="5">模型 / prompt / 流量分布变了 → 重新校准</text>
+      </g>
+    </svg>
+    <div class="fig-cap">图 1:不确定性门控流水线。关键在于中间那一步——原始信号必须先经过校准器映射成真正的概率,阈值才有意义。虚线表示重校准回路。(自绘)</div>
+  </div>
+
+  <div class="figure en" id="f1e">
+    <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Uncertainty gating pipeline diagram">
+      <defs>
+        <marker id="ah-e" markerWidth="9" markerHeight="9" refX="7.5" refY="3.2" orient="auto">
+          <path d="M0,0 L7.5,3.2 L0,6.4 z" fill="#14606b"/>
+        </marker>
+        <marker id="ah-ae" markerWidth="9" markerHeight="9" refX="7.5" refY="3.2" orient="auto">
+          <path d="M0,0 L7.5,3.2 L0,6.4 z" fill="#b45913"/>
+        </marker>
+      </defs>
+      <g font-family="ui-sans-serif,system-ui,sans-serif">
+        <g data-anim="1">
+          <rect x="8" y="86" width="112" height="60" rx="11" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="64" y="110" text-anchor="middle" font-size="13" font-weight="700" fill="#0c454e">Agent output</text>
+          <text x="64" y="129" text-anchor="middle" font-size="10.5" fill="#7b8890">one tool call / one turn</text>
+        </g>
+        <line x1="122" y1="116" x2="152" y2="116" stroke="#14606b" stroke-width="1.8" marker-end="url(#ah-e)" data-anim="1"/>
+        <g data-anim="2">
+          <rect x="154" y="70" width="126" height="92" rx="11" fill="#fffdf8" stroke="#cdc3b2"/>
+          <text x="217" y="92" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0c454e">1. Raw signal</text>
+          <text x="217" y="112" text-anchor="middle" font-size="10.5" fill="#3d4a52">logprob aggregation</text>
+          <text x="217" y="129" text-anchor="middle" font-size="10.5" fill="#3d4a52">semantic entropy</text>
+          <text x="217" y="146" text-anchor="middle" font-size="10.5" fill="#3d4a52">(verbalized: support only)</text>
+        </g>
+        <line x1="282" y1="116" x2="312" y2="116" stroke="#14606b" stroke-width="1.8" marker-end="url(#ah-e)" data-anim="2"/>
+        <g data-anim="3">
+          <rect x="314" y="70" width="126" height="92" rx="11" fill="#fffdf8" stroke="#cdc3b2"/>
+          <text x="377" y="92" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0c454e">2. Calibrator</text>
+          <text x="377" y="112" text-anchor="middle" font-size="10.5" fill="#3d4a52">Platt / isotonic</text>
+          <text x="377" y="129" text-anchor="middle" font-size="10.5" fill="#3d4a52">fit on held-out labels</text>
+          <text x="377" y="146" text-anchor="middle" font-size="10.5" fill="#b45913">emits p(correct)</text>
+        </g>
+        <line x1="442" y1="116" x2="472" y2="116" stroke="#14606b" stroke-width="1.8" marker-end="url(#ah-e)" data-anim="3"/>
+        <g data-anim="4">
+          <rect x="474" y="86" width="104" height="60" rx="11" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="526" y="110" text-anchor="middle" font-size="13" font-weight="700" fill="#0c454e">3. Gate</text>
+          <text x="526" y="129" text-anchor="middle" font-size="10.5" fill="#7b8890">threshold = business call</text>
+        </g>
+        <path d="M580,104 L612,66" stroke="#14606b" stroke-width="1.8" fill="none" marker-end="url(#ah-e)" data-anim="5"/>
+        <path d="M580,128 L612,168" stroke="#b45913" stroke-width="1.8" fill="none" marker-end="url(#ah-ae)" data-anim="5"/>
+        <g data-anim="5">
+          <rect x="616" y="38" width="98" height="42" rx="10" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="665" y="64" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0c454e">auto-execute</text>
+          <rect x="616" y="152" width="98" height="42" rx="10" fill="#fbeadb" stroke="#eed7c1"/>
+          <text x="665" y="178" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3c0c">escalate</text>
+        </g>
+        <path d="M377,176 C377,222 217,222 217,182" stroke="#b45913" stroke-width="1.6" fill="none"
+              stroke-dasharray="5 4" data-draw marker-end="url(#ah-ae)"/>
+        <text x="297" y="238" text-anchor="middle" font-size="11" fill="#b45913" data-anim="5">model / prompt / traffic shifted → refit the calibrator</text>
+      </g>
+    </svg>
+    <div class="fig-cap">Fig 1: The uncertainty gating pipeline. The middle step is what matters — a raw signal has to be mapped onto a real probability before any threshold means anything. The dashed line is the recalibration loop. (Original diagram.)</div>
+  </div>
+
+  <div class="callout warn zh"><span class="ct">阅读前提</span>
+    <p>本文假设你已经在跑一个会调用工具、有多轮的 LLM Agent,并且已经或打算给它加人工升级路径。不需要统计学背景——所有指标都会先用大白话解释。</p>
+  </div>
+  <div class="callout warn en"><span class="ct">Assumed background</span>
+    <p>This assumes you already run an LLM agent that calls tools over multiple turns, and that you have — or plan to add — a human escalation path. No statistics background needed; every metric is explained in plain language first.</p>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <h2 class="zh"><span class="num">02</span>为什么「模型自己说的置信度」是表演</h2>
+  <h2 class="en"><span class="num">02</span>Why the model's stated confidence is theatre</h2>
+  <hr class="rule">
+
+  <div class="def zh"><div class="dt">先解释一个词</div>
+    <p><b>自述置信度(verbalized confidence)</b>:你在 prompt 里加一句「顺便给出你的置信度 0–1」,模型在答案旁边输出的那个数。它是模型<b>生成出来的一串 token</b>,不是模型内部对这个答案正确性的概率估计。这两件事的区别,是这一整节的全部内容。</p>
+  </div>
+  <div class="def en"><div class="dt">One term first</div>
+    <p><b>Verbalized confidence</b>: the number a model prints next to its answer when your prompt says "also give your confidence from 0 to 1." It is <b>a sequence of tokens the model generated</b>, not the model's internal probability that the answer is correct. The gap between those two things is what this whole section is about.</p>
+  </div>
+
+  <p class="zh">Future AGI 的工程博客把三个结构性原因梳理得很清楚(以下为该文观点,非官方规范):</p>
+  <p class="en">Future AGI's engineering blog lays out three structural reasons (these are that article's arguments, not an official specification):</p>
+
+  <h3 class="zh">原因一:预训练根本没教过校准</h3>
+  <h3 class="en">Reason 1: pretraining never taught calibration</h3>
+  <p class="zh">模型被训练去<b>预测下一个 token</b>,不是去预测「我这个答案对不对」。它内部的 token 概率对「下一个 token 是什么」这件事是<b>校准良好</b>的——但「我有 90% 把握」这句话本身,只是模型基于训练语料里置信话术的分布,选出来的一串词。它和底层论断的内部概率之间,没有直接连接。</p>
+  <p class="en">The model is trained to <b>predict the next token</b>, not to predict whether the resulting answer is right. Its internal token probabilities are well calibrated for the next-token task — but the sentence "I'm 90% sure" is itself a token sequence chosen from whatever confidence-language patterns appeared in training. It has no direct link to the internal probability of the underlying claim.</p>
+
+  <h3 class="zh">原因二:RLHF 放大了过度自信</h3>
+  <h3 class="en">Reason 2: RLHF amplifies overconfidence</h3>
+  <p class="zh">奖励模型偏好听起来果断的回答。模型学到「含糊其辞会被扣分」,于是就<b>比它应该的更少地含糊</b>。Tian 等人在 EMNLP 2023 的工作(《Just Ask for Calibration》)及后续研究显示,跨 GPT-4、Claude、Llama-2 系列,自述置信度与准确率<b>单调相关但系统性偏高</b>,而且偏差最大的区间正是 0.7–1.0 ——<b>恰恰是高风险、高置信决策发生的地方</b>。</p>
+  <p class="en">Reward models prefer answers that sound decisive. The model learns that hedging is penalised, so it <b>hedges less than it should</b>. Tian et al. (EMNLP 2023, "Just Ask for Calibration") and follow-up work show that across the GPT-4, Claude and Llama-2 families, verbalized confidence is <b>monotonically related to accuracy but systematically biased upward</b>, and the gap is largest in the 0.7–1.0 region — <b>exactly where high-stakes, high-confidence decisions live</b>.</p>
+
+  <h3 class="zh">原因三:自述是「事后」的</h3>
+  <h3 class="en">Reason 3: the self-report is post-hoc</h3>
+  <p class="zh">当你问「你有多确定」时,答案<b>已经写在纸上了</b>。模型这时生成的数字,只是与 prompt 给的评分标准保持一致,不是对正确性的内部估计。换一套 prompt 措辞,你会得到一套不同的刻度。</p>
+  <p class="en">By the time you ask "how sure are you," the answer is <b>already on the page</b>. The number the model then generates is consistent with whatever rubric your prompt supplied — not with an internal estimate of correctness. A different prompt produces a different scale.</p>
+
+  <div class="callout quote zh">
+    <p>「LLM 自述的置信度是一种表演。模型说『95% 确定』,却有 30% 的时候是错的。」——Future AGI 工程博客(厂商观点)</p>
+  </div>
+  <div class="callout quote en">
+    <p>"LLM-stated confidence is theater. The model says '95% sure' and is wrong 30% of the time." — Future AGI engineering blog (vendor perspective)</p>
+  </div>
+
+  <details class="rephrase zh"><summary>换个说法</summary>
+    <p>想象你让一个很会说话的实习生汇报进度。他每次都说「肯定没问题」——不是因为他真的评估过风险,而是因为他学会了「说没问题的人显得靠谱」。你要判断这个项目会不会翻车,不能听他嘴上说什么,得看他<b>写代码时在哪些地方反复删改</b>(这就是 logprob),或者<b>让他把同一件事讲五遍,看五遍讲的是不是同一个意思</b>(这就是语义熵)。</p>
+  </details>
+  <details class="rephrase en"><summary>Put another way</summary>
+    <p>Picture a smooth-talking intern reporting progress. Every time, he says "definitely on track" — not because he assessed the risk, but because he learned that people who sound sure look reliable. To judge whether the project will derail, don't listen to what he says. Watch <b>where he keeps deleting and rewriting code</b> (that's logprobs), or <b>make him explain the same thing five times and check whether the five explanations mean the same thing</b> (that's semantic entropy).</p>
+  </details>
+
+  <div class="callout key zh"><span class="ct">别急着删</span>
+    <p>结论不是「自述置信度毫无价值」,而是<b>它只能当集成里的一个信号,永远不做主信号</b>。它单调相关这件事本身,让它作为特征喂进一个训练好的校准器时仍然有用。</p>
+  </div>
+  <div class="callout key en"><span class="ct">Don't throw it away</span>
+    <p>The conclusion is not "verbalized confidence is worthless." It is that <b>it can be one signal in an ensemble, never the primary one</b>. The fact that it is monotonically related to accuracy still makes it a useful feature to feed into a trained calibrator.</p>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <h2 class="zh"><span class="num">03</span>三种能用的信号</h2>
+  <h2 class="en"><span class="num">03</span>Three signals you can actually use</h2>
+  <hr class="rule">
+
+  <p class="zh">读者读到这里的自然疑问是:那我用什么?公开可得的替代信号主要有两类——<b>模型内部的 token 概率</b>,和<b>多次采样之间的分歧</b>。再加上第三条路:直接训一个小分类器。</p>
+  <p class="en">The natural next question: so what do I use instead? Two families of signal are publicly available — <b>the model's internal token probabilities</b>, and <b>disagreement across repeated samples</b>. Plus a third route: train a small classifier directly.</p>
+
+  <h3 class="zh">信号 A:logprob 聚合(API 暴露 token 概率时)</h3>
+  <h3 class="en">Signal A: logprob aggregation (when the API exposes token probabilities)</h3>
+  <p class="zh">OpenAI 的 chat completions 端点在传 <code>logprobs=True</code> 时会返回 top-k 对数概率;多数开放权重推理服务(vLLM、TGI、llama.cpp)默认就暴露;Anthropic 在部分端点上返回。能看到 logprob 时,两个派生信号最有用:</p>
+  <p class="en">OpenAI's chat completions endpoint returns top-k log-probabilities when you pass <code>logprobs=True</code>; most open-weight inference servers (vLLM, TGI, llama.cpp) expose them by default; Anthropic returns them on certain endpoints. When logprobs are visible, two derived signals dominate:</p>
+  <ul class="zh">
+    <li><b>承载论断的 token 上的平均 top-1 logprob</b>——只对实体、数字、人名这些真正携带语义的位置求平均。</li>
+    <li><b>top-k token 熵</b>——每一步 top-k 分布的香农熵。熵高意味着模型在那个位置<b>在几个都说得通的 token 之间犹豫</b>;论断 token 上的熵尖峰,与错误强相关。</li>
+  </ul>
+  <ul class="en">
+    <li><b>Mean top-1 logprob over claim-bearing tokens</b> — averaged only over entity, number and name positions that actually carry meaning.</li>
+    <li><b>Top-k token entropy</b> — Shannon entropy over the top-k distribution at each step. High entropy means the model was <b>choosing between several plausible tokens</b> at that position; entropy spikes on claim tokens correlate strongly with error.</li>
+  </ul>
+
+  <div class="callout warn zh"><span class="ct">关键细节</span>
+    <p><b>一定要过滤掉填充词。</b>「的」「和」「of」「the」这类 token 无论答案对错都接近 1.0 概率,把它们算进去会把信号冲干净。结构化输出时,只对解析出的字段 token 聚合。</p>
+  </div>
+  <div class="callout warn en"><span class="ct">The detail that matters</span>
+    <p><b>Filter out filler tokens.</b> Words like "the," "of," "and" sit at near-1.0 probability regardless of whether the answer is right; including them washes the signal out. For structured output, restrict the aggregate to the parsed field tokens.</p>
+  </div>
+
+  <pre class="zh"><code>import math
+
+def claim_token_uncertainty(tokens, claim_mask):
+    # tokens: [{token, top_logprob, top_k=[(tok, logp), ...]}, ...]
+    # claim_mask: [bool, ...] —— True 表示这个位置承载论断
+    logps, entropies = [], []
+    for tok, is_claim in zip(tokens, claim_mask):
+        if not is_claim:
+            continue
+        logps.append(tok["top_logprob"])
+        probs = [math.exp(lp) for _, lp in tok["top_k"]]
+        z = sum(probs)
+        probs = [p / z for p in probs]
+        entropies.append(-sum(p * math.log(p + 1e-12) for p in probs))
+    return {
+        "mean_logprob": sum(logps) / max(len(logps), 1),
+        "mean_entropy": sum(entropies) / max(len(entropies), 1),
+    }
+# 代码来源:Future AGI 工程博客(2026-02-24 发布,2026-05-20 更新)</code></pre>
+  <pre class="en"><code>import math
+
+def claim_token_uncertainty(tokens, claim_mask):
+    # tokens: [{token, top_logprob, top_k=[(tok, logp), ...]}, ...]
+    # claim_mask: [bool, ...] — True at claim-bearing positions
+    logps, entropies = [], []
+    for tok, is_claim in zip(tokens, claim_mask):
+        if not is_claim:
+            continue
+        logps.append(tok["top_logprob"])
+        probs = [math.exp(lp) for _, lp in tok["top_k"]]
+        z = sum(probs)
+        probs = [p / z for p in probs]
+        entropies.append(-sum(p * math.log(p + 1e-12) for p in probs))
+    return {
+        "mean_logprob": sum(logps) / max(len(logps), 1),
+        "mean_entropy": sum(entropies) / max(len(entropies), 1),
+    }
+# Source: Future AGI engineering blog (published 2026-02-24, updated 2026-05-20)</code></pre>
+
+  <div class="callout warn zh"><span class="ct">推理模型是个例外</span>
+    <p>OpenAI 的 o 系列<b>隐藏了思维链 token</b>。你看得到的 logprob 只覆盖最终答案表层——而那往往是一段「内部很不确定的推理轨迹」之上的一句自信总结。对任何带 reasoning / thinking 包装的模型,logprob 聚合<b>只能当辅助信号,不能当主信号</b>。</p>
+  </div>
+  <div class="callout warn en"><span class="ct">Reasoning models are the exception</span>
+    <p>OpenAI's o-series <b>hides chain-of-thought tokens</b>. The logprobs you can see cover only the final-answer surface — which is often a confident summary sitting on top of an internally uncertain reasoning trace. For any model behind a reasoning or thinking wrapper, treat logprob aggregation as <b>a supporting signal, not the primary one</b>.</p>
+  </div>
+
+  <h3 class="zh">信号 B:语义熵(API 隐藏 logprob 时)</h3>
+  <h3 class="en">Signal B: semantic entropy (when logprobs are hidden)</h3>
+  <p class="zh">2026 年多数商用托管端点不返回 logprob。这时的办法是<b>从采样行为里反推不确定性</b>。</p>
+  <p class="en">Most hosted commercial endpoints in 2026 do not return logprobs. The workaround is to <b>infer uncertainty from sampling behaviour</b>.</p>
+  <p class="zh">朴素做法是<b>词面熵</b>:在 temperature 0.7 下采 N 条回答,看字符串重合度。问题在于<b>同义改写会被算成分歧</b>——「巴黎是首都」和「首都是巴黎」在字面上完全不同,意思却一样。</p>
+  <p class="en">The naive version is <b>lexical entropy</b>: sample N completions at temperature 0.7 and measure surface-string agreement. The problem is that <b>paraphrases register as disagreement</b> — "Paris is the capital" and "The capital is Paris" look distinct while expressing the same answer.</p>
+  <p class="zh"><b>语义熵</b>(Farquhar 等,《Nature》2024)解决了这个问题:采 N 条,<b>按意思聚类</b>,然后对<b>簇的占比</b>而不是原始字符串算熵。两种聚类方式:</p>
+  <p class="en"><b>Semantic entropy</b> (Farquhar et al., <i>Nature</i> 2024) fixes this: sample N completions, <b>cluster them by meaning</b>, and compute entropy over the <b>cluster proportions</b> rather than the raw strings. Two ways to cluster:</p>
+  <ul class="zh">
+    <li><b>双向 NLI</b>:两条回答互相蕴含,就归为一簇。算力更重,在改写密集的任务上更准。</li>
+    <li><b>先嵌入再聚类</b>:用句向量模型编码,再用 HDBSCAN 或层次聚类在调好的阈值上分簇。更便宜,边界情况更松。</li>
+  </ul>
+  <ul class="en">
+    <li><b>Bidirectional NLI</b>: two completions join the same cluster if a small NLI model says each entails the other. Heavier compute, more accurate on paraphrase-dense tasks.</li>
+    <li><b>Embed then cluster</b>: encode with a sentence encoder, then cluster with HDBSCAN or agglomerative clustering at a tuned threshold. Cheaper, looser at the edges.</li>
+  </ul>
+
+  <div class="stats zh">
+    <div class="stat"><div class="v">+10~15 分</div><div class="l">Farquhar 等报告:语义熵检测幻觉的准确率,比词面熵或自述置信度高 10–15 个百分点(问答基准)</div></div>
+    <div class="stat"><div class="v">N × 成本</div><div class="l">代价是要采 N 条。N=5 时推理成本是基线的 5 倍——只对高风险调用走这条路</div></div>
+  </div>
+  <div class="stats en">
+    <div class="stat"><div class="v">+10–15 pts</div><div class="l">Farquhar et al. report semantic entropy detecting hallucinations 10–15 points more accurately than lexical entropy or verbalized confidence, on QA benchmarks</div></div>
+    <div class="stat"><div class="v">N× cost</div><div class="l">The price is N samples. At N=5 that is 5× baseline inference — route only high-stakes calls through it</div></div>
+  </div>
+
+  <pre class="zh"><code>import math
+
+def semantic_entropy(samples, equivalent_fn):
+    # samples: 生成的字符串列表
+    # equivalent_fn(a, b) -> bool: 双向 NLI 或嵌入距离判等
+    clusters = []
+    for s in samples:
+        placed = False
+        for cluster in clusters:
+            if equivalent_fn(s, cluster[0]):
+                cluster.append(s); placed = True; break
+        if not placed:
+            clusters.append([s])
+    n = len(samples)
+    probs = [len(c) / n for c in clusters]
+    return -sum(p * math.log(p + 1e-12) for p in probs)
+# 代码来源:Future AGI 工程博客</code></pre>
+  <pre class="en"><code>import math
+
+def semantic_entropy(samples, equivalent_fn):
+    # samples: list of generated strings
+    # equivalent_fn(a, b) -> bool: bidirectional NLI or embedding-distance check
+    clusters = []
+    for s in samples:
+        placed = False
+        for cluster in clusters:
+            if equivalent_fn(s, cluster[0]):
+                cluster.append(s); placed = True; break
+        if not placed:
+            clusters.append([s])
+    n = len(samples)
+    probs = [len(c) / n for c in clusters]
+    return -sum(p * math.log(p + 1e-12) for p in probs)
+# Source: Future AGI engineering blog</code></pre>
+
+  <div class="callout warn zh"><span class="ct">语义熵的失效场景</span>
+    <p><b>存在多个正确答案的任务</b>(开放式生成、创作类)。熵高是因为答案空间大,不是因为模型不确定。这类指标必须锚定在有可辩护 ground truth 的任务上。</p>
+    <p>更进一步:2026 年 3 月的论文《Entropy Alone is Insufficient for Safe Selective Prediction in LLMs》(Phillips 等)指出,基于熵的不确定性方法存在一个<b>依赖具体模型的失效模式</b>,会导致弃答行为不可靠;作者的解法是把熵分数与一个<b>正确性探针信号</b>组合。在 TriviaQA、BioASQ、MedicalQA 三个问答基准与四个模型族上,组合分数在风险-覆盖率权衡和校准表现上普遍优于纯熵基线。</p>
+  </div>
+  <div class="callout warn en"><span class="ct">Where semantic entropy breaks</span>
+    <p><b>Tasks with several correct answers</b> (open-ended generation, creative work). Entropy is high because the answer space is large, not because the model is uncertain. Anchor the metric on tasks with a defensible ground truth.</p>
+    <p>Further: "Entropy Alone is Insufficient for Safe Selective Prediction in LLMs" (Phillips et al., March 2026) identifies a <b>model-dependent failure mode</b> in entropy-based uncertainty methods that produces unreliable abstention. Their fix is to combine the entropy score with a <b>correctness probe signal</b>. Across three QA benchmarks (TriviaQA, BioASQ, MedicalQA) and four model families, the combined score generally improves both the risk–coverage trade-off and calibration relative to entropy-only baselines.</p>
+  </div>
+
+  <h3 class="zh">信号 C:训练一个分类头</h3>
+  <h3 class="en">Signal C: a trained classifier head</h3>
+  <p class="zh">如果你有足够的数据,最准的做法是直接在 <code>(输入, 是否正确)</code> 配对上训一个小分类器。它是<b>负载专属</b>的——只在你自己的流量分布上有效,但正因为如此,在数据够的时候准确率最高。</p>
+  <p class="en">With enough data, the most accurate route is to train a small classifier directly on <code>(input, was_correct)</code> pairs. It is <b>workload-specific</b> — valid only on your own traffic distribution — but for exactly that reason it gives the highest accuracy once you have the data.</p>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <h2 class="zh"><span class="num">04</span>怎么衡量「偏了多少」:Brier、ECE、可靠性图</h2>
+  <h2 class="en"><span class="num">04</span>Measuring how far off you are: Brier, ECE, reliability diagrams</h2>
+  <hr class="rule">
+
+  <p class="zh">有了原始信号只是第一步。<b>一个信号只有在你知道它偏了多少的时候才有用。</b>这一节讲三个工具,它们其实是同一件事的三种呈现。</p>
+  <p class="en">Having a raw signal is only step one. <b>A signal is useful only once you know how miscalibrated it is.</b> This section covers three tools, which are three views of the same thing.</p>
+
+  <div class="glossary zh"><dl>
+    <dt>Brier score(布里尔分数)</dt>
+    <dd>预测概率 <code>p_i</code> 与「对/错」二值标签 <code>y_i</code> 之间的<b>均方误差</b>,在 N 个样本上取平均。越低越好。它能干净地分解成两项:<b>校准项</b>(分箱后的预测值与实际准确率有多接近)和<b>锐度项</b>(模型有多敢给出极端概率,而不是一直待在 0.5)。一个恒定输出 0.5 的模型在 50/50 任务上校准完美、锐度极差——两个你都要。</dd>
+    <dt>ECE(Expected Calibration Error,期望校准误差)</dt>
+    <dd>把预测按置信度分进 B 个箱(标准做法是 10 个),算每个箱的<b>实际准确率与平均预测概率之差的绝对值</b>,再按样本量加权平均。<b>留出集上 ECE 低于 0.05 是一个合理的生产目标。</b></dd>
+    <dt>可靠性图(reliability diagram)</dt>
+    <dd>把上面两个指标画出来:x 轴是预测置信度,y 轴是实际准确率,每个箱一个点。<b>校准良好的信号落在对角线上。</b></dd>
+  </dl></div>
+  <div class="glossary en"><dl>
+    <dt>Brier score</dt>
+    <dd>The <b>mean squared error</b> between predicted probability <code>p_i</code> and the binary correctness label <code>y_i</code>, averaged over N samples. Lower is better. It decomposes cleanly into a <b>calibration</b> term (how close binned predictions sit to observed accuracy) and a <b>sharpness</b> term (how willing the model is to commit to extreme probabilities rather than parking at 0.5). A model that always outputs 0.5 has perfect calibration on a 50/50 task and terrible sharpness — you want both.</dd>
+    <dt>ECE (Expected Calibration Error)</dt>
+    <dd>Split predictions into B confidence bins (10 is standard), take the <b>absolute gap between each bin's observed accuracy and its mean predicted probability</b>, and average across bins weighted by sample count. <b>ECE below 0.05 on your labelled set is a reasonable production target.</b></dd>
+    <dt>Reliability diagram</dt>
+    <dd>The picture both metrics summarise: predicted confidence on the x-axis, observed accuracy on the y-axis, one point per bin. <b>A well-calibrated signal sits on the diagonal.</b></dd>
+  </dl></div>
+
+  <div class="figure zh" id="f2">
+    <svg viewBox="0 0 620 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="可靠性图:对角线与过度自信曲线">
+      <g font-family="ui-sans-serif,system-ui,sans-serif">
+        <rect x="70" y="30" width="240" height="240" fill="#fffdf8" stroke="#cdc3b2"/>
+        <g stroke="#e0d9cc" stroke-width="1">
+          <line x1="70" y1="90" x2="310" y2="90"/><line x1="70" y1="150" x2="310" y2="150"/>
+          <line x1="70" y1="210" x2="310" y2="210"/>
+          <line x1="130" y1="30" x2="130" y2="270"/><line x1="190" y1="30" x2="190" y2="270"/>
+          <line x1="250" y1="30" x2="250" y2="270"/>
+        </g>
+        <line x1="70" y1="270" x2="310" y2="30" stroke="#14606b" stroke-width="2" stroke-dasharray="6 4" data-anim="1"/>
+        <text x="292" y="52" font-size="11" fill="#14606b" text-anchor="end" data-anim="1">完美校准</text>
+        <path d="M70,270 L118,236 L166,206 L214,182 L262,156 L310,132" fill="none" stroke="#b45913"
+              stroke-width="2.6" data-draw/>
+        <g fill="#b45913" data-anim="3">
+          <circle cx="118" cy="236" r="3.6"/><circle cx="166" cy="206" r="3.6"/>
+          <circle cx="214" cy="182" r="3.6"/><circle cx="262" cy="156" r="3.6"/><circle cx="310" cy="132" r="3.6"/>
+        </g>
+        <g data-anim="4">
+          <path d="M310,132 L310,30" stroke="#b45913" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <rect x="322" y="60" width="180" height="66" rx="9" fill="#fbeadb" stroke="#eed7c1"/>
+          <text x="332" y="82" font-size="12" font-weight="700" fill="#7a3c0c">这段缺口 = 过度自信</text>
+          <text x="332" y="100" font-size="11" fill="#7a3c0c">模型说 0.9,实际只对 64%</text>
+          <text x="332" y="117" font-size="11" fill="#7a3c0c">而门控恰好设在这个区间</text>
+        </g>
+        <line x1="70" y1="270" x2="310" y2="270" stroke="#3d4a52" stroke-width="1.6"/>
+        <line x1="70" y1="30" x2="70" y2="270" stroke="#3d4a52" stroke-width="1.6"/>
+        <text x="190" y="294" text-anchor="middle" font-size="12" fill="#3d4a52">预测置信度 →</text>
+        <text x="46" y="150" text-anchor="middle" font-size="12" fill="#3d4a52"
+              transform="rotate(-90 46 150)">实际准确率 →</text>
+        <text x="70" y="286" text-anchor="middle" font-size="10.5" fill="#7b8890">0</text>
+        <text x="310" y="286" text-anchor="middle" font-size="10.5" fill="#7b8890">1.0</text>
+        <g data-anim="5">
+          <rect x="322" y="176" width="240" height="94" rx="9" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="332" y="198" font-size="12" font-weight="700" fill="#0c454e">怎么读这张图</text>
+          <text x="332" y="218" font-size="11" fill="#0c454e">曲线在对角线<tspan font-weight="700">下方</tspan> = 过度自信</text>
+          <text x="332" y="236" font-size="11" fill="#0c454e">(说得比做得好)</text>
+          <text x="332" y="256" font-size="11" fill="#0c454e">ECE = 各箱这段垂直缺口的加权平均</text>
+        </g>
+      </g>
+    </svg>
+    <div class="fig-cap">图 2:可靠性图的读法(示意,非实测数据)。坐标约定为 x = 预测置信度、y = 实际准确率,因此<b>过度自信表现为曲线落在对角线下方</b>。文献中有时以准确率为横轴作图,方向相反,读图前先看清坐标。据 Future AGI 博客,多数开箱模型在 0.7–1.0 区间明显偏离对角线。(自绘)</div>
+  </div>
+
+  <div class="figure en" id="f2e">
+    <svg viewBox="0 0 620 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Reliability diagram: diagonal versus an overconfident curve">
+      <g font-family="ui-sans-serif,system-ui,sans-serif">
+        <rect x="70" y="30" width="240" height="240" fill="#fffdf8" stroke="#cdc3b2"/>
+        <g stroke="#e0d9cc" stroke-width="1">
+          <line x1="70" y1="90" x2="310" y2="90"/><line x1="70" y1="150" x2="310" y2="150"/>
+          <line x1="70" y1="210" x2="310" y2="210"/>
+          <line x1="130" y1="30" x2="130" y2="270"/><line x1="190" y1="30" x2="190" y2="270"/>
+          <line x1="250" y1="30" x2="250" y2="270"/>
+        </g>
+        <line x1="70" y1="270" x2="310" y2="30" stroke="#14606b" stroke-width="2" stroke-dasharray="6 4" data-anim="1"/>
+        <text x="296" y="52" font-size="11" fill="#14606b" text-anchor="end" data-anim="1">perfect</text>
+        <path d="M70,270 L118,236 L166,206 L214,182 L262,156 L310,132" fill="none" stroke="#b45913"
+              stroke-width="2.6" data-draw/>
+        <g fill="#b45913" data-anim="3">
+          <circle cx="118" cy="236" r="3.6"/><circle cx="166" cy="206" r="3.6"/>
+          <circle cx="214" cy="182" r="3.6"/><circle cx="262" cy="156" r="3.6"/><circle cx="310" cy="132" r="3.6"/>
+        </g>
+        <g data-anim="4">
+          <path d="M310,132 L310,30" stroke="#b45913" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <rect x="322" y="60" width="196" height="66" rx="9" fill="#fbeadb" stroke="#eed7c1"/>
+          <text x="332" y="82" font-size="12" font-weight="700" fill="#7a3c0c">this gap = overconfidence</text>
+          <text x="332" y="100" font-size="10.5" fill="#7a3c0c">model says 0.9, is right 64% of the time</text>
+          <text x="332" y="117" font-size="10.5" fill="#7a3c0c">and the gate sits in exactly that band</text>
+        </g>
+        <line x1="70" y1="270" x2="310" y2="270" stroke="#3d4a52" stroke-width="1.6"/>
+        <line x1="70" y1="30" x2="70" y2="270" stroke="#3d4a52" stroke-width="1.6"/>
+        <text x="190" y="294" text-anchor="middle" font-size="12" fill="#3d4a52">predicted confidence →</text>
+        <text x="46" y="150" text-anchor="middle" font-size="12" fill="#3d4a52"
+              transform="rotate(-90 46 150)">observed accuracy →</text>
+        <text x="70" y="286" text-anchor="middle" font-size="10.5" fill="#7b8890">0</text>
+        <text x="310" y="286" text-anchor="middle" font-size="10.5" fill="#7b8890">1.0</text>
+        <g data-anim="5">
+          <rect x="322" y="176" width="248" height="94" rx="9" fill="#e2eeef" stroke="#bcd8da"/>
+          <text x="332" y="198" font-size="12" font-weight="700" fill="#0c454e">How to read it</text>
+          <text x="332" y="218" font-size="10.5" fill="#0c454e">Curve <tspan font-weight="700">below</tspan> the diagonal = overconfident</text>
+          <text x="332" y="236" font-size="10.5" fill="#0c454e">(it talks better than it performs)</text>
+          <text x="332" y="256" font-size="10.5" fill="#0c454e">ECE = weighted average of these vertical gaps</text>
+        </g>
+      </g>
+    </svg>
+    <div class="fig-cap">Fig 2: How to read a reliability diagram (illustrative, not measured data). The axis convention here is x = predicted confidence, y = observed accuracy, so <b>overconfidence shows up as a curve below the diagonal</b>. Some papers plot accuracy on the x-axis, which flips the direction — always check the axes first. Per the Future AGI blog, most off-the-shelf models deviate noticeably from the diagonal in the 0.7–1.0 band. (Original diagram.)</div>
+  </div>
+
+  <h3 class="zh">金标集:整条流水线的地基</h3>
+  <h3 class="en">The gold set: the foundation of the whole pipeline</h3>
+  <p class="zh">上面三个指标都要在同一样东西上算——一个<b>留出标注集</b>。建议做法:</p>
+  <p class="en">All three metrics are computed on the same thing: a <b>held-out labelled set</b>. Recommended practice:</p>
+  <ol class="steps zh">
+    <li><b>规模 500–2000 条</b>,且必须是<b>生产代表性</b>的样本。</li>
+    <li><b>从生产 trace 里捞,不要自己编测试用例。</b>编出来的用例分布和真实流量不是一回事。</li>
+    <li><b>向最难的 10% 倾斜</b>——边界情况、罕见意图。门控恰恰是在这些地方失效的。</li>
+    <li><b>人工打标。</b>这是金标集,下游一切都依赖它。</li>
+  </ol>
+  <ol class="steps en">
+    <li><b>500 to 2000 examples</b>, and they must be <b>production-representative</b>.</li>
+    <li><b>Pull from production traces, don't invent test cases.</b> Invented cases don't share the distribution of real traffic.</li>
+    <li><b>Skew toward the hardest 10%</b> — edge cases, rare intents. That's precisely where gates fail.</li>
+    <li><b>Label by hand.</b> This is the gold set; everything downstream depends on it.</li>
+  </ol>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <h2 class="zh"><span class="num">05</span>后处理校准:Platt 缩放与保序回归</h2>
+  <h2 class="en"><span class="num">05</span>Post-hoc calibration: Platt scaling and isotonic regression</h2>
+  <hr class="rule">
+
+  <p class="zh">量出偏差之后,下一个自然的问题是:怎么修?好消息是<b>不用重训模型</b>——两个标准的后处理方法就能把一个歪掉的信号映射成可用的概率。</p>
+  <p class="en">Once you've measured the bias, the next question is how to fix it. The good news: <b>you don't retrain the model</b>. Two standard post-hoc methods map a skewed signal onto a usable probability.</p>
+
+  <h3 class="zh">Platt 缩放</h3>
+  <h3 class="en">Platt scaling</h3>
+  <p class="zh">在校准划分上,对 <code>(原始信号, 是否正确)</code> 配对拟合一个<b>单参数逻辑回归</b>。</p>
+  <p class="en">Fit a <b>one-parameter logistic regression</b> on <code>(raw_signal, was_correct)</code> pairs from a calibration split.</p>
+  <pre><code>import numpy as np
+from sklearn.linear_model import LogisticRegression
+
+def fit_platt(raw_signals, labels):
+    X = np.array(raw_signals).reshape(-1, 1)
+    y = np.array(labels)
+    return LogisticRegression().fit(X, y)
+
+def apply_platt(model, raw_signal):
+    return model.predict_proba([[raw_signal]])[0, 1]</code></pre>
+  <p class="zh">适用于<b>偏差是单调的、在 logit 空间大致线性</b>的情况。拟合便宜,<b>200 条以上</b>的小校准集就稳定,是默认起点。</p>
+  <p class="en">Works when miscalibration is <b>monotonic and roughly linear in logit space</b>. Cheap to fit, stable on <b>200+ examples</b>, and the default starting point.</p>
+
+  <h3 class="zh">保序回归(isotonic regression)</h3>
+  <h3 class="en">Isotonic regression</h3>
+  <p class="zh">拟合一个<b>非参数的单调映射</b>,能处理更奇怪的、非线性的校准曲线。</p>
+  <p class="en">Fits a <b>non-parametric monotonic mapping</b>, handling weirder, non-linear calibration curves.</p>
+  <pre><code>from sklearn.isotonic import IsotonicRegression
+
+def fit_isotonic(raw_signals, labels):
+    return IsotonicRegression(out_of_bounds="clip").fit(raw_signals, labels)</code></pre>
+  <p class="zh">需要更多数据(稳定通常要 <b>1000 条以上</b>),但不做参数假设、直接从数据读出形状。<b>当 Platt 在尾部修不够时,就换它。</b></p>
+  <p class="en">Needs more data (<b>1000+ examples</b> for stability) but reads the shape off the data with no parametric assumptions. <b>Switch to it when Platt under-corrects in the tails.</b></p>
+
+  <div class="callout key zh"><span class="ct">纪律</span>
+    <p><b>在校准划分上拟合,在留出测试划分上验证</b>,并检查 Brier 与 ECE 是否真的改善了(通常会)。据 Future AGI 博客,<b>在 200 条以上样本上做 Platt 缩放,通常能把自述置信度的 ECE 降低 30%–60%</b>。</p>
+  </div>
+  <div class="callout key en"><span class="ct">Discipline</span>
+    <p><b>Fit on a calibration split, validate on a held-out test split</b>, and check that Brier and ECE actually improve (they usually do). Per the Future AGI blog, <b>Platt scaling on 200+ examples commonly cuts ECE on verbalized confidence by 30–60%</b>.</p>
+  </div>
+
+  <div class="callout warn zh"><span class="ct">什么时候必须重新校准</span>
+    <p>模型版本变了、prompt 模板有实质改动、或输入分布漂移了。<b>校准器是模型与生产流量之间的一纸合约;任何一方动了,合约就失效。</b></p>
+  </div>
+  <div class="callout warn en"><span class="ct">When you must recalibrate</span>
+    <p>When the model version changes, when the prompt template changes substantively, or when the input distribution shifts. <b>The calibrator is a contract between the model and production traffic; the contract breaks when either side moves.</b></p>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <h2 class="zh"><span class="num">06</span>Agent 特有的难题:不确定性会沿轨迹累积</h2>
+  <h2 class="en"><span class="num">06</span>The agent-specific problem: uncertainty compounds along a trajectory</h2>
+  <hr class="rule">
+
+  <p class="zh">到这里为止讲的都是<b>单轮</b>问答的校准。但 Agent 不是单轮的——它调工具、读结果、再决策,一步接一步。这带来一个全新的问题:<b>第 5 步的不确定性,有多少是它自己的,有多少是从前 4 步继承来的?</b></p>
+  <p class="en">Everything so far applies to <b>single-turn</b> question answering. But agents are not single-turn — they call a tool, read the result, decide again, step after step. That creates a new problem: <b>how much of the uncertainty at step 5 is its own, and how much was inherited from steps 1 through 4?</b></p>
+
+  <div class="callout key zh"><span class="ct">这是当前研究的前沿</span>
+    <p>综述《Uncertainty Quantification in LLM Agents》(arXiv 2602.05073)指出:现有 LLM 不确定性量化方法<b>主要是为单轮问答设计的</b>,多步 Agent 系统<b>仍然研究不足</b>。这是一个新兴领域,而不是一套成熟的最佳实践。</p>
+  </div>
+  <div class="callout key en"><span class="ct">This is an open research frontier</span>
+    <p>The survey "Uncertainty Quantification in LLM Agents" (arXiv 2602.05073) notes that existing LLM UQ methods are <b>primarily designed for single-turn question answering</b>, leaving multi-step agentic systems <b>underexplored</b>. This is an emerging field, not a settled set of best practices.</p>
+  </div>
+
+  <h3 class="zh">两个开创性框架</h3>
+  <h3 class="en">Two pioneering frameworks</h3>
+  <p class="zh"><b>UProp</b>(arXiv 2506.17419)把序贯决策的不确定性拆成两部分:<b>内在不确定性</b>(当前这一步决策本身固有的)和<b>外来不确定性</b>——一个互信息量,描述<b>应当从前面各步继承多少不确定性</b>。它通过对轨迹相关采样的逐点互信息取期望,来近似决策分布之间的互信息。</p>
+  <p class="en"><b>UProp</b> (arXiv 2506.17419) decomposes sequential decision uncertainty into two parts: <b>internal uncertainty</b> intrinsic to the current decision, and <b>extrinsic uncertainty</b> — a mutual-information quantity describing <b>how much uncertainty should be inherited from preceding decisions</b>. It approximates the mutual information between decision distributions by taking an expectation of pointwise mutual information over trajectory-dependent samplings.</p>
+  <p class="zh"><b>SAUP</b>(Situation Awareness Uncertainty Propagation,arXiv 2412.01033)则引入<b>情境感知</b>:用插件式估计器给每一步附上不确定性估计,再通过<b>基于 HMM 的情境权重</b>做传播——也就是说,不同处境下的同一步,权重不一样。</p>
+  <p class="en"><b>SAUP</b> (Situation Awareness Uncertainty Propagation, arXiv 2412.01033) adds <b>situational awareness</b>: it attaches per-step uncertainty estimates using plug-in estimators and propagates them via <b>HMM-based situational weights</b> — meaning the same step carries different weight in different situations.</p>
+
+  <div class="figure zh" id="f3">
+    <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="不确定性沿 Agent 轨迹累积示意图">
+      <defs>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="7.5" refY="3.2" orient="auto">
+          <path d="M0,0 L7.5,3.2 L0,6.4 z" fill="#7b8890"/>
+        </marker>
+      </defs>
+      <g font-family="ui-sans-serif,system-ui,sans-serif">
+        <line x1="40" y1="200" x2="668" y2="200" stroke="#3d4a52" stroke-width="1.6"/>
+        <line x1="40" y1="30" x2="40" y2="200" stroke="#3d4a52" stroke-width="1.6"/>
+        <text x="24" y="118" text-anchor="middle" font-size="12" fill="#3d4a52"
+              transform="rotate(-90 24 118)">累积不确定性 →</text>
+        <text x="354" y="228" text-anchor="middle" font-size="12" fill="#3d4a52">Agent 轨迹步骤 →</text>
+        <g data-anim="1">
+          <rect x="72" y="172" width="60" height="28" rx="4" fill="#14606b"/>
+          <text x="102" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">步骤 1</text>
+        </g>
+        <g data-anim="2">
+          <rect x="192" y="150" width="60" height="22" rx="4" fill="#b45913"/>
+          <rect x="192" y="172" width="60" height="28" rx="4" fill="#14606b"/>
+          <text x="222" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">步骤 2</text>
+        </g>
+        <g data-anim="3">
+          <rect x="312" y="116" width="60" height="34" rx="4" fill="#b45913"/>
+          <rect x="312" y="150" width="60" height="50" rx="4" fill="#14606b"/>
+          <text x="342" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">步骤 3</text>
+        </g>
+        <g data-anim="4">
+          <rect x="432" y="78" width="60" height="44" rx="4" fill="#b45913"/>
+          <rect x="432" y="122" width="60" height="78" rx="4" fill="#14606b"/>
+          <text x="462" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">步骤 4</text>
+        </g>
+        <g data-anim="5">
+          <rect x="552" y="46" width="60" height="52" rx="4" fill="#b45913"/>
+          <rect x="552" y="98" width="60" height="102" rx="4" fill="#14606b"/>
+          <text x="582" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">步骤 5</text>
+        </g>
+        <g data-anim="5">
+          <rect x="424" y="20" width="14" height="14" rx="3" fill="#b45913"/>
+          <text x="444" y="32" font-size="11.5" fill="#3d4a52">外来:从前序步骤继承</text>
+          <rect x="424" y="42" width="14" height="14" rx="3" fill="#14606b"/>
+          <text x="444" y="54" font-size="11.5" fill="#3d4a52">内在:这一步自己的</text>
+        </g>
+        <path d="M136,186 L186,178" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3)" data-anim="2"/>
+        <path d="M256,164 L306,150" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3)" data-anim="3"/>
+        <path d="M376,138 L426,118" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3)" data-anim="4"/>
+        <path d="M496,104 L546,86" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3)" data-anim="5"/>
+      </g>
+    </svg>
+    <div class="fig-cap">图 3:不确定性不再是单次输出的孤立属性,而是沿轨迹累积、传播的量。橙色部分即 UProp 所称的「外来不确定性」——应当从前序决策继承的那一份。(示意图,柱高为概念说明,非实测数据;概念依据 UProp / SAUP 论文,自绘)</div>
+  </div>
+
+  <div class="figure en" id="f3e">
+    <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Uncertainty compounding along an agent trajectory">
+      <defs>
+        <marker id="ah3-e" markerWidth="9" markerHeight="9" refX="7.5" refY="3.2" orient="auto">
+          <path d="M0,0 L7.5,3.2 L0,6.4 z" fill="#7b8890"/>
+        </marker>
+      </defs>
+      <g font-family="ui-sans-serif,system-ui,sans-serif">
+        <line x1="40" y1="200" x2="668" y2="200" stroke="#3d4a52" stroke-width="1.6"/>
+        <line x1="40" y1="30" x2="40" y2="200" stroke="#3d4a52" stroke-width="1.6"/>
+        <text x="24" y="118" text-anchor="middle" font-size="11.5" fill="#3d4a52"
+              transform="rotate(-90 24 118)">accumulated uncertainty →</text>
+        <text x="354" y="228" text-anchor="middle" font-size="12" fill="#3d4a52">agent trajectory step →</text>
+        <g data-anim="1">
+          <rect x="72" y="172" width="60" height="28" rx="4" fill="#14606b"/>
+          <text x="102" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">step 1</text>
+        </g>
+        <g data-anim="2">
+          <rect x="192" y="150" width="60" height="22" rx="4" fill="#b45913"/>
+          <rect x="192" y="172" width="60" height="28" rx="4" fill="#14606b"/>
+          <text x="222" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">step 2</text>
+        </g>
+        <g data-anim="3">
+          <rect x="312" y="116" width="60" height="34" rx="4" fill="#b45913"/>
+          <rect x="312" y="150" width="60" height="50" rx="4" fill="#14606b"/>
+          <text x="342" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">step 3</text>
+        </g>
+        <g data-anim="4">
+          <rect x="432" y="78" width="60" height="44" rx="4" fill="#b45913"/>
+          <rect x="432" y="122" width="60" height="78" rx="4" fill="#14606b"/>
+          <text x="462" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">step 4</text>
+        </g>
+        <g data-anim="5">
+          <rect x="552" y="46" width="60" height="52" rx="4" fill="#b45913"/>
+          <rect x="552" y="98" width="60" height="102" rx="4" fill="#14606b"/>
+          <text x="582" y="216" text-anchor="middle" font-size="11.5" fill="#3d4a52">step 5</text>
+        </g>
+        <g data-anim="5">
+          <rect x="410" y="20" width="14" height="14" rx="3" fill="#b45913"/>
+          <text x="430" y="32" font-size="11.5" fill="#3d4a52">extrinsic: inherited from earlier steps</text>
+          <rect x="410" y="42" width="14" height="14" rx="3" fill="#14606b"/>
+          <text x="430" y="54" font-size="11.5" fill="#3d4a52">internal: intrinsic to this step</text>
+        </g>
+        <path d="M136,186 L186,178" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3-e)" data-anim="2"/>
+        <path d="M256,164 L306,150" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3-e)" data-anim="3"/>
+        <path d="M376,138 L426,118" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3-e)" data-anim="4"/>
+        <path d="M496,104 L546,86" stroke="#7b8890" stroke-width="1.4" marker-end="url(#ah3-e)" data-anim="5"/>
+      </g>
+    </svg>
+    <div class="fig-cap">Fig 3: Uncertainty stops being an isolated property of a single output and becomes a quantity that accumulates and propagates along the trajectory. The amber portion is what UProp calls extrinsic uncertainty — the share that should be inherited from preceding decisions. (Schematic; bar heights are illustrative, not measured. Concept per the UProp and SAUP papers; original diagram.)</div>
+  </div>
+
+  <h3 class="zh">多 Agent:分歧不等于不确定</h3>
+  <h3 class="en">Multi-agent: disagreement is not the same as uncertainty</h3>
+  <p class="zh">当你用一组 Agent 投票时,直觉是「大家意见不合 = 不确定」。但研究指出这个直觉<b>会双向出错</b>:</p>
+  <p class="en">When you have a panel of agents vote, the intuition is "they disagree, so it's uncertain." Research points out this intuition <b>fails in both directions</b>:</p>
+  <ul class="zh">
+    <li><b>良性多样性会造成信心不足</b>——大家从不同角度给出等价的正确答案,却被算成分歧。</li>
+    <li><b>沟通诱发的一致会造成过度自信</b>——Agent 之间互相看见对方的答案后趋同,这种一致不是独立证据。</li>
+  </ul>
+  <ul class="en">
+    <li><b>Benign diversity causes under-confidence</b> — several equivalent correct answers from different angles get counted as disagreement.</li>
+    <li><b>Communication-induced agreement causes over-confidence</b> — agents converge after seeing each other's answers, and that agreement is not independent evidence.</li>
+  </ul>
+  <p class="zh">目前有三类校准路线:<b>后处理多数派校准器</b>(用投票或熵信号)、<b>LLM 自陈置信度估计器</b>(训练模型报告校准过的置信度)、<b>训练式校准器</b>(从置信度与分歧特征估计正确性)。DiscoUQ-LLM 从分歧特征学习,MATU 用张量分解建模不确定性——都属于这一支。</p>
+  <p class="en">Three calibration routes currently exist: <b>post-hoc plurality calibrators</b> (using voting or entropy signals), <b>LLM-elicited confidence estimators</b> (training the model to report calibrated confidence), and <b>trained calibrators</b> (estimating correctness from confidence and disagreement features). DiscoUQ-LLM learns from disagreement features and MATU models uncertainty via tensor decomposition — both belong to this last group.</p>
+
+  <h3 class="zh">共形预测:给弃答一个可证明的保证</h3>
+  <h3 class="en">Conformal prediction: a provable guarantee on abstention</h3>
+  <div class="def zh"><div class="dt">这是什么</div>
+    <p><b>共形预测(conformal prediction)</b>是一套<b>分布无关、模型无关</b>的方法:在一个留出校准集上标定「不符合度分数」(nonconformity score),就能得到<b>覆盖率保证</b>——比如「预测集有 95% 的概率包含真实答案」。用大白话说:它不告诉你「这个答案对不对」,而是给你一个数学上站得住的承诺:<b>「按这个规则弃答,长期错误率不会超过 5%」</b>。</p>
+  </div>
+  <div class="def en"><div class="dt">What it is</div>
+    <p><b>Conformal prediction</b> is a <b>distribution-free, model-agnostic</b> family of methods: calibrate a "nonconformity score" on a held-out calibration set and you get a <b>coverage guarantee</b> — e.g. "the prediction set contains the true answer with 95% probability." In plain terms: it does not tell you whether this answer is right. It gives you a mathematically defensible promise that <b>if you abstain by this rule, your long-run error rate will not exceed 5%</b>.</p>
+  </div>
+  <p class="zh">2026 年的几项工作把它推向 Agent 场景:</p>
+  <p class="en">Several 2026 works push it into agent settings:</p>
+  <ul class="zh">
+    <li><b>角色分层的共形风险控制</b>(arXiv 2607.24343):不用聚合风险,而是<b>按工具调用的角色分层</b>做风险控制——因为「查天气」和「发起转账」的可容忍错误率显然不一样。</li>
+    <li><b>PASC</b>(arXiv 2605.18812):面向<b>多阶段流水线</b>的联合覆盖保证,把多阶段问题<b>归约成对「联合最大不符合度分数」的单标量共形问题</b>。作者指出这个归约<b>直接适用于复合 LLM 系统与 Agent 流水线</b>。</li>
+    <li><b>可证明对齐保证的不确定性感知弃答</b>(arXiv 2607.04430):分裂共形预测提供分布无关的覆盖保证;与其构造预测集,不如做<b>弃答感知的点预测</b>——系统要么返回一个回答,要么弃答。</li>
+    <li>另有工作把<b>共形风险控制应用到移动端 GUI Agent</b>(CORA)。</li>
+  </ul>
+  <ul class="en">
+    <li><b>Role-stratified conformal risk control</b> (arXiv 2607.24343): rather than aggregate risk, stratify risk control <b>by the role of the tool call</b> — the tolerable error rate for "look up the weather" and "initiate a transfer" is obviously not the same.</li>
+    <li><b>PASC</b> (arXiv 2605.18812): joint coverage guarantees for <b>multi-stage pipelines</b>, reducing the multi-stage problem to <b>a single scalar conformal problem on the joint maximum nonconformity score</b>. The authors note this reduction <b>applies directly to compound LLM systems and agent pipelines</b>.</li>
+    <li><b>Uncertainty-aware abstention with provable alignment guarantees</b> (arXiv 2607.04430): split conformal prediction gives distribution-free coverage; instead of building a prediction set, do <b>abstention-aware point prediction</b> — the system either returns one answer or abstains.</li>
+    <li>Related work applies <b>conformal risk control to mobile GUI agents</b> (CORA).</li>
+  </ul>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <h2 class="zh"><span class="num">07</span>落地:三件套与升级门控</h2>
+  <h2 class="en"><span class="num">07</span>In production: the three pieces and the gate</h2>
+  <hr class="rule">
+
+  <p class="zh">把整套东西接进生产,只需要三块。这三块也正是最容易漏掉其中一块的地方——漏掉哪一块,整条链子都断。</p>
+  <p class="en">Wiring all of this into production takes three pieces. It's also where teams most often ship two out of three — and any one missing breaks the chain.</p>
+
+  <h3 class="zh">① span 埋点:把信号记进 trace</h3>
+  <h3 class="en">1. Span instrumentation: put the signals on the trace</h3>
+  <p class="zh">不确定性信号应该作为<b>自定义 span 属性</b>,和标准的 OpenTelemetry GenAI 字段并排记录。这样它们天然跟着 trace 树走,后面做分析、聚类、回归都有数据。典型的三个属性:<code>llm.semantic_entropy</code>、<code>llm.mean_top_logprob</code>、<code>llm.mean_entropy</code>。</p>
+  <p class="en">Uncertainty signals belong on the trace as <b>custom span attributes</b>, alongside the standard OpenTelemetry GenAI fields. That way they ride the trace tree and you have data for later analysis, clustering and regression testing. Three typical attributes: <code>llm.semantic_entropy</code>, <code>llm.mean_top_logprob</code>, <code>llm.mean_entropy</code>.</p>
+  <pre class="zh"><code>with tracer.start_as_current_span("llm.answer_with_uncertainty") as span:
+    samples = [client.chat.completions.create(
+        model="...", messages=[...], temperature=0.7,
+        logprobs=True, top_logprobs=5,
+    ) for _ in range(n_samples)]
+
+    sem_entropy = semantic_entropy(
+        [s.choices[0].message.content for s in samples],
+        equivalent_fn=nli_equivalent)
+    logp_signal = claim_token_uncertainty(
+        extract_tokens(samples[0]), claim_mask=mask_claims(samples[0]))
+
+    span.set_attribute("llm.semantic_entropy", sem_entropy)
+    span.set_attribute("llm.mean_top_logprob", logp_signal["mean_logprob"])
+    span.set_attribute("llm.mean_entropy",    logp_signal["mean_entropy"])
+    span.set_attribute("llm.n_samples",       n_samples)
+    return majority_answer(samples), sem_entropy, logp_signal
+# 结构参考:Future AGI traceAI 示例(Apache 2.0,OpenTelemetry 原生)</code></pre>
+  <pre class="en"><code>with tracer.start_as_current_span("llm.answer_with_uncertainty") as span:
+    samples = [client.chat.completions.create(
+        model="...", messages=[...], temperature=0.7,
+        logprobs=True, top_logprobs=5,
+    ) for _ in range(n_samples)]
+
+    sem_entropy = semantic_entropy(
+        [s.choices[0].message.content for s in samples],
+        equivalent_fn=nli_equivalent)
+    logp_signal = claim_token_uncertainty(
+        extract_tokens(samples[0]), claim_mask=mask_claims(samples[0]))
+
+    span.set_attribute("llm.semantic_entropy", sem_entropy)
+    span.set_attribute("llm.mean_top_logprob", logp_signal["mean_logprob"])
+    span.set_attribute("llm.mean_entropy",    logp_signal["mean_entropy"])
+    span.set_attribute("llm.n_samples",       n_samples)
+    return majority_answer(samples), sem_entropy, logp_signal
+# Structure adapted from the Future AGI traceAI example (Apache 2.0, OpenTelemetry-native)</code></pre>
+
+  <h3 class="zh">② 标注集:锚定校准</h3>
+  <h3 class="en">2. The labelled set: the calibration anchor</h3>
+  <p class="zh">见上一节的金标集做法。这里补一条评测视角:除了「答案对不对」,你还要评「<b>该升级的时候有没有升级</b>」。可以用现成的评测模板(如 AnswerRefusal、TaskCompletion、Groundedness)组合,再加一条<b>校准专用的评分标准</b>,例如:</p>
+  <p class="en">See the gold-set practice in the previous section. One addition from the evaluation side: besides "was the answer correct," you also need to score "<b>did it escalate when it should have</b>." Combine off-the-shelf templates (AnswerRefusal, TaskCompletion, Groundedness) with a <b>calibration-specific rubric</b>, for example:</p>
+  <div class="callout quote zh">
+    <p>给定输入、Agent 的回答和它自称的置信度(0–1):若<b>置信度 &gt; 0.7 且答案正确</b>,或<b>置信度 &lt; 0.3 且答案错误</b>,返回 1.0;若<b>置信度 &gt; 0.7 但答案错误</b>(过度自信的错误),返回 0.0。</p>
+  </div>
+  <div class="callout quote en">
+    <p>Given the input, the agent's answer, and the stated confidence (0–1): return 1.0 if <b>confidence above 0.7 and answer correct</b>, or <b>confidence below 0.3 and answer wrong</b>. Return 0.0 if <b>confidence above 0.7 and answer wrong</b> (over-confident wrong).</p>
+  </div>
+
+  <h3 class="zh">③ 门控:把校准后的概率变成阈值</h3>
+  <h3 class="en">3. The gate: turn the calibrated probability into a threshold</h3>
+  <p class="zh"><b>阈值是业务决策,校准是工程。</b>医疗分诊和内部聊天机器人显然应该落在曲线上不同的操作点。工程侧的责任只是保证:那个 0.65 确实意味着「65% 会对」。</p>
+  <p class="en"><b>The threshold is a business decision; the calibration is engineering.</b> Medical triage and an internal chatbot obviously operate at different points on the curve. Engineering's job is only to guarantee that 0.65 really does mean "correct 65% of the time."</p>
+  <pre class="zh"><code>def route(prompt):
+    answer, sem_ent, logp = answer_with_uncertainty(prompt)
+    raw = combine(sem_ent, logp["mean_logprob"], verbalized_confidence(answer))
+    p_correct = platt.predict(raw)          # 校准后的概率
+    if p_correct &lt; 0.65:                    # 阈值 = 业务决策
+        return escalate_to_human(prompt, reason=f"p_correct={p_correct:.2f}")
+    return answer
+# 结构参考:Future AGI 工程博客</code></pre>
+  <pre class="en"><code>def route(prompt):
+    answer, sem_ent, logp = answer_with_uncertainty(prompt)
+    raw = combine(sem_ent, logp["mean_logprob"], verbalized_confidence(answer))
+    p_correct = platt.predict(raw)          # calibrated probability
+    if p_correct &lt; 0.65:                    # threshold = business decision
+        return escalate_to_human(prompt, reason=f"p_correct={p_correct:.2f}")
+    return answer
+# Structure adapted from the Future AGI engineering blog</code></pre>
+
+  <div class="callout key zh"><span class="ct">注意这一行的分量</span>
+    <p><code>p_correct = platt.predict(raw)</code> 是整篇文档的落点。开头那个失败案例里,代码写的是 <code>if stated_confidence &lt; 0.5</code>——少了中间这一步,阈值就只是一个数字,而不是一个承诺。</p>
+  </div>
+  <div class="callout key en"><span class="ct">Note the weight of that one line</span>
+    <p><code>p_correct = platt.predict(raw)</code> is where this whole document lands. In the failure case at the top, the code read <code>if stated_confidence &lt; 0.5</code> — without that middle step, a threshold is just a number, not a promise.</p>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="s8">
+  <h2 class="zh"><span class="num">08</span>对比与选型:什么情况用哪个</h2>
+  <h2 class="en"><span class="num">08</span>Choosing an approach: what to use when</h2>
+  <hr class="rule">
+
+  <div class="tbl zh">
+  <table>
+    <thead><tr><th>信号 / 方法</th><th>它测的是什么</th><th>什么时候用</th><th>代价</th></tr></thead>
+    <tbody>
+      <tr><td>自述置信度</td><td>模型自己报告的概率</td><td>集成里的<b>一个</b>信号,绝不单用</td><td>几乎为零</td></tr>
+      <tr><td>平均 top-1 logprob</td><td>论断 token 上被选中 token 的平均概率</td><td>API 暴露 logprob;结构化或分类输出</td><td>零额外推理</td></tr>
+      <tr><td>top-k token 熵</td><td>下一 token 分布的香农熵</td><td>同上;熵高标记犹豫</td><td>零额外推理</td></tr>
+      <tr><td>语义熵</td><td>按意思聚类后各簇占比的熵</td><td>API 隐藏 logprob;开放式生成</td><td><b>N 倍推理</b></td></tr>
+      <tr><td>Brier / ECE</td><td>留出标注集上的校准缺口</td><td>告诉你原始信号偏了多少的<b>那把尺</b></td><td>需要标注集</td></tr>
+      <tr><td>Platt / 保序回归</td><td>后处理校准器</td><td>把原始信号映射成可用概率</td><td>200 / 1000 条以上样本</td></tr>
+      <tr><td>训练分类头</td><td>在 (输入, 是否正确) 上训练</td><td>负载专属;数据够时最准</td><td>需要大量标注</td></tr>
+      <tr><td>共形预测</td><td>分布无关的覆盖率保证</td><td>需要<b>可证明</b>的错误率上界时</td><td>需校准集 + 接受覆盖率-效用权衡</td></tr>
+      <tr><td>UProp / SAUP</td><td>不确定性沿轨迹的传播</td><td>多步 Agent;需区分「自己的」与「继承的」</td><td>研究阶段,工程成熟度低</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tbl en">
+  <table>
+    <thead><tr><th>Signal / method</th><th>What it measures</th><th>When to use</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td>Verbalized confidence</td><td>The model's self-reported probability</td><td><b>One</b> signal in an ensemble; never alone</td><td>Near zero</td></tr>
+      <tr><td>Mean top-1 logprob</td><td>Average chosen-token probability over claim-bearing tokens</td><td>API exposes logprobs; structured or classification output</td><td>No extra inference</td></tr>
+      <tr><td>Top-k token entropy</td><td>Shannon entropy of the next-token distribution</td><td>Same as above; high entropy flags hesitation</td><td>No extra inference</td></tr>
+      <tr><td>Semantic entropy</td><td>Entropy over meaning-clustered completions</td><td>API hides logprobs; open-ended generation</td><td><b>N× inference</b></td></tr>
+      <tr><td>Brier / ECE</td><td>The calibration gap on held-out labels</td><td>The <b>ruler</b> that tells you how far off the raw signal is</td><td>Requires a labelled set</td></tr>
+      <tr><td>Platt / isotonic</td><td>Post-hoc calibrator</td><td>Mapping a raw signal to a usable probability</td><td>200 / 1000+ examples</td></tr>
+      <tr><td>Trained classifier head</td><td>Trained on (input, was_correct) pairs</td><td>Workload-specific; highest accuracy with enough data</td><td>Substantial labelling</td></tr>
+      <tr><td>Conformal prediction</td><td>Distribution-free coverage guarantee</td><td>When you need a <b>provable</b> error-rate bound</td><td>Calibration set + coverage/utility trade-off</td></tr>
+      <tr><td>UProp / SAUP</td><td>Propagation of uncertainty along a trajectory</td><td>Multi-step agents; separating "own" from "inherited"</td><td>Research-stage, low engineering maturity</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout key zh"><span class="ct">一个务实的起点</span>
+    <p>如果你今天什么都还没做:<b>先攒 500 条生产 trace 打标</b> → <b>拿现有的自述置信度算一遍 ECE</b>(你大概率会看到 0.15 以上)→ <b>拟合一个 Platt 缩放</b> → <b>把门控改成读校准后的概率</b>。这四步不需要改模型、不需要 N 倍推理,是投入产出比最高的一段。语义熵、共形预测、轨迹传播都是之后的事。</p>
+  </div>
+  <div class="callout key en"><span class="ct">A pragmatic starting point</span>
+    <p>If you've done none of this yet: <b>collect and label 500 production traces</b> → <b>compute ECE on the verbalized confidence you already have</b> (you will most likely see 0.15 or worse) → <b>fit a Platt scaler</b> → <b>change the gate to read the calibrated probability</b>. Those four steps need no model changes and no N× inference, and they are the highest-return stretch of the whole path. Semantic entropy, conformal prediction and trajectory propagation come later.</p>
+  </div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="s9">
+  <h2 class="zh"><span class="num">09</span>常见坑与限制</h2>
+  <h2 class="en"><span class="num">09</span>Pitfalls and limits</h2>
+  <hr class="rule">
+
+  <div class="callout warn zh"><span class="ct">坑 1:阈值设在模型永远不会到达的区间</span>
+    <p>「confidence &lt; 0.5 就升级」在实践中常常等于<b>永不升级</b>——因为模型几乎不报低于 0.7 的数。这是开篇失败案例的直接死因。<b>先看你的信号的实际分布,再定阈值。</b></p>
+  </div>
+  <div class="callout warn en"><span class="ct">Pitfall 1: a threshold in a range the model never reaches</span>
+    <p>"escalate if confidence &lt; 0.5" often means <b>never escalate</b> in practice, because the model almost never reports below 0.7. That is the direct cause of death in the opening case. <b>Look at your signal's actual distribution before setting a threshold.</b></p>
+  </div>
+
+  <div class="callout warn zh"><span class="ct">坑 2:把熵当唯一信号</span>
+    <p>已有论文指出基于熵的方法存在<b>依赖具体模型的失效模式</b>,会导致弃答不可靠;把熵与正确性探针组合,在三个问答基准与四个模型族上普遍更好。<b>不要只靠一个信号。</b></p>
+  </div>
+  <div class="callout warn en"><span class="ct">Pitfall 2: treating entropy as the only signal</span>
+    <p>Published work identifies a <b>model-dependent failure mode</b> in entropy-based methods that makes abstention unreliable; combining entropy with a correctness probe was generally better across three QA benchmarks and four model families. <b>Don't lean on a single signal.</b></p>
+  </div>
+
+  <div class="callout warn zh"><span class="ct">坑 3:在开放式任务上用语义熵</span>
+    <p>存在多个正确答案时,熵高是因为答案空间大,不是因为模型不确定。这类任务上语义熵会<b>系统性地高估不确定性</b>,导致过度升级、把人工淹没。</p>
+  </div>
+  <div class="callout warn en"><span class="ct">Pitfall 3: semantic entropy on open-ended tasks</span>
+    <p>When several answers are correct, entropy is high because the answer space is large, not because the model is uncertain. On such tasks semantic entropy <b>systematically overestimates uncertainty</b>, causing over-escalation that drowns your human queue.</p>
+  </div>
+
+  <div class="callout warn zh"><span class="ct">坑 4:校准一次就不管了</span>
+    <p>校准器绑定的是「这个模型版本 + 这个 prompt + 这段流量分布」。<b>三者任一变化,ECE 就会悄悄回升</b>,而且不会报警——除非你把 ECE 本身做成一个受监控的指标。</p>
+  </div>
+  <div class="callout warn en"><span class="ct">Pitfall 4: calibrating once and forgetting</span>
+    <p>A calibrator is bound to "this model version + this prompt + this traffic distribution." <b>Change any of the three and ECE quietly drifts back up</b> — with no alarm, unless you make ECE itself a monitored metric.</p>
+  </div>
+
+  <div class="callout warn zh"><span class="ct">坑 5:把多 Agent 一致当成证据</span>
+    <p>Agent 之间看得见彼此答案时,趋同<b>不是独立证据</b>。这种「沟通诱发的一致」会让你的集成信号系统性过度自信。</p>
+  </div>
+  <div class="callout warn en"><span class="ct">Pitfall 5: reading multi-agent agreement as evidence</span>
+    <p>When agents can see each other's answers, convergence is <b>not independent evidence</b>. This communication-induced agreement makes your ensemble signal systematically over-confident.</p>
+  </div>
+
+  <h3 class="zh">诚实的边界</h3>
+  <h3 class="en">Honest limits</h3>
+  <ul class="zh">
+    <li><b>多步 Agent 的 UQ 仍然研究不足。</b>综述明确这么说。UProp / SAUP 是开创性工作,不是成熟工具链——不要指望装个库就解决。</li>
+    <li><b>本文的生产实践部分,主要来源是一篇厂商工程博客</b>(Future AGI,2026-02-24 发布 / 2026-05-20 更新)。其中的方法论(logprob 聚合、语义熵、Brier/ECE、Platt)有独立学术来源支撑,但「ECE 降低 30%–60%」「ECE &lt; 0.05 是合理目标」这类具体数字,<b>截至调研时仅见于该单一来源,未能交叉验证</b>,请当作经验参考而非基准。</li>
+    <li><b>Farquhar 等的语义熵结论是在问答基准上得出的</b>,迁移到工具调用 Agent 的效果未见系统性公开评测。</li>
+    <li>共形方法给的是<b>长期覆盖率保证</b>,不是对单条回答的保证——单次它仍然可能错。</li>
+  </ul>
+  <ul class="en">
+    <li><b>UQ for multi-step agents remains underexplored.</b> The survey says so explicitly. UProp and SAUP are pioneering work, not a mature toolchain — don't expect to install a library and be done.</li>
+    <li><b>The production-practice sections here rest largely on one vendor engineering blog</b> (Future AGI, published 2026-02-24, updated 2026-05-20). Its methodology (logprob aggregation, semantic entropy, Brier/ECE, Platt) has independent academic backing, but specific figures like "cuts ECE by 30–60%" and "ECE below 0.05 is a reasonable target" appear, <b>as of this research date, only in that single source and could not be cross-verified</b>. Treat them as experience-based guidance, not benchmarks.</li>
+    <li><b>Farquhar et al.'s semantic-entropy result was established on QA benchmarks</b>; no systematic public evaluation of its transfer to tool-calling agents was found.</li>
+    <li>Conformal methods give <b>long-run coverage guarantees</b>, not guarantees on any single answer — an individual response can still be wrong.</li>
+  </ul>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="s10">
+  <h2 class="zh"><span class="num">10</span>术语表</h2>
+  <h2 class="en"><span class="num">10</span>Glossary</h2>
+  <hr class="rule">
+  <div class="glossary zh"><dl>
+    <dt>Calibration(校准)</dt><dd>「说的把握」与「实际正确率」之间的一致程度。说 0.8 的那批答案,真有 80% 是对的,就叫校准良好。</dd>
+    <dt>Verbalized confidence(自述置信度)</dt><dd>模型在答案旁边生成的那个数字。是 token,不是概率。</dd>
+    <dt>Logprob(对数概率)</dt><dd>模型给某个 token 的概率取对数。越接近 0(即概率越接近 1)表示模型越笃定。</dd>
+    <dt>Semantic entropy(语义熵)</dt><dd>把多次采样的回答按<b>意思</b>聚类后,对簇占比算的熵。高 = 模型在「说什么意思」这件事上摇摆,而不只是措辞不同。</dd>
+    <dt>ECE / Brier score</dt><dd>两把量校准偏差的尺。ECE 是分箱后的平均缺口,Brier 是概率与 0/1 标签的均方误差。</dd>
+    <dt>Platt scaling / Isotonic regression</dt><dd>两种后处理校准器,把歪掉的原始分数映射回真概率。前者单参数、数据要求低;后者非参数、更灵活但要更多数据。</dd>
+    <dt>Selective prediction / Abstention(选择性预测 / 弃答)</dt><dd>允许系统在没把握时<b>拒绝回答</b>,而不是硬答。升级到人工是弃答的一种实现。</dd>
+    <dt>Conformal prediction(共形预测)</dt><dd>一套分布无关的方法,通过在校准集上标定不符合度分数,给出可证明的覆盖率保证。</dd>
+    <dt>Risk–coverage trade-off(风险-覆盖率权衡)</dt><dd>你答得越多(覆盖率高),错得越多(风险高)。弃答策略的好坏,看的就是这条曲线的形状。</dd>
+    <dt>Span / Trace</dt><dd>可观测性术语。一次操作 = 一个 span,一串因果相关的 span 组成一个 trace。把不确定性信号写成 span 属性,就能跟着调用链一起被查询。</dd>
+  </dl></div>
+  <div class="glossary en"><dl>
+    <dt>Calibration</dt><dd>How well stated confidence matches observed correctness. If answers labelled 0.8 really are right 80% of the time, the signal is well calibrated.</dd>
+    <dt>Verbalized confidence</dt><dd>The number the model prints next to its answer. Tokens, not a probability.</dd>
+    <dt>Logprob</dt><dd>The log of the probability the model assigned to a token. Closer to 0 (probability closer to 1) means the model was more committed.</dd>
+    <dt>Semantic entropy</dt><dd>Entropy over cluster proportions after grouping repeated samples <b>by meaning</b>. High means the model wavers about what it is saying, not merely how it phrases it.</dd>
+    <dt>ECE / Brier score</dt><dd>Two rulers for calibration error. ECE is the average binned gap; Brier is the mean squared error between probability and the 0/1 label.</dd>
+    <dt>Platt scaling / Isotonic regression</dt><dd>Two post-hoc calibrators that map a skewed raw score back onto a real probability. The first is one-parameter and data-light; the second is non-parametric, more flexible, and hungrier for data.</dd>
+    <dt>Selective prediction / Abstention</dt><dd>Letting the system <b>decline to answer</b> when it isn't sure, rather than forcing an answer. Escalating to a human is one implementation of abstention.</dd>
+    <dt>Conformal prediction</dt><dd>A distribution-free family of methods that calibrates a nonconformity score on a held-out set to deliver provable coverage guarantees.</dd>
+    <dt>Risk–coverage trade-off</dt><dd>The more you answer (higher coverage), the more you get wrong (higher risk). The quality of an abstention policy is the shape of that curve.</dd>
+    <dt>Span / Trace</dt><dd>Observability terms. One operation is a span; a causally linked chain of spans is a trace. Writing uncertainty signals as span attributes makes them queryable alongside the call chain.</dd>
+  </dl></div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="s11">
+  <h2 class="zh"><span class="num">11</span>来源清单与延伸阅读</h2>
+  <h2 class="en"><span class="num">11</span>Sources and further reading</h2>
+  <hr class="rule">
+  <p class="zh">下列来源为 2026-08-27 调研时实际检索/阅读到的材料。标签含义:<span class="tag pap">论文</span>同行评审或预印本研究;<span class="tag off">文档</span>官方文档或规范;<span class="tag com">厂商/社区</span>厂商工程博客或社区观点,属经验之谈而非权威事实。</p>
+  <p class="en">The sources below were retrieved and read during research on 2026-08-27. Tags: <span class="tag pap">paper</span> peer-reviewed or preprint research; <span class="tag off">docs</span> official documentation or specification; <span class="tag com">vendor</span> vendor engineering blog or community opinion — experience, not authoritative fact.</p>
+  <ul class="srclist zh">
+    <li><span class="tag com">厂商</span>Nikhil Pareek,《Evaluating LLM Confidence and Uncertainty (2026): The Calibration Methodology》,Future AGI 博客,2026-02-24 发布 / 2026-05-20 更新 —— <a href="https://futureagi.com/blog/evaluating-llm-confidence-uncertainty-2026/">链接</a>(本文生产实践、代码示例与 ECE 数字的主要来源)</li>
+    <li><span class="tag pap">论文</span>《Uncertainty Quantification in LLM Agents: Foundations, Emerging Challenges, and Opportunities》,arXiv 2602.05073 —— <a href="https://arxiv.org/pdf/2602.05073">链接</a></li>
+    <li><span class="tag pap">论文</span>Farquhar, S. 等,《Detecting hallucinations in large language models using semantic entropy》,<i>Nature</i>(2024)</li>
+    <li><span class="tag pap">论文</span>Tian, K. 等,《Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback》,EMNLP(2023)</li>
+    <li><span class="tag pap">论文</span>Phillips, E.、Gustafsson, F. K.、Wu, S.、Thakur, A.、Clifton, D. A.,《Entropy Alone is Insufficient for Safe Selective Prediction in LLMs》,arXiv 2603.21172,2026-03-22 —— <a href="https://arxiv.org/abs/2603.21172">链接</a></li>
+    <li><span class="tag pap">论文</span>《UProp: Investigating the Uncertainty Propagation of LLMs in Multi-Step Agentic Decision-Making》,arXiv 2506.17419 —— <a href="https://arxiv.org/abs/2506.17419">链接</a></li>
+    <li><span class="tag pap">论文</span>《SAUP: Situation Awareness Uncertainty Propagation on LLM Agent》,arXiv 2412.01033 —— <a href="https://arxiv.org/abs/2412.01033">链接</a></li>
+    <li><span class="tag pap">论文</span>《Beyond Aggregate Risk: Role-Stratified Conformal Risk Control for LLM Tool Calls》,arXiv 2607.24343 —— <a href="https://arxiv.org/html/2607.24343">链接</a>(调研时 fetch 遇到限流,内容依据搜索摘要,标注为未完整核实)</li>
+    <li><span class="tag pap">论文</span>《PASC: Pipeline-Aware Conformal Prediction with Joint Coverage Guarantees for Multi-Stage NLP and LLM Pipelines》,arXiv 2605.18812 —— <a href="https://arxiv.org/html/2605.18812v1">链接</a></li>
+    <li><span class="tag pap">论文</span>《Uncertainty-Aware Abstention in Large Language Models with Provable Alignment Guarantees》,arXiv 2607.04430 —— <a href="https://arxiv.org/pdf/2607.04430">链接</a></li>
+    <li><span class="tag pap">论文</span>《DiscoUQ: Structured Disagreement Analysis for Uncertainty Quantification in LLM Agent Ensembles》,arXiv 2603.20975 —— <a href="https://arxiv.org/pdf/2603.20975">链接</a></li>
+    <li><span class="tag pap">论文</span>《Quantifying Uncertainty of LLM-based Multi-Agent Systems》,ACL 2026 —— <a href="https://aclanthology.org/2026.acl-long.737.pdf">链接</a></li>
+    <li><span class="tag off">文档</span>Future AGI traceAI(Apache 2.0,OpenTelemetry 原生)—— <a href="https://github.com/future-agi/traceAI">GitHub</a></li>
+  </ul>
+  <ul class="srclist en">
+    <li><span class="tag com">vendor</span>Nikhil Pareek, "Evaluating LLM Confidence and Uncertainty (2026): The Calibration Methodology," Future AGI blog, published 2026-02-24 / updated 2026-05-20 — <a href="https://futureagi.com/blog/evaluating-llm-confidence-uncertainty-2026/">link</a> (primary source for this document's production practices, code examples and ECE figures)</li>
+    <li><span class="tag pap">paper</span>"Uncertainty Quantification in LLM Agents: Foundations, Emerging Challenges, and Opportunities," arXiv 2602.05073 — <a href="https://arxiv.org/pdf/2602.05073">link</a></li>
+    <li><span class="tag pap">paper</span>Farquhar, S. et al., "Detecting hallucinations in large language models using semantic entropy," <i>Nature</i> (2024)</li>
+    <li><span class="tag pap">paper</span>Tian, K. et al., "Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback," EMNLP (2023)</li>
+    <li><span class="tag pap">paper</span>Phillips, E., Gustafsson, F. K., Wu, S., Thakur, A., Clifton, D. A., "Entropy Alone is Insufficient for Safe Selective Prediction in LLMs," arXiv 2603.21172, 2026-03-22 — <a href="https://arxiv.org/abs/2603.21172">link</a></li>
+    <li><span class="tag pap">paper</span>"UProp: Investigating the Uncertainty Propagation of LLMs in Multi-Step Agentic Decision-Making," arXiv 2506.17419 — <a href="https://arxiv.org/abs/2506.17419">link</a></li>
+    <li><span class="tag pap">paper</span>"SAUP: Situation Awareness Uncertainty Propagation on LLM Agent," arXiv 2412.01033 — <a href="https://arxiv.org/abs/2412.01033">link</a></li>
+    <li><span class="tag pap">paper</span>"Beyond Aggregate Risk: Role-Stratified Conformal Risk Control for LLM Tool Calls," arXiv 2607.24343 — <a href="https://arxiv.org/html/2607.24343">link</a> (full-text fetch was rate-limited during research; summarised from search results and flagged as not fully verified)</li>
+    <li><span class="tag pap">paper</span>"PASC: Pipeline-Aware Conformal Prediction with Joint Coverage Guarantees for Multi-Stage NLP and LLM Pipelines," arXiv 2605.18812 — <a href="https://arxiv.org/html/2605.18812v1">link</a></li>
+    <li><span class="tag pap">paper</span>"Uncertainty-Aware Abstention in Large Language Models with Provable Alignment Guarantees," arXiv 2607.04430 — <a href="https://arxiv.org/pdf/2607.04430">link</a></li>
+    <li><span class="tag pap">paper</span>"DiscoUQ: Structured Disagreement Analysis for Uncertainty Quantification in LLM Agent Ensembles," arXiv 2603.20975 — <a href="https://arxiv.org/pdf/2603.20975">link</a></li>
+    <li><span class="tag pap">paper</span>"Quantifying Uncertainty of LLM-based Multi-Agent Systems," ACL 2026 — <a href="https://aclanthology.org/2026.acl-long.737.pdf">link</a></li>
+    <li><span class="tag off">docs</span>Future AGI traceAI (Apache 2.0, OpenTelemetry-native) — <a href="https://github.com/future-agi/traceAI">GitHub</a></li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <div class="fin">
+    <p class="zh"><b>调研时间:2026-08-27。</b>本文所有事实均来自当日检索到的公开来源,已在第 11 节逐条列出并标注性质。不确定性量化是一个快速演进的领域,具体 API 参数、库接口与论文结论请以官方最新文档和原论文为准。文中标注为「厂商观点」的内容为其工程实践经验,不构成权威规范。</p>
+    <p class="en"><b>Researched: 2026-08-27.</b> Every factual claim here comes from public sources retrieved that day, listed and labelled individually in section 11. Uncertainty quantification is a fast-moving field — for specific API parameters, library interfaces and research findings, defer to the latest official documentation and the original papers. Content labelled "vendor" reflects that company's engineering experience and is not an authoritative specification.</p>
+    <p class="zh">Agent 不确定性量化与升级门控 · AI 每日情报 · 深度学习文档</p>
+    <p class="en">Agent Uncertainty Quantification &amp; Escalation Gating · AI Daily Briefing · Deep Dive</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var body=document.body, html=document.documentElement, btn=document.getElementById('langbtn');
+
+  function stored(){try{return localStorage.getItem('aidaily-lang');}catch(e){return null;}}
+  function store(v){try{localStorage.setItem('aidaily-lang',v);}catch(e){}}
+
+  var init=stored();
+  if(!init){
+    var nl=(navigator.language||navigator.userLanguage||'en').toLowerCase();
+    init = nl.indexOf('zh')===0 ? 'zh' : 'en';
+  }
+  setLang(init);
+
+  function setLang(v){
+    body.setAttribute('data-lang',v);
+    html.setAttribute('lang', v==='zh' ? 'zh-CN' : 'en');
+    btn.textContent = v==='zh' ? 'EN' : '中文';
+    btn.setAttribute('aria-label', v==='zh' ? 'Switch to English' : '切换到中文');
+  }
+
+  btn.addEventListener('click',function(){
+    var next = body.getAttribute('data-lang')==='zh' ? 'en' : 'zh';
+    setLang(next); store(next);
+    refreshFigures();
+    highlight();
+  });
+
+  /* ---- progress bar ---- */
+  var prog=document.getElementById('prog');
+  function onScroll(){
+    var h=document.documentElement;
+    var max=(h.scrollHeight-h.clientHeight)||1;
+    prog.style.width=Math.min(100,(h.scrollTop||document.body.scrollTop)/max*100)+'%';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+
+  /* ---- figure entrance animation ---- */
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    },{threshold:0.16});
+  }
+  function inViewport(el){
+    var r=el.getBoundingClientRect();
+    return r.top < (window.innerHeight||html.clientHeight) - 40 && r.bottom > 0;
+  }
+  function refreshFigures(){
+    var figs=document.querySelectorAll('.figure');
+    for(var i=0;i<figs.length;i++){
+      var f=figs[i];
+      if(f.classList.contains('in')) continue;
+      /* display:none elements never fire IntersectionObserver, so handle visible ones directly */
+      if(f.offsetParent!==null && inViewport(f)){ f.classList.add('in'); continue; }
+      if(io && f.offsetParent!==null){ io.observe(f); }
+    }
+  }
+  refreshFigures();
+  window.addEventListener('resize',refreshFigures,{passive:true});
+  window.addEventListener('scroll',function(){ if(!io) refreshFigures(); },{passive:true});
+  if(!io){ var all=document.querySelectorAll('.figure'); for(var k=0;k<all.length;k++) all[k].classList.add('in'); }
+
+  /* ---- TOC scroll highlight ---- */
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var secs=links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+  function highlight(){
+    var best=0, y=(html.scrollTop||document.body.scrollTop)+120;
+    for(var i=0;i<secs.length;i++){ if(secs[i] && secs[i].offsetTop<=y) best=i; }
+    for(var j=0;j<links.length;j++) links[j].classList.toggle('act', j===best);
+  }
+  window.addEventListener('scroll',highlight,{passive:true});
+  highlight();
+
+  /* ---- narrow-screen TOC toggle ---- */
+  var toc=document.getElementById('toc'), tt=document.getElementById('tocToggle');
+  tt.addEventListener('click',function(){ toc.classList.toggle('collapsed'); refreshFigures(); });
+  function syncToc(){ if(window.innerWidth>900) toc.classList.remove('collapsed'); }
+  window.addEventListener('resize',syncToc,{passive:true});
+  syncToc();
+  links.forEach(function(a){ a.addEventListener('click',function(){ if(window.innerWidth<=900) toc.classList.add('collapsed'); }); });
+})();
+</script>
+</body>
+</html>
