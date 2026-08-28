@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>稀疏 MoE 开源模型的自托管选型 | Self-Hosting Sparse MoE Open-Weight Models</title>
+<style>
+:root{
+  --bg:#0f1117;--panel:#161a23;--panel2:#1c212c;--ink:#e8ecf4;--ink2:#b3bccd;--muted:#7d879c;
+  --line:#28303f;--acc:#5ee0b6;--acc2:#7aa2ff;--warn:#ffb454;--danger:#ff7b72;
+  --r:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.78;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+header{background:radial-gradient(1200px 400px at 15% -10%,#1d3a46 0%,transparent 60%),linear-gradient(180deg,#141824,#0f1117);
+ border-bottom:1px solid var(--line);position:relative}
+.hin{max-width:900px;margin:0 auto;padding:60px 22px 42px}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);font-weight:800;margin:0 0 12px}
+h1{font-size:clamp(26px,5.4vw,42px);line-height:1.22;margin:0 0 14px;font-weight:850;letter-spacing:-.02em}
+.lede{color:var(--ink2);font-size:17px;margin:0;max-width:66ch}
+.meta{margin-top:20px;font-size:13px;color:var(--muted)}
+#langbtn{position:absolute;top:18px;right:18px;background:var(--panel2);color:var(--ink);
+ border:1px solid var(--line);border-radius:99px;padding:7px 15px;font-size:13.5px;font-weight:750;cursor:pointer;font-family:inherit}
+#langbtn:hover{border-color:var(--acc);color:var(--acc)}
+.wrap{max-width:900px;margin:0 auto;padding:30px 22px 90px}
+nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 22px;margin-bottom:34px}
+nav.toc b{font-size:13px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+nav.toc ol{margin:10px 0 0;padding-left:20px}
+nav.toc li{margin:3px 0}
+nav.toc a{color:var(--ink2);text-decoration:none;font-size:15px}
+nav.toc a:hover{color:var(--acc)}
+section{margin:0 0 44px;scroll-margin-top:20px}
+h2{font-size:clamp(20px,3.6vw,26px);margin:0 0 6px;font-weight:820;letter-spacing:-.01em}
+h2::before{content:"";display:block;width:44px;height:3px;background:var(--acc);border-radius:2px;margin-bottom:14px}
+h3{font-size:17.5px;margin:26px 0 6px;font-weight:760;color:var(--acc2)}
+p{margin:0 0 14px}
+code{background:#232a37;padding:2px 6px;border-radius:5px;font-size:.9em;color:#ffd9a0;
+ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:#11151d;border:1px solid var(--line);border-radius:11px;padding:15px 17px;overflow-x:auto;margin:0 0 16px}
+pre code{background:none;padding:0;color:#cfe3d8;font-size:13.6px;line-height:1.65}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 21px;margin:0 0 16px}
+.callout{border-left:3px solid var(--warn);background:#221b0f;border-radius:0 11px 11px 0;padding:14px 18px;margin:0 0 16px;font-size:15.5px}
+.callout.good{border-left-color:var(--acc);background:#0f2019}
+.callout.bad{border-left-color:var(--danger);background:#241416}
+.callout b{color:var(--warn)}
+.callout.good b{color:var(--acc)}
+.callout.bad b{color:var(--danger)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:0 0 16px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--panel2);font-weight:750;color:var(--acc2);white-space:nowrap}
+figure{margin:22px 0;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 16px;
+ opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+figure.in{opacity:1;transform:none}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:13.5px;color:var(--muted);text-align:center;margin-top:12px}
+ul,ol{margin:0 0 15px;padding-left:22px}
+li{margin:5px 0}
+a{color:var(--acc2)}
+.srcs li{font-size:14.5px;color:var(--ink2)}
+footer{border-top:1px solid var(--line);margin-top:20px;padding-top:22px;font-size:13.5px;color:var(--muted)}
+@media(max-width:620px){body{font-size:16px}.hin{padding:54px 18px 34px}.wrap{padding:24px 18px 70px}#langbtn{top:12px;right:12px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 深度学习文档 · 2026-08-28 Deep Dive · 2026-08-28 稀疏 MoE 开源模型的自托管选型 Self-Hosting Sparse MoE Open-Weight Models 当开源…">
+<meta property="og:title" content="稀疏 MoE 开源模型的自托管选型 | Self-Hosting Sparse MoE Open-Weight Models">
+<meta property="og:description" content="EN 深度学习文档 · 2026-08-28 Deep Dive · 2026-08-28 稀疏 MoE 开源模型的自托管选型 Self-Hosting Sparse MoE Open-Weight Models 当开源…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-28-xi-shu-moe-zi-tuo-guan-xuan-xing.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-28-xi-shu-moe-zi-tuo-guan-xuan-xing.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "稀疏 MoE 开源模型的自托管选型 | Self-Hosting Sparse MoE Open-Weight Models", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-28-xi-shu-moe-zi-tuo-guan-xuan-xing.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-28", "dateModified": "2026-08-28"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<header>
+<button id="langbtn" type="button">EN</button>
+<div class="hin">
+  <p class="kicker zh">深度学习文档 · 2026-08-28</p>
+  <p class="kicker en">Deep Dive · 2026-08-28</p>
+  <h1 class="zh">稀疏 MoE 开源模型的自托管选型</h1>
+  <h1 class="en">Self-Hosting Sparse MoE Open-Weight Models</h1>
+  <p class="lede zh">当开源旗舰在编码基准上只落后闭源不到一个百分点、且几乎清一色是稀疏 MoE 架构时,「要不要自托管」第一次变成一道真实的工程与成本题。而 MoE 最深的陷阱是:激活参数只有 49B,显存却要按 1.6T 总参准备。</p>
+  <p class="lede en">Now that flagship open-weight models trail closed frontier models by less than a benchmark point on coding — and are almost universally sparse Mixture-of-Experts — "should we self-host?" has become a real engineering and cost question. The deepest MoE trap: only 49B parameters activate, but you still have to hold 1.6T in memory.</p>
+  <p class="meta zh">主题来源:2026-08-28 AI 每日简报「今日精选主题」 · 全文双语,右上角可切换</p>
+  <p class="meta en">Topic selected from the 2026-08-28 AI daily brief · Fully bilingual, toggle at top right</p>
+</div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <b class="zh">目录</b><b class="en">Contents</b>
+  <ol>
+    <li><a href="#s1"><span class="zh">MoE 是什么:一句话与一张图</span><span class="en">What MoE is: one sentence and one diagram</span></a></li>
+    <li><a href="#s2"><span class="zh">最贵的直觉陷阱:激活参数 ≠ 显存</span><span class="en">The expensive intuition trap: active params ≠ VRAM</span></a></li>
+    <li><a href="#s3"><span class="zh">2026 年 8 月的开源格局</span><span class="en">The open-weight landscape as of August 2026</span></a></li>
+    <li><a href="#s4"><span class="zh">怎么部署:专家并行与服务栈</span><span class="en">How to serve it: expert parallelism and the stack</span></a></li>
+    <li><a href="#s5"><span class="zh">什么场景该自托管:一棵决策树</span><span class="en">When self-hosting wins: a decision tree</span></a></li>
+    <li><a href="#s6"><span class="zh">常见坑与反模式</span><span class="en">Common pitfalls and anti-patterns</span></a></li>
+    <li><a href="#s7"><span class="zh">术语表与来源</span><span class="en">Glossary and sources</span></a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2 class="zh">1. MoE 是什么:一句话与一张图</h2>
+  <h2 class="en">1. What MoE is: one sentence and one diagram</h2>
+
+  <p class="zh"><b>一句话:</b>稀疏 Mixture-of-Experts(混合专家)把 Transformer 里的前馈层(FFN)拆成很多个并列的「专家」,每个 token 经过一个路由器(router / gate),只被送到其中少数几个专家去算,其余专家这一步完全不参与计算。</p>
+  <p class="en"><b>One sentence:</b> A sparse Mixture-of-Experts (MoE) model replaces the feed-forward layer (FFN) of a Transformer with many parallel "experts." A router (gate) sends each token to only a few of them; the rest do no work on that token at all.</p>
+
+  <p class="zh">因此一个 MoE 模型有两个必须分开记的数字:<b>总参数</b>(total parameters,决定你要装多少权重进内存)和<b>激活参数</b>(active parameters,决定单 token 前向的算力开销 FLOPs)。DeepSeek-V3 是最经典的说明:6710 亿总参,单次推理只激活约 370 亿,却达到当时前沿闭源模型级别的能力,而计算成本只是其一部分。</p>
+  <p class="en">So an MoE model has two numbers you must never conflate: <b>total parameters</b> (how much weight you have to hold in memory) and <b>active parameters</b> (the FLOPs cost of a single-token forward pass). DeepSeek-V3 is the canonical illustration: 671B total parameters, roughly 37B active per inference step, reaching frontier-class capability at a fraction of the compute cost.</p>
+
+  <figure class="zh">
+  <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MoE 路由示意图">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#5ee0b6"/>
+      </marker>
+      <marker id="ar-dim" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#3b4658"/>
+      </marker>
+    </defs>
+    <rect x="14" y="120" width="112" height="56" rx="10" fill="#1c212c" stroke="#5ee0b6"/>
+    <text x="70" y="145" fill="#e8ecf4" font-size="14" text-anchor="middle" font-weight="700">输入 token</text>
+    <text x="70" y="163" fill="#7d879c" font-size="11.5" text-anchor="middle">经注意力层后</text>
+    <line x1="128" y1="148" x2="186" y2="148" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="190" y="112" width="104" height="72" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+    <text x="242" y="140" fill="#7aa2ff" font-size="14" text-anchor="middle" font-weight="750">路由器</text>
+    <text x="242" y="158" fill="#b3bccd" font-size="11.5" text-anchor="middle">Router / Gate</text>
+    <text x="242" y="174" fill="#7d879c" font-size="11" text-anchor="middle">选 top-k 专家</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="352" y="20" width="120" height="40" rx="9" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="412" y="45" fill="#5ee0b6" font-weight="700">专家 1 ✓激活</text>
+      <rect x="352" y="72" width="120" height="40" rx="9" fill="#161a23" stroke="#28303f"/>
+      <text x="412" y="97" fill="#5a6478">专家 2 休眠</text>
+      <rect x="352" y="124" width="120" height="40" rx="9" fill="#161a23" stroke="#28303f"/>
+      <text x="412" y="149" fill="#5a6478">专家 3 休眠</text>
+      <rect x="352" y="176" width="120" height="40" rx="9" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="412" y="201" fill="#5ee0b6" font-weight="700">专家 4 ✓激活</text>
+      <rect x="352" y="228" width="120" height="40" rx="9" fill="#161a23" stroke="#28303f"/>
+      <text x="412" y="253" fill="#5a6478">… 专家 N 休眠</text>
+    </g>
+    <line x1="296" y1="138" x2="346" y2="42" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="296" y1="158" x2="346" y2="194" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="296" y1="148" x2="346" y2="94" stroke="#3b4658" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#ar-dim)"/>
+    <line x1="296" y1="150" x2="346" y2="146" stroke="#3b4658" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#ar-dim)"/>
+    <line x1="296" y1="160" x2="346" y2="246" stroke="#3b4658" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#ar-dim)"/>
+    <line x1="476" y1="42" x2="556" y2="130" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="476" y1="196" x2="556" y2="162" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="560" y="120" width="120" height="56" rx="10" fill="#1c212c" stroke="#5ee0b6"/>
+    <text x="620" y="144" fill="#e8ecf4" font-size="14" text-anchor="middle" font-weight="700">加权求和</text>
+    <text x="620" y="162" fill="#7d879c" font-size="11.5" text-anchor="middle">→ 下一层</text>
+    <rect x="14" y="232" width="300" height="52" rx="9" fill="#221b0f" stroke="#ffb454"/>
+    <text x="28" y="252" fill="#ffb454" font-size="12.5" font-weight="700">显存要装:全部 N 个专家</text>
+    <text x="28" y="272" fill="#b3bccd" font-size="12">算力只花:被激活的那 k 个</text>
+  </svg>
+  <figcaption>图 1:稀疏 MoE 的一次前向 —— 路由器只选 top-k 个专家参与计算,但所有专家的权重都必须常驻内存。</figcaption>
+  </figure>
+
+  <figure class="en">
+  <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MoE routing diagram">
+    <defs>
+      <marker id="ar-e" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#5ee0b6"/>
+      </marker>
+      <marker id="ar-dim-e" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#3b4658"/>
+      </marker>
+    </defs>
+    <rect x="14" y="120" width="112" height="56" rx="10" fill="#1c212c" stroke="#5ee0b6"/>
+    <text x="70" y="145" fill="#e8ecf4" font-size="14" text-anchor="middle" font-weight="700">Input token</text>
+    <text x="70" y="163" fill="#7d879c" font-size="11.5" text-anchor="middle">after attention</text>
+    <line x1="128" y1="148" x2="186" y2="148" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar-e)"/>
+    <rect x="190" y="112" width="104" height="72" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+    <text x="242" y="142" fill="#7aa2ff" font-size="14" text-anchor="middle" font-weight="750">Router</text>
+    <text x="242" y="160" fill="#b3bccd" font-size="11.5" text-anchor="middle">gating network</text>
+    <text x="242" y="176" fill="#7d879c" font-size="11" text-anchor="middle">picks top-k</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="352" y="20" width="120" height="40" rx="9" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="412" y="45" fill="#5ee0b6" font-weight="700">Expert 1 ✓ on</text>
+      <rect x="352" y="72" width="120" height="40" rx="9" fill="#161a23" stroke="#28303f"/>
+      <text x="412" y="97" fill="#5a6478">Expert 2 idle</text>
+      <rect x="352" y="124" width="120" height="40" rx="9" fill="#161a23" stroke="#28303f"/>
+      <text x="412" y="149" fill="#5a6478">Expert 3 idle</text>
+      <rect x="352" y="176" width="120" height="40" rx="9" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="412" y="201" fill="#5ee0b6" font-weight="700">Expert 4 ✓ on</text>
+      <rect x="352" y="228" width="120" height="40" rx="9" fill="#161a23" stroke="#28303f"/>
+      <text x="412" y="253" fill="#5a6478">… Expert N idle</text>
+    </g>
+    <line x1="296" y1="138" x2="346" y2="42" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar-e)"/>
+    <line x1="296" y1="158" x2="346" y2="194" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar-e)"/>
+    <line x1="296" y1="148" x2="346" y2="94" stroke="#3b4658" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#ar-dim-e)"/>
+    <line x1="296" y1="150" x2="346" y2="146" stroke="#3b4658" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#ar-dim-e)"/>
+    <line x1="296" y1="160" x2="346" y2="246" stroke="#3b4658" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#ar-dim-e)"/>
+    <line x1="476" y1="42" x2="556" y2="130" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar-e)"/>
+    <line x1="476" y1="196" x2="556" y2="162" stroke="#5ee0b6" stroke-width="2" marker-end="url(#ar-e)"/>
+    <rect x="560" y="120" width="120" height="56" rx="10" fill="#1c212c" stroke="#5ee0b6"/>
+    <text x="620" y="144" fill="#e8ecf4" font-size="14" text-anchor="middle" font-weight="700">Weighted sum</text>
+    <text x="620" y="162" fill="#7d879c" font-size="11.5" text-anchor="middle">→ next layer</text>
+    <rect x="14" y="232" width="320" height="52" rx="9" fill="#221b0f" stroke="#ffb454"/>
+    <text x="28" y="252" fill="#ffb454" font-size="12.5" font-weight="700">Memory holds: all N experts</text>
+    <text x="28" y="272" fill="#b3bccd" font-size="12">Compute pays: only the k that fired</text>
+  </svg>
+  <figcaption>Fig. 1 — One forward pass through a sparse MoE layer: the router activates only top-k experts, yet every expert's weights must stay resident in memory.</figcaption>
+  </figure>
+</section>
+
+<section id="s2">
+  <h2 class="zh">2. 最贵的直觉陷阱:激活参数 ≠ 显存</h2>
+  <h2 class="en">2. The expensive intuition trap: active params ≠ VRAM</h2>
+
+  <p class="zh">这是自托管 MoE 最常见、也最烧钱的误判。看到「49B 激活」,很多人下意识按 49B 稠密模型去估算硬件——大约 100GB 显存(BF16),两张 80GB 卡绰绰有余。<b>但推理时任何一个专家都可能被路由到,所以所有专家权重都必须驻留。</b>1.6T 总参在 BF16 下就是 3TB 量级的权重,即使 FP8 也在 1.6TB 量级,再叠加 KV cache 与激活值,这是一个几十张卡的集群,不是一台工作站。</p>
+  <p class="en">This is the most common and most expensive misjudgment in self-hosting MoE. Seeing "49B active," people instinctively size hardware like a 49B dense model — roughly 100 GB in BF16, comfortably two 80 GB cards. <b>But at inference any expert may be routed to, so every expert's weights must stay resident.</b> 1.6T total parameters is on the order of 3 TB of weights in BF16, still ~1.6 TB in FP8, before KV cache and activations. That is a multi-node cluster, not a workstation.</p>
+
+  <div class="callout"><b class="zh">量化的经验值:</b><span class="zh">业界普遍观察到,MoE 模型的显存占用大约是<b>同等能力稠密模型的 4~14 倍</b>。换句话说,MoE 用「内存换算力」——你省下的是 FLOPs 和延迟,付出的是容量。</span><b class="en">Rule of thumb:</b><span class="en">A MoE-based model typically consumes roughly <b>4× to 14× more memory than its dense counterpart</b> of comparable quality. MoE trades memory for compute: you save FLOPs and latency, you pay in capacity.</span></div>
+
+  <p class="zh">这带来一个反直觉的结论:<b>MoE 让「同样的钱买到更强的模型」在云端 API 上成立,但在自托管上不一定成立。</b>API 厂商用高并发把庞大的权重摊薄到成千上万个请求上;你自己跑一个 QPS 个位数的内部服务,那 3TB 权重就是纯粹的固定成本。</p>
+  <p class="en">The counter-intuitive consequence: <b>MoE's "more capability per dollar" holds for cloud APIs but not automatically for self-hosting.</b> API providers amortize those enormous weights across thousands of concurrent requests. If you run an internal service at single-digit QPS, those 3 TB of weights are pure fixed cost.</p>
+
+  <h3 class="zh">怎么算一笔粗账</h3>
+  <h3 class="en">A back-of-envelope sizing formula</h3>
+  <pre><code class="zh">权重显存 ≈ 总参数 × 每参数字节数
+   BF16 = 2 B/param  ·  FP8 = 1 B/param  ·  INT4 ≈ 0.5 B/param
+
+例:1.6T 总参
+   BF16 → ≈ 3.2 TB      FP8 → ≈ 1.6 TB      INT4 → ≈ 0.8 TB
+再加 KV cache(随 context 长度与并发数线性增长)+ 激活值 + 碎片
+   实际预留 ≈ 权重 × 1.2 ~ 1.5
+
+对比同一模型的「算力侧」:单 token FLOPs 只按 49B 激活参数算</code></pre>
+  <pre><code class="en">weight VRAM ≈ total_params × bytes_per_param
+   BF16 = 2 B/param  ·  FP8 = 1 B/param  ·  INT4 ≈ 0.5 B/param
+
+e.g. 1.6T total params
+   BF16 → ≈ 3.2 TB      FP8 → ≈ 1.6 TB      INT4 → ≈ 0.8 TB
+plus KV cache (linear in context length × concurrency) + activations + fragmentation
+   provision ≈ weights × 1.2 – 1.5
+
+Meanwhile the compute side scales with 49B active params only, not 1.6T.</code></pre>
+  <p class="zh">⚠️ 上面是量级估算,不是精确容量规划。真实数字受专家分片策略、KV cache 量化、张量并行切分方式影响很大,务必以你实际使用的推理引擎实测为准。</p>
+  <p class="en">⚠️ These are order-of-magnitude estimates, not a capacity plan. Real numbers depend heavily on expert sharding strategy, KV-cache quantization, and tensor-parallel layout — always measure on your actual serving engine.</p>
+</section>
+
+<section id="s3">
+  <h2 class="zh">3. 2026 年 8 月的开源格局</h2>
+  <h2 class="en">3. The open-weight landscape as of August 2026</h2>
+
+  <p class="zh">2026 年的一个结构性事实:<b>几乎每一个旗舰开源模型都是稀疏 MoE。</b>第三方汇总的参数规格如下(总参 / 激活参):</p>
+  <p class="en">A structural fact about 2026: <b>nearly every flagship open-weight model is a sparse MoE.</b> Specs as compiled by third-party trackers (total / active):</p>
+
+  <table class="zh">
+    <tr><th>模型</th><th>总参 / 激活参</th><th>许可</th><th>备注</th></tr>
+    <tr><td>DeepSeek V4-Pro</td><td>1.6T / 49B</td><td>MIT</td><td>SWE-bench Verified ≈ 80.6%;1M 上下文;V4-Pro-0813 于 8/13 GA</td></tr>
+    <tr><td>Mistral Large 3</td><td>675B / 41B</td><td>—</td><td>Mistral Small 4 面向 2 卡部署</td></tr>
+    <tr><td>Llama 4 Maverick</td><td>400B / 17B</td><td>—</td><td>激活参数比例极低</td></tr>
+    <tr><td>Qwen 3.5</td><td>397B / 17B</td><td>—</td><td>Qwen3.8 Max 于 8/2 发布</td></tr>
+    <tr><td>DeepSeek V4-Flash</td><td>—</td><td>MIT</td><td>宣称把近前沿能力带到 2 卡配置</td></tr>
+  </table>
+  <table class="en">
+    <tr><th>Model</th><th>Total / active</th><th>License</th><th>Notes</th></tr>
+    <tr><td>DeepSeek V4-Pro</td><td>1.6T / 49B</td><td>MIT</td><td>≈80.6% SWE-bench Verified; 1M context; V4-Pro-0813 GA on Aug 13</td></tr>
+    <tr><td>Mistral Large 3</td><td>675B / 41B</td><td>—</td><td>Mistral Small 4 targets 2-GPU setups</td></tr>
+    <tr><td>Llama 4 Maverick</td><td>400B / 17B</td><td>—</td><td>Very low active-parameter ratio</td></tr>
+    <tr><td>Qwen 3.5</td><td>397B / 17B</td><td>—</td><td>Qwen3.8 Max shipped Aug 2</td></tr>
+    <tr><td>DeepSeek V4-Flash</td><td>—</td><td>MIT</td><td>Claims near-frontier quality on 2-GPU deployments</td></tr>
+  </table>
+
+  <div class="callout"><b class="zh">数据可信度提示:</b><span class="zh">上表的分数与参数来自第三方聚合站点(llm-stats、模型对比博客等),<b>不是官方模型卡</b>。榜单口径(是否用 agent harness、是否多次采样取最优)差异极大,做选型决策前请回到官方发布页与你自己的私有评测集。</span><b class="en">Confidence note:</b><span class="en">These figures come from third-party aggregators (llm-stats, comparison blogs), <b>not official model cards</b>. Benchmark methodology varies enormously — agent harness or not, best-of-n or not. Before deciding anything, go back to official release pages and your own private eval set.</span></div>
+
+  <p class="zh">被反复引用的一句判断是:开源与闭源的能力差距「现在是以单个 benchmark 分点、而不是以代际来衡量的」。这句话在<b>编码这一个维度上</b>有数据支撑(SWE-bench Verified 上 80.6% vs 80.8%),但把它推广到长上下文推理、工具调用可靠性、多语种、安全对齐等维度是没有依据的。选型时要问的是「在<b>我的</b>任务上差多少」。</p>
+  <p class="en">The widely quoted line is that the open-versus-closed gap "is now measured in single benchmark points, not generations." That is defensible <b>on coding specifically</b> (80.6% vs 80.8% on SWE-bench Verified), but generalizing it to long-context reasoning, tool-calling reliability, multilingual quality, or safety alignment is unsupported. The question that matters is: how large is the gap <b>on your task</b>.</p>
+</section>
+
+<section id="s4">
+  <h2 class="zh">4. 怎么部署:专家并行与服务栈</h2>
+  <h2 class="en">4. How to serve it: expert parallelism and the stack</h2>
+
+  <p class="zh">通用的 LLM 服务方式无法高效处理专家路由,因此 vLLM 与 TensorRT-LLM 都在 2025 年起陆续加入了 MoE 专用优化:融合的 MoE kernel、FlashInfer 集成与 kernel autotuning、以及<b>专家并行(expert parallelism, EP)</b>——把不同专家分散到不同 GPU 上,而不是像张量并行那样把每一层横切。</p>
+  <p class="en">General-purpose LLM serving cannot handle expert routing efficiently, so both vLLM and TensorRT-LLM have been adding MoE-specific work since 2025: fused MoE kernels, FlashInfer integration with kernel autotuning, and <b>expert parallelism (EP)</b> — distributing distinct experts across GPUs rather than slicing every layer as tensor parallelism does.</p>
+
+  <h3 class="zh">三种并行方式的分工</h3>
+  <h3 class="en">How the three parallelism axes divide the work</h3>
+  <ul class="zh">
+    <li><b>张量并行 TP</b>:把单层的矩阵切开,多卡协同算一层。通信频繁,适合高速互联(NVLink)内部。</li>
+    <li><b>流水并行 PP</b>:把不同层放到不同卡,像流水线一样传。跨节点友好,但会引入气泡(bubble)。</li>
+    <li><b>专家并行 EP</b>:MoE 特有。不同专家放不同卡,路由后用 all-to-all 把 token 发到对应卡再收回。<b>负载均衡是核心难点</b>——若路由长期偏爱少数专家,那几张卡会成为瓶颈,其余卡空转。</li>
+  </ul>
+  <ul class="en">
+    <li><b>Tensor parallelism (TP)</b>: split a layer's matrices across GPUs. Communication-heavy; wants fast interconnect (NVLink) within a node.</li>
+    <li><b>Pipeline parallelism (PP)</b>: put different layers on different GPUs and stream through. Cross-node friendly, but introduces pipeline bubbles.</li>
+    <li><b>Expert parallelism (EP)</b>: MoE-specific. Different experts live on different GPUs; after routing, an all-to-all shuffles tokens to the right device and back. <b>Load balancing is the hard part</b> — if routing persistently favors a few experts, those GPUs become the bottleneck while the rest idle.</li>
+  </ul>
+
+  <h3 class="zh">低显存路线:把 MoE 当「工作集」问题</h3>
+  <h3 class="en">The low-memory route: treat MoE as a working-set problem</h3>
+  <p class="zh">如果你就是没有集群,学术界给出了几条真实可用的方向,共同思路是:既然每步只用少数专家,就不必让全部专家常驻 GPU。</p>
+  <p class="en">If you simply do not have a cluster, the research literature offers usable directions, all sharing one idea: since only a few experts fire per step, not every expert needs to sit in GPU memory.</p>
+  <ul class="zh">
+    <li><b>FloE</b>(arXiv:2505.05950):显存受限 GPU 上的 on-the-fly MoE 推理。</li>
+    <li><b>eMoE</b>(arXiv:2503.06823):任务感知的显存高效 MoE 推理,利用路由的任务级可预测性预取专家。</li>
+    <li><b>WiSP</b>(arXiv:2606.21868):把专家调度建模为「工作集」,面向极低资源硬件的 MoE 服务。</li>
+    <li><b>专家内激活稀疏</b>(arXiv:2605.08575):在 vLLM 的融合 MoE 执行流水线上进一步利用专家<i>内部</i>的激活稀疏。</li>
+  </ul>
+  <ul class="en">
+    <li><b>FloE</b> (arXiv:2505.05950): on-the-fly MoE inference on memory-constrained GPUs.</li>
+    <li><b>eMoE</b> (arXiv:2503.06823): task-aware memory-efficient MoE inference, exploiting task-level predictability of routing to prefetch experts.</li>
+    <li><b>WiSP</b> (arXiv:2606.21868): models expert scheduling as a working-set problem for extremely low-resource hardware.</li>
+    <li><b>Intra-expert activation sparsity</b> (arXiv:2605.08575): extends vLLM's fused MoE pipeline to exploit sparsity <i>inside</i> each expert.</li>
+  </ul>
+  <div class="callout bad"><b class="zh">代价要说清楚:</b><span class="zh">所有「专家换入换出」方案本质是用 <b>PCIe/CPU 内存带宽换 GPU 显存</b>。它们能让模型跑起来,但单请求延迟通常显著变差,且对突发路由模式敏感。适合离线批处理与个人实验,不适合面向用户的低延迟在线服务。</span><b class="en">Be honest about the cost:</b><span class="en">Every expert-offloading scheme trades <b>PCIe/host-memory bandwidth for GPU VRAM</b>. They make the model run, but per-request latency usually degrades sharply and they are sensitive to bursty routing patterns. Good for offline batch and personal experimentation; not for user-facing low-latency serving.</span></div>
+</section>
+
+<section id="s5">
+  <h2 class="zh">5. 什么场景该自托管:一棵决策树</h2>
+  <h2 class="en">5. When self-hosting wins: a decision tree</h2>
+
+  <figure class="zh">
+  <svg viewBox="0 0 760 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="自托管决策树">
+    <defs>
+      <marker id="d1" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7aa2ff"/></marker>
+    </defs>
+    <g font-size="13" text-anchor="middle">
+      <rect x="250" y="12" width="260" height="46" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+      <text x="380" y="33" fill="#e8ecf4" font-weight="750">有硬性数据驻留 / 合规要求?</text>
+      <text x="380" y="50" fill="#7d879c" font-size="11.5">数据不能出境 / 不能给第三方</text>
+
+      <rect x="30" y="100" width="230" height="46" rx="10" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="145" y="121" fill="#5ee0b6" font-weight="750">是 → 自托管是唯一选项</text>
+      <text x="145" y="138" fill="#b3bccd" font-size="11.5">按 FP8 全参预算硬件</text>
+
+      <rect x="470" y="100" width="260" height="46" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+      <text x="600" y="121" fill="#e8ecf4" font-weight="750">否 → 日均 token 量够大吗?</text>
+      <text x="600" y="138" fill="#7d879c" font-size="11.5">GPU 利用率能否长期 &gt; 40%</text>
+
+      <rect x="418" y="188" width="150" height="60" rx="10" fill="#241416" stroke="#ff7b72"/>
+      <text x="493" y="209" fill="#ff7b72" font-weight="750">否 → 用 API</text>
+      <text x="493" y="226" fill="#b3bccd" font-size="11.5">低 QPS 下 3TB 权重</text>
+      <text x="493" y="241" fill="#b3bccd" font-size="11.5">是纯固定成本</text>
+
+      <rect x="592" y="188" width="150" height="60" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+      <text x="667" y="209" fill="#e8ecf4" font-weight="750">是 → 任务维度</text>
+      <text x="667" y="226" fill="#7d879c" font-size="11.5">你的私有评测集上</text>
+      <text x="667" y="241" fill="#7d879c" font-size="11.5">差距有多大?</text>
+
+      <rect x="470" y="288" width="270" height="60" rx="10" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="605" y="309" fill="#5ee0b6" font-weight="750">差距小 → 自托管性价比成立</text>
+      <text x="605" y="326" fill="#b3bccd" font-size="11.5">优先 V4-Flash / Small 4 这类</text>
+      <text x="605" y="341" fill="#b3bccd" font-size="11.5">「近前沿 + 少卡」档位</text>
+
+      <rect x="30" y="288" width="270" height="60" rx="10" fill="#221b0f" stroke="#ffb454"/>
+      <text x="165" y="309" fill="#ffb454" font-weight="750">差距大 → 混合路由</text>
+      <text x="165" y="326" fill="#b3bccd" font-size="11.5">简单/高频请求走自托管小模型</text>
+      <text x="165" y="341" fill="#b3bccd" font-size="11.5">难例升级到闭源 API</text>
+    </g>
+    <line x1="330" y1="58" x2="180" y2="96" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1)"/>
+    <line x1="440" y1="58" x2="570" y2="96" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1)"/>
+    <line x1="560" y1="146" x2="500" y2="184" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1)"/>
+    <line x1="640" y1="146" x2="665" y2="184" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1)"/>
+    <line x1="660" y1="248" x2="620" y2="284" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1)"/>
+    <line x1="600" y1="248" x2="300" y2="290" stroke="#7aa2ff" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#d1)"/>
+    <rect x="30" y="188" width="330" height="60" rx="10" fill="#161a23" stroke="#28303f"/>
+    <text x="46" y="209" fill="#b3bccd" font-size="12">提醒:先量化再买卡。FP8 让 1.6T 从 ≈3.2TB</text>
+    <text x="46" y="226" fill="#b3bccd" font-size="12">降到 ≈1.6TB,常常直接决定「几节点」这个</text>
+    <text x="46" y="243" fill="#b3bccd" font-size="12">最贵的变量。</text>
+  </svg>
+  <figcaption>图 2:自托管 MoE 的决策树 —— 合规是硬门槛,利用率是经济门槛,评测差距是质量门槛。</figcaption>
+  </figure>
+
+  <figure class="en">
+  <svg viewBox="0 0 760 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Self-hosting decision tree">
+    <defs>
+      <marker id="d1-e" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7aa2ff"/></marker>
+    </defs>
+    <g font-size="13" text-anchor="middle">
+      <rect x="250" y="12" width="260" height="46" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+      <text x="380" y="33" fill="#e8ecf4" font-weight="750">Hard data-residency requirement?</text>
+      <text x="380" y="50" fill="#7d879c" font-size="11.5">data cannot leave your boundary</text>
+
+      <rect x="24" y="100" width="240" height="46" rx="10" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="144" y="121" fill="#5ee0b6" font-weight="750">Yes → self-host is the only path</text>
+      <text x="144" y="138" fill="#b3bccd" font-size="11.5">budget for full FP8 weights</text>
+
+      <rect x="470" y="100" width="260" height="46" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+      <text x="600" y="121" fill="#e8ecf4" font-weight="750">No → enough daily token volume?</text>
+      <text x="600" y="138" fill="#7d879c" font-size="11.5">can GPU utilization stay &gt; 40%</text>
+
+      <rect x="418" y="188" width="150" height="60" rx="10" fill="#241416" stroke="#ff7b72"/>
+      <text x="493" y="209" fill="#ff7b72" font-weight="750">No → use an API</text>
+      <text x="493" y="226" fill="#b3bccd" font-size="11.5">at low QPS, 3 TB of</text>
+      <text x="493" y="241" fill="#b3bccd" font-size="11.5">weights is pure fixed cost</text>
+
+      <rect x="592" y="188" width="150" height="60" rx="10" fill="#1c212c" stroke="#7aa2ff"/>
+      <text x="667" y="209" fill="#e8ecf4" font-weight="750">Yes → task quality</text>
+      <text x="667" y="226" fill="#7d879c" font-size="11.5">how big is the gap on</text>
+      <text x="667" y="241" fill="#7d879c" font-size="11.5">your private eval set?</text>
+
+      <rect x="470" y="288" width="270" height="60" rx="10" fill="#0f2019" stroke="#5ee0b6"/>
+      <text x="605" y="309" fill="#5ee0b6" font-weight="750">Small gap → self-hosting pays off</text>
+      <text x="605" y="326" fill="#b3bccd" font-size="11.5">prefer the "near-frontier, few-GPU"</text>
+      <text x="605" y="341" fill="#b3bccd" font-size="11.5">tier: V4-Flash, Mistral Small 4</text>
+
+      <rect x="24" y="288" width="276" height="60" rx="10" fill="#221b0f" stroke="#ffb454"/>
+      <text x="162" y="309" fill="#ffb454" font-weight="750">Large gap → hybrid routing</text>
+      <text x="162" y="326" fill="#b3bccd" font-size="11.5">cheap/high-volume calls self-hosted,</text>
+      <text x="162" y="341" fill="#b3bccd" font-size="11.5">hard cases escalate to a closed API</text>
+    </g>
+    <line x1="330" y1="58" x2="180" y2="96" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1-e)"/>
+    <line x1="440" y1="58" x2="570" y2="96" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1-e)"/>
+    <line x1="560" y1="146" x2="500" y2="184" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1-e)"/>
+    <line x1="640" y1="146" x2="665" y2="184" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1-e)"/>
+    <line x1="660" y1="248" x2="620" y2="284" stroke="#7aa2ff" stroke-width="1.8" marker-end="url(#d1-e)"/>
+    <line x1="600" y1="248" x2="300" y2="290" stroke="#7aa2ff" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#d1-e)"/>
+    <rect x="24" y="188" width="336" height="60" rx="10" fill="#161a23" stroke="#28303f"/>
+    <text x="40" y="209" fill="#b3bccd" font-size="12">Reminder: quantize before you buy. FP8 takes 1.6T</text>
+    <text x="40" y="226" fill="#b3bccd" font-size="12">from ≈3.2 TB to ≈1.6 TB, which often decides the</text>
+    <text x="40" y="243" fill="#b3bccd" font-size="12">single most expensive variable: node count.</text>
+  </svg>
+  <figcaption>Fig. 2 — Decision tree for self-hosting MoE: compliance is the hard gate, utilization is the economic gate, eval gap is the quality gate.</figcaption>
+  </figure>
+
+  <h3 class="zh">三类站得住脚的自托管场景</h3>
+  <h3 class="en">Three self-hosting cases that hold up</h3>
+  <ol class="zh">
+    <li><b>合规驱动</b>:数据不能出边界。此时不是成本问题,而是可行性问题——按 FP8 全参预算硬件,并接受它。</li>
+    <li><b>高并发同质流量</b>:比如批量文档处理、日志摘要、代码索引。利用率高,权重成本被摊薄,MoE 的低激活参数带来的吞吐优势在这里真正兑现。</li>
+    <li><b>可控性与稳定性</b>:模型版本自己钉死,不会被上游静默升级改变行为;这对已经建了大量提示词与评测的团队价值很高。</li>
+  </ol>
+  <ol class="en">
+    <li><b>Compliance-driven</b>: data cannot cross a boundary. Then it is not a cost question but a feasibility one — budget for full FP8 weights and accept it.</li>
+    <li><b>High-volume homogeneous traffic</b>: bulk document processing, log summarization, code indexing. Utilization is high, weight cost amortizes, and MoE's low active-parameter throughput advantage actually materializes.</li>
+    <li><b>Control and stability</b>: you pin the model version, so upstream silent upgrades cannot change behavior — valuable for teams with a large investment in prompts and evals.</li>
+  </ol>
+</section>
+
+<section id="s6">
+  <h2 class="zh">6. 常见坑与反模式</h2>
+  <h2 class="en">6. Common pitfalls and anti-patterns</h2>
+
+  <div class="callout bad"><b class="zh">坑 1:按激活参数买卡。</b><span class="zh">最贵的一个错误,见第 2 节。规划容量永远看总参数。</span><b class="en">Pitfall 1: sizing hardware by active parameters.</b><span class="en">The single most expensive mistake — see §2. Always plan capacity against total parameters.</span></div>
+  <div class="callout bad"><b class="zh">坑 2:用榜单分数代替自己的评测。</b><span class="zh">SWE-bench Verified 上差 0.2 分,不代表在你的领域数据、你的工具调用格式、你的中文长文档上也只差 0.2 分。自建 100~300 条的私有评测集是自托管决策的前置条件,不是可选项。</span><b class="en">Pitfall 2: substituting leaderboards for your own evals.</b><span class="en">A 0.2-point gap on SWE-bench Verified says nothing about your domain data, your tool-call format, or your long documents. A private eval set of 100–300 cases is a prerequisite for this decision, not an optional extra.</span></div>
+  <div class="callout bad"><b class="zh">坑 3:忽视专家负载不均。</b><span class="zh">EP 部署下,路由分布偏斜会让少数 GPU 成为瓶颈。上线后必须监控 per-expert 的 token 分配直方图,而不是只看总体 GPU 利用率——后者可能看着「不高」,其实是有几张卡在等另外几张。</span><b class="en">Pitfall 3: ignoring expert load imbalance.</b><span class="en">Under expert parallelism, skewed routing turns a few GPUs into bottlenecks. Monitor the per-expert token-assignment histogram, not just aggregate GPU utilization — aggregate can look "low" when in fact most cards are waiting on a few.</span></div>
+  <div class="callout bad"><b class="zh">坑 4:把 offloading 方案用在在线服务上。</b><span class="zh">FloE / eMoE / WiSP 这类工作让「能跑」成为可能,但单请求延迟代价很大。别拿它当低延迟在线服务的方案。</span><b class="en">Pitfall 4: putting offloading schemes behind a latency SLA.</b><span class="en">FloE / eMoE / WiSP make it possible to run at all, but at a steep per-request latency cost. Do not treat them as a low-latency serving solution.</span></div>
+  <div class="callout good"><b class="zh">好做法:先租后买。</b><span class="zh">在决定采购之前,用云上按小时的 GPU 把你的真实流量重放一周,拿到实测吞吐、P95 延迟与专家负载分布。这一周的租金,比一次买错集群便宜两个数量级。</span><b class="en">Good practice: rent before you buy.</b><span class="en">Before any purchase, replay a week of real traffic on hourly cloud GPUs and collect measured throughput, P95 latency, and expert load distribution. A week of rental is two orders of magnitude cheaper than one wrong cluster.</span></div>
+</section>
+
+<section id="s7">
+  <h2 class="zh">7. 术语表与来源</h2>
+  <h2 class="en">7. Glossary and sources</h2>
+
+  <h3 class="zh">术语表</h3>
+  <h3 class="en">Glossary</h3>
+  <ul class="zh">
+    <li><b>MoE / Mixture-of-Experts</b>(混合专家):把 FFN 拆成多个并列专家、按 token 路由的架构。</li>
+    <li><b>router / gate</b>(路由器):决定每个 token 送往哪几个专家的小网络。</li>
+    <li><b>total / active parameters</b>(总参 / 激活参):前者决定内存,后者决定算力。</li>
+    <li><b>expert parallelism, EP</b>(专家并行):把不同专家分布到不同 GPU 的并行方式。</li>
+    <li><b>all-to-all</b>:EP 中把 token 分发到目标 GPU 再收回的集合通信原语。</li>
+    <li><b>KV cache</b>:缓存已生成 token 的键值向量,随上下文长度与并发线性增长。</li>
+    <li><b>working set</b>(工作集):一段时间内实际被访问到的专家集合,低显存部署的核心概念。</li>
+  </ul>
+  <ul class="en">
+    <li><b>MoE / Mixture-of-Experts</b>: an architecture that replaces the FFN with many parallel experts and routes tokens among them.</li>
+    <li><b>router / gate</b>: the small network deciding which experts each token goes to.</li>
+    <li><b>total / active parameters</b>: the former sets memory, the latter sets compute.</li>
+    <li><b>expert parallelism (EP)</b>: distributing distinct experts across GPUs.</li>
+    <li><b>all-to-all</b>: the collective communication primitive that ships tokens to their target GPU and back under EP.</li>
+    <li><b>KV cache</b>: cached key/value vectors for generated tokens; grows linearly with context length and concurrency.</li>
+    <li><b>working set</b>: the set of experts actually touched over a window of time — the central concept for low-memory serving.</li>
+  </ul>
+
+  <h3 class="zh">来源</h3>
+  <h3 class="en">Sources</h3>
+  <ul class="srcs zh">
+    <li><a href="https://www.spheron.network/blog/moe-inference-optimization-gpu-cloud/">Spheron — MoE Model Inference on GPU Cloud: Expert Parallelism, Memory, and Cost (2026)</a>(显存倍数、EP、成本)</li>
+    <li><a href="https://tensorops.ai/blog/what-is-mixture-of-experts-llm">TensorOps — LLM Mixture of Experts Explained: A 2026 Field Guide</a></li>
+    <li><a href="https://introl.com/blog/mixture-of-experts-moe-infrastructure-scaling-sparse-models-guide">Introl — Mixture of Experts Infrastructure</a>(vLLM / TensorRT-LLM 的 MoE 优化)</li>
+    <li><a href="https://codersera.com/blog/open-source-llms-landscape-2026/">Open-Source LLMs Landscape 2026</a>(各模型总参/激活参、SWE-bench 汇总,第三方口径)</li>
+    <li><a href="https://www.llmreference.com/model/deepseek-v4-pro">LLM Reference — DeepSeek V4 Pro</a>(许可、上下文、GA 时间,第三方口径)</li>
+    <li><a href="https://arxiv.org/pdf/2606.21868">WiSP: A Working-Set View of MoE Serving on Extremely Low-Resource Hardware</a>(arXiv:2606.21868)</li>
+    <li><a href="https://arxiv.org/pdf/2505.05950">FloE: On-the-Fly MoE Inference on Memory-constrained GPU</a>(arXiv:2505.05950)</li>
+    <li><a href="https://arxiv.org/pdf/2503.06823">eMoE: Task-aware Memory Efficient MoE Inference</a>(arXiv:2503.06823)</li>
+    <li><a href="https://arxiv.org/html/2605.08575v1">Uncovering Intra-expert Activation Sparsity for Efficient MoE Execution</a>(arXiv:2605.08575)</li>
+  </ul>
+  <ul class="srcs en">
+    <li><a href="https://www.spheron.network/blog/moe-inference-optimization-gpu-cloud/">Spheron — MoE Model Inference on GPU Cloud: Expert Parallelism, Memory, and Cost (2026)</a> (memory multiples, EP, cost)</li>
+    <li><a href="https://tensorops.ai/blog/what-is-mixture-of-experts-llm">TensorOps — LLM Mixture of Experts Explained: A 2026 Field Guide</a></li>
+    <li><a href="https://introl.com/blog/mixture-of-experts-moe-infrastructure-scaling-sparse-models-guide">Introl — Mixture of Experts Infrastructure</a> (vLLM / TensorRT-LLM MoE optimizations)</li>
+    <li><a href="https://codersera.com/blog/open-source-llms-landscape-2026/">Open-Source LLMs Landscape 2026</a> (per-model total/active params and SWE-bench figures; third-party compilation)</li>
+    <li><a href="https://www.llmreference.com/model/deepseek-v4-pro">LLM Reference — DeepSeek V4 Pro</a> (license, context, GA dates; third-party compilation)</li>
+    <li><a href="https://arxiv.org/pdf/2606.21868">WiSP: A Working-Set View of MoE Serving on Extremely Low-Resource Hardware</a> (arXiv:2606.21868)</li>
+    <li><a href="https://arxiv.org/pdf/2505.05950">FloE: On-the-Fly MoE Inference on Memory-constrained GPU</a> (arXiv:2505.05950)</li>
+    <li><a href="https://arxiv.org/pdf/2503.06823">eMoE: Task-aware Memory Efficient MoE Inference</a> (arXiv:2503.06823)</li>
+    <li><a href="https://arxiv.org/html/2605.08575v1">Uncovering Intra-expert Activation Sparsity for Efficient MoE Execution</a> (arXiv:2605.08575)</li>
+  </ul>
+
+  <footer>
+    <p class="zh"><b>免责声明:</b>本文中的参数规格、benchmark 分数与发布时间均来自第三方聚合站点与公开报道,未逐条与官方模型卡核对,可能存在口径差异或时效偏差。显存估算为量级估算,不构成容量规划建议。做采购或架构决策前请以官方文档与你自己的实测数据为准。文档由 AI 每日简报流程于 2026-08-28 生成。</p>
+    <p class="en"><b>Disclaimer:</b> Parameter specs, benchmark scores, and release dates in this document come from third-party aggregators and public reporting; they have not been individually verified against official model cards and may differ in methodology or be out of date. Memory figures are order-of-magnitude estimates, not a capacity plan. Verify against official documentation and your own measurements before any procurement or architecture decision. Generated by the AI daily brief pipeline on 2026-08-28.</p>
+  </footer>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var btn=document.getElementById('langbtn');
+  var body=document.body;
+  function get(){try{return localStorage.getItem('aidaily-lang');}catch(e){return null;}}
+  function set(v){try{localStorage.setItem('aidaily-lang',v);}catch(e){}}
+  var init=get();
+  if(!init){ init=(navigator.language||'en').toLowerCase().indexOf('zh')===0?'zh':'en'; }
+  apply(init);
+  function apply(l){
+    body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang', l==='zh'?'zh-CN':'en');
+    btn.textContent = l==='zh' ? 'EN' : '中文';
+  }
+  btn.addEventListener('click',function(){
+    var next = body.getAttribute('data-lang')==='zh' ? 'en' : 'zh';
+    apply(next); set(next); reveal();
+  });
+
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.12});
+  }
+  function reveal(){
+    var figs=document.querySelectorAll('figure');
+    for(var i=0;i<figs.length;i++){
+      var f=figs[i];
+      if(f.classList.contains('in')) continue;
+      if(f.offsetParent===null) continue;           // hidden by language switch
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight && r.bottom > 0){ f.classList.add('in'); }
+      else if(io){ io.observe(f); }
+    }
+  }
+  reveal();
+  window.addEventListener('load',reveal);
+})();
+</script>
+</body>
+</html>
