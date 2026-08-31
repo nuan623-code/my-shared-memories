@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Model Hardware Standard:Agent 操作物理设备的标准接口 | Model Hardware Standard: A Standard Interface for Agents to Operate Physical Devices</title>
+<style>
+:root{
+  --bg:#f5f7f5; --surface:#ffffff; --surface-2:#eef3f1;
+  --ink:#15211f; --ink-2:#39504b; --muted:#6d827c;
+  --line:#d8e3df; --line-2:#c2d3ce;
+  --teal:#0f766e; --teal-deep:#0b524d; --teal-soft:#dcefeb;
+  --amber:#b45309; --amber-soft:#fdf0e0;
+  --code-bg:#0f1f1d; --code-ink:#d7ede8;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(21,33,31,.05),0 8px 26px rgba(21,33,31,.07);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.82;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-size:17px;line-height:1.75}
+
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--teal),var(--amber));z-index:60;transition:width .12s linear}
+
+#langbtn{position:fixed;top:14px;right:16px;z-index:70;border:1.5px solid var(--line-2);background:rgba(255,255,255,.86);
+  backdrop-filter:blur(10px);border-radius:99px;padding:7px 15px;font-size:13.5px;font-weight:750;color:var(--teal-deep);
+  cursor:pointer;font-family:inherit;box-shadow:var(--shadow)}
+#langbtn:hover{border-color:var(--teal);color:var(--teal)}
+
+header.hero{position:relative;overflow:hidden;background:
+  linear-gradient(180deg,#ffffff 0%,#eaf2ef 100%);
+  border-bottom:1px solid var(--line)}
+header.hero::before{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:34px 34px;opacity:.5;mask-image:radial-gradient(ellipse 80% 70% at 70% 20%,#000 10%,transparent 75%)}
+.hin{position:relative;max-width:1180px;margin:0 auto;padding:64px 26px 46px}
+.kicker{display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--teal-deep);background:var(--teal-soft);border:1px solid #a9d3cb;padding:5px 13px;border-radius:99px;margin-bottom:16px}
+h1{font-size:clamp(27px,5.4vw,46px);line-height:1.2;margin:0 0 14px;font-weight:850;letter-spacing:-.022em;max-width:19em}
+h1 em{font-style:normal;color:var(--teal)}
+.lede{font-size:clamp(16px,2.3vw,19px);color:var(--ink-2);margin:0;max-width:46em;line-height:1.72}
+.meta{margin-top:22px;font-size:13.5px;color:var(--muted)}
+
+.shell{max-width:1180px;margin:0 auto;padding:0 26px 90px;display:grid;grid-template-columns:236px 1fr;gap:40px;align-items:start}
+nav.toc{position:sticky;top:22px;background:rgba(255,255,255,.72);backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);margin-top:34px}
+nav.toc .tl{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;padding-left:8px}
+nav.toc a{display:block;padding:6px 9px;border-radius:8px;font-size:13.5px;color:var(--ink-2);text-decoration:none;
+  border-left:2px solid transparent;line-height:1.45;margin-bottom:1px}
+nav.toc a:hover{background:var(--surface-2);color:var(--teal-deep)}
+nav.toc a.on{background:var(--teal-soft);color:var(--teal-deep);font-weight:750;border-left-color:var(--teal)}
+#tocToggle{display:none}
+
+main{min-width:0;padding-top:34px}
+section{margin-bottom:52px;scroll-margin-top:70px}
+h2{font-size:clamp(21px,3.4vw,28px);margin:0 0 6px;font-weight:820;letter-spacing:-.015em;line-height:1.3}
+h2 .num{color:var(--teal);font-variant-numeric:tabular-nums;margin-right:9px;font-weight:850}
+.sec-sub{color:var(--muted);font-size:14px;margin:0 0 22px;font-weight:600}
+h3{font-size:18.5px;margin:30px 0 8px;font-weight:780;color:var(--teal-deep)}
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px;padding-left:1.4em}
+li{margin-bottom:7px}
+b,strong{font-weight:750;color:var(--ink)}
+a{color:var(--teal);text-underline-offset:2px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin:0 0 18px;box-shadow:var(--shadow)}
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:var(--radius);padding:18px 20px;margin:0 0 18px;box-shadow:var(--shadow)}
+.def .dt{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+.def .dh{font-size:17.5px;font-weight:800;margin-bottom:6px}
+
+.callout{border-radius:var(--radius);padding:16px 19px;margin:0 0 18px;font-size:16px;border:1px solid}
+.callout .ct{font-weight:800;font-size:14px;display:block;margin-bottom:5px;letter-spacing:.02em}
+.callout.key{background:var(--teal-soft);border-color:#a9d3cb;color:#0a4b46}
+.callout.key .ct{color:var(--teal-deep)}
+.callout.warn{background:var(--amber-soft);border-color:#f0cfa4;color:#6b3708}
+.callout.warn .ct{color:var(--amber)}
+.callout.quote{background:var(--surface-2);border-color:var(--line);color:var(--ink-2);font-style:italic}
+
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 18px}
+.steps li{counter-increment:s;position:relative;padding:12px 16px 12px 52px;background:var(--surface);
+  border:1px solid var(--line);border-radius:11px;margin-bottom:9px;box-shadow:var(--shadow);font-size:16px}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:25px;height:25px;border-radius:50%;
+  background:var(--teal);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin:0 0 18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
+.stat .n{font-size:25px;font-weight:850;color:var(--teal);line-height:1.15;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+.tblwrap{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:560px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface-2);font-weight:800;font-size:13px;letter-spacing:.02em;color:var(--teal-deep)}
+tr:last-child td{border-bottom:none}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:14px 16px;overflow-x:auto;
+  font-size:13px;line-height:1.62;margin:0 0 16px;font-family:var(--mono)}
+code{font-family:var(--mono);font-size:.9em}
+p code,li code,td code{background:var(--surface-2);color:var(--teal-deep);padding:1px 5px;border-radius:5px;border:1px solid var(--line)}
+
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 14px;margin:0 0 20px;
+  box-shadow:var(--shadow);opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block;overflow:visible}
+.fig-cap{font-size:13px;color:var(--muted);margin-top:11px;line-height:1.6;border-top:1px dashed var(--line);padding-top:9px}
+.figure [data-draw]{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600)}
+.figure.in [data-draw]{animation:draw 1.1s ease forwards}
+.figure [data-anim]{opacity:0}
+.figure.in [data-anim]{animation:pop .5s ease forwards;animation-delay:var(--d,0s)}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes pop{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  .figure{opacity:1;transform:none;transition:none}
+  .figure [data-draw]{stroke-dashoffset:0;animation:none}
+  .figure [data-anim]{opacity:1;animation:none}
+}
+
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:6px 20px;margin:0 0 18px;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:800;color:var(--teal-deep);margin-top:14px;font-size:15.5px}
+.glossary dd{margin:3px 0 12px;color:var(--ink-2);font-size:15.5px}
+
+details.rephrase{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 16px;margin:0 0 18px}
+details.rephrase summary{cursor:pointer;font-weight:750;font-size:14.5px;color:var(--teal-deep)}
+details.rephrase p{margin:10px 0 2px;font-size:15.5px;color:var(--ink-2)}
+
+.srclist{font-size:14px;color:var(--ink-2)}
+.srclist li{margin-bottom:9px;line-height:1.6}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;margin-right:7px;vertical-align:1px}
+.tag.off{background:var(--teal-soft);color:var(--teal-deep);border:1px solid #a9d3cb}
+.tag.thd{background:var(--amber-soft);color:var(--amber);border:1px solid #f0cfa4}
+
+footer{border-top:1px solid var(--line);background:var(--surface);padding:30px 26px 46px}
+.fin{max-width:1180px;margin:0 auto;font-size:14px;color:var(--muted)}
+
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr;gap:0;padding:0 18px 70px}
+  nav.toc{position:static;margin:22px 0 6px;max-height:none}
+  #tocToggle{display:block;width:100%;text-align:left;background:none;border:none;font:inherit;font-weight:800;
+    font-size:14px;color:var(--teal-deep);cursor:pointer;padding:4px 8px}
+  nav.toc .tl{display:none}
+  nav.toc .tocbody{display:none;margin-top:8px}
+  nav.toc.open .tocbody{display:block}
+  main{padding-top:14px}
+  .hin{padding:56px 18px 36px}
+  body{font-size:16.5px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中 / EN 深度学习文档 · 2026-08-31 Deep Dive · 2026-08-31 Model Hardware Standard:让 Agent 安全操作物理设备 的那一层标准接口 Model Hard…">
+<meta property="og:title" content="Model Hardware Standard:Agent 操作物理设备的标准接口 | Model Hardware Standard: A Standard Interface for Agents to Operate Physical Devices">
+<meta property="og:description" content="中 / EN 深度学习文档 · 2026-08-31 Deep Dive · 2026-08-31 Model Hardware Standard:让 Agent 安全操作物理设备 的那一层标准接口 Model Hard…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-31-modelhardwarestandard.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-31-modelhardwarestandard.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Model Hardware Standard:Agent 操作物理设备的标准接口 | Model Hardware Standard: A Standard Interface for Agents to Operate Physical Devices", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-31-modelhardwarestandard.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-31", "dateModified": "2026-08-31"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button id="langbtn" type="button">中 / EN</button>
+
+<header class="hero"><div class="hin">
+  <span class="kicker zh">深度学习文档 · 2026-08-31</span>
+  <span class="kicker en">Deep Dive · 2026-08-31</span>
+  <h1 class="zh">Model Hardware Standard:让 Agent <em>安全操作物理设备</em>的那一层标准接口</h1>
+  <h1 class="en">Model Hardware Standard: the interface layer that lets agents <em>safely operate physical devices</em></h1>
+  <p class="lede zh">MCP 解决了「Agent 怎么接软件工具」。MHS 想解决的是下一个问题:当动作对象变成会溅出液体、会撞坏的真实仪器时,Agent 该怎么发现它、怎么知道它的安全边界、怎么在出错时恢复。这份文档拆解 2026-08-27 开放研究预览的 Model Hardware Standard——它是什么、怎么用、三家早期实践方跑出了什么数字,以及它在哪里翻了车。</p>
+  <p class="lede en">MCP solved "how does an agent reach software tools." MHS takes on the next question: when the thing being acted on is a real instrument that can spill liquid or crash a robot arm, how does an agent discover it, learn its safety envelope, and recover when something goes wrong? This document unpacks the Model Hardware Standard, opened as a research preview on 2026-08-27 — what it is, how it works, what numbers three early adopters actually reported, and where it fell over.</p>
+  <p class="meta zh">调研时间:2026-08-31 · 一手来源:Anthropic 官方公告(含三份合作方自述) · 全文中英双语,右上角一键切换</p>
+  <p class="meta en">Researched: 2026-08-31 · Primary source: Anthropic's announcement, including three partner write-ups · Fully bilingual; toggle at top right</p>
+</div></header>
+
+<div class="shell">
+  <nav class="toc" id="toc">
+    <button id="tocToggle" type="button">☰ <span class="zh">目录</span><span class="en">Contents</span></button>
+    <p class="tl"><span class="zh">目录</span><span class="en">Contents</span></p>
+    <div class="tocbody">
+      <a href="#tldr"><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></a>
+      <a href="#why"><span class="zh">1 · 为什么接一台仪器要几周</span><span class="en">1 · Why wiring up one instrument takes weeks</span></a>
+      <a href="#what"><span class="zh">2 · MHS 到底是什么</span><span class="en">2 · What MHS actually is</span></a>
+      <a href="#how"><span class="zh">3 · 怎么用:三条控制通路</span><span class="en">3 · How you use it: three control paths</span></a>
+      <a href="#cases"><span class="zh">4 · 三份实证与数字</span><span class="en">4 · Three field reports, with numbers</span></a>
+      <a href="#compare"><span class="zh">5 · 和 MCP / SiLA 2 / OPC UA 比</span><span class="en">5 · vs MCP, SiLA 2 and OPC UA</span></a>
+      <a href="#pitfalls"><span class="zh">6 · 坑、限制与未解问题</span><span class="en">6 · Pitfalls, limits, open questions</span></a>
+      <a href="#takeaway"><span class="zh">7 · 对做 Agent 的人意味着什么</span><span class="en">7 · What it means if you build agents</span></a>
+      <a href="#sources"><span class="zh">来源清单</span><span class="en">Sources</span></a>
+    </div>
+  </nav>
+
+  <main>
+
+  <!-- ============ TLDR ============ -->
+  <section id="tldr">
+    <h2><span class="num">§</span><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></h2>
+    <p class="sec-sub zh">先给全貌,后面每一章往下挖一层。</p>
+    <p class="sec-sub en">The whole shape first; every later section digs one layer down.</p>
+
+    <div class="def">
+      <div class="dt zh">一句话定义</div>
+      <div class="dt en">One-sentence definition</div>
+      <div class="dh zh">Model Hardware Standard(MHS)</div>
+      <div class="dh en">Model Hardware Standard (MHS)</div>
+      <p class="zh">一套让 AI Agent 安全操作物理设备的<b>共享规范</b>:通过一个标准化的<b>驱动层</b>,把任何「有可编程接口」的仪器(显微镜、液体处理器、机械臂、激光器……)暴露成统一的读/写原语,并让设备在网络上可被自动发现。Anthropic 于 2026-08-27 向首批科研实验室与先进制造厂商开放研究预览,起源于与 HHMI Janelia 研究园区的合作。</p>
+      <p class="en">A <b>shared specification</b> for AI agents to safely operate physical devices. A standardized <b>driver layer</b> exposes any instrument with a programmable interface — microscopes, liquid handlers, robotic arms, lasers — through uniform read/write primitives, and makes each device discoverable on the network. Anthropic opened the research preview to a first group of scientific labs and advanced manufacturers on 2026-08-27; the work began as a collaboration with HHMI Janelia Research Campus.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="n zh">周 → 小时</div><div class="n en">weeks → hours</div><div class="l zh">官方声称的设备集成耗时变化</div><div class="l en">Claimed change in device integration time</div></div>
+      <div class="stat"><div class="n">~8 h</div><div class="l zh">CMU 从零写四类设备驱动 + 编排层的实际耗时</div><div class="l en">CMU's actual time to write drivers for four device types plus an orchestration layer</div></div>
+      <div class="stat"><div class="n">&lt; 1 <span class="zh">周</span><span class="en">week</span></div><div class="l zh">华盛顿大学接入 6 台仪器(含自写驱动)</div><div class="l en">UW connecting six instruments, including writing their drivers</div></div>
+      <div class="stat"><div class="n">3×</div><div class="l zh">CMU 剂量-反应实验的速度提升</div><div class="l en">CMU's speed-up on dose-response experiments</div></div>
+    </div>
+
+    <div class="callout key">
+      <span class="ct zh">为什么值得关注</span>
+      <span class="ct en">Why it matters</span>
+      <p class="zh">过去一年 Agent 工程反复讨论的东西——工具发现、上下文工程、在线推理与确定性脚本的分工、失败恢复——在 MHS 里<b>全部重新出现了一遍,但换到了不可回滚的物理世界</b>。软件里一次错误的 API 调用可以重试;一次错误的移液会毁掉整块 96 孔板。这份公告的价值恰恰在于它把成功和失败写得一样清楚。</p>
+      <p class="en">Everything agent engineering has been arguing about for a year — tool discovery, context engineering, the split between online reasoning and deterministic scripts, failure recovery — <b>reappears in MHS, but in a world where nothing rolls back</b>. A bad API call in software can be retried; a bad pipetting step ruins a 96-well plate. The value of this announcement is that it documents the failures as plainly as the wins.</p>
+    </div>
+
+    <div class="figure" id="f1zh">
+      <svg viewBox="0 0 760 300" role="img" aria-label="对比图:定制集成 vs MHS 统一驱动层">
+        <defs>
+          <marker id="ar1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#6d827c"/></marker>
+          <marker id="ar2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#0f766e"/></marker>
+        </defs>
+        <text x="16" y="22" font-size="14" font-weight="800" fill="#b45309" data-anim style="--d:0s">之前:N × M 条定制集成</text>
+        <text x="415" y="22" font-size="14" font-weight="800" fill="#0f766e" data-anim style="--d:.5s">之后:一层标准驱动</text>
+        <line x1="390" y1="10" x2="390" y2="290" stroke="#d8e3df" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <g data-anim style="--d:.1s">
+          <rect x="20" y="44" width="120" height="34" rx="8" fill="#fdf0e0" stroke="#f0cfa4"/><text x="80" y="66" font-size="12.5" text-anchor="middle" fill="#6b3708">脚本 / 上位机</text>
+        </g>
+        <g data-anim style="--d:.2s">
+          <rect x="20" y="112" width="78" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="59" y="132" font-size="11" text-anchor="middle" fill="#39504b">液体处理器</text>
+          <rect x="112" y="112" width="78" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="151" y="132" font-size="11" text-anchor="middle" fill="#39504b">机械臂</text>
+          <rect x="204" y="112" width="78" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="243" y="132" font-size="11" text-anchor="middle" fill="#39504b">酶标仪</text>
+          <rect x="296" y="112" width="70" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="331" y="132" font-size="11" text-anchor="middle" fill="#39504b">相机</text>
+        </g>
+        <g stroke="#b45309" stroke-width="1.1" opacity=".7" data-anim style="--d:.3s">
+          <path d="M60 78 L59 112" fill="none"/><path d="M74 78 L151 112" fill="none"/><path d="M88 78 L243 112" fill="none"/><path d="M100 78 L331 112" fill="none"/>
+          <path d="M59 142 C 100 170, 110 170, 151 142" fill="none"/><path d="M151 142 C 190 172, 205 172, 243 142" fill="none"/><path d="M243 142 C 280 172, 296 172, 331 142" fill="none"/>
+          <path d="M59 142 C 130 205, 260 205, 331 142" fill="none"/><path d="M59 142 C 110 190, 195 190, 243 142" fill="none"/>
+        </g>
+        <text x="20" y="228" font-size="11.5" fill="#6b3708" data-anim style="--d:.4s">每对设备都要一个「翻译器」</text>
+        <text x="20" y="248" font-size="11.5" fill="#6b3708" data-anim style="--d:.4s">换一台机器 → 重写一批胶水代码</text>
+        <text x="20" y="268" font-size="11.5" fill="#6b3708" data-anim style="--d:.4s">集成周期:数周 ~ 数月</text>
+
+        <g data-anim style="--d:.6s">
+          <rect x="415" y="44" width="130" height="34" rx="8" fill="#dcefeb" stroke="#a9d3cb"/><text x="480" y="66" font-size="12.5" text-anchor="middle" fill="#0b524d">AI Agent</text>
+          <text x="560" y="66" font-size="11" fill="#6d827c">模型无关</text>
+        </g>
+        <path d="M480 78 L480 100" stroke="#0f766e" stroke-width="1.6" marker-end="url(#ar2)" data-anim style="--d:.7s"/>
+        <g data-anim style="--d:.8s">
+          <rect x="405" y="102" width="330" height="38" rx="9" fill="#0f766e"/>
+          <text x="570" y="126" font-size="13" text-anchor="middle" fill="#fff" font-weight="700">MHS 标准驱动层 · read / write · 自动发现 · 安全上限</text>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.5" data-anim style="--d:.9s">
+          <path d="M450 140 L450 168" marker-end="url(#ar2)" fill="none"/>
+          <path d="M530 140 L530 168" marker-end="url(#ar2)" fill="none"/>
+          <path d="M610 140 L610 168" marker-end="url(#ar2)" fill="none"/>
+          <path d="M690 140 L690 168" marker-end="url(#ar2)" fill="none"/>
+        </g>
+        <g data-anim style="--d:1s">
+          <rect x="412" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="450" y="190" font-size="11" text-anchor="middle" fill="#0b524d">液体处理器</text>
+          <rect x="492" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="530" y="190" font-size="11" text-anchor="middle" fill="#0b524d">机械臂</text>
+          <rect x="572" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="610" y="190" font-size="11" text-anchor="middle" fill="#0b524d">酶标仪</text>
+          <rect x="652" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="690" y="190" font-size="11" text-anchor="middle" fill="#0b524d">相机</text>
+        </g>
+        <text x="412" y="228" font-size="11.5" fill="#0b524d" data-anim style="--d:1.1s">设备与 Agent 互相「可发现」</text>
+        <text x="412" y="248" font-size="11.5" fill="#0b524d" data-anim style="--d:1.1s">加一台机器 → 只写它自己的驱动</text>
+        <text x="412" y="268" font-size="11.5" fill="#0b524d" data-anim style="--d:1.1s">集成周期:小时 ~ 分钟(官方说法)</text>
+      </svg>
+      <p class="fig-cap">图 1:MHS 要消灭的是「每对设备之间一个定制翻译器」这种 N×M 复杂度,换成「每台设备一个标准驱动」的 N 复杂度。左侧痛点与右侧机制均据 Anthropic 官方公告绘制;「小时~分钟」为官方声称值,尚无独立第三方复现。</p>
+    </div>
+
+    <div class="figure" id="f1en">
+      <svg viewBox="0 0 760 300" role="img" aria-label="Comparison: bespoke integrations vs one MHS driver layer">
+        <defs>
+          <marker id="ar1-e" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#6d827c"/></marker>
+          <marker id="ar2-e" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#0f766e"/></marker>
+        </defs>
+        <text x="16" y="22" font-size="14" font-weight="800" fill="#b45309" data-anim style="--d:0s">Before: N × M bespoke integrations</text>
+        <text x="415" y="22" font-size="14" font-weight="800" fill="#0f766e" data-anim style="--d:.5s">After: one standard driver layer</text>
+        <line x1="390" y1="10" x2="390" y2="290" stroke="#d8e3df" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <g data-anim style="--d:.1s">
+          <rect x="20" y="44" width="130" height="34" rx="8" fill="#fdf0e0" stroke="#f0cfa4"/><text x="85" y="66" font-size="12.5" text-anchor="middle" fill="#6b3708">Scripts / host PC</text>
+        </g>
+        <g data-anim style="--d:.2s">
+          <rect x="20" y="112" width="78" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="59" y="132" font-size="10" text-anchor="middle" fill="#39504b">Liquid handler</text>
+          <rect x="112" y="112" width="78" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="151" y="132" font-size="10.5" text-anchor="middle" fill="#39504b">Robot arm</text>
+          <rect x="204" y="112" width="78" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="243" y="132" font-size="10.5" text-anchor="middle" fill="#39504b">Plate reader</text>
+          <rect x="296" y="112" width="70" height="30" rx="7" fill="#fff" stroke="#d8e3df"/><text x="331" y="132" font-size="10.5" text-anchor="middle" fill="#39504b">Camera</text>
+        </g>
+        <g stroke="#b45309" stroke-width="1.1" opacity=".7" data-anim style="--d:.3s">
+          <path d="M60 78 L59 112" fill="none"/><path d="M74 78 L151 112" fill="none"/><path d="M88 78 L243 112" fill="none"/><path d="M100 78 L331 112" fill="none"/>
+          <path d="M59 142 C 100 170, 110 170, 151 142" fill="none"/><path d="M151 142 C 190 172, 205 172, 243 142" fill="none"/><path d="M243 142 C 280 172, 296 172, 331 142" fill="none"/>
+          <path d="M59 142 C 130 205, 260 205, 331 142" fill="none"/><path d="M59 142 C 110 190, 195 190, 243 142" fill="none"/>
+        </g>
+        <text x="20" y="228" font-size="11.5" fill="#6b3708" data-anim style="--d:.4s">A "translator" for every pair of devices</text>
+        <text x="20" y="248" font-size="11.5" fill="#6b3708" data-anim style="--d:.4s">Swap a machine → rewrite the glue code</text>
+        <text x="20" y="268" font-size="11.5" fill="#6b3708" data-anim style="--d:.4s">Integration: weeks to months</text>
+
+        <g data-anim style="--d:.6s">
+          <rect x="415" y="44" width="130" height="34" rx="8" fill="#dcefeb" stroke="#a9d3cb"/><text x="480" y="66" font-size="12.5" text-anchor="middle" fill="#0b524d">AI agent</text>
+          <text x="556" y="66" font-size="10.5" fill="#6d827c">model-agnostic</text>
+        </g>
+        <path d="M480 78 L480 100" stroke="#0f766e" stroke-width="1.6" marker-end="url(#ar2-e)" data-anim style="--d:.7s"/>
+        <g data-anim style="--d:.8s">
+          <rect x="405" y="102" width="330" height="38" rx="9" fill="#0f766e"/>
+          <text x="570" y="126" font-size="12" text-anchor="middle" fill="#fff" font-weight="700">MHS driver layer · read / write · discovery · safety limits</text>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.5" data-anim style="--d:.9s">
+          <path d="M450 140 L450 168" marker-end="url(#ar2-e)" fill="none"/>
+          <path d="M530 140 L530 168" marker-end="url(#ar2-e)" fill="none"/>
+          <path d="M610 140 L610 168" marker-end="url(#ar2-e)" fill="none"/>
+          <path d="M690 140 L690 168" marker-end="url(#ar2-e)" fill="none"/>
+        </g>
+        <g data-anim style="--d:1s">
+          <rect x="412" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="450" y="190" font-size="9.5" text-anchor="middle" fill="#0b524d">Liquid handler</text>
+          <rect x="492" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="530" y="190" font-size="10" text-anchor="middle" fill="#0b524d">Robot arm</text>
+          <rect x="572" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="610" y="190" font-size="10" text-anchor="middle" fill="#0b524d">Plate reader</text>
+          <rect x="652" y="170" width="76" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="690" y="190" font-size="10" text-anchor="middle" fill="#0b524d">Camera</text>
+        </g>
+        <text x="412" y="228" font-size="11.5" fill="#0b524d" data-anim style="--d:1.1s">Devices and agents discover each other</text>
+        <text x="412" y="248" font-size="11.5" fill="#0b524d" data-anim style="--d:1.1s">Add a machine → write only its own driver</text>
+        <text x="412" y="268" font-size="11.5" fill="#0b524d" data-anim style="--d:1.1s">Integration: hours to minutes (vendor claim)</text>
+      </svg>
+      <p class="fig-cap">Figure 1: MHS attacks the N×M cost of "a bespoke translator between every pair of devices" and replaces it with N — one standard driver per device. Both sides drawn from Anthropic's announcement; "hours to minutes" is the vendor's own claim and has no independent replication yet.</p>
+    </div>
+  </section>
+
+  <!-- ============ WHY ============ -->
+  <section id="why">
+    <h2><span class="num">1</span><span class="zh">为什么接一台仪器要几周</span><span class="en">Why wiring up one instrument takes weeks</span></h2>
+    <p class="sec-sub zh">动机先讲清楚,后面的设计才有参照系。</p>
+    <p class="sec-sub en">Get the motivation straight first; the design only makes sense against it.</p>
+
+    <p class="zh">先别管 AI。假设你是一个实验室的自动化工程师,手上有一台液体处理器(负责精确移液)、一条机械臂(负责搬运 96 孔板)、一台酶标仪(负责读吸光度,也就是样品吸收了多少光)。要让它们配合跑完一个实验,你要解决三件事:</p>
+    <p class="en">Forget AI for a moment. You're the automation engineer in a lab with a liquid handler (moves precise volumes), a robotic arm (moves 96-well plates around), and a plate reader (measures absorbance — how much light a sample absorbs). To make them run one experiment together you have three problems:</p>
+
+    <ol class="steps">
+      <li class="zh"><b>接口各说各话。</b>每台设备有自己的编程接口、自己的数据格式、自己的驱动。厂商之间没有共同语言,所以「让 A 和 B 配合」这件事本身要写一段专门的胶水代码。</li>
+      <li class="en"><b>Every interface is its own language.</b> Each device has its own programming interface, data format and driver. There's no shared vocabulary across vendors, so "make A cooperate with B" is itself a bespoke piece of glue code.</li>
+      <li class="zh"><b>数量是乘法不是加法。</b>四台设备意味着最多六对关系,每一对都可能需要一个翻译器。再加一台,新增的不是一条线而是一排线——这就是图 1 左侧那团意面。</li>
+      <li class="en"><b>The count multiplies, it doesn't add.</b> Four devices means up to six pairings, each possibly needing its own translator. Add a fifth and you don't add one line, you add a fan of them — the spaghetti on the left of Figure 1.</li>
+      <li class="zh"><b>机器的「常识」不在代码里。</b>这条最要命。机械臂自重多少、这台仪器允许的温度上限是多少、这个操作在什么情况下不该做——这些信息大多躺在纸质手册里、某个人的电脑上,或者干脆只存在于老工程师的脑子里(所谓「隐性知识」)。代码里看不到。</li>
+      <li class="en"><b>The machine's "common sense" isn't in the code.</b> This is the killer. How much the arm weighs, the instrument's temperature ceiling, when an operation should simply not be attempted — most of that lives in paper manuals, on someone's laptop, or purely as tacit knowledge in a veteran engineer's head. None of it is visible from the code.</li>
+    </ol>
+
+    <div class="callout quote">
+      <p class="zh">Anthropic 的说法是:实验室或制造厂设置并集成硬件,<b>通常要几周、甚至几个月</b>。大部分设备之间根本不通信,要靠专家搭建一次性集成。</p>
+      <p class="en">Anthropic's framing: it typically takes a lab or manufacturing facility <b>weeks, if not months</b>, to set up and integrate their hardware. Most devices don't communicate with each other at all; specialists build bespoke integrations instead.</p>
+    </div>
+
+    <p class="zh">华盛顿大学的博士生 Zihao Song 在公告里给出的具体感受更有说服力:他的仪器来自不同厂商,各有软件、数据格式和驱动;把它们串起来是一个「要花几个月到几年、成本从数千到数百万美元」的集成问题,「大多数实验室根本负担不起」。他此前的自动化尝试是——花几周评估平台、追着厂商要支持、学着写设备之间的胶水代码,<b>最后放弃了</b>。</p>
+    <p class="en">Zihao Song, a PhD student at the University of Washington, puts it more concretely in the announcement: his instruments come from different vendors, each with its own software, data format and driver. Wiring them together is an integration problem that "takes months to years and can cost anywhere from thousands to millions of dollars," putting it out of reach for most labs. His earlier automation attempt was: weeks evaluating platforms, chasing vendor support, learning to write glue code between instruments — and <b>finally giving up</b>.</p>
+
+    <h3 class="zh">再叠上 AI,问题不是变简单而是变复杂</h3>
+    <h3 class="en">Adding AI doesn't simplify this — it adds a layer</h3>
+    <p class="zh">就算你把设备接通了,还有第二层问题:<b>它们没有共同的方式把数据交给 Agent,也没有共同的方式让 Agent 安全地操作它们</b>。传统自动化实验室的做法是上一个中央调度器(scheduler),把流程写死——这在工厂里成立,因为一条产线可能把同一个流程跑一万次。但研究实验室一年跑几十种协议,一半是新的,而且经常要在跑到一半时改(蛋白产量远低于预期、DNA 组装失败)。<b>传统自动化用「固定流程」换效率,恰好牺牲了研究最需要的灵活性。</b></p>
+    <p class="en">Even with the devices connected, a second problem remains: <b>there is no common way for them to hand data to an agent, and no common way to let an agent operate them safely</b>. Classic automated labs solve this with a central scheduler and a hard-coded workflow — which works on a factory line that runs the same protocol ten thousand times. A research lab runs dozens of protocols a year, half of them new, and often has to revise one mid-run because protein yield came back far below assumption or a DNA assembly failed. <b>Traditional automation buys throughput by fixing the workflow — sacrificing exactly the flexibility research needs.</b></p>
+
+    <details class="rephrase">
+      <summary class="zh">换个说法:三种实验室的取舍</summary>
+      <summary class="en">Put another way: three kinds of lab</summary>
+      <p class="zh"><b>学术实验室</b>=仪器分散、没有中央调度,灵活但极度耗人力,AI 只能停留在「人和 AI 聊天」的程度。<b>自动化实验室</b>=仪器被调度器统一编排,接近无人运行,但昂贵且僵硬,大多数学术实验室够不着,接了 AI 的版本基本只是 demo。<b>MHS 实验室</b>=所有仪器通过一个标准接入,研究者可监控、控制、协调,而且架构本身是 AI 原生的,Agent 可以真正参与实验。这个三分法出自公告里华盛顿大学那份自述的图 1。</p>
+      <p class="en"><b>Academic lab</b>: distributed instruments, no central scheduler — flexible but labour-intensive, with AI limited to human-AI chat. <b>Automated lab</b>: instruments integrated under a scheduler, near-autonomous, but expensive and inflexible, out of reach for most academic labs, and AI-integrated versions rarely survive past a demo. <b>MHS-based lab</b>: every instrument scheduled through the standard, so researchers can monitor, control and coordinate — and because the architecture is AI-native, agents can actually participate. This three-way split comes from Figure 1 of the University of Washington write-up inside the announcement.</p>
+    </details>
+  </section>
+
+  <!-- ============ WHAT ============ -->
+  <section id="what">
+    <h2><span class="num">2</span><span class="zh">MHS 到底是什么</span><span class="en">What MHS actually is</span></h2>
+    <p class="sec-sub zh">四个组成部分,逐个讲透。</p>
+    <p class="sec-sub en">Four moving parts, one at a time.</p>
+
+    <p class="zh">MHS 的核心是一个<b>标准化驱动</b>。「驱动」这个词在这里就是它在操作系统里的老意思:一段在计算机系统和硬件设备之间做翻译的软件。MHS 做的事是规定这段翻译<b>该长什么样</b>。它有四个组成部分。</p>
+    <p class="en">At its core MHS is a <b>standardized driver</b> — "driver" in the ordinary operating-system sense: software that translates between a computer's OS and a hardware device. What MHS specifies is <b>what that translation should look like</b>. It has four parts.</p>
+
+    <h3 class="zh">① 极简原语:read 和 write</h3>
+    <h3 class="en">① Minimal primitives: read and write</h3>
+    <p class="zh">MHS 驱动用一组非常简单的命令覆盖所有设备:<code>read</code>(例如「读取温度」)和 <code>write</code>(例如「设置温度」)。任何硬件设备都能理解并执行这个层级的指令。这看起来朴素得可疑,但正是它让「统一」成为可能——你不需要为显微镜和机械臂设计两套语义模型,只需要各自声明「我能读什么、能写什么」。</p>
+    <p class="en">An MHS driver covers every device with a very small command set: <code>read</code> (e.g. "get temperature") and <code>write</code> (e.g. "set temperature"). Any hardware device can understand and act on commands at that level. It looks suspiciously plain, but that plainness is what makes uniformity possible — you don't design two semantic models for a microscope and a robot arm; each just declares what it can read and what it can write.</p>
+
+    <h3 class="zh">② 自动发现:设备和 Agent 互相找得到</h3>
+    <h3 class="en">② Discovery: devices and agents can find each other</h3>
+    <p class="zh">驱动让每台设备以<b>标准格式可被发现</b>,于是设备与 Agent 能跨网络互相找到并通信,中间不再需要一个定制的「翻译器」程序。这是图 1 右侧那条横线能存在的前提。</p>
+    <p class="en">The driver makes each device discoverable in a standard format, so devices and agents can find each other and communicate across networks without a bespoke translator program in between. That's the precondition for the single horizontal bar on the right of Figure 1.</p>
+
+    <h3 class="zh">③ 自然语言标签:把「隐性知识」写进驱动</h3>
+    <h3 class="en">③ Natural-language tags: writing tacit knowledge into the driver</h3>
+    <p class="zh">这是 MHS 最值得注意的设计,也是它和纯工程标准分道扬镳的地方。驱动里带<b>标签</b>,允许用户用自然语言直接写下那些「从代码里看不出来」的机器特性——公告举的例子是<b>机械臂的自重</b>,因为知道它多重才知道怎么安全地操纵它。填写方式有两种:自己写,或者<b>让一个 Agent 来「采访」你的硬件配置</b>,边聊边填。</p>
+    <p class="en">This is the most distinctive piece of MHS, and where it parts ways with purely engineering-oriented standards. The driver carries <b>tags</b> that let a user write, in plain language, the machine characteristics that aren't discernible from code — the example given is <b>the weight of a robot arm</b>, which you need in order to manipulate it safely. You fill them in either yourself, or <b>by chatting with an agent that interviews you about your hardware setup</b>.</p>
+
+    <h3 class="zh">④ 参考文件:Agent 拿到的「说明书」</h3>
+    <h3 class="en">④ The reference file: the agent's manual</h3>
+    <p class="zh">有了这些标签,MHS 驱动会<b>自动生成一份参考文件</b>,写清这台设备的一般特性:<b>它能测什么、什么参数可调、会强制执行哪些安全上限</b>。这份文件就是 Agent 操作这台设备所需要知道的全部——包括它从没见过的设备。</p>
+    <p class="en">From those tags, the MHS driver <b>automatically produces a reference file</b> describing the device's general characteristics: <b>what it can measure, what can be adjusted, and what safety limits will be enforced</b>. That file is everything the agent needs to operate the device — including one it has never seen before.</p>
+
+    <div class="callout key">
+      <span class="ct zh">关键点:安全上限是「被强制执行」的,不是提示</span>
+      <span class="ct en">Key point: safety limits are <em>enforced</em>, not suggested</span>
+      <p class="zh">官方措辞是「what safety limits will be enforced」——即安全边界写在驱动层并由驱动执行,而不是塞进 prompt 让模型「记得注意」。这在架构上是正确的选择:模型会忘、会被绕过,驱动层不会。不过<b>研究预览阶段的强制粒度、失败模式与绕过可能性,公告未展开,目前无法核实</b>。</p>
+      <p class="en">The official wording is "what safety limits will be enforced" — the envelope lives in and is applied by the driver layer, not stuffed into a prompt for the model to remember. Architecturally that's the right call: models forget and can be talked around; a driver layer doesn't. That said, <b>the granularity of enforcement, its failure modes and whether it can be bypassed are not detailed in the announcement and cannot be verified today</b>.</p>
+    </div>
+
+    <div class="glossary">
+      <dl>
+        <dt class="zh">MHS 驱动(MHS driver)</dt>
+        <dd class="zh">按 MHS 规范写的一段设备翻译层。包含 read/write 原语实现、发现信息、自然语言标签,并据此产出参考文件。</dd>
+        <dt class="en">MHS driver</dt>
+        <dd class="en">A device translation layer written to the MHS spec: read/write primitive implementations, discovery information, natural-language tags, and the reference file generated from them.</dd>
+        <dt class="zh">参考文件(reference file)</dt>
+        <dd class="zh">驱动自动生成的设备说明,描述可测量项、可调项与将被强制执行的安全上限,供 Agent 读取。</dd>
+        <dt class="en">Reference file</dt>
+        <dd class="en">The device description the driver generates automatically — measurable quantities, adjustable parameters, and the safety limits that will be enforced — for the agent to read.</dd>
+        <dt class="zh">代码文件(code files / APIs)</dt>
+        <dd class="zh">MHS 三条控制通路之一。把一台或多台设备的驱动命令<b>串成一段确定性脚本</b>,让设备自己跑完,Agent 不必每一步都推理。</dd>
+        <dt class="en">Code files (APIs)</dt>
+        <dd class="en">One of the three MHS control paths. Chains driver commands from one or more devices into a <b>deterministic script</b> the devices execute themselves, so the agent doesn't have to reason at every step.</dd>
+        <dt class="zh">研究预览(research preview)</dt>
+        <dd class="zh">当前阶段。面向首批科研实验室与先进制造厂商开放申请,目标是共同建立安全评测与最佳实践;Anthropic 表示预览之后计划开源。</dd>
+        <dt class="en">Research preview</dt>
+        <dd class="en">The current stage. Open by application to a first group of scientific labs and advanced manufacturers, with the stated goal of jointly building safety evaluations and best practices; Anthropic says it plans to open-source MHS afterwards.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============ HOW ============ -->
+  <section id="how">
+    <h2><span class="num">3</span><span class="zh">怎么用:三条控制通路</span><span class="en">How you use it: three control paths</span></h2>
+    <p class="sec-sub zh">MCP、命令行、代码文件——为什么是三条,不是一条。</p>
+    <p class="sec-sub en">MCP, CLI, code files — and why it's three rather than one.</p>
+
+    <p class="zh">设备接好、Agent 也读懂了参考文件之后,还差最后一步:<b>怎么下达控制</b>。MHS 给了三条通路,它们不是三个可选项,而是三种<b>不同节奏</b>的控制方式,配合使用才能跨设备编排。</p>
+    <p class="en">With devices connected and the reference file understood, one step remains: <b>how control is actually issued</b>. MHS offers three paths — not three alternatives but three different <b>tempos</b> of control, meant to work together for cross-device orchestration.</p>
+
+    <div class="tblwrap">
+      <table class="zh">
+        <thead><tr><th>通路</th><th>节奏</th><th>适合什么</th></tr></thead>
+        <tbody>
+          <tr><td><b>MCP</b></td><td>Agent 在线推理,一步一想</td><td>探索性操作、需要看结果再决定下一步、实时调参与故障处理</td></tr>
+          <tr><td><b>命令行(CLI)</b></td><td>人或脚本直接下命令</td><td>手动干预、调试、把 MHS 接进已有的 shell 工作流;<b>不需要 AI 也能用</b></td></tr>
+          <tr><td><b>代码文件(API)</b></td><td>确定性执行,设备自己跑</td><td>长时任务,或者操作速度快到 Agent 来不及在线推理的场景</td></tr>
+        </tbody>
+      </table>
+      <table class="en">
+        <thead><tr><th>Path</th><th>Tempo</th><th>Good for</th></tr></thead>
+        <tbody>
+          <tr><td><b>MCP</b></td><td>Agent reasons online, step by step</td><td>Exploratory operation, "look at the result then decide", live parameter tuning and fault handling</td></tr>
+          <tr><td><b>Command line (CLI)</b></td><td>A human or script issues commands directly</td><td>Manual intervention, debugging, dropping MHS into an existing shell workflow; <b>works without any AI</b></td></tr>
+          <tr><td><b>Code files (API)</b></td><td>Deterministic execution, devices run it themselves</td><td>Long-running tasks, or operations faster than the agent's online reasoning could keep up with</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="ct zh">容易误读的一点</span>
+      <span class="ct en">A common misreading</span>
+      <p class="zh">MHS <b>并不依赖 AI</b>。据 Ars Technica 的报道(经 Techzine 转述),设备同样可以直接通过命令行或 API 代码控制,与 AI 模型的连接部分是通过 MCP 建立的。也就是说,MHS 首先是一个硬件抽象层,「能被 Agent 用」是它的一个能力,不是它的全部定义。</p>
+      <p class="en">MHS is <b>not AI-dependent</b>. Per Ars Technica (as relayed by Techzine), devices can also be controlled directly via the command line or API code; the connection to an AI model is established, in part, through MCP. So MHS is first a hardware abstraction layer — being usable by an agent is one of its capabilities, not its whole definition.</p>
+    </div>
+
+    <h3 class="zh">最有意思的模式:先在线探索,再固化成脚本</h3>
+    <h3 class="en">The most interesting pattern: explore online, then freeze into a script</h3>
+    <p class="zh">公告里有一个很能说明问题的观察:测试中,Claude 与实验和硬件的互动方式<b>「很像一个科学家」</b>——它对激光做一次调整,通过相机观察结果、评估这次调整把光束移到了哪里,然后重复这个过程,试图理解事件的因果序列。然后它做了一件关键的事:<b>把学到的东西打包进代码文件</b>,写出一段确定性脚本,让整个对准过程可以作为一条命令跑完,不再需要每一步都推理。</p>
+    <p class="en">One observation in the announcement is especially telling: in testing, Claude interacted with experiments and hardware <b>"much as a scientist would"</b> — it adjusted a laser, observed the result through a camera to assess how the adjustment moved the beam, and repeated, trying to understand the sequence of events. Then it did the key thing: it <b>packaged what it learned into code files</b>, writing a deterministic script that aligned the laser as a single command, without reasoning at each step.</p>
+
+    <div class="figure" id="f2zh">
+      <svg viewBox="0 0 760 250" role="img" aria-label="MHS 分层架构与三条控制通路">
+        <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#0f766e"/></marker></defs>
+        <g data-anim style="--d:0s">
+          <rect x="260" y="8" width="240" height="36" rx="9" fill="#dcefeb" stroke="#a9d3cb"/>
+          <text x="380" y="31" font-size="13.5" text-anchor="middle" fill="#0b524d" font-weight="750">AI Agent(模型无关)</text>
+        </g>
+        <g data-anim style="--d:.25s">
+          <rect x="60" y="72" width="180" height="46" rx="9" fill="#fff" stroke="#0f766e" stroke-width="1.5"/>
+          <text x="150" y="92" font-size="13" text-anchor="middle" fill="#0b524d" font-weight="750">MCP</text>
+          <text x="150" y="109" font-size="10.5" text-anchor="middle" fill="#6d827c">在线推理 · 一步一想</text>
+          <rect x="290" y="72" width="180" height="46" rx="9" fill="#fff" stroke="#0f766e" stroke-width="1.5"/>
+          <text x="380" y="92" font-size="13" text-anchor="middle" fill="#0b524d" font-weight="750">命令行 CLI</text>
+          <text x="380" y="109" font-size="10.5" text-anchor="middle" fill="#6d827c">人 / 脚本直控 · 不需 AI</text>
+          <rect x="520" y="72" width="180" height="46" rx="9" fill="#fff" stroke="#0f766e" stroke-width="1.5"/>
+          <text x="610" y="92" font-size="13" text-anchor="middle" fill="#0b524d" font-weight="750">代码文件 API</text>
+          <text x="610" y="109" font-size="10.5" text-anchor="middle" fill="#6d827c">确定性脚本 · 设备自跑</text>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.4" fill="none" data-anim style="--d:.15s">
+          <path d="M330 44 L165 68" marker-end="url(#ar3)"/><path d="M380 44 L380 68" marker-end="url(#ar3)"/><path d="M430 44 L595 68" marker-end="url(#ar3)"/>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.4" fill="none" data-anim style="--d:.4s">
+          <path d="M150 118 L150 142" marker-end="url(#ar3)"/><path d="M380 118 L380 142" marker-end="url(#ar3)"/><path d="M610 118 L610 142" marker-end="url(#ar3)"/>
+        </g>
+        <g data-anim style="--d:.5s">
+          <rect x="60" y="144" width="640" height="40" rx="9" fill="#0f766e"/>
+          <text x="380" y="162" font-size="13" text-anchor="middle" fill="#fff" font-weight="750">MHS 驱动层</text>
+          <text x="380" y="177" font-size="10.5" text-anchor="middle" fill="#bfe3dd">read / write 原语 · 标准发现 · 自然语言标签 → 参考文件 · 强制安全上限</text>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.4" fill="none" data-anim style="--d:.65s">
+          <path d="M140 184 L140 204" marker-end="url(#ar3)"/><path d="M300 184 L300 204" marker-end="url(#ar3)"/><path d="M460 184 L460 204" marker-end="url(#ar3)"/><path d="M620 184 L620 204" marker-end="url(#ar3)"/>
+        </g>
+        <g data-anim style="--d:.75s">
+          <rect x="80" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="140" y="226" font-size="11" text-anchor="middle" fill="#0b524d">显微镜</text>
+          <rect x="240" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="300" y="226" font-size="11" text-anchor="middle" fill="#0b524d">液体处理器</text>
+          <rect x="400" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="460" y="226" font-size="11" text-anchor="middle" fill="#0b524d">机械臂</text>
+          <rect x="560" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="620" y="226" font-size="11" text-anchor="middle" fill="#0b524d">激光器 / 相机</text>
+        </g>
+      </svg>
+      <p class="fig-cap">图 2:MHS 的分层与三条控制通路。三条路都落到同一个驱动层上,所以「在线探索」得到的知识可以直接沉淀成「确定性脚本」——这正是激光对准案例发生的事。据 Anthropic 官方公告绘制。</p>
+    </div>
+
+    <div class="figure" id="f2en">
+      <svg viewBox="0 0 760 250" role="img" aria-label="MHS layering and its three control paths">
+        <defs><marker id="ar3-e" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#0f766e"/></marker></defs>
+        <g data-anim style="--d:0s">
+          <rect x="260" y="8" width="240" height="36" rx="9" fill="#dcefeb" stroke="#a9d3cb"/>
+          <text x="380" y="31" font-size="13" text-anchor="middle" fill="#0b524d" font-weight="750">AI agent (model-agnostic)</text>
+        </g>
+        <g data-anim style="--d:.25s">
+          <rect x="60" y="72" width="180" height="46" rx="9" fill="#fff" stroke="#0f766e" stroke-width="1.5"/>
+          <text x="150" y="92" font-size="13" text-anchor="middle" fill="#0b524d" font-weight="750">MCP</text>
+          <text x="150" y="109" font-size="10" text-anchor="middle" fill="#6d827c">online reasoning, step by step</text>
+          <rect x="290" y="72" width="180" height="46" rx="9" fill="#fff" stroke="#0f766e" stroke-width="1.5"/>
+          <text x="380" y="92" font-size="13" text-anchor="middle" fill="#0b524d" font-weight="750">Command line</text>
+          <text x="380" y="109" font-size="10" text-anchor="middle" fill="#6d827c">human / script, no AI needed</text>
+          <rect x="520" y="72" width="180" height="46" rx="9" fill="#fff" stroke="#0f766e" stroke-width="1.5"/>
+          <text x="610" y="92" font-size="13" text-anchor="middle" fill="#0b524d" font-weight="750">Code files (API)</text>
+          <text x="610" y="109" font-size="10" text-anchor="middle" fill="#6d827c">deterministic, device-executed</text>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.4" fill="none" data-anim style="--d:.15s">
+          <path d="M330 44 L165 68" marker-end="url(#ar3-e)"/><path d="M380 44 L380 68" marker-end="url(#ar3-e)"/><path d="M430 44 L595 68" marker-end="url(#ar3-e)"/>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.4" fill="none" data-anim style="--d:.4s">
+          <path d="M150 118 L150 142" marker-end="url(#ar3-e)"/><path d="M380 118 L380 142" marker-end="url(#ar3-e)"/><path d="M610 118 L610 142" marker-end="url(#ar3-e)"/>
+        </g>
+        <g data-anim style="--d:.5s">
+          <rect x="60" y="144" width="640" height="40" rx="9" fill="#0f766e"/>
+          <text x="380" y="162" font-size="13" text-anchor="middle" fill="#fff" font-weight="750">MHS driver layer</text>
+          <text x="380" y="177" font-size="9.8" text-anchor="middle" fill="#bfe3dd">read / write primitives · standard discovery · NL tags → reference file · enforced safety limits</text>
+        </g>
+        <g stroke="#0f766e" stroke-width="1.4" fill="none" data-anim style="--d:.65s">
+          <path d="M140 184 L140 204" marker-end="url(#ar3-e)"/><path d="M300 184 L300 204" marker-end="url(#ar3-e)"/><path d="M460 184 L460 204" marker-end="url(#ar3-e)"/><path d="M620 184 L620 204" marker-end="url(#ar3-e)"/>
+        </g>
+        <g data-anim style="--d:.75s">
+          <rect x="80" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="140" y="226" font-size="11" text-anchor="middle" fill="#0b524d">Microscope</text>
+          <rect x="240" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="300" y="226" font-size="11" text-anchor="middle" fill="#0b524d">Liquid handler</text>
+          <rect x="400" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="460" y="226" font-size="11" text-anchor="middle" fill="#0b524d">Robot arm</text>
+          <rect x="560" y="206" width="120" height="30" rx="7" fill="#fff" stroke="#a9d3cb"/><text x="620" y="226" font-size="11" text-anchor="middle" fill="#0b524d">Laser / camera</text>
+        </g>
+      </svg>
+      <p class="fig-cap">Figure 2: MHS layering and its three control paths. All three land on the same driver layer, so knowledge gained by exploring online can be frozen directly into a deterministic script — which is exactly what happened in the laser-alignment case. Drawn from Anthropic's announcement.</p>
+    </div>
+
+    <div class="callout key">
+      <span class="ct zh">迁移到软件 Agent 的启发</span>
+      <span class="ct en">The transferable lesson for software agents</span>
+      <p class="zh">这个「在线探索 → 固化脚本」的两段式,在软件 Agent 里其实早就是最佳实践(先让模型摸索出一套步骤,再把步骤写成脚本或 skill 复用)。MHS 案例的价值是它证明了这个范式在<b>成本约束更硬</b>的场景下同样成立:公告明确指出,当任务需要长时间运行、或者操作速度快到超过 Agent 在线推理的能力时,就必须走代码文件这条路。<b>物理世界给「什么时候不该让模型逐步推理」提供了一个硬性判据。</b></p>
+      <p class="en">This two-stage "explore online, then freeze into a script" is already best practice for software agents — let the model work out a procedure, then write the procedure down as a script or skill and reuse it. What the MHS case adds is evidence that the pattern holds where the <b>cost constraints are harder</b>: the announcement is explicit that when a task must run for a long time, or must operate faster than online reasoning allows, you have to take the code-file path. <b>The physical world supplies a hard criterion for when the model should stop reasoning step by step.</b></p>
+    </div>
+  </section>
+
+  <!-- ============ CASES ============ -->
+  <section id="cases">
+    <h2><span class="num">4</span><span class="zh">三份实证与数字</span><span class="en">Three field reports, with numbers</span></h2>
+    <p class="sec-sub zh">公告里三家合作方的自述——包括他们翻车的地方。</p>
+    <p class="sec-sub en">Three partner write-ups from the announcement — including where things went wrong.</p>
+
+    <h3 class="zh">案例一 · Genentech:让 Claude 自己调出移液流速</h3>
+    <h3 class="en">Case 1 · Genentech: letting Claude tune its own pipetting flow rate</h3>
+    <p class="zh">Genentech 的研究者把 MHS 部署到三台设备上——液体处理器(精确移液)、机械臂(搬运板)、酶标仪(读吸光度),用 Claude 做协议编排和硬件通信中枢,自动化 <b>BCA 蛋白定量</b>(一种测样品总蛋白浓度的标准流程)。全部实验在标准 96 孔板里进行。</p>
+    <p class="en">Genentech deployed MHS across three instruments — a liquid handler (precise transfers), a robotic arm (moves labware), a microplate reader (measures absorbance) — using Claude to orchestrate the protocol and act as the hardware communication hub, automating the <b>BCA protein assay</b> (a standard procedure for total protein concentration). All experiments ran in standard 96-well microplates.</p>
+
+    <p class="zh">难点在流体物理。BCA 涉及物性差异很大的液体:从简单的水溶液到粘稠、易起泡的蛋白样品。他们用已知浓度的<b>牛血清白蛋白(BSA)</b>作标准品。BSA 粘稠,在高流速下会起泡,而起泡直接影响移液准确度。</p>
+    <p class="en">The difficulty is fluid physics. BCA involves liquids with very different properties, from simple aqueous reagents to viscous, foamy protein samples. They used <b>bovine serum albumin (BSA)</b> at known concentrations as the standard. BSA is viscous and forms bubbles at high flow rates, which directly degrades pipetting accuracy.</p>
+
+    <ol class="steps">
+      <li class="zh"><b>基线:</b>先给 Claude 标准 BCA 协议跑一遍。它把步骤执行下来了,但给水溶液和粘稠液<b>选了同一个通用流速</b>,导致粘稠液起泡、转移不准。</li>
+      <li class="en"><b>Baseline:</b> Claude was given the standard BCA protocol. It executed the steps, but picked generic liquid-handling parameters with the <b>same flow rate for both aqueous and viscous solutions</b>, causing bubbles in the viscous one and inaccurate transfers.</li>
+      <li class="zh"><b>自主优化:</b>研究者给出实验设计和专家定义的流速范围,让 Claude 用<b>染色液体做试转移 + 酶标仪读吸光度</b>来找每种液体的最优流速,并给它一份专家在同一块板上做的「ground truth」转移作对照,目标是最小化与专家结果的差距。</li>
+      <li class="en"><b>Autonomous optimization:</b> researchers supplied the experimental design and an expert-defined flow-rate range, and asked Claude to find the optimum for each liquid type by <b>running trial transfers with dyed liquid and taking absorbance readings</b>, with an expert-performed "ground truth" transfer in the same plate as the target to minimize against.</li>
+      <li class="zh"><b>自评:</b>Claude 计算 <b>RMSE(均方根误差)</b>量化自己的准确度——越低越好,0 为满分。公告举例:目标 100 微升、实际 98 微升,那 2 微升的偏差就计入分数。</li>
+      <li class="en"><b>Self-scoring:</b> Claude computed <b>RMSE (root mean square error)</b> to quantify its accuracy — lower is better, zero is perfect. Per the write-up: aiming for 100 µL but dispensing 98 means that 2 µL miss counts against the score.</li>
+      <li class="zh"><b>结果:</b>水收敛到约 <b>140 µL/s(RMSE 0.016)</b>,BSA 收敛到约 <b>10 µL/s(RMSE 0.181)</b>——Genentech 的自动化专家确认这两个参数对他们的装置是合理的。而按常规做法,这种优化需要自动化专家为<b>每一组参数</b>手写编程逻辑并反复分析数据。</li>
+      <li class="en"><b>Result:</b> water converged at roughly <b>140 µL/s (RMSE 0.016)</b> and BSA at <b>10 µL/s (RMSE 0.181)</b> — parameters their automation experts confirmed were reasonable for the setup. Ordinarily this optimization requires an automation specialist to hand-write programming logic for <b>every single parameter set</b> and iterate on the data.</li>
+    </ol>
+
+    <div class="figure" id="f3zh">
+      <svg viewBox="0 0 720 240" role="img" aria-label="Genentech 闭环优化流程">
+        <defs><marker id="ar4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#0f766e"/></marker></defs>
+        <text x="14" y="20" font-size="13" font-weight="800" fill="#0b524d" data-anim style="--d:0s">Claude 的闭环:设参数 → 做实验 → 读数据 → 自评 → 再调</text>
+        <g data-anim style="--d:.15s"><rect x="20" y="46" width="122" height="52" rx="10" fill="#dcefeb" stroke="#a9d3cb"/><text x="81" y="70" font-size="11.5" text-anchor="middle" fill="#0b524d" font-weight="700">① 设定流速</text><text x="81" y="87" font-size="10" text-anchor="middle" fill="#39504b">在专家给的范围内</text></g>
+        <g data-anim style="--d:.3s"><rect x="172" y="46" width="122" height="52" rx="10" fill="#fff" stroke="#a9d3cb"/><text x="233" y="70" font-size="11.5" text-anchor="middle" fill="#0b524d" font-weight="700">② 转移染色液</text><text x="233" y="87" font-size="10" text-anchor="middle" fill="#39504b">液体处理器</text></g>
+        <g data-anim style="--d:.45s"><rect x="324" y="46" width="122" height="52" rx="10" fill="#fff" stroke="#a9d3cb"/><text x="385" y="70" font-size="11.5" text-anchor="middle" fill="#0b524d" font-weight="700">③ 机械臂送板</text><text x="385" y="87" font-size="10" text-anchor="middle" fill="#39504b">→ 酶标仪读吸光度</text></g>
+        <g data-anim style="--d:.6s"><rect x="476" y="46" width="122" height="52" rx="10" fill="#fff" stroke="#a9d3cb"/><text x="537" y="70" font-size="11.5" text-anchor="middle" fill="#0b524d" font-weight="700">④ 算 RMSE</text><text x="537" y="87" font-size="10" text-anchor="middle" fill="#39504b">对比专家 ground truth</text></g>
+        <g stroke="#0f766e" stroke-width="1.5" fill="none" data-anim style="--d:.7s">
+          <path d="M142 72 L166 72" marker-end="url(#ar4)"/><path d="M294 72 L318 72" marker-end="url(#ar4)"/><path d="M446 72 L470 72" marker-end="url(#ar4)"/>
+          <path d="M537 98 L537 124 L81 124 L81 100" marker-end="url(#ar4)"/>
+        </g>
+        <text x="300" y="142" font-size="10.5" fill="#6d827c" data-anim style="--d:.85s">误差没到最小 → 调整流速,再来一轮</text>
+        <g data-anim style="--d:1s">
+          <rect x="20" y="164" width="290" height="58" rx="10" fill="#f5f7f5" stroke="#a9d3cb"/>
+          <text x="36" y="186" font-size="12" fill="#0b524d" font-weight="750">收敛结果 · 水</text>
+          <text x="36" y="207" font-size="14" fill="#0f766e" font-weight="800">≈ 140 µL/s</text>
+          <text x="150" y="207" font-size="12" fill="#39504b">RMSE 0.016</text>
+        </g>
+        <g data-anim style="--d:1.1s">
+          <rect x="330" y="164" width="290" height="58" rx="10" fill="#f5f7f5" stroke="#f0cfa4"/>
+          <text x="346" y="186" font-size="12" fill="#6b3708" font-weight="750">收敛结果 · 粘稠 BSA</text>
+          <text x="346" y="207" font-size="14" fill="#b45309" font-weight="800">≈ 10 µL/s</text>
+          <text x="452" y="207" font-size="12" fill="#39504b">RMSE 0.181</text>
+        </g>
+        <text x="634" y="196" font-size="10.5" fill="#6d827c" data-anim style="--d:1.2s">粘稠液</text>
+        <text x="634" y="210" font-size="10.5" fill="#6d827c" data-anim style="--d:1.2s">误差更大</text>
+      </svg>
+      <p class="fig-cap">图 3:Genentech 的闭环优化。橙色部分是 Claude 自主执行的那一圈。注意两种液体收敛到相差 14 倍的流速,以及粘稠液的 RMSE 高一个数量级——这正是下文「物理直觉缺口」的量化体现。数据据 Anthropic 官方公告中 Genentech 的自述。</p>
+    </div>
+
+    <div class="figure" id="f3en">
+      <svg viewBox="0 0 720 240" role="img" aria-label="Genentech closed-loop optimization">
+        <defs><marker id="ar4-e" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#0f766e"/></marker></defs>
+        <text x="14" y="20" font-size="12.5" font-weight="800" fill="#0b524d" data-anim style="--d:0s">Claude's loop: set parameter → run → read data → self-score → adjust</text>
+        <g data-anim style="--d:.15s"><rect x="20" y="46" width="122" height="52" rx="10" fill="#dcefeb" stroke="#a9d3cb"/><text x="81" y="70" font-size="11" text-anchor="middle" fill="#0b524d" font-weight="700">① Set flow rate</text><text x="81" y="87" font-size="9.5" text-anchor="middle" fill="#39504b">within expert range</text></g>
+        <g data-anim style="--d:.3s"><rect x="172" y="46" width="122" height="52" rx="10" fill="#fff" stroke="#a9d3cb"/><text x="233" y="70" font-size="11" text-anchor="middle" fill="#0b524d" font-weight="700">② Transfer dye</text><text x="233" y="87" font-size="9.5" text-anchor="middle" fill="#39504b">liquid handler</text></g>
+        <g data-anim style="--d:.45s"><rect x="324" y="46" width="122" height="52" rx="10" fill="#fff" stroke="#a9d3cb"/><text x="385" y="70" font-size="11" text-anchor="middle" fill="#0b524d" font-weight="700">③ Arm moves plate</text><text x="385" y="87" font-size="9.5" text-anchor="middle" fill="#39504b">→ reader takes absorbance</text></g>
+        <g data-anim style="--d:.6s"><rect x="476" y="46" width="122" height="52" rx="10" fill="#fff" stroke="#a9d3cb"/><text x="537" y="70" font-size="11" text-anchor="middle" fill="#0b524d" font-weight="700">④ Compute RMSE</text><text x="537" y="87" font-size="9.5" text-anchor="middle" fill="#39504b">vs expert ground truth</text></g>
+        <g stroke="#0f766e" stroke-width="1.5" fill="none" data-anim style="--d:.7s">
+          <path d="M142 72 L166 72" marker-end="url(#ar4-e)"/><path d="M294 72 L318 72" marker-end="url(#ar4-e)"/><path d="M446 72 L470 72" marker-end="url(#ar4-e)"/>
+          <path d="M537 98 L537 124 L81 124 L81 100" marker-end="url(#ar4-e)"/>
+        </g>
+        <text x="290" y="142" font-size="10" fill="#6d827c" data-anim style="--d:.85s">error not minimal → adjust flow rate, run again</text>
+        <g data-anim style="--d:1s">
+          <rect x="20" y="164" width="290" height="58" rx="10" fill="#f5f7f5" stroke="#a9d3cb"/>
+          <text x="36" y="186" font-size="11.5" fill="#0b524d" font-weight="750">Converged · water</text>
+          <text x="36" y="207" font-size="14" fill="#0f766e" font-weight="800">≈ 140 µL/s</text>
+          <text x="150" y="207" font-size="12" fill="#39504b">RMSE 0.016</text>
+        </g>
+        <g data-anim style="--d:1.1s">
+          <rect x="330" y="164" width="290" height="58" rx="10" fill="#f5f7f5" stroke="#f0cfa4"/>
+          <text x="346" y="186" font-size="11.5" fill="#6b3708" font-weight="750">Converged · viscous BSA</text>
+          <text x="346" y="207" font-size="14" fill="#b45309" font-weight="800">≈ 10 µL/s</text>
+          <text x="452" y="207" font-size="12" fill="#39504b">RMSE 0.181</text>
+        </g>
+        <text x="634" y="196" font-size="10" fill="#6d827c" data-anim style="--d:1.2s">viscous =</text>
+        <text x="634" y="210" font-size="10" fill="#6d827c" data-anim style="--d:1.2s">higher error</text>
+      </svg>
+      <p class="fig-cap">Figure 3: Genentech's closed loop; the orange stretch is what Claude executed autonomously. Note the 14× gap between the two converged flow rates and the order-of-magnitude higher RMSE on the viscous liquid — a quantified version of the "physical intuition gap" discussed below. Data from Genentech's write-up inside Anthropic's announcement.</p>
+    </div>
+
+    <h3 class="zh">案例二 · 华盛顿大学 Baker / Pinglay 实验室:把实验室搬到办公室</h3>
+    <h3 class="en">Case 2 · UW Baker / Pinglay labs: taking the bench remote</h3>
+    <p class="zh">背景是<b>从头蛋白设计</b>(de novo protein design)——凭空设计自然界不存在的蛋白。设计一个像 PETase(分解塑料的酶)这样的蛋白,如今可以便宜到 <b>0.01 美元</b>;但在实验台上验证它<b>每个候选要约 100 美元、一周人力</b>,而他们一次要测 1000 个候选。瓶颈完全在湿实验一侧。</p>
+    <p class="en">The context is <b>de novo protein design</b> — building proteins that don't exist in nature. Designing something like PETase (the plastic-degrading enzyme) can now cost as little as <b>$0.01</b>; testing it at the bench costs around <b>$100 and a week of labour per candidate</b>, and they test 1,000 candidates at a time. The bottleneck is entirely on the wet-lab side.</p>
+
+    <p class="zh">Zihao Song 用 MHS 做了三件事。<b>其一,远程监控:</b>以前要在实验室里来回走着看每台仪器,现在所有仪器把状态汇报到一个仪表盘,可以在笔记本上看,甚至用手机问 Agent。<b>其二,Agent 监控 qPCR:</b>qPCR 通过反复升降温复制目标 DNA,信号呈 S 形曲线——先平、后陡升、最后因试剂耗尽进入平台期。跑进平台期会扭曲 DNA 文库、拿不到准确定量,所以必须盯着曲线在正确时刻叫停,这过去要人守好几个小时。现在 Agent 实时分析扩增曲线、识别曲线形态,在关键节点<b>问研究者停还是继续</b>;被告知停就中止反应,并把仪器推进到下一步——4 °C 保温,防止 DNA 降解。<b>其三,机械臂交接:</b>用基于 LeRobot 的开源机械臂,由 Claude Code 通过 MHS 协调机械臂与液体处理器,液体处理器分液完成后约 <b>10 秒</b>触发机械臂取板,反复测试中<b>两台设备从未相撞</b>。</p>
+    <p class="en">Zihao Song did three things with MHS. <b>First, remote monitoring:</b> instead of roving the lab to check each instrument, all of them report status to one dashboard he can read from a laptop, or query through an agent from a phone. <b>Second, agent-supervised qPCR:</b> qPCR amplifies target DNA through repeated heating and cooling, and the signal follows an S-curve — flat, then steep, then a plateau as reagents run out. Running into the plateau distorts the library and ruins quantification, so someone has to watch the curve and halt at the right moment, often for hours. Now the agent analyses the amplification curves in real time, identifies the pattern, and at the right junctures <b>asks the researcher whether to stop or continue</b>; told to stop, it halts the reaction and advances the instrument to a 4 °C hold that keeps the DNA from degrading. <b>Third, plate handoff:</b> using an open-source LeRobot-based arm, Claude Code coordinated arm and liquid handler through MHS — about <b>10 seconds</b> after dispensing finished, the agent triggered the arm to lift the plate, and across repeated tests <b>the two instruments never collided</b>.</p>
+
+    <div class="callout key">
+      <span class="ct zh">最有说服力的一句</span>
+      <span class="ct en">The most persuasive line</span>
+      <p class="zh">「连接六台仪器通过 MHS <b>用了不到一周</b>,包括我给它们写驱动的时间。接上之后,Agent 和仪器打交道基本不用我操心:它自己发现每台设备、读它的状态、调用它的操作,不需要我手把手指导接口。」——对比他此前「花几周评估平台最后放弃」的经历,这个反差比任何官方数字都更能说明问题。</p>
+      <p class="en">"Connecting six instruments through MHS took <b>under a week</b>, including the time I spent writing drivers for them. Once they were connected, the AI agent worked with the instruments without much fussing on my part: it discovered each device, read its status, and called its operations without my having to hand-hold the interface." Set against his earlier experience — weeks of platform evaluation ending in giving up — that contrast says more than any vendor number.</p>
+    </div>
+
+    <h3 class="zh">案例三 · CMU:8 小时 vs 数周</h3>
+    <h3 class="en">Case 3 · CMU: eight hours vs several weeks</h3>
+    <p class="zh">卡内基梅隆的团队做的是<b>系列稀释</b>确定剂量-反应曲线:从高浓度开始,每次按同一比例稀释,用上一次的结果配下一次。人工做这套实验要几周,而且容易出错——最高浓度太高会饱和(信号顶到头,曲线在上方压平,高剂量点不再提供信息)、步长太小覆盖范围不够、步长太大又会跳过响应真正变化的过渡区。</p>
+    <p class="en">The CMU team ran <b>serial dilution</b> to determine dose-response curves: start with a strong solution, dilute by the same ratio each step, using the last dilution to make the next. By hand this takes weeks and is error-prone — too high a maximum concentration saturates the signal (the curve flattens at the top and high doses stop being informative), too small a step size doesn't cover enough range, too large a step skips the transition region entirely.</p>
+
+    <p class="zh">他们的装置:CyBio FeliX 液体处理器、Varioskan LUX 酶标仪、一条搬 96 孔板的机械臂、若干监控相机——分布在<b>三台电脑上,接口彼此根本不兼容</b>。用 MHS,他们从零为每台仪器写驱动,再写一个编排层,让 <b>Claude Opus 4.8</b> 自主跑完整个协议。</p>
+    <p class="en">Their setup: a CyBio FeliX liquid handler, a Varioskan LUX plate reader, a robotic arm for 96-well plates, and monitoring cameras — spread across <b>three computers with fundamentally incompatible interfaces</b>. With MHS they wrote drivers from scratch for each instrument plus an orchestration layer, letting a <b>Claude Opus 4.8</b> agent run the full protocol autonomously.</p>
+
+    <div class="stats">
+      <div class="stat"><div class="n">~8 h</div><div class="l zh">写驱动 + 编排层的实际耗时</div><div class="l en">Actual time to write drivers plus orchestration</div></div>
+      <div class="stat"><div class="n zh">数周</div><div class="n en">weeks</div><div class="l zh">厂商方案通常需要的时间</div><div class="l en">What a vendor-built setup typically takes</div></div>
+      <div class="stat"><div class="n">~3×</div><div class="l zh">实验速度提升</div><div class="l en">Speed-up on the experiments</div></div>
+      <div class="stat"><div class="n">4</div><div class="l zh">跨三台电脑统一的设备类别</div><div class="l en">Device classes unified across three computers</div></div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARE ============ -->
+  <section id="compare">
+    <h2><span class="num">5</span><span class="zh">和 MCP / SiLA 2 / OPC UA 比</span><span class="en">vs MCP, SiLA 2 and OPC UA</span></h2>
+    <p class="sec-sub zh">MHS 不是凭空出现的——实验室与工厂早就有标准,搞清分工才知道它补的是哪一块。</p>
+    <p class="sec-sub en">MHS didn't appear in a vacuum — labs and factories already have standards. Knowing the division of labour tells you what it actually adds.</p>
+
+    <h3 class="zh">和 MCP 的关系:互补,不是替代</h3>
+    <h3 class="en">Relative to MCP: complementary, not a replacement</h3>
+    <p class="zh">最容易混淆的一组。MCP 是 Anthropic 此前推出的标准,让 AI 模型访问<b>外部数据源与软件工具</b>;MHS 把同一个原则延伸到<b>物理设备</b>。两者的连接点很具体:MHS 声明<b>任何 Agent harness 都可以用标准协议接入,MCP 就是其中之一</b>——也就是说,MHS 通过 MCP 把设备暴露给 Agent,Agent 于是能用自然语言处理指令、决定需要哪些先后动作。</p>
+    <p class="en">The easiest pair to confuse. MCP is Anthropic's earlier standard for giving AI models access to <b>external data sources and software tools</b>; MHS extends the same principle to <b>physical devices</b>. The join is concrete: MHS states that <b>any agent harness can access it using standard protocols, such as MCP</b> — so MHS exposes devices through MCP, and the agent can then take natural-language instructions and work out the required sequence of actions.</p>
+
+    <h3 class="zh">和实验室既有标准的关系</h3>
+    <h3 class="en">Relative to the standards labs already have</h3>
+    <p class="zh">实验室互操作性不是新话题。<b>SiLA 2</b> 是目前最成熟的实验室仪器连接开放标准,基于 HTTP/2 与 Protocol Buffers、走 gRPC 传输格式,用「特性定义语言(FDL)」给出机器可读、带类型的能力描述,并要求 mDNS/DNS-SD 做即插即用发现,同时包含加密、认证、授权与审计追踪。<b>OPC UA</b> 来自工业自动化,是一套平台无关、面向服务的架构,支持发现、读写、方法调用、通知、历史数据访问与审计,能从嵌入式设备一路扩展到企业系统和云。</p>
+    <p class="en">Lab interoperability is not a new topic. <b>SiLA 2</b> is the most mature open standard for laboratory instrument connectivity: built on HTTP/2 and Protocol Buffers over the gRPC wire format, with a Feature Definition Language giving machine-readable, typed capability descriptions, mandated mDNS/DNS-SD plug-and-play discovery, and provisions for encryption, authentication, authorization and audit trails. <b>OPC UA</b> comes from industrial automation: a platform-independent, service-oriented architecture supporting discovery, read/write, method execution, notifications, historical data access and auditing, scaling from embedded devices to enterprise systems and cloud.</p>
+
+    <div class="tblwrap">
+      <table class="zh">
+        <thead><tr><th>维度</th><th>MCP</th><th>SiLA 2</th><th>OPC UA</th><th>MHS</th></tr></thead>
+        <tbody>
+          <tr><td><b>接的是</b></td><td>软件工具、数据源</td><td>实验室仪器与服务</td><td>工业设备、控制器、企业系统</td><td>任何有可编程接口的物理设备</td></tr>
+          <tr><td><b>为谁设计</b></td><td>LLM / Agent</td><td>机器与机器(M2M)</td><td>机器与机器(M2M)</td><td>AI Agent(AI 原生)</td></tr>
+          <tr><td><b>能力描述</b></td><td>工具 schema</td><td>FDL 类型化特性定义</td><td>信息模型 + companion 规范</td><td>read/write 原语 + 自然语言标签 → 参考文件</td></tr>
+          <tr><td><b>成熟度</b></td><td>已有正式规范与多版本演进</td><td>成熟、有联盟与正式规范</td><td>成熟、工业界广泛部署</td><td><b>研究预览,尚未开源</b></td></tr>
+        </tbody>
+      </table>
+      <table class="en">
+        <thead><tr><th>Dimension</th><th>MCP</th><th>SiLA 2</th><th>OPC UA</th><th>MHS</th></tr></thead>
+        <tbody>
+          <tr><td><b>Connects</b></td><td>Software tools, data sources</td><td>Lab instruments and services</td><td>Industrial devices, controllers, enterprise systems</td><td>Any device with a programmable interface</td></tr>
+          <tr><td><b>Designed for</b></td><td>LLMs / agents</td><td>Machine-to-machine</td><td>Machine-to-machine</td><td>AI agents (AI-native)</td></tr>
+          <tr><td><b>Capability description</b></td><td>Tool schemas</td><td>Typed Feature Definition Language</td><td>Information models + companion specs</td><td>read/write primitives + NL tags → reference file</td></tr>
+          <tr><td><b>Maturity</b></td><td>Formal spec, several revisions</td><td>Mature, consortium-backed formal spec</td><td>Mature, widely deployed in industry</td><td><b>Research preview, not yet open-source</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="ct zh">这里要区分事实与推断</span>
+      <span class="ct en">Separating fact from inference here</span>
+      <p class="zh"><b>事实:</b>SiLA 2 与 OPC UA 的技术特征来自 SiLA 联盟与 OPC 基金会的公开材料(经 EVOBYTE 2026-05 的综述整理);MHS 的特征来自 Anthropic 官方公告。<b>推断/第三方观点:</b>「SiLA 2 与 OPC UA 是为机器对机器设计的,不是为『让 LLM Agent 理解一台它从没见过的设备』设计的」以及「MHS 预计会与 OPC UA / SiLA 2 做桥接而非取代它们」——这两条来自第三方分析文章,<b>Anthropic 官方公告中未提及与这些标准的关系,截至调研时未能核实</b>。做选型时请以各标准的官方文档为准。</p>
+      <p class="en"><b>Fact:</b> the SiLA 2 and OPC UA characteristics come from the SiLA Consortium's and OPC Foundation's public material (as compiled in EVOBYTE's May 2026 overview); the MHS characteristics come from Anthropic's announcement. <b>Inference / third-party opinion:</b> the claims that "SiLA 2 and OPC UA were designed for machines to talk to machines, not for an LLM agent to make sense of equipment it has never encountered" and that "MHS is expected to bridge to rather than replace OPC UA and SiLA 2" come from third-party analyses; <b>Anthropic's announcement does not discuss its relationship to those standards, and this could not be verified as of the research date</b>. For selection decisions, go to each standard's own documentation.</p>
+    </div>
+
+    <h3 class="zh">学术侧也有同类尝试</h3>
+    <h3 class="en">Academia is trying the same thing</h3>
+    <p class="zh">值得知道 MHS 不是唯一一个方向:arXiv 上有一篇 <b>《LAP: An Agent-to-Instrument Protocol for Autonomous Science》</b>(arXiv:2606.03755),同样在做「Agent 到仪器」的协议。⚠️ 该论文本次未做全文阅读,仅作为「这个方向有平行工作」的指路,不对其内容做评价。</p>
+    <p class="en">Worth knowing MHS isn't the only attempt: arXiv carries <b>"LAP: An Agent-to-Instrument Protocol for Autonomous Science"</b> (arXiv:2606.03755), working on the same agent-to-instrument problem. ⚠️ The paper was not read in full for this document; it's flagged only as evidence of parallel work, with no judgment on its content.</p>
+  </section>
+
+  <!-- ============ PITFALLS ============ -->
+  <section id="pitfalls">
+    <h2><span class="num">6</span><span class="zh">坑、限制与未解问题</span><span class="en">Pitfalls, limits, open questions</span></h2>
+    <p class="sec-sub zh">这一节的材料大部分来自官方公告自己——难得地没有粉饰。</p>
+    <p class="sec-sub en">Most of this comes from the announcement itself, which is unusually candid.</p>
+
+    <h3 class="zh">坑一:物理直觉缺口(最重要的一个)</h3>
+    <h3 class="en">Pitfall 1: the physical-intuition gap (the important one)</h3>
+    <p class="zh">Genentech 写得很直白:模型擅长通用推理,但<b>仍然在物理、化学、生物约束上吃力</b>,尤其是在需要真实世界物理直觉的故障排查上。他们给的例子是气泡——看起来无害,实则触发一连串问题:</p>
+    <p class="en">Genentech states it plainly: models excel at general-purpose reasoning but <b>still struggle with physical, chemical and biological constraints</b>, particularly when troubleshooting errors that call for real-world physical intuition. Their example is bubbles — seemingly benign, actually a cascade:</p>
+    <ul>
+      <li class="zh">要吸 40 µL 试剂但液里有气泡,实际转移的液体量会因为空气占位而<b>偏少</b>;</li>
+      <li class="en">aspirating 40 µL of reagent when there are air bubbles means the actual liquid volume transferred is <b>lower</b>, because air takes up the space;</li>
+      <li class="zh">液面传感器碰到的是泡沫而不是液体时,会<b>触发硬件错误</b>;</li>
+      <li class="en">liquid-level sensors <b>throw hardware errors</b> when the tip meets foam instead of liquid;</li>
+      <li class="zh">气泡还会<b>扭曲光学读数</b>,而光学读数正是这个实验的最终结果。</li>
+      <li class="en">and bubbles <b>distort the optical readings</b> that are the experiment's final readout.</li>
+    </ul>
+    <p class="zh">而 Claude 遇到混合过程中由气泡引发的运行时错误时,<b>默认反应是在同一个孔里换参数重试</b>——这只会把液体搅得更厉害、产生更多气泡。因为它不理解失败背后的物理机制。研究者不得不引导它使用更温和的液体处理参数。</p>
+    <p class="en">And when Claude hit runtime errors caused by bubbles during mixing, its <b>default instinct was to retry in the same well with different parameters</b> — which only agitated the fluid further and created more bubbles, because it did not understand the physics of the failure. The researchers had to steer it toward gentler handling parameters.</p>
+
+    <div class="callout key">
+      <span class="ct zh">修复方式很值得抄</span>
+      <span class="ct en">The fix is worth copying</span>
+      <p class="zh">一旦被告知「这个错误码来自液体里的物理气泡,你需要换到一个干净的孔并减少混合循环次数」,Claude 就<b>在这一整轮运行里保持住了这个上下文</b>。之后研究者把这些结论<b>固化成可复用的液体处理 skill</b>,让 Claude 能为不同物性的液体挑选合理的默认参数,液体处理错误随之减少。这是一个标准的「一次性纠正 → 沉淀为长期能力」的动作:<b>用 skill / 文档承载领域约束,而不是每次靠人在会话里现说。</b></p>
+      <p class="en">Once told that the error code stemmed from physical bubbles and that it needed to move to a clean well and reduce mixing cycles, Claude <b>held that context for the rest of the run</b>. The researchers then <b>codified those takeaways into reusable liquid-handling skills</b>, letting Claude pick sensible defaults for liquids of different physical properties and reducing handling errors. That's the canonical move — <b>put domain constraints into a skill or document rather than re-explaining them in the session each time.</b></p>
+    </div>
+
+    <h3 class="zh">坑二:自主恢复能力是真的,但有边界</h3>
+    <h3 class="en">Pitfall 2: autonomous recovery is real, but bounded</h3>
+    <p class="zh">同一场实验里,Claude 确实<b>自主从取头失败、液面检测错误中恢复了</b>——公告指出这是当前科研仪器大多不具备的能力。所以「能不能自主恢复」不是一个是非题:<b>能恢复的是「已知错误码 → 已知处置」这一类,不能恢复的是需要理解物理机制才知道怎么办的那一类。</b>做系统设计时,这条界线比「Agent 能不能自主」更有用。</p>
+    <p class="en">In the same run Claude did <b>recover on its own from tip pickup failures and fluid detection errors</b> — a capability the announcement notes current scientific instruments mostly lack. So "can it self-recover" isn't a yes/no: <b>it recovers from "known error code → known remedy" cases, and fails on cases where you need to understand the underlying physics to know what to do.</b> When designing a system, that line is more useful than asking whether the agent is "autonomous."</p>
+
+    <h3 class="zh">坑三:长时监控的算力成本</h3>
+    <h3 class="en">Pitfall 3: the compute cost of long monitoring windows</h3>
+    <p class="zh">华盛顿大学那份自述里有一句容易被跳过但很关键的话:<b>「让 Agent 在长监控窗口里持续运行,产生的算力成本需要与省下的研究者时间相权衡。」</b>——这不是抽象顾虑。qPCR 盯曲线可能要几小时,如果 Agent 每个循环都在线推理一次,账单是实打实的。这也正好解释了为什么 MHS 要提供「代码文件」这条确定性通路。</p>
+    <p class="en">One easily skipped but important line in the UW write-up: <b>"Running an agent continuously over long monitoring windows also has compute costs that need to be weighed against the researcher time saved."</b> That's not an abstract worry. Watching a qPCR curve can take hours; if the agent reasons online every cycle, the bill is real. It also explains exactly why MHS offers the deterministic code-file path.</p>
+
+    <h3 class="zh">坑四:阶段限制</h3>
+    <h3 class="en">Pitfall 4: stage limitations</h3>
+    <ul>
+      <li class="zh"><b>研究预览,需申请</b>。目前面向首批科研实验室与先进制造厂商,通过 modelhardwarestandard.com 申请;<b>尚未开源</b>,Anthropic 表示预览结束后计划开源。</li>
+      <li class="en"><b>Research preview, by application.</b> Currently open to a first group of scientific labs and advanced manufacturers via modelhardwarestandard.com; <b>not yet open-source</b>, though Anthropic says it plans to open-source it after the preview.</li>
+      <li class="zh"><b>安全评测仍在建设中。</b>Anthropic 明确说共享早期版本的目的之一,就是<b>与合作方一起建立安全评测和最佳实践</b>——换句话说,这套东西的安全评估体系目前还不完整。</li>
+      <li class="en"><b>Safety evaluations are still being built.</b> Anthropic explicitly says one reason for sharing an early version is to <b>collaborate on building safety evaluations and best practices</b> — meaning the evaluation regime for this is not yet complete.</li>
+      <li class="zh"><b>只是概念验证。</b>华盛顿大学的原话:「这些演示仍然只是概念验证。更复杂的实验协议需要大量优化才能可靠工作,还需要整合更广泛、更复杂的物理操作。」</li>
+      <li class="en"><b>Still proofs of concept.</b> UW's own words: "These demonstrations are still just proofs of concept. More complicated experimental protocols will require significant optimization to work reliably, as well as the integration of broader and more complex physical manipulations."</li>
+      <li class="zh"><b>人的专业判断仍然必需。</b>据 Techzine 转述,Anthropic 指出 AI 模型在空间与物理推理上仍有局限,人类专业知识依然必要。</li>
+      <li class="en"><b>Human expertise remains necessary.</b> Per Techzine, Anthropic notes that AI models still have limits in spatial and physical reasoning, so human expertise is still required.</li>
+    </ul>
+
+    <div class="callout warn">
+      <span class="ct zh">硬件生态清单的可信度</span>
+      <span class="ct en">How much to trust the vendor list</span>
+      <p class="zh">多家媒体列出了 MHS 已合作或已测试的硬件方:AWS(Strands Robots 库)、Universal Robots、Tecan、QIAGEN、Danaher、Doosan Robotics、MBF Bioscience(ScanImage)、Automata、Hugging Face(LeRobot)以及 Raspberry Pi。其中 LeRobot 机械臂在官方公告的华盛顿大学案例里得到了印证,其余多为媒体报道口径(Techzine 的措辞是「正在试验 / 正在构建支持 / 计划集成」,而非「已支持」)。<b>做集成计划前请直接向厂商核实当前状态。</b></p>
+      <p class="en">Several outlets list hardware partners MHS works with or has been tested against: AWS (Strands Robots), Universal Robots, Tecan, QIAGEN, Danaher, Doosan Robotics, MBF Bioscience (ScanImage), Automata, Hugging Face (LeRobot) and Raspberry Pi. The LeRobot arm is corroborated by the UW case inside the official announcement; the rest come from press coverage, and Techzine's wording is "experimenting with / building support / plans to integrate" rather than "supported". <b>Verify current status with the vendor before planning an integration.</b></p>
+    </div>
+  </section>
+
+  <!-- ============ TAKEAWAY ============ -->
+  <section id="takeaway">
+    <h2><span class="num">7</span><span class="zh">对做 Agent 的人意味着什么</span><span class="en">What it means if you build agents</span></h2>
+    <p class="sec-sub zh">就算你这辈子不碰移液器,这份公告里有四条可以直接搬走的东西。</p>
+    <p class="sec-sub en">Even if you never touch a pipette, four things here transfer directly.</p>
+
+    <ol class="steps">
+      <li class="zh"><b>把安全边界放进工具层,不要放进 prompt。</b>MHS 的参考文件里写的是「会被强制执行的安全上限」。模型会忘、会被说服、会在长上下文里丢失约束;工具层不会。凡是「越界后果不可逆」的操作,约束都应该下沉一层。</li>
+      <li class="en"><b>Put safety limits in the tool layer, not the prompt.</b> The MHS reference file carries "safety limits that will be enforced". Models forget, can be argued around, and lose constraints in long contexts; the tool layer doesn't. Any operation whose overrun is irreversible should have its constraint pushed one layer down.</li>
+      <li class="zh"><b>给工具补一份「人话说明书」。</b>MHS 最反常规的设计是自然语言标签——把「代码里看不出来」的隐性知识写进驱动。你的 MCP server 或工具定义同样可以这么干:除了参数 schema,写清「这个工具在什么情况下不该调、失败通常意味着什么、有哪些不写在类型里的前提」。Genentech 的气泡事故本质就是<b>这份说明书缺了一页</b>。</li>
+      <li class="en"><b>Give your tools a plain-language manual.</b> The most unusual thing in MHS is the natural-language tags — writing tacit, code-invisible knowledge into the driver. Your MCP server or tool definitions can do the same: beyond the parameter schema, say when the tool should <em>not</em> be called, what a failure usually means, and which preconditions aren't expressible in the types. The Genentech bubble incident is, at bottom, <b>a missing page in that manual</b>.</li>
+      <li class="zh"><b>「在线推理」和「确定性脚本」要有明确分工。</b>MHS 把这条做成了架构:探索期用 MCP 一步一想,稳定后固化进代码文件让设备自己跑。物理世界给了一个硬判据(长时任务、超过推理速度的操作),软件世界的判据其实一样——只是账单来得没那么疼,所以容易拖着不做。</li>
+      <li class="en"><b>Draw a clear line between online reasoning and deterministic scripts.</b> MHS builds this into the architecture: reason step by step through MCP while exploring, then freeze into code files the devices run themselves. The physical world supplies a hard criterion (long-running tasks; operations faster than reasoning). The criterion is the same in software — the bill just hurts less, so it's easy to keep putting off.</li>
+      <li class="zh"><b>把一次性纠正沉淀成 skill。</b>研究者纠正 Claude 的气泡处理后,把结论写成了可复用的液体处理 skill。这是 Agent 工程里回报率最高的动作之一:每一次「我又得跟它解释一遍 X」都是一个应该被写下来的 skill。</li>
+      <li class="en"><b>Turn one-off corrections into skills.</b> After correcting Claude's bubble handling, the researchers codified the takeaways into a reusable liquid-handling skill. This is one of the highest-return moves in agent engineering: every "I had to explain X to it again" is a skill that should have been written down.</li>
+    </ol>
+
+    <div class="callout quote">
+      <p class="zh">最后一个观察:Anthropic 的 <b>MCP → MHS</b> 是一条很清晰的路线——先标准化「Agent 怎么接软件」,再标准化「Agent 怎么接硬件」,两者通过同一套协议衔接。如果这条路走通,Agent 生态里下一个被标准化的大概率是「Agent 怎么接另一个 Agent」(A2A 方向)与「Agent 怎么付钱」(x402 方向)。物理世界只是把这些问题的<b>失败代价</b>放大了。</p>
+      <p class="en">A closing observation: Anthropic's <b>MCP → MHS</b> is a legible trajectory — standardize how agents reach software, then how they reach hardware, with the two joined by the same protocol. If it works, the next things to get standardized in the agent ecosystem are likely how an agent reaches another agent (the A2A direction) and how an agent pays (the x402 direction). The physical world mostly just magnifies the <b>cost of failure</b> for all of these.</p>
+    </div>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section id="sources">
+    <h2><span class="num">§</span><span class="zh">来源清单</span><span class="en">Sources</span></h2>
+    <p class="sec-sub zh">调研时间 2026-08-31。标签区分一手官方与第三方。</p>
+    <p class="sec-sub en">Researched 2026-08-31. Tags separate first-party from third-party.</p>
+
+    <ul class="srclist">
+      <li class="zh"><span class="tag off">官方一手</span>Anthropic《Previewing the Model Hardware Standard》(2026-08-27,含 Genentech、华盛顿大学 Baker/Pinglay 实验室、卡内基梅隆大学三份合作方自述)—— <a href="https://www.anthropic.com/news/model-hardware-standard-research-preview">anthropic.com/news/model-hardware-standard-research-preview</a></li>
+      <li class="en"><span class="tag off">First-party</span>Anthropic, "Previewing the Model Hardware Standard" (2026-08-27; includes partner write-ups from Genentech, the UW Baker/Pinglay labs and Carnegie Mellon) — <a href="https://www.anthropic.com/news/model-hardware-standard-research-preview">anthropic.com/news/model-hardware-standard-research-preview</a></li>
+      <li class="zh"><span class="tag off">官方一手</span>MHS 研究预览申请入口 —— <a href="https://www.modelhardwarestandard.com/">modelhardwarestandard.com</a>(本次未 fetch 站点内容,仅按官方公告指引列出)</li>
+      <li class="en"><span class="tag off">First-party</span>MHS research-preview application page — <a href="https://www.modelhardwarestandard.com/">modelhardwarestandard.com</a> (not fetched for this document; listed as pointed to by the official announcement)</li>
+      <li class="zh"><span class="tag thd">第三方</span>Techzine Global《New Anthropic standard MHS connects AI to machines》(2026-08-28,转述 Ars Technica 关于「MHS 不依赖 AI」的观察,并列出厂商试验清单)—— <a href="https://www.techzine.eu/news/infrastructure/143906/new-anthropic-standard-mhs-connects-ai-to-machines/">techzine.eu</a></li>
+      <li class="en"><span class="tag thd">Third-party</span>Techzine Global, "New Anthropic standard MHS connects AI to machines" (2026-08-28; relays Ars Technica's point that MHS is not AI-dependent, and lists vendors experimenting with it) — <a href="https://www.techzine.eu/news/infrastructure/143906/new-anthropic-standard-mhs-connects-ai-to-machines/">techzine.eu</a></li>
+      <li class="zh"><span class="tag thd">第三方</span>EVOBYTE《SiLA 2, OPC UA, and the Modern Lab Stack》(2026-05,SiLA 2 与 OPC UA 技术特征的综述,引用 SiLA 联盟与 OPC 基金会官方材料)—— <a href="https://evo-byte.com/sila-2-opc-ua-and-the-modern-lab-stack/">evo-byte.com</a></li>
+      <li class="en"><span class="tag thd">Third-party</span>EVOBYTE, "SiLA 2, OPC UA, and the Modern Lab Stack" (2026-05; overview of SiLA 2 and OPC UA characteristics, citing SiLA Consortium and OPC Foundation material) — <a href="https://evo-byte.com/sila-2-opc-ua-and-the-modern-lab-stack/">evo-byte.com</a></li>
+      <li class="zh"><span class="tag off">官方一手</span>SiLA 联盟规范与 FAQ —— <a href="https://sila-standard.com/faq/">sila-standard.com/faq</a>;OPC 基金会 UA 概览 —— <a href="https://opcfoundation.org/about/opc-technologies/opc-ua/">opcfoundation.org</a></li>
+      <li class="en"><span class="tag off">First-party</span>SiLA Consortium spec and FAQ — <a href="https://sila-standard.com/faq/">sila-standard.com/faq</a>; OPC Foundation UA overview — <a href="https://opcfoundation.org/about/opc-technologies/opc-ua/">opcfoundation.org</a></li>
+      <li class="zh"><span class="tag thd">第三方</span>《LAP: An Agent-to-Instrument Protocol for Autonomous Science》,arXiv:2606.03755 —— <a href="https://arxiv.org/pdf/2606.03755">arxiv.org/pdf/2606.03755</a>(仅列为平行工作,本次未读全文)</li>
+      <li class="en"><span class="tag thd">Third-party</span>"LAP: An Agent-to-Instrument Protocol for Autonomous Science", arXiv:2606.03755 — <a href="https://arxiv.org/pdf/2606.03755">arxiv.org/pdf/2606.03755</a> (listed as parallel work; not read in full)</li>
+      <li class="zh"><span class="tag off">官方一手</span>Anthropic 关于 MCP 的介绍(MHS 与 MCP 的衔接说明引自此)—— <a href="https://www.anthropic.com/news/model-context-protocol">anthropic.com/news/model-context-protocol</a></li>
+      <li class="en"><span class="tag off">First-party</span>Anthropic on MCP (the MHS↔MCP relationship is cited from here) — <a href="https://www.anthropic.com/news/model-context-protocol">anthropic.com/news/model-context-protocol</a></li>
+    </ul>
+
+    <div class="callout warn">
+      <span class="ct zh">阅读提醒</span>
+      <span class="ct en">Reading caveat</span>
+      <p class="zh">MHS 处于研究预览阶段,规范细节、可用设备清单与开源时间表都可能变化;本文所有事实截至 <b>2026-08-31</b>,请以官方最新公告与规范为准。文中所有「小时/分钟」「3 倍」「8 小时」等数字均出自 Anthropic 官方公告及其合作方自述,<b>目前没有独立第三方复现</b>。</p>
+      <p class="en">MHS is a research preview; spec details, supported-device lists and the open-source timeline may all change. Everything here is accurate as of <b>2026-08-31</b> — defer to the latest official announcement and specification. All figures quoted ("hours to minutes", "3×", "8 hours") come from Anthropic's announcement and its partners' own write-ups, and have <b>no independent third-party replication</b> at this time.</p>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer><div class="fin">
+  <p class="zh">调研时间:2026-08-31 · 主题来自当日 AI 简报「今日精选主题」· 本文所有事实均附来源,区分官方一手与第三方报道,未能核实之处已明确标注。</p>
+  <p class="en">Researched 2026-08-31 · Topic selected from that day's AI briefing · Every fact here is sourced, first-party and third-party are distinguished, and anything unverified is flagged as such.</p>
+</div></footer>
+
+<script>
+(function(){
+  var body=document.body, btn=document.getElementById('langbtn'), html=document.documentElement;
+
+  function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function load(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+
+  function apply(lang){
+    body.setAttribute('data-lang',lang);
+    html.setAttribute('lang', lang==='zh' ? 'zh-CN' : 'en');
+    btn.textContent = lang==='zh' ? 'EN' : '中';
+    btn.setAttribute('aria-label', lang==='zh' ? 'Switch to English' : '切换到中文');
+    refreshFigures();
+  }
+
+  var saved=load('mhs-lang');
+  var initial = saved || ((navigator.language||'en').toLowerCase().indexOf('zh')===0 ? 'zh' : 'en');
+  apply(initial);
+
+  btn.addEventListener('click',function(){
+    var next = body.getAttribute('data-lang')==='zh' ? 'en' : 'zh';
+    store('mhs-lang',next);
+    apply(next);
+  });
+
+  /* ---- figure entrance animation ---- */
+  var figs=[].slice.call(document.querySelectorAll('.figure'));
+  figs.forEach(function(f){
+    f.querySelectorAll('[data-draw]').forEach(function(el){
+      try{ el.style.setProperty('--len', Math.ceil(el.getTotalLength())+1); }catch(e){}
+    });
+  });
+
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.12});
+    figs.forEach(function(f){ io.observe(f); });
+  } else {
+    figs.forEach(function(f){ f.classList.add('in'); });
+  }
+
+  function visible(el){
+    var r=el.getBoundingClientRect();
+    return r.top < (window.innerHeight||0) && r.bottom > 0;
+  }
+  function refreshFigures(){
+    figs.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      if(getComputedStyle(f).display==='none') return;
+      if(visible(f)){ f.classList.add('in'); if(io) io.unobserve(f); }
+      else if(io){ io.unobserve(f); io.observe(f); }
+    });
+  }
+  window.addEventListener('resize', refreshFigures, {passive:true});
+
+  /* ---- progress bar + toc highlight ---- */
+  var bar=document.getElementById('bar');
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var secs=links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    bar.style.width = (h>0 ? (window.scrollY/h*100) : 0) + '%';
+    var idx=0;
+    for(var i=0;i<secs.length;i++){
+      if(secs[i] && secs[i].getBoundingClientRect().top <= 110) idx=i;
+    }
+    links.forEach(function(a,i){ a.classList.toggle('on', i===idx); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  /* ---- mobile toc ---- */
+  var toc=document.getElementById('toc'), tg=document.getElementById('tocToggle');
+  tg.addEventListener('click',function(){ toc.classList.toggle('open'); });
+  toc.querySelectorAll('.tocbody a').forEach(function(a){
+    a.addEventListener('click',function(){ toc.classList.remove('open'); });
+  });
+})();
+</script>
+</body>
+</html>
