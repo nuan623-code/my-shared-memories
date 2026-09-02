@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Effort 档位与任务预算:LLM 推理预算工程 | Effort Levels and Task Budgets: Reasoning Budget Engineering</title>
+<style>
+:root{
+  --bg:#0f1117; --surface:#171b25; --surface-2:#1e2330; --ink:#e9ecf4; --ink-2:#b3bbcd;
+  --muted:#7f889f; --line:#2b3242; --accent:#7dd3a0; --accent-2:#5fb8e8; --accent-deep:#a8e6c0;
+  --warm:#f0a868; --danger:#f08080; --code-bg:#12151d;
+  --r:12px; --shadow:0 2px 4px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.78;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-text-size-adjust:100%}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+
+.progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));z-index:99}
+.langbtn{position:fixed;top:14px;right:14px;z-index:100;background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--line);border-radius:99px;padding:7px 15px;font-size:13.5px;font-weight:700;
+  cursor:pointer;font-family:inherit;box-shadow:var(--shadow)}
+.langbtn:hover{border-color:var(--accent);color:var(--accent)}
+
+header{background:radial-gradient(1200px 400px at 20% -10%,#1d3a2e 0%,transparent 60%),
+  radial-gradient(900px 380px at 85% 0%,#1b2d40 0%,transparent 62%),var(--bg);
+  border-bottom:1px solid var(--line)}
+.hin{max-width:900px;margin:0 auto;padding:64px 22px 44px}
+.kicker{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:800;margin:0 0 12px}
+h1{font-size:clamp(27px,5.4vw,42px);line-height:1.24;margin:0 0 14px;font-weight:850;letter-spacing:-.02em}
+.lede{font-size:17px;color:var(--ink-2);margin:0;max-width:64ch}
+.meta{margin-top:20px;display:flex;gap:9px;flex-wrap:wrap}
+.pill{font-size:12.5px;font-weight:700;padding:4px 12px;border-radius:99px;
+  background:#1b2a24;border:1px solid #2f4a3d;color:var(--accent-deep)}
+.pill.b{background:#1a2735;border-color:#2c4459;color:#9ed3f2}
+
+.wrap{max-width:900px;margin:0 auto;padding:34px 22px 90px}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 22px;margin-bottom:34px}
+nav.toc b{display:block;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+nav.toc ol{margin:0;padding-left:20px}
+nav.toc li{margin:5px 0}
+nav.toc a{color:var(--ink-2);text-decoration:none;font-size:15px}
+nav.toc a:hover{color:var(--accent)}
+
+section{margin-bottom:46px;scroll-margin-top:20px}
+h2{font-size:clamp(21px,3.6vw,27px);margin:0 0 6px;font-weight:800;letter-spacing:-.01em;
+  padding-bottom:9px;border-bottom:2px solid var(--line)}
+h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:9px}
+h3{font-size:18.5px;margin:26px 0 8px;font-weight:750;color:var(--accent-deep)}
+p{margin:0 0 14px}
+ul,ol{margin:0 0 14px;padding-left:23px}
+li{margin:6px 0}
+code{background:var(--code-bg);border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+  font-size:.9em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#b8e6c8}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:15px 17px;
+  overflow-x:auto;margin:0 0 16px;font-size:13.6px;line-height:1.62}
+pre code{background:none;border:none;padding:0;color:#cfd6e4}
+.tbl{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14.6px;min-width:520px}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface-2);font-weight:750;color:var(--accent-deep);font-size:13.5px}
+tr:last-child td{border-bottom:none}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 10px 10px 0;
+  padding:14px 18px;margin:0 0 18px}
+.callout.warn{border-left-color:var(--warm)}
+.callout.danger{border-left-color:var(--danger)}
+.callout b{color:var(--accent-deep);display:block;margin-bottom:4px;font-size:14.5px}
+.callout.warn b{color:var(--warm)}
+.callout.danger b{color:var(--danger)}
+.callout p{margin:0 0 8px;font-size:15.2px;color:var(--ink-2)}
+.callout p:last-child{margin:0}
+
+figure{margin:24px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:20px 16px 14px;opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+figure.in{opacity:1;transform:none}
+figure svg{width:100%;height:auto;display:block}
+figcaption{margin-top:11px;font-size:13.4px;color:var(--muted);text-align:center;line-height:1.6}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px;margin:0 0 18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+.card h4{margin:0 0 6px;font-size:15.5px;font-weight:750;color:var(--accent-2)}
+.card p{margin:0;font-size:14.4px;color:var(--ink-2)}
+
+.srclist{font-size:14.4px}
+.srclist li{margin:8px 0;color:var(--ink-2)}
+a{color:var(--accent-2)}
+footer{border-top:1px solid var(--line);margin-top:40px;padding-top:22px;color:var(--muted);font-size:13.6px}
+@media(max-width:640px){
+  .hin{padding:48px 18px 34px} .wrap{padding:26px 18px 70px}
+  body{font-size:16px} pre{font-size:12.8px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 深度学习文档 · 2026-09-02 Deep Dive · 2026-09-02 Effort 档位与任务预算 LLM 推理预算工程 Effort Levels and Task Budgets Reasoni…">
+<meta property="og:title" content="Effort 档位与任务预算:LLM 推理预算工程 | Effort Levels and Task Budgets: Reasoning Budget Engineering">
+<meta property="og:description" content="EN 深度学习文档 · 2026-09-02 Deep Dive · 2026-09-02 Effort 档位与任务预算 LLM 推理预算工程 Effort Levels and Task Budgets Reasoni…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-09-02-effort-dang-wei-yu-ren-wu-yu-suan.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-09-02-effort-dang-wei-yu-ren-wu-yu-suan.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Effort 档位与任务预算:LLM 推理预算工程 | Effort Levels and Task Budgets: Reasoning Budget Engineering", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-09-02-effort-dang-wei-yu-ren-wu-yu-suan.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-02", "dateModified": "2026-09-02"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="progress" id="prog"></div>
+<button class="langbtn" id="lang">EN</button>
+
+<header><div class="hin">
+  <p class="kicker zh">深度学习文档 · 2026-09-02</p>
+  <p class="kicker en">Deep Dive · 2026-09-02</p>
+  <h1 class="zh">Effort 档位与任务预算<br>LLM 推理预算工程</h1>
+  <h1 class="en">Effort Levels and Task Budgets<br>Reasoning Budget Engineering</h1>
+  <p class="lede zh">推理算力已经不再是「买模型自带」的东西,而是一类需要显式分配的资源。<code>effort</code> 调的是每一步想多深,<code>task_budget</code> 调的是整个循环能干多少活——两个旋钮正交,踩坑点却互相纠缠。</p>
+  <p class="lede en">Inference compute is no longer something that simply comes with the model — it is a resource you allocate explicitly. <code>effort</code> tunes how deeply Claude reasons at each step; <code>task_budget</code> caps how much total work it does across a loop. The two knobs are orthogonal, but their failure modes are entangled.</p>
+  <div class="meta">
+    <span class="pill zh">Claude Platform</span><span class="pill en">Claude Platform</span>
+    <span class="pill b zh">Agent 工程</span><span class="pill b en">Agent Engineering</span>
+    <span class="pill zh">成本控制</span><span class="pill en">Cost Control</span>
+    <span class="pill b zh">中 / EN 双语</span><span class="pill b en">Bilingual 中 / EN</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+<nav class="toc">
+  <b class="zh">目录</b><b class="en">Contents</b>
+  <ol>
+    <li><a href="#why"><span class="zh">为什么今天要谈这个</span><span class="en">Why this matters today</span></a></li>
+    <li><a href="#what"><span class="zh">是什么:两个旋钮的分工</span><span class="en">What they are: two knobs, two jobs</span></a></li>
+    <li><a href="#levels"><span class="zh">Effort 五档详解与选型</span><span class="en">The five effort levels, and how to pick</span></a></li>
+    <li><a href="#budget"><span class="zh">Task Budgets:倒计时怎么算</span><span class="en">Task budgets: how the countdown counts</span></a></li>
+    <li><a href="#cost"><span class="zh">成本结构:缓存降价改变了什么</span><span class="en">Cost structure: what the cache price cut changed</span></a></li>
+    <li><a href="#practice"><span class="zh">怎么用:分层分配策略</span><span class="en">How to use it: a tiered allocation strategy</span></a></li>
+    <li><a href="#pitfalls"><span class="zh">常见坑清单</span><span class="en">Pitfalls checklist</span></a></li>
+    <li><a href="#theory"><span class="zh">学术背景:自适应推理算力分配</span><span class="en">Research context: adaptive test-time compute</span></a></li>
+    <li><a href="#glossary"><span class="zh">术语表</span><span class="en">Glossary</span></a></li>
+    <li><a href="#sources"><span class="zh">来源</span><span class="en">Sources</span></a></li>
+  </ol>
+</nav>
+<section id="why">
+  <h2 class="zh"><span class="num">01</span>为什么今天要谈这个</h2>
+  <h2 class="en"><span class="num">01</span>Why this matters today</h2>
+
+  <p class="zh">2026 年 9 月 1 日,Anthropic 发布 Claude Fable 5.1 与 Mythos 5.1。发布页最值得注意的不是某个基准分数,而是<b>图表的画法</b>:四张性能图全部是「成绩(%)对成本(美元,对数轴)」,每条曲线上标着 low / med / high / xhigh / max 五个点。换句话说,官方不再把模型当成一个固定能力的黑盒来宣传,而是把它当成<b>一条你可以在上面选点的曲线</b>。</p>
+  <p class="en">On 1 September 2026, Anthropic released Claude Fable 5.1 and Mythos 5.1. The most telling thing on the announcement page is not any single benchmark number — it is <b>how the charts are drawn</b>: all four performance charts plot score (%) against cost (USD, log scale), with five labelled points on each curve: low, med, high, xhigh, max. In other words, the model is no longer marketed as a black box with one fixed capability level. It is marketed as <b>a curve you choose a point on</b>.</p>
+
+  <p class="zh">同一天还有两件事把这个选择变得更值钱:一是 Fable 5.1 把<b>缓存读取(cache read)单价降了 75%</b>,到 $0.25 / 百万 token,官方称典型负载总成本降约 25%、高度 agentic 负载最多降约 45%;二是 Claude Code v2.1.257 给 <code>/effort</code> 加了「按 <code>s</code> 只改本会话」。前者改变了长会话的成本构成,后者让「按任务选档位」从一句口号变成一个键。</p>
+  <p class="en">Two things the same day made that choice more valuable. First, Fable 5.1 cut <b>cache-read pricing by 75%</b>, to $0.25 per million tokens; Anthropic reports roughly 25% lower total cost on typical workloads and up to about 45% on highly agentic ones. Second, Claude Code v2.1.257 added a session-only option to <code>/effort</code> (press <code>s</code>). The first changes the cost structure of long sessions; the second turns "pick a level per task" from a slogan into a single keystroke.</p>
+
+  <div class="callout zh">
+    <b>一句话结论</b>
+    <p><code>effort</code> 控制<b>深度</b>(每一步想多久、调多少工具),<code>task_budget</code> 控制<b>广度</b>(整个 agentic loop 总共能花多少)。两者正交、可叠加,但都会参与 prompt 渲染——所以<b>在依赖缓存的会话中途改动它们,会打掉缓存前缀</b>。正确姿势是按工作负载定值,而不是在一个会话里反复切。</p>
+  </div>
+  <div class="callout en">
+    <b>The one-sentence version</b>
+    <p><code>effort</code> controls <b>depth</b> (how long Claude thinks per step, how many tools it reaches for). <code>task_budget</code> controls <b>breadth</b> (how much the whole agentic loop may spend). They are orthogonal and composable — but both participate in the rendered prompt, so <b>changing either mid-session invalidates your cached prefix</b>. Set them per workload, not repeatedly within one conversation.</p>
+  </div>
+</section>
+
+<section id="what">
+  <h2 class="zh"><span class="num">02</span>是什么:两个旋钮的分工</h2>
+  <h2 class="en"><span class="num">02</span>What they are: two knobs, two jobs</h2>
+
+  <h3 class="zh">effort:一个行为信号,不是 token 上限</h3>
+  <h3 class="en">effort: a behavioural signal, not a token cap</h3>
+  <p class="zh">官方文档对 <code>effort</code> 的定义是「控制 Claude 回应请求时愿意花多少 token」,取值 <code>low / medium / high / xhigh / max</code>,默认 <code>high</code>(显式传 <code>high</code> 与完全不传<b>行为完全一致</b>)。它有两个关键设计:</p>
+  <p class="en">The docs define <code>effort</code> as controlling "how many tokens Claude spends when responding to requests", with values <code>low / medium / high / xhigh / max</code> and a default of <code>high</code> (passing <code>high</code> explicitly is <b>exactly identical</b> to omitting the parameter). Two design choices matter:</p>
+  <ul class="zh">
+    <li><b>不需要开启 thinking 就生效。</b>它不是 thinking 的一个别名——即使 thinking 关闭,effort 依然作用于输出。</li>
+    <li><b>作用于全部输出 token</b>:文本与解释、工具调用与其参数、以及 thinking(当 thinking 活跃时)。这意味着低档位不只是「少想」,还会<b>合并并减少工具调用</b>。</li>
+  </ul>
+  <ul class="en">
+    <li><b>It works without thinking enabled.</b> It is not an alias for thinking — with thinking off, effort still shapes the output.</li>
+    <li><b>It affects all output tokens</b>: text and explanations, tool calls and their arguments, and thinking (when active). So a lower level does not merely mean "think less" — it also means <b>fewer, more consolidated tool calls</b>.</li>
+  </ul>
+  <p class="zh">文档明确提醒:effort 是<b>行为信号,不是严格的 token 预算</b>。在低档位下,遇到足够难的问题 Claude 仍然会思考,只是比高档位下想得少。</p>
+  <p class="en">The docs are explicit that effort is <b>a behavioural signal, not a strict token budget</b>. At lower levels Claude will still think on sufficiently hard problems — just less than it would at a higher level on the same problem.</p>
+
+  <h3 class="zh">task_budget:一个模型看得见的倒计时</h3>
+  <h3 class="en">task_budget: a countdown the model can see</h3>
+  <p class="zh">Task Budgets 目前是 beta(需要 beta header <code>task-budgets-2026-03-13</code>),做法是告诉 Claude 整个 agentic loop 有多少 token 可用——<b>包含 thinking、工具调用、工具结果和输出</b>。服务端在对话中注入一个倒计时标记,模型据此排优先级并优雅收尾。</p>
+  <p class="en">Task budgets are currently in beta (beta header <code>task-budgets-2026-03-13</code>). You tell Claude how many tokens the full agentic loop has — <b>including thinking, tool calls, tool results, and output</b>. The server injects a countdown marker into the conversation, and the model uses it to prioritise work and finish gracefully.</p>
+
+  <figure class="zh"><svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="effort 控制深度,task_budget 控制广度">
+    <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#7dd3a0"/></marker></defs>
+    <text x="360" y="26" text-anchor="middle" fill="#e9ecf4" font-size="16" font-weight="700" font-family="sans-serif">两个正交的旋钮</text>
+    <line x1="90" y1="250" x2="660" y2="250" stroke="#2b3242" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="90" y1="250" x2="90" y2="60" stroke="#2b3242" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="375" y="278" text-anchor="middle" fill="#b3bbcd" font-size="13.5" font-family="sans-serif">广度 · task_budget(整个循环能花多少)</text>
+    <text x="-155" y="20" transform="rotate(-90)" text-anchor="middle" fill="#b3bbcd" font-size="13.5" font-family="sans-serif">深度 · effort(每一步想多久)</text>
+    <rect x="110" y="185" width="150" height="56" rx="8" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="185" y="208" text-anchor="middle" fill="#a8e6c0" font-size="13" font-weight="700" font-family="sans-serif">low + 小预算</text>
+    <text x="185" y="228" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">分类 · 查询 · subagent</text>
+    <rect x="430" y="185" width="180" height="56" rx="8" fill="#1a2735" stroke="#2c4459"/>
+    <text x="520" y="208" text-anchor="middle" fill="#9ed3f2" font-size="13" font-weight="700" font-family="sans-serif">low + 大预算</text>
+    <text x="520" y="228" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">大量浅任务 · 批处理扫描</text>
+    <rect x="110" y="82" width="150" height="56" rx="8" fill="#1a2735" stroke="#2c4459"/>
+    <text x="185" y="105" text-anchor="middle" fill="#9ed3f2" font-size="13" font-weight="700" font-family="sans-serif">xhigh + 小预算</text>
+    <text x="185" y="125" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">单点难题 · 一次深推理</text>
+    <rect x="430" y="82" width="180" height="56" rx="8" fill="#2a2118" stroke="#4a3a26"/>
+    <text x="520" y="105" text-anchor="middle" fill="#f0a868" font-size="13" font-weight="700" font-family="sans-serif">xhigh + 大预算</text>
+    <text x="520" y="125" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">长时程重构 · 最贵象限</text>
+  </svg><figcaption>effort 与 task_budget 构成一个二维空间:纵轴是每步的推理深度,横轴是整个循环的总工作量。右上象限最贵,也最容易被误用。</figcaption></figure>
+
+  <figure class="en"><svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="effort controls depth, task_budget controls breadth">
+    <defs><marker id="ar-e" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#7dd3a0"/></marker></defs>
+    <text x="360" y="26" text-anchor="middle" fill="#e9ecf4" font-size="16" font-weight="700" font-family="sans-serif">Two orthogonal knobs</text>
+    <line x1="90" y1="250" x2="660" y2="250" stroke="#2b3242" stroke-width="2" marker-end="url(#ar-e)"/>
+    <line x1="90" y1="250" x2="90" y2="60" stroke="#2b3242" stroke-width="2" marker-end="url(#ar-e)"/>
+    <text x="375" y="278" text-anchor="middle" fill="#b3bbcd" font-size="13.5" font-family="sans-serif">Breadth · task_budget (total spend per loop)</text>
+    <text x="-155" y="20" transform="rotate(-90)" text-anchor="middle" fill="#b3bbcd" font-size="13.5" font-family="sans-serif">Depth · effort (reasoning per step)</text>
+    <rect x="110" y="185" width="150" height="56" rx="8" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="185" y="208" text-anchor="middle" fill="#a8e6c0" font-size="13" font-weight="700" font-family="sans-serif">low + small</text>
+    <text x="185" y="228" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">classify · lookup · subagent</text>
+    <rect x="430" y="185" width="180" height="56" rx="8" fill="#1a2735" stroke="#2c4459"/>
+    <text x="520" y="208" text-anchor="middle" fill="#9ed3f2" font-size="13" font-weight="700" font-family="sans-serif">low + large</text>
+    <text x="520" y="228" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">many shallow steps · bulk scan</text>
+    <rect x="110" y="82" width="150" height="56" rx="8" fill="#1a2735" stroke="#2c4459"/>
+    <text x="185" y="105" text-anchor="middle" fill="#9ed3f2" font-size="13" font-weight="700" font-family="sans-serif">xhigh + small</text>
+    <text x="185" y="125" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">one hard problem, one pass</text>
+    <rect x="430" y="82" width="180" height="56" rx="8" fill="#2a2118" stroke="#4a3a26"/>
+    <text x="520" y="105" text-anchor="middle" fill="#f0a868" font-size="13" font-weight="700" font-family="sans-serif">xhigh + large</text>
+    <text x="520" y="125" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">long-horizon refactor · priciest</text>
+  </svg><figcaption>effort and task_budget span a two-dimensional space: reasoning depth per step on the vertical axis, total loop work on the horizontal. The top-right quadrant is the most expensive — and the easiest to reach for by mistake.</figcaption></figure>
+
+  <div class="tbl"><table class="zh">
+    <thead><tr><th>维度</th><th>effort</th><th>task_budget</th></tr></thead>
+    <tbody>
+      <tr><td>控制什么</td><td>每一步的推理深度与冗长度</td><td>整个 agentic loop 的总工作量</td></tr>
+      <tr><td>作用范围</td><td>单次请求</td><td>跨多次请求的一整个循环</td></tr>
+      <tr><td>强制性</td><td>行为信号(非硬限)</td><td>软提示(非硬限),硬限仍是 <code>max_tokens</code></td></tr>
+      <tr><td>可见性</td><td>你设定,响应里不回传</td><td><b>只有模型看得见倒计时</b>,响应 usage 里没有 remaining 字段</td></tr>
+      <tr><td>状态</td><td>正式功能,无需 beta header</td><td>Beta,需 <code>task-budgets-2026-03-13</code></td></tr>
+      <tr><td>支持面</td><td>API / Bedrock / Vertex / Foundry / Claude Code</td><td>仅 Messages API;<b>Claude Code 与 Cowork 不支持</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <thead><tr><th>Dimension</th><th>effort</th><th>task_budget</th></tr></thead>
+    <tbody>
+      <tr><td>What it controls</td><td>Reasoning depth and verbosity per step</td><td>Total work across the agentic loop</td></tr>
+      <tr><td>Scope</td><td>A single request</td><td>A whole loop spanning many requests</td></tr>
+      <tr><td>Enforcement</td><td>Behavioural signal (not a hard cap)</td><td>Soft hint (not a hard cap); <code>max_tokens</code> remains the hard limit</td></tr>
+      <tr><td>Visibility</td><td>You set it; not echoed in the response</td><td><b>Only the model sees the countdown</b>; no remaining field in response usage</td></tr>
+      <tr><td>Status</td><td>GA, no beta header needed</td><td>Beta, requires <code>task-budgets-2026-03-13</code></td></tr>
+      <tr><td>Availability</td><td>API / Bedrock / Vertex / Foundry / Claude Code</td><td>Messages API only; <b>not supported on Claude Code or Cowork</b></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="levels">
+  <h2 class="zh"><span class="num">03</span>Effort 五档详解与选型</h2>
+  <h2 class="en"><span class="num">03</span>The five effort levels, and how to pick</h2>
+
+  <div class="tbl"><table class="zh">
+    <thead><tr><th>档位</th><th>官方描述</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>max</code></td><td>不设 token 花费约束的绝对最高能力</td><td>需要最深推理与最彻底分析的任务</td></tr>
+      <tr><td><code>xhigh</code></td><td>面向长时程工作的扩展能力</td><td>超过 30 分钟、token 预算以百万计的长时程 agentic 与编码任务</td></tr>
+      <tr><td><code>high</code></td><td>高能力。<b>等价于不设该参数</b>(API 默认)</td><td>复杂推理、困难编码问题、agentic 任务</td></tr>
+      <tr><td><code>medium</code></td><td>均衡取舍,适度节省 token</td><td>需要平衡速度、成本与表现的 agentic 任务</td></tr>
+      <tr><td><code>low</code></td><td>最高效。显著节省 token,伴随一定能力下降</td><td>更简单、要求速度与低成本的任务,例如 subagent</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <thead><tr><th>Level</th><th>Official description</th><th>Typical use</th></tr></thead>
+    <tbody>
+      <tr><td><code>max</code></td><td>Absolute maximum capability, no constraints on token spending</td><td>Tasks needing the deepest reasoning and most thorough analysis</td></tr>
+      <tr><td><code>xhigh</code></td><td>Extended capability for long-horizon work</td><td>Long-running agentic and coding tasks (over 30 minutes) with token budgets in the millions</td></tr>
+      <tr><td><code>high</code></td><td>High capability. <b>Equivalent to not setting the parameter</b> (API default)</td><td>Complex reasoning, difficult coding problems, agentic tasks</td></tr>
+      <tr><td><code>medium</code></td><td>Balanced approach with moderate token savings</td><td>Agentic tasks needing a balance of speed, cost, and performance</td></tr>
+      <tr><td><code>low</code></td><td>Most efficient. Significant token savings with some capability reduction</td><td>Simpler tasks needing the best speed and lowest cost, such as subagents</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="zh">注意 <code>xhigh</code> 是较新的档位:<b>有些支持 <code>max</code> 的模型并不支持 <code>xhigh</code></b>。按官方兼容表,<code>xhigh</code> 可用于 Fable 5、Mythos 5、Opus 5、Opus 4.8、Opus 4.7 与 Sonnet 5;<code>max</code> 的支持面更宽,还包括 Opus 4.6、Sonnet 4.6 与 Mythos Preview。</p>
+  <p class="en">Note that <code>xhigh</code> is a newer level: <b>some models that support <code>max</code> do not support <code>xhigh</code></b>. Per the compatibility table, <code>xhigh</code> is available on Fable 5, Mythos 5, Opus 5, Opus 4.8, Opus 4.7, and Sonnet 5; <code>max</code> has wider coverage, additionally including Opus 4.6, Sonnet 4.6, and Mythos Preview.</p>
+
+  <h3 class="zh">同一个参数,不同模型的建议起点不一样</h3>
+  <h3 class="en">Same parameter, different recommended starting points per model</h3>
+  <p class="zh">这是最容易被忽略的一点:官方针对不同模型给出的<b>建议起点并不相同</b>,把上一代的 effort 设置直接搬到新模型上是错的。文档明确写着「如果你从更早的模型沿用了 effort 设置,请在你的评测集上重新做一次 effort 扫描,而不是直接复用」。</p>
+  <p class="en">This is the most commonly missed point: the <b>recommended starting level differs by model</b>, and carrying settings over from a previous generation is a mistake. The docs say plainly: if you carried effort settings over from an earlier model, run a fresh effort sweep on your evals rather than reusing them.</p>
+
+  <div class="tbl"><table class="zh">
+    <thead><tr><th>模型</th><th>官方建议起点</th><th>要点</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Fable 5 / 5.1 / Mythos 5</td><td><code>high</code>(默认)</td><td>effort 是这代模型「智能 / 延迟 / 成本」的<b>首要控制手段</b>;例行工作大胆降到 medium / low —— 官方称其低档位「常常超过上一代模型 xhigh 的表现」</td></tr>
+      <tr><td>Claude Opus 5</td><td><code>high</code>(默认)</td><td>大胆使用 low / medium 作为主要成本控制手段。⚠️ <code>xhigh</code> 与 <code>max</code> 下<b>不能关闭 thinking</b>,传 <code>thinking: {"type":"disabled"}</code> 会返回 400。另外改 effort <b>不能可靠地缩短可见回答长度</b>,想要短回答请用 prompt 控制</td></tr>
+      <tr><td>Claude Opus 4.7 / 4.8</td><td><b><code>xhigh</code></b>(编码与 agentic)</td><td>比 4.6 更严格地遵守低档位——低档下会把工作范围收敛到「只做被要求的事」。若在复杂问题上看到推理变浅,<b>提高 effort,而不是靠 prompt 绕</b></td></tr>
+      <tr><td>Claude Sonnet 4.6</td><td><code>medium</code></td><td>虽然默认是 high,但官方建议显式设置以避免意料之外的延迟</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <thead><tr><th>Model</th><th>Recommended starting point</th><th>Key notes</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Fable 5 / 5.1 / Mythos 5</td><td><code>high</code> (default)</td><td>Effort is the <b>primary control</b> for trading off intelligence, latency, and cost on this generation. Step down to medium/low for routine work freely — the docs note lower settings "often exceed <code>xhigh</code> performance on prior models"</td></tr>
+      <tr><td>Claude Opus 5</td><td><code>high</code> (default)</td><td>Use low/medium liberally as your primary cost and latency control. ⚠️ Thinking <b>cannot be disabled</b> at <code>xhigh</code> or <code>max</code>: <code>thinking: {"type":"disabled"}</code> returns a 400. Also, changing effort <b>does not reliably shorten visible responses</b> — prompt for length instead</td></tr>
+      <tr><td>Claude Opus 4.7 / 4.8</td><td><b><code>xhigh</code></b> for coding and agentic work</td><td>Respects lower levels more strictly than 4.6 — at low levels it scopes work to exactly what was asked. If reasoning looks shallow on a hard problem, <b>raise effort rather than prompting around it</b></td></tr>
+      <tr><td>Claude Sonnet 4.6</td><td><code>medium</code></td><td>The default is high, but the docs recommend setting effort explicitly to avoid unexpected latency</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout warn zh">
+    <b>配套动作:高档位要配大 max_tokens</b>
+    <p>在 <code>xhigh</code> 或 <code>max</code> 下运行时,官方反复强调要<b>设一个大的 <code>max_tokens</code></b>,给模型在 subagent 与工具调用之间思考和行动的空间;<b>从 64k 起步</b>再往下调是个合理的默认值。原因很直接:<code>max_tokens</code> 是「thinking + 回答正文」的总输出硬上限,设小了会在 thinking 阶段就把回答截断。</p>
+  </div>
+  <div class="callout warn en">
+    <b>Companion setting: high effort needs a large max_tokens</b>
+    <p>When running at <code>xhigh</code> or <code>max</code>, the docs repeatedly stress setting a <b>large <code>max_tokens</code></b> so the model has room to think and act across subagents and tool calls; <b>starting at 64k</b> and tuning from there is a reasonable default. The reason is direct: <code>max_tokens</code> is a hard ceiling on total output — thinking plus response text — so setting it small can truncate the answer during the thinking phase.</p>
+  </div>
+
+  <h3 class="zh">低档位在工具使用上的具体行为差异</h3>
+  <h3 class="en">How lower effort concretely changes tool use</h3>
+  <p class="zh">这一点在做 Agent 时比「思考深度」更有实感。官方列出的差异是:</p>
+  <p class="en">When building agents this matters more concretely than "thinking depth". The documented differences:</p>
+  <div class="cards">
+    <div class="card zh"><h4>低 effort 倾向于</h4><p>把多个操作合并进更少的工具调用;总体调用次数更少;不铺垫直接动手;完成后用简短的确认语。</p></div>
+    <div class="card zh"><h4>高 effort 可能会</h4><p>发起更多工具调用;先说明计划再行动;给出详细的变更摘要;写更完整的代码注释。</p></div>
+    <div class="card en"><h4>Lower effort tends to</h4><p>Combine multiple operations into fewer tool calls; make fewer calls overall; proceed straight to action without preamble; use terse confirmations on completion.</p></div>
+    <div class="card en"><h4>Higher effort may</h4><p>Make more tool calls; explain the plan before acting; give detailed summaries of changes; include more comprehensive code comments.</p></div>
+  </div>
+
+<pre class="zh"><code># Python:请求级设置(注意在 output_config 里,不是顶层参数)
+client = anthropic.Anthropic()
+
+response = client.messages.create(
+    model="claude-fable-5-1",
+    max_tokens=65536,                    # xhigh/max 时从 64k 起步
+    messages=[{"role": "user", "content": "分析微服务与单体架构的取舍"}],
+    output_config={"effort": "medium"},  # low / medium / high / xhigh / max
+)</code></pre>
+<pre class="en"><code># Python: a request-level setting (note it lives inside output_config, not at top level)
+client = anthropic.Anthropic()
+
+response = client.messages.create(
+    model="claude-fable-5-1",
+    max_tokens=65536,                    # start at 64k for xhigh/max
+    messages=[{"role": "user", "content": "Analyze the trade-offs between microservices and monoliths"}],
+    output_config={"effort": "medium"},  # low / medium / high / xhigh / max
+)</code></pre>
+
+  <div class="callout danger zh">
+    <b>不要把 adaptive 当作 effort 值传进去</b>
+    <p><code>adaptive</code> 是 <b>thinking 的一种模式</b>,不是 effort 档位。<code>thinking</code> 参数决定 Claude 是否在回答前产出 thinking block;<code>effort</code> 决定整个回应投入多少工作量——在 adaptive 模式下,后者也包含「多频繁、多深地思考」。</p>
+  </div>
+  <div class="callout danger en">
+    <b>Do not pass <code>adaptive</code> as an effort value</b>
+    <p><code>adaptive</code> is a <b>thinking mode</b>, not an effort level. The <code>thinking</code> parameter controls whether Claude produces thinking blocks before answering; <code>effort</code> controls how much work goes into the whole response — which, in adaptive mode, includes how often and how deeply it thinks.</p>
+  </div>
+</section>
+<section id="budget">
+  <h2 class="zh"><span class="num">04</span>Task Budgets:倒计时怎么算</h2>
+  <h2 class="en"><span class="num">04</span>Task budgets: how the countdown counts</h2>
+
+  <p class="zh">Task Budgets 最反直觉、也最容易用错的一点是:<b>倒计时算的是「Claude 这一轮看到的新内容」,不是你请求体的大小</b>。在 agentic loop 里,你的客户端每轮都会重发整段对话历史,payload 逐轮膨胀;但预算只按这一轮 Claude 新看到的 token 扣减。</p>
+  <p class="en">The most counter-intuitive — and most misused — property of task budgets is this: <b>the countdown counts what Claude sees this turn, not the size of your request payload</b>. In an agentic loop your client resends the full conversation every turn, so the payload grows turn over turn; the budget only decrements by the tokens Claude newly sees.</p>
+
+  <figure class="zh"><svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="task_budget 倒计时在三轮 agentic loop 中的扣减方式">
+    <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#5fb8e8"/></marker></defs>
+    <text x="360" y="24" text-anchor="middle" fill="#e9ecf4" font-size="16" font-weight="700" font-family="sans-serif">payload 一直涨,预算只扣「新看到的」</text>
+    <text x="60" y="62" fill="#7f889f" font-size="12" font-family="sans-serif">总预算 total = 100,000</text>
+
+    <rect x="60" y="76" width="180" height="86" rx="9" fill="#171b25" stroke="#2b3242"/>
+    <text x="150" y="98" text-anchor="middle" fill="#9ed3f2" font-size="13.5" font-weight="700" font-family="sans-serif">第 1 轮</text>
+    <text x="150" y="119" text-anchor="middle" fill="#b3bbcd" font-size="11.5" font-family="sans-serif">payload ≈ 20 tok</text>
+    <text x="150" y="137" text-anchor="middle" fill="#f0a868" font-size="11.5" font-family="sans-serif">扣减 5,000(thinking+调用)</text>
+    <text x="150" y="155" text-anchor="middle" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">剩余 ≈ 95,000</text>
+
+    <rect x="270" y="76" width="180" height="86" rx="9" fill="#171b25" stroke="#2b3242"/>
+    <text x="360" y="98" text-anchor="middle" fill="#9ed3f2" font-size="13.5" font-weight="700" font-family="sans-serif">第 2 轮</text>
+    <text x="360" y="119" text-anchor="middle" fill="#b3bbcd" font-size="11.5" font-family="sans-serif">payload ≈ 7,800 tok</text>
+    <text x="360" y="137" text-anchor="middle" fill="#f0a868" font-size="11.5" font-family="sans-serif">扣减 6,800(2,800 结果+4,000)</text>
+    <text x="360" y="155" text-anchor="middle" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">剩余 ≈ 88,200</text>
+
+    <rect x="480" y="76" width="180" height="86" rx="9" fill="#171b25" stroke="#2b3242"/>
+    <text x="570" y="98" text-anchor="middle" fill="#9ed3f2" font-size="13.5" font-weight="700" font-family="sans-serif">第 3 轮</text>
+    <text x="570" y="119" text-anchor="middle" fill="#b3bbcd" font-size="11.5" font-family="sans-serif">payload ≈ 13,000 tok</text>
+    <text x="570" y="137" text-anchor="middle" fill="#f0a868" font-size="11.5" font-family="sans-serif">扣减 7,200(1,200 结果+6,000)</text>
+    <text x="570" y="155" text-anchor="middle" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">剩余 ≈ 81,000</text>
+
+    <line x1="240" y1="119" x2="266" y2="119" stroke="#2b3242" stroke-width="2" marker-end="url(#ar2)"/>
+    <line x1="450" y1="119" x2="476" y2="119" stroke="#2b3242" stroke-width="2" marker-end="url(#ar2)"/>
+
+    <rect x="60" y="196" width="600" height="30" rx="6" fill="#12151d" stroke="#2b3242"/>
+    <rect x="62" y="198" width="114" height="26" rx="5" fill="#2f4a3d"/>
+    <text x="360" y="216" text-anchor="middle" fill="#b3bbcd" font-size="12.5" font-family="sans-serif">三轮共扣减 19,000 / 100,000 —— 而客户端累计发出约 20,820 token</text>
+
+    <text x="60" y="258" fill="#f08080" font-size="12.5" font-weight="700" font-family="sans-serif">为什么重要:</text>
+    <text x="60" y="279" fill="#b3bbcd" font-size="12.5" font-family="sans-serif">若你在重发完整历史的同时,还自己去递减 remaining,模型看到的预算会被低报,</text>
+    <text x="60" y="298" fill="#b3bbcd" font-size="12.5" font-family="sans-serif">倒计时掉得比实际快 —— 结果是 Claude 比预算允许的时间更早收尾。</text>
+    <text x="60" y="317" fill="#7dd3a0" font-size="12.5" font-weight="700" font-family="sans-serif">对策:设一个宽裕的 total,让模型自己对着服务端倒计时自律,别在客户端镜像它。</text>
+  </svg><figcaption>官方给出的三轮 worked example:客户端把第 1 轮的消息发了三次,但预算只扣了一次。</figcaption></figure>
+
+  <figure class="en"><svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How the task_budget countdown decrements across three agentic turns">
+    <defs><marker id="ar2-e" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 z" fill="#5fb8e8"/></marker></defs>
+    <text x="360" y="24" text-anchor="middle" fill="#e9ecf4" font-size="16" font-weight="700" font-family="sans-serif">Payload keeps growing; the budget counts only what is new</text>
+    <text x="60" y="62" fill="#7f889f" font-size="12" font-family="sans-serif">total = 100,000</text>
+
+    <rect x="60" y="76" width="180" height="86" rx="9" fill="#171b25" stroke="#2b3242"/>
+    <text x="150" y="98" text-anchor="middle" fill="#9ed3f2" font-size="13.5" font-weight="700" font-family="sans-serif">Turn 1</text>
+    <text x="150" y="119" text-anchor="middle" fill="#b3bbcd" font-size="11.5" font-family="sans-serif">payload ≈ 20 tok</text>
+    <text x="150" y="137" text-anchor="middle" fill="#f0a868" font-size="11.5" font-family="sans-serif">counted 5,000 (thinking+call)</text>
+    <text x="150" y="155" text-anchor="middle" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">remaining ≈ 95,000</text>
+
+    <rect x="270" y="76" width="180" height="86" rx="9" fill="#171b25" stroke="#2b3242"/>
+    <text x="360" y="98" text-anchor="middle" fill="#9ed3f2" font-size="13.5" font-weight="700" font-family="sans-serif">Turn 2</text>
+    <text x="360" y="119" text-anchor="middle" fill="#b3bbcd" font-size="11.5" font-family="sans-serif">payload ≈ 7,800 tok</text>
+    <text x="360" y="137" text-anchor="middle" fill="#f0a868" font-size="11.5" font-family="sans-serif">counted 6,800 (2,800 result+4,000)</text>
+    <text x="360" y="155" text-anchor="middle" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">remaining ≈ 88,200</text>
+
+    <rect x="480" y="76" width="180" height="86" rx="9" fill="#171b25" stroke="#2b3242"/>
+    <text x="570" y="98" text-anchor="middle" fill="#9ed3f2" font-size="13.5" font-weight="700" font-family="sans-serif">Turn 3</text>
+    <text x="570" y="119" text-anchor="middle" fill="#b3bbcd" font-size="11.5" font-family="sans-serif">payload ≈ 13,000 tok</text>
+    <text x="570" y="137" text-anchor="middle" fill="#f0a868" font-size="11.5" font-family="sans-serif">counted 7,200 (1,200 result+6,000)</text>
+    <text x="570" y="155" text-anchor="middle" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">remaining ≈ 81,000</text>
+
+    <line x1="240" y1="119" x2="266" y2="119" stroke="#2b3242" stroke-width="2" marker-end="url(#ar2-e)"/>
+    <line x1="450" y1="119" x2="476" y2="119" stroke="#2b3242" stroke-width="2" marker-end="url(#ar2-e)"/>
+
+    <rect x="60" y="196" width="600" height="30" rx="6" fill="#12151d" stroke="#2b3242"/>
+    <rect x="62" y="198" width="114" height="26" rx="5" fill="#2f4a3d"/>
+    <text x="360" y="216" text-anchor="middle" fill="#b3bbcd" font-size="12.5" font-family="sans-serif">19,000 of 100,000 counted over three turns — while the client transmitted ~20,820 tokens</text>
+
+    <text x="60" y="258" fill="#f08080" font-size="12.5" font-weight="700" font-family="sans-serif">Why it matters:</text>
+    <text x="60" y="279" fill="#b3bbcd" font-size="12.5" font-family="sans-serif">If you resend full history and also decrement remaining yourself, the model sees an</text>
+    <text x="60" y="298" fill="#b3bbcd" font-size="12.5" font-family="sans-serif">under-reported budget, the countdown drops too fast, and Claude wraps up early.</text>
+    <text x="60" y="317" fill="#7dd3a0" font-size="12.5" font-weight="700" font-family="sans-serif">Fix: set a generous total and let the model self-regulate; do not mirror it client-side.</text>
+  </svg><figcaption>The documented three-turn worked example: the client sent the turn-1 message three times, but it was counted once.</figcaption></figure>
+
+  <h3 class="zh">三个必须知道的约束</h3>
+  <h3 class="en">Three constraints you must know</h3>
+  <ol class="zh">
+    <li><b>软提示,不是硬上限。</b>Claude 可能会超出预算——当它正处在「中断比完成更具破坏性」的动作中间时。唯一被强制的输出上限仍然是 <code>max_tokens</code>,达到时以 <code>stop_reason: "max_tokens"</code> 截断。两者相互独立:<code>task_budget</code> 跨整个循环(可能很多次请求),<code>max_tokens</code> 管单次请求,所以并不要求前者小于等于后者。</li>
+    <li><b>预算太小会引发「拒绝式行为」。</b>当 Claude 看到的预算明显不够完成任务(文档举的例子:给一个数小时的 agentic 编码任务只给 20,000 token),它可能<b>干脆不接这个任务</b>、激进地缩小范围,或者早早停在一个半成品上。<b>如果你在设了预算之后看到莫名的拒绝或提前停止,先把预算调大,再去 debug 其他参数。</b>最小可接受值目前在所有支持模型上都是 20,000 token,低于此返回 400。</li>
+    <li><b>响应里读不到剩余预算。</b><code>usage</code> 对象里没有 <code>task_budget</code> 信息,SDK 也没有对应访问器。要在客户端追踪花费,只能自己把循环里每次请求的 token 用量加起来。</li>
+  </ol>
+  <ol class="en">
+    <li><b>Advisory, not enforced.</b> Claude may exceed the budget when it is mid-action and interrupting would be more disruptive than finishing. The only enforced ceiling is still <code>max_tokens</code>, which truncates with <code>stop_reason: "max_tokens"</code>. The two are independent: <code>task_budget</code> spans a whole loop (potentially many requests) while <code>max_tokens</code> caps each individual request, so one need not be at or below the other.</li>
+    <li><b>A budget that is too small causes refusal-like behaviour.</b> When Claude sees a budget clearly insufficient for the work — the docs' example is a 20,000-token budget for a multi-hour agentic coding task — it may decline the task outright, scope it down aggressively, or stop early with a partial result. <b>If you see unexpected refusals or premature stops after setting a budget, raise the budget before debugging anything else.</b> The minimum accepted value is currently 20,000 tokens on every supported model; below that you get a 400.</li>
+    <li><b>You cannot read the remaining budget from the response.</b> There is no <code>task_budget</code> information in the <code>usage</code> object and no SDK accessor for it. To track spend client-side, sum token usage across the requests in your loop yourself.</li>
+  </ol>
+
+<pre class="zh"><code># 设置一个任务预算(注意 beta header)
+with client.beta.messages.stream(
+    model="claude-fable-5-1",
+    max_tokens=128000,                 # 硬上限:单次请求
+    output_config={
+        "effort": "high",              # 深度
+        "task_budget": {"type": "tokens", "total": 64000},   # 广度
+    },
+    messages=[{"role": "user", "content": "通读代码库并提出重构方案"}],
+    betas=["task-budgets-2026-03-13"],
+) as stream:
+    response = stream.get_final_message()
+
+# 跨压缩(compaction)续算:服务端不记得压缩前花了多少,自己传 remaining
+tokens_spent_so_far = 45000
+output_config = {
+    "effort": "high",
+    "task_budget": {
+        "type": "tokens",
+        "total": 128000,
+        "remaining": 128000 - tokens_spent_so_far,
+    },
+}
+# ⚠️ 若你每轮都重发完整未压缩历史,就【省略】remaining,让服务端自己算</code></pre>
+<pre class="en"><code># Setting a task budget (note the beta header)
+with client.beta.messages.stream(
+    model="claude-fable-5-1",
+    max_tokens=128000,                 # hard cap: per request
+    output_config={
+        "effort": "high",              # depth
+        "task_budget": {"type": "tokens", "total": 64000},   # breadth
+    },
+    messages=[{"role": "user", "content": "Review the codebase and propose a refactor plan."}],
+    betas=["task-budgets-2026-03-13"],
+) as stream:
+    response = stream.get_final_message()
+
+# Carrying a budget across compaction: the server has no memory of pre-compaction spend
+tokens_spent_so_far = 45000
+output_config = {
+    "effort": "high",
+    "task_budget": {
+        "type": "tokens",
+        "total": 128000,
+        "remaining": 128000 - tokens_spent_so_far,
+    },
+}
+# ⚠️ If your loop resends full uncompacted history every turn, OMIT remaining and let the server track it</code></pre>
+
+  <h3 class="zh">怎么定这个数</h3>
+  <h3 class="en">How to choose the number</h3>
+  <p class="zh">官方给的方法不是拍脑袋,而是先测量:在<b>不设</b> <code>task_budget</code> 的情况下跑一批有代表性的任务,记录每个任务的总 token 花费(把循环里每次请求的 <code>usage.output_tokens</code> 加起来,再加上你在请求之间追加的工具结果 token),得到一个分布,<b>从 p99 起步</b>,然后上下调。关键是按你实际的任务长度分布来定,而不是套一个固定默认值。</p>
+  <p class="en">The documented method is measurement, not guesswork: run a representative sample of tasks <b>without</b> <code>task_budget</code> set and record total tokens per task (sum <code>usage.output_tokens</code> across every request in the loop, plus the tool-result tokens you append between requests). From that distribution, <b>start at the p99</b> and tune up or down. Size budgets against your actual task-length distribution rather than a fixed default.</p>
+</section>
+
+<section id="cost">
+  <h2 class="zh"><span class="num">05</span>成本结构:缓存降价改变了什么</h2>
+  <h2 class="en"><span class="num">05</span>Cost structure: what the cache price cut changed</h2>
+
+  <p class="zh">Fable 5.1 的定价变动只有一项:<b>缓存读取(cache read)从 $1 降到 $0.25 每百万 token,降幅 75%</b>。输入 $10 / 输出 $50 每百万 token 保持不变。但 Anthropic 给出的实测口径是:典型负载总成本降约 25%,高度 agentic 负载降约 45%(基于 2026 年 8 月四周的真实使用数据,默认 effort)。</p>
+  <p class="en">Fable 5.1 changed exactly one price: <b>cache reads dropped from $1 to $0.25 per million tokens, a 75% cut</b>. Input at $10 and output at $50 per million tokens are unchanged. Anthropic's measured figures: roughly 25% lower total cost on typical workloads and about 45% on highly agentic ones, based on four weeks of actual August 2026 usage at default effort.</p>
+
+  <p class="zh">为什么单改一项能拉动这么多总成本?因为在上下文重、工具重的 agentic 负载里,<b>缓存读取就是账单的大头</b>。官方的成本构成图(以 Fable 5 = 100 为指数)是这么分的:</p>
+  <p class="en">Why does changing one line item move total cost so much? Because in context-heavy, tool-heavy agentic workloads, <b>cache reads are most of the bill</b>. Anthropic's indexed cost chart (Fable 5 = 100) breaks down as:</p>
+
+  <figure class="zh"><svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fable 5 与 5.1 的指数化成本对比">
+    <text x="360" y="24" text-anchor="middle" fill="#e9ecf4" font-size="16" font-weight="700" font-family="sans-serif">指数化成本(Fable 5 = 100)</text>
+    <text x="175" y="52" text-anchor="middle" fill="#b3bbcd" font-size="13" font-family="sans-serif">典型负载</text>
+    <text x="545" y="52" text-anchor="middle" fill="#b3bbcd" font-size="13" font-family="sans-serif">高度 agentic 负载</text>
+
+    <rect x="80" y="70" width="70" height="140" rx="5" fill="#2c4459"/>
+    <rect x="80" y="70" width="70" height="56" rx="5" fill="#5fb8e8" opacity=".55"/>
+    <text x="115" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5</text>
+    <text x="115" y="63" text-anchor="middle" fill="#e9ecf4" font-size="13" font-weight="700" font-family="sans-serif">100</text>
+
+    <rect x="200" y="105" width="70" height="105" rx="5" fill="#2f4a3d"/>
+    <rect x="200" y="105" width="70" height="20" rx="5" fill="#7dd3a0" opacity=".6"/>
+    <text x="235" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5.1</text>
+    <text x="235" y="98" text-anchor="middle" fill="#7dd3a0" font-size="13" font-weight="700" font-family="sans-serif">75(−25%)</text>
+
+    <rect x="450" y="70" width="70" height="140" rx="5" fill="#2c4459"/>
+    <rect x="450" y="70" width="70" height="98" rx="5" fill="#5fb8e8" opacity=".55"/>
+    <text x="485" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5</text>
+    <text x="485" y="63" text-anchor="middle" fill="#e9ecf4" font-size="13" font-weight="700" font-family="sans-serif">100</text>
+
+    <rect x="570" y="133" width="70" height="77" rx="5" fill="#2f4a3d"/>
+    <rect x="570" y="133" width="70" height="25" rx="5" fill="#7dd3a0" opacity=".6"/>
+    <text x="605" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5.1</text>
+    <text x="605" y="126" text-anchor="middle" fill="#7dd3a0" font-size="13" font-weight="700" font-family="sans-serif">55(−45%)</text>
+
+    <rect x="300" y="242" width="12" height="6" fill="#5fb8e8" opacity=".55"/>
+    <text x="318" y="248" fill="#7f889f" font-size="11.5" font-family="sans-serif">缓存读取</text>
+    <rect x="390" y="242" width="12" height="6" fill="#2c4459"/>
+    <text x="408" y="248" fill="#7f889f" font-size="11.5" font-family="sans-serif">其他所有 token</text>
+  </svg><figcaption>示意图,按 Anthropic 公布的指数值(100 → 75、100 → 55)绘制;缓存读取占比越高,降价的杠杆越大。</figcaption></figure>
+
+  <figure class="en"><svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Indexed cost of Fable 5 versus Fable 5.1">
+    <text x="360" y="24" text-anchor="middle" fill="#e9ecf4" font-size="16" font-weight="700" font-family="sans-serif">Indexed cost (Fable 5 = 100)</text>
+    <text x="175" y="52" text-anchor="middle" fill="#b3bbcd" font-size="13" font-family="sans-serif">Typical workload</text>
+    <text x="545" y="52" text-anchor="middle" fill="#b3bbcd" font-size="13" font-family="sans-serif">Highly agentic workload</text>
+
+    <rect x="80" y="70" width="70" height="140" rx="5" fill="#2c4459"/>
+    <rect x="80" y="70" width="70" height="56" rx="5" fill="#5fb8e8" opacity=".55"/>
+    <text x="115" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5</text>
+    <text x="115" y="63" text-anchor="middle" fill="#e9ecf4" font-size="13" font-weight="700" font-family="sans-serif">100</text>
+
+    <rect x="200" y="105" width="70" height="105" rx="5" fill="#2f4a3d"/>
+    <rect x="200" y="105" width="70" height="20" rx="5" fill="#7dd3a0" opacity=".6"/>
+    <text x="235" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5.1</text>
+    <text x="235" y="98" text-anchor="middle" fill="#7dd3a0" font-size="13" font-weight="700" font-family="sans-serif">75 (−25%)</text>
+
+    <rect x="450" y="70" width="70" height="140" rx="5" fill="#2c4459"/>
+    <rect x="450" y="70" width="70" height="98" rx="5" fill="#5fb8e8" opacity=".55"/>
+    <text x="485" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5</text>
+    <text x="485" y="63" text-anchor="middle" fill="#e9ecf4" font-size="13" font-weight="700" font-family="sans-serif">100</text>
+
+    <rect x="570" y="133" width="70" height="77" rx="5" fill="#2f4a3d"/>
+    <rect x="570" y="133" width="70" height="25" rx="5" fill="#7dd3a0" opacity=".6"/>
+    <text x="605" y="228" text-anchor="middle" fill="#7f889f" font-size="12" font-family="sans-serif">Fable 5.1</text>
+    <text x="605" y="126" text-anchor="middle" fill="#7dd3a0" font-size="13" font-weight="700" font-family="sans-serif">55 (−45%)</text>
+
+    <rect x="300" y="242" width="12" height="6" fill="#5fb8e8" opacity=".55"/>
+    <text x="318" y="248" fill="#7f889f" font-size="11.5" font-family="sans-serif">Cache reads</text>
+    <rect x="390" y="242" width="12" height="6" fill="#2c4459"/>
+    <text x="408" y="248" fill="#7f889f" font-size="11.5" font-family="sans-serif">All other tokens</text>
+  </svg><figcaption>Schematic, drawn to Anthropic's published index values (100 → 75 and 100 → 55). The larger the cache-read share, the more leverage the price cut has.</figcaption></figure>
+
+  <div class="callout danger zh">
+    <b>这就是为什么「中途改 effort」是个昂贵错误</b>
+    <p>缓存读取现在便宜了,长会话的经济性完全建立在「前缀稳定、缓存持续命中」之上。而 <code>effort</code> 与 <code>task_budget</code> <b>都参与 prompt 渲染</b>:改动其中任何一个,新的值都不再匹配旧值创建的缓存条目,整段前缀作废、需要重新写入。<br>官方给的规则很直接:<b>在依赖缓存命中的长会话里,一开始就选定 effort 并保持不变;把 effort 的变化放在不同工作负载之间,而不是同一段对话内部。</b></p>
+  </div>
+  <div class="callout danger en">
+    <b>This is exactly why changing effort mid-session is an expensive mistake</b>
+    <p>Now that cache reads are cheap, the economics of long sessions rest entirely on a stable prefix that keeps hitting cache. But <code>effort</code> and <code>task_budget</code> <b>both participate in the rendered prompt</b>: change either and the new value no longer matches cache entries created under the old one, so the whole prefix is invalidated and must be re-written.<br>The documented rule is blunt: <b>pick an effort level at the start of a cache-dependent session and keep it constant; vary effort across workloads, not within one conversation.</b></p>
+  </div>
+
+  <p class="zh">Task Budgets 有一个额外的缓存陷阱:倒计时标记是<b>服务端按轮注入的</b>,本身不跨请求匹配缓存。如果你的客户端每轮都自己递减 <code>task_budget.remaining</code>,那个变化的值会让包含它的缓存前缀失效。官方建议:<b>在首次请求上设一次预算,之后让模型对着服务端倒计时自律,不要在客户端不断修改它。</b></p>
+  <p class="en">Task budgets add one more caching trap: the countdown marker is <b>injected server-side per turn</b> and does not itself match across requests. If your client decrements <code>task_budget.remaining</code> every turn, that changing value invalidates any cache prefix containing it. The recommendation: <b>set the budget once on the initial request and let the model self-regulate against the server-side countdown rather than mutating it client-side.</b></p>
+</section>
+<section id="practice">
+  <h2 class="zh"><span class="num">06</span>怎么用:分层分配策略</h2>
+  <h2 class="en"><span class="num">06</span>How to use it: a tiered allocation strategy</h2>
+
+  <p class="zh">把上面的规则拼起来,可以得到一个实际可执行的决策流程。核心思想不是「找到一个最优档位」,而是<b>把不同类型的工作负载分开,各自定档,并在负载内部保持稳定</b>。</p>
+  <p class="en">Putting the rules together yields a workable decision procedure. The core idea is not to find one optimal level, but to <b>separate workload types, fix a level per type, and hold it constant within each</b>.</p>
+
+  <figure class="zh"><svg viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="effort 与 task_budget 的选型决策树">
+    <defs><marker id="ar3" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 z" fill="#7f889f"/></marker></defs>
+    <rect x="255" y="16" width="210" height="40" rx="8" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="360" y="41" text-anchor="middle" fill="#a8e6c0" font-size="13.5" font-weight="700" font-family="sans-serif">这是一次什么样的工作?</text>
+
+    <line x1="360" y1="56" x2="150" y2="88" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+    <line x1="360" y1="56" x2="360" y2="88" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+    <line x1="360" y1="56" x2="580" y2="88" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+
+    <rect x="50" y="94" width="200" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="150" y="113" text-anchor="middle" fill="#9ed3f2" font-size="12.5" font-weight="700" font-family="sans-serif">高频 / 低延迟 / 结构简单</text>
+    <text x="150" y="131" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">分类 · 抽取 · 路由 · subagent</text>
+
+    <rect x="262" y="94" width="196" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="360" y="113" text-anchor="middle" fill="#9ed3f2" font-size="12.5" font-weight="700" font-family="sans-serif">按明确 spec 做事</text>
+    <text x="360" y="131" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">CRUD · 文档 · 例行改动</text>
+
+    <rect x="480" y="94" width="200" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="580" y="113" text-anchor="middle" fill="#9ed3f2" font-size="12.5" font-weight="700" font-family="sans-serif">需要判断 / 探索</text>
+    <text x="580" y="131" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">定位 bug · 设计 · 跨模块重构</text>
+
+    <line x1="150" y1="140" x2="150" y2="170" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+    <line x1="360" y1="140" x2="360" y2="170" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+    <line x1="580" y1="140" x2="580" y2="170" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+
+    <rect x="70" y="176" width="160" height="40" rx="7" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="150" y="201" text-anchor="middle" fill="#a8e6c0" font-size="13" font-weight="800" font-family="sans-serif">effort = low</text>
+    <rect x="280" y="176" width="160" height="40" rx="7" fill="#1a2735" stroke="#2c4459"/>
+    <text x="360" y="201" text-anchor="middle" fill="#9ed3f2" font-size="13" font-weight="800" font-family="sans-serif">effort = medium</text>
+    <rect x="500" y="176" width="160" height="40" rx="7" fill="#2a2118" stroke="#4a3a26"/>
+    <text x="580" y="201" text-anchor="middle" fill="#f0a868" font-size="13" font-weight="800" font-family="sans-serif">effort = high / xhigh</text>
+
+    <line x1="580" y1="216" x2="580" y2="244" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+    <rect x="440" y="250" width="240" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="560" y="269" text-anchor="middle" fill="#e9ecf4" font-size="12.5" font-weight="700" font-family="sans-serif">会跑超过 30 分钟吗?</text>
+    <text x="560" y="287" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">是 → xhigh + 大 max_tokens(≥64k)</text>
+
+    <line x1="560" y1="296" x2="560" y2="322" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3)"/>
+    <rect x="380" y="328" width="300" height="42" rx="8" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="530" y="346" text-anchor="middle" fill="#a8e6c0" font-size="12.5" font-weight="700" font-family="sans-serif">再叠加 task_budget(仅 Messages API)</text>
+    <text x="530" y="363" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">total = 实测分布的 p99,不低于 20,000</text>
+
+    <rect x="40" y="250" width="330" height="120" rx="8" fill="#12151d" stroke="#2b3242"/>
+    <text x="60" y="273" fill="#f0a868" font-size="12.5" font-weight="700" font-family="sans-serif">贯穿全流程的一条铁律</text>
+    <text x="60" y="296" fill="#b3bbcd" font-size="12" font-family="sans-serif">档位一旦为某个工作负载定下,</text>
+    <text x="60" y="315" fill="#b3bbcd" font-size="12" font-family="sans-serif">就在这段会话里保持不变 ——</text>
+    <text x="60" y="334" fill="#b3bbcd" font-size="12" font-family="sans-serif">中途改动会打掉 prompt 缓存前缀,</text>
+    <text x="60" y="353" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">省下的 token 还不够重建缓存的。</text>
+  </svg><figcaption>决策树:先按工作负载类型分档,再判断是否需要长时程配置,最后(在 API 侧)叠加任务预算。</figcaption></figure>
+
+  <figure class="en"><svg viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision tree for choosing effort and task_budget">
+    <defs><marker id="ar3-e" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 z" fill="#7f889f"/></marker></defs>
+    <rect x="255" y="16" width="210" height="40" rx="8" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="360" y="41" text-anchor="middle" fill="#a8e6c0" font-size="13.5" font-weight="700" font-family="sans-serif">What kind of work is this?</text>
+
+    <line x1="360" y1="56" x2="150" y2="88" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+    <line x1="360" y1="56" x2="360" y2="88" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+    <line x1="360" y1="56" x2="580" y2="88" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+
+    <rect x="50" y="94" width="200" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="150" y="113" text-anchor="middle" fill="#9ed3f2" font-size="12.5" font-weight="700" font-family="sans-serif">High-volume / low-latency</text>
+    <text x="150" y="131" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">classify · extract · route · subagent</text>
+
+    <rect x="262" y="94" width="196" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="360" y="113" text-anchor="middle" fill="#9ed3f2" font-size="12.5" font-weight="700" font-family="sans-serif">Work against a clear spec</text>
+    <text x="360" y="131" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">CRUD · docs · routine changes</text>
+
+    <rect x="480" y="94" width="200" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="580" y="113" text-anchor="middle" fill="#9ed3f2" font-size="12.5" font-weight="700" font-family="sans-serif">Needs judgement / exploration</text>
+    <text x="580" y="131" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">debug · design · cross-module refactor</text>
+
+    <line x1="150" y1="140" x2="150" y2="170" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+    <line x1="360" y1="140" x2="360" y2="170" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+    <line x1="580" y1="140" x2="580" y2="170" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+
+    <rect x="70" y="176" width="160" height="40" rx="7" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="150" y="201" text-anchor="middle" fill="#a8e6c0" font-size="13" font-weight="800" font-family="sans-serif">effort = low</text>
+    <rect x="280" y="176" width="160" height="40" rx="7" fill="#1a2735" stroke="#2c4459"/>
+    <text x="360" y="201" text-anchor="middle" fill="#9ed3f2" font-size="13" font-weight="800" font-family="sans-serif">effort = medium</text>
+    <rect x="500" y="176" width="160" height="40" rx="7" fill="#2a2118" stroke="#4a3a26"/>
+    <text x="580" y="201" text-anchor="middle" fill="#f0a868" font-size="13" font-weight="800" font-family="sans-serif">effort = high / xhigh</text>
+
+    <line x1="580" y1="216" x2="580" y2="244" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+    <rect x="440" y="250" width="240" height="46" rx="8" fill="#171b25" stroke="#2b3242"/>
+    <text x="560" y="269" text-anchor="middle" fill="#e9ecf4" font-size="12.5" font-weight="700" font-family="sans-serif">Will it run over 30 minutes?</text>
+    <text x="560" y="287" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">Yes → xhigh + large max_tokens (≥64k)</text>
+
+    <line x1="560" y1="296" x2="560" y2="322" stroke="#2b3242" stroke-width="1.6" marker-end="url(#ar3-e)"/>
+    <rect x="380" y="328" width="300" height="42" rx="8" fill="#1b2a24" stroke="#2f4a3d"/>
+    <text x="530" y="346" text-anchor="middle" fill="#a8e6c0" font-size="12.5" font-weight="700" font-family="sans-serif">Then layer on task_budget (Messages API only)</text>
+    <text x="530" y="363" text-anchor="middle" fill="#7f889f" font-size="11.5" font-family="sans-serif">total = p99 of your measured distribution, ≥ 20,000</text>
+
+    <rect x="40" y="250" width="330" height="120" rx="8" fill="#12151d" stroke="#2b3242"/>
+    <text x="60" y="273" fill="#f0a868" font-size="12.5" font-weight="700" font-family="sans-serif">One rule that spans the whole tree</text>
+    <text x="60" y="296" fill="#b3bbcd" font-size="12" font-family="sans-serif">Once a level is set for a workload,</text>
+    <text x="60" y="315" fill="#b3bbcd" font-size="12" font-family="sans-serif">hold it constant for that session —</text>
+    <text x="60" y="334" fill="#b3bbcd" font-size="12" font-family="sans-serif">changing it invalidates the cache prefix,</text>
+    <text x="60" y="353" fill="#7dd3a0" font-size="12" font-weight="700" font-family="sans-serif">and re-caching costs more than you saved.</text>
+  </svg><figcaption>Decision tree: pick a level by workload type, check whether the task is long-horizon, then (on the API) layer on a task budget.</figcaption></figure>
+
+  <h3 class="zh">在 Claude Code 里落地</h3>
+  <h3 class="en">Putting it into practice in Claude Code</h3>
+  <p class="zh">Claude Code 侧<b>不支持 task_budget</b>,但 effort 是完整可用的,而且 v2.1.257 之后可以按会话覆盖。Fable 5.1 在 Claude Code 里默认 <code>high</code>(在 Cowork 与 claude.ai 上默认 <code>medium</code>)。</p>
+  <p class="en">Claude Code <b>does not support task budgets</b>, but effort is fully available, and since v2.1.257 it can be overridden per session. Fable 5.1 defaults to <code>high</code> effort in Claude Code (and to <code>medium</code> in Cowork and on claude.ai).</p>
+<pre class="zh"><code># 会话内:打开选择器,选好档位后按 s → 只对当前会话生效
+/effort
+
+# 启动时指定,只影响这一次会话
+claude --effort low -p "把 README 的安装步骤同步成最新的 pnpm 命令"
+
+# 常备别名:把「杂活会话」和「硬骨头会话」分开
+alias ccq='claude --model claude-fable-5-1 --effort low'
+alias ccd='claude --model claude-fable-5-1 --effort xhigh'
+
+# 顺带把 subagent 一律压到低档模型(v2.1.257 新增 FORCE)
+CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5-20251001 \
+CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1 claude</code></pre>
+<pre class="en"><code># In session: open the picker, then press s to apply to this session only
+/effort
+
+# At launch, for this session only
+claude --effort low -p "Update the README install steps to the current pnpm commands"
+
+# Standing aliases: separate the "chores" session from the "hard problem" session
+alias ccq='claude --model claude-fable-5-1 --effort low'
+alias ccd='claude --model claude-fable-5-1 --effort xhigh'
+
+# And force every subagent onto a cheaper model (FORCE added in v2.1.257)
+CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5-20251001 \
+CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1 claude</code></pre>
+
+  <div class="callout zh">
+    <b>怎么知道自己调对了</b>
+    <p>不要凭感觉。在 Claude Code 里用 <code>/cost</code> 看每会话的输出 token 与 prompt cache 明细(命中率、miss 次数、重新缓存的 token 数);在 API 侧把循环里每次请求的 <code>usage.output_tokens</code> 加起来。<b>判据是:降档之后输出 token 明显下降,而你在自己的评测集上没看到质量下降。</b>官方对所有降档建议都加了同一个前提——「只在你已经<b>测量到</b>低档位能保住质量之后才降」。</p>
+  </div>
+  <div class="callout en">
+    <b>How to know you tuned it right</b>
+    <p>Don't go by feel. In Claude Code, read <code>/cost</code> for per-session output tokens and the prompt-cache line (hit ratio, misses, tokens re-cached). On the API, sum <code>usage.output_tokens</code> across the loop. <b>The test is: output tokens drop visibly after stepping down, and your evals show no quality regression.</b> Every step-down recommendation in the docs carries the same precondition — step down only once you have <b>measured</b> that the lower level holds quality on your evals.</p>
+  </div>
+</section>
+
+<section id="pitfalls">
+  <h2 class="zh"><span class="num">07</span>常见坑清单</h2>
+  <h2 class="en"><span class="num">07</span>Pitfalls checklist</h2>
+
+  <div class="tbl"><table class="zh">
+    <thead><tr><th>症状</th><th>可能原因</th><th>怎么办</th></tr></thead>
+    <tbody>
+      <tr><td>长会话里缓存命中率突然崩掉</td><td>会话中途改了 effort 或 task_budget —— 两者都参与 prompt 渲染</td><td>在会话开始时定好并保持不变;把变化放在不同工作负载之间</td></tr>
+      <tr><td>设了 task_budget 之后出现莫名拒绝或提前收尾</td><td>预算相对任务明显偏小,模型选择不接或缩小范围</td><td><b>先调大预算</b>,再去 debug 其他参数;按实测 p99 定值,最小 20,000</td></tr>
+      <tr><td>xhigh / max 下回答被截断</td><td><code>max_tokens</code> 太小,thinking 就把额度吃完了</td><td>从 64k 起步设 <code>max_tokens</code>,再向下调</td></tr>
+      <tr><td>Opus 5 上 <code>thinking: disabled</code> 报 400</td><td>Opus 5 在 <code>xhigh</code> / <code>max</code> 下<b>不允许关闭 thinking</b></td><td>降到 <code>high</code> 及以下,或不要关 thinking</td></tr>
+      <tr><td>调低 effort 但回答还是很长</td><td>Opus 5 上 effort 控制的是<b>思考量</b>,不可靠地控制可见长度</td><td>用 prompt 明确要求长度,而不是靠 effort</td></tr>
+      <tr><td>复杂问题上推理明显变浅</td><td>Opus 4.7/4.8 在低档位下严格收敛工作范围</td><td><b>提高 effort</b>,而不是用 prompt 绕;必须保持低延迟时,加一句「这个任务涉及多步推理,回答前请仔细思考」</td></tr>
+      <tr><td>换新模型后成本/质量都变了样</td><td>把上一代的 effort 设置直接沿用了</td><td>在自己的评测集上<b>重新做一次 effort 扫描</b></td></tr>
+      <tr><td>倒计时掉得比预期快、模型早早收尾</td><td>重发完整历史的同时,客户端还在递减 <code>remaining</code></td><td>重发完整未压缩历史时<b>省略 <code>remaining</code></b>,让服务端算;只有做了 compaction 才传</td></tr>
+      <tr><td>Claude Code 里找不到 task_budget</td><td>Task budgets <b>不支持 Claude Code 与 Cowork</b></td><td>只能通过 Messages API 使用;Claude Code 侧用 effort + 上下文管理替代</td></tr>
+      <tr><td>gateway 会话里选不到 Fable 5.1</td><td>别名 <code>fable</code> / <code>best</code> 暂时仍解析到 Fable 5</td><td>在 <code>/model</code> 里显式选 Fable 5.1</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td>Cache hit rate collapses mid-session</td><td>effort or task_budget changed mid-conversation — both participate in the rendered prompt</td><td>Fix the value at session start and hold it; vary across workloads instead</td></tr>
+      <tr><td>Unexplained refusals or early stops after setting a task budget</td><td>The budget is clearly too small for the task, so the model declines or scopes down</td><td><b>Raise the budget first</b>, then debug other parameters; size from measured p99, minimum 20,000</td></tr>
+      <tr><td>Truncated answers at xhigh / max</td><td><code>max_tokens</code> too small — thinking consumes the allowance</td><td>Start <code>max_tokens</code> at 64k and tune down</td></tr>
+      <tr><td>400 error on Opus 5 with <code>thinking: disabled</code></td><td>Opus 5 <b>cannot disable thinking</b> at <code>xhigh</code> or <code>max</code></td><td>Drop to <code>high</code> or below, or leave thinking on</td></tr>
+      <tr><td>Lower effort but responses are still long</td><td>On Opus 5, effort controls <b>thinking volume</b>, not visible length</td><td>Prompt explicitly for length instead of relying on effort</td></tr>
+      <tr><td>Reasoning looks shallow on hard problems</td><td>Opus 4.7/4.8 scope work tightly at lower levels</td><td><b>Raise effort</b> rather than prompting around it; if latency forces low effort, add "This task involves multistep reasoning. Think carefully before responding."</td></tr>
+      <tr><td>Cost and quality both shifted after a model upgrade</td><td>Effort settings were carried over from the previous generation</td><td><b>Run a fresh effort sweep</b> on your own evals</td></tr>
+      <tr><td>Countdown drops faster than expected; model wraps up early</td><td>Client decrements <code>remaining</code> while also resending full history</td><td><b>Omit <code>remaining</code></b> when resending full uncompacted history; pass it only after compaction</td></tr>
+      <tr><td>Can't find task_budget in Claude Code</td><td>Task budgets are <b>not supported on Claude Code or Cowork</b></td><td>Use them via the Messages API; in Claude Code, rely on effort plus context management</td></tr>
+      <tr><td>Can't select Fable 5.1 in a gateway session</td><td>The aliases <code>fable</code> and <code>best</code> still resolve to Fable 5 for now</td><td>Pick Fable 5.1 explicitly in <code>/model</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="theory">
+  <h2 class="zh"><span class="num">08</span>学术背景:自适应推理算力分配</h2>
+  <h2 class="en"><span class="num">08</span>Research context: adaptive test-time compute</h2>
+
+  <p class="zh">厂商暴露 effort 这个旋钮,背后是一条已经比较成熟的研究线:<b>自适应 test-time compute 分配</b>。它的出发点是一个经验观察——<b>投入算力与准确率增益之间是凹函数关系</b>(边际收益递减)。既然如此,与其对所有请求均匀投入,不如把算力挪到边际收益最高的地方。</p>
+  <p class="en">The reason vendors expose an effort knob at all traces back to a fairly mature research line: <b>adaptive test-time compute allocation</b>. It starts from an empirical observation — <b>the relationship between added compute and marginal accuracy gain is concave</b> (diminishing returns). Given that, spending uniformly across all requests is wasteful; the win comes from reallocating compute to where marginal return is highest.</p>
+
+  <p class="zh">目前的主流做法大致分三类:</p>
+  <p class="en">Current approaches fall broadly into three families:</p>
+  <div class="cards">
+    <div class="card zh"><h4>难度感知路由</h4><p>用显式或代理的复杂度度量估计一个查询有多难,据此分配资源——这正是 <code>effort</code> 这类参数在产品层的对应物。</p></div>
+    <div class="card zh"><h4>验证器 / 奖励引导</h4><p>用 PRM 或外部 verifier 的信号,自适应地剪枝、扩展或停止推理轨迹。</p></div>
+    <div class="card zh"><h4>潜空间收敛与早退</h4><p>监测潜空间或输出空间的收敛情况,达到条件就提前停止,省下剩余算力。</p></div>
+    <div class="card en"><h4>Difficulty-aware routing</h4><p>Estimate query complexity with explicit or proxy measures and allocate resources accordingly — the research counterpart of a product-level <code>effort</code> parameter.</p></div>
+    <div class="card en"><h4>Verifier / reward-guided control</h4><p>Use PRM or external verifier signals to adaptively prune, expand, or halt reasoning trajectories.</p></div>
+    <div class="card en"><h4>Latent convergence and early exit</h4><p>Monitor convergence in latent or output space and stop early once the criterion is met, saving the remaining compute.</p></div>
+  </div>
+
+  <p class="zh">代表性工作如 <i>Adaptive Test-Time Compute Allocation for Reasoning LLMs via Constrained Policy Optimization</i>(arXiv:2604.14853)。另有独立测量指出:在 LLM API 上,<b>选一个运行时长两倍的模型,大致能把错误率降低同一个倍数</b>,且这个关系与初始运行时长无关——这为「用延迟换准确率」提供了一个粗略的定价直觉。⚠️ 后一条来自第三方分析(Epoch AI),不是厂商数据,引用前请回溯原文。</p>
+  <p class="en">A representative paper is <i>Adaptive Test-Time Compute Allocation for Reasoning LLMs via Constrained Policy Optimization</i> (arXiv:2604.14853). Separately, independent measurement suggests that across LLM APIs, <b>choosing a model with roughly 2× longer runtime cuts error by about the same factor</b>, largely independent of the initial runtime — a rough pricing intuition for trading latency against accuracy. ⚠️ That second finding comes from third-party analysis (Epoch AI), not vendor data; check the original before citing.</p>
+
+  <p class="zh">对工程实践的启示很直接:<b>推理算力应该被当作一类需要策略性分配的一等资源,而不是均匀花掉。</b>产品侧的 <code>effort</code> + <code>task_budget</code>,本质上就是把这条研究结论做成了两个可以直接调的参数——难度感知路由由你(或你的路由层)来做,自我调速由模型对着倒计时来做。</p>
+  <p class="en">The engineering takeaway is direct: <b>inference compute should be treated as a first-class resource allocated strategically, not spent uniformly.</b> Product-side, <code>effort</code> plus <code>task_budget</code> is essentially that research conclusion turned into two dials you can set — difficulty-aware routing is yours (or your router's) to do, while self-pacing is the model's, against the countdown.</p>
+</section>
+
+<section id="glossary">
+  <h2 class="zh"><span class="num">09</span>术语表</h2>
+  <h2 class="en"><span class="num">09</span>Glossary</h2>
+  <div class="tbl"><table class="zh">
+    <thead><tr><th>术语</th><th>解释</th></tr></thead>
+    <tbody>
+      <tr><td><b>effort</b>(努力档位)</td><td>请求级参数,位于 <code>output_config</code> 内,五档 low/medium/high/xhigh/max。控制 Claude 在这次回应上愿意花多少 token,作用于全部输出 token。</td></tr>
+      <tr><td><b>task budget</b>(任务预算)</td><td>Beta 参数,给整个 agentic loop 一个 token 总额。模型能看到服务端注入的倒计时,据此排优先级并收尾。软提示,非硬限。</td></tr>
+      <tr><td><b>agentic loop</b>(智能体循环)</td><td>模型「思考 → 调工具 → 读工具结果 → 再思考」的多轮往返,直到给出最终回答等待人类输入为止。</td></tr>
+      <tr><td><b>thinking</b>(思考块)</td><td>模型在正式回答前产出的推理内容。<code>thinking</code> 参数决定是否产出;<code>effort</code> 决定在 adaptive 模式下想多频繁、多深。</td></tr>
+      <tr><td><b>adaptive thinking</b>(自适应思考)</td><td>一种 thinking 模式,由模型自行决定何时思考、思考多少。<b>它是 thinking 的取值,不是 effort 的取值。</b></td></tr>
+      <tr><td><b>prompt caching</b>(提示缓存)</td><td>把已处理过的提示前缀缓存下来,后续请求命中即可按更低单价读取。Fable 5.1 上缓存读取为 $0.25/Mtok。</td></tr>
+      <tr><td><b>cache read</b>(缓存读取)</td><td>模型读取此前已处理并缓存的输入。上下文重的 agentic 负载里,它常常是账单的最大项。</td></tr>
+      <tr><td><b>compaction</b>(压缩)</td><td>在长对话中把早期轮次总结/重写以控制上下文长度。做了 compaction 之后需要用 <code>remaining</code> 手动续算任务预算。</td></tr>
+      <tr><td><b>max_tokens</b></td><td>单次请求生成 token 的<b>硬</b>上限(thinking + 正文合计),达到时 <code>stop_reason: "max_tokens"</code>。</td></tr>
+      <tr><td><b>PRM</b>(过程奖励模型)</td><td>Process Reward Model,对推理过程的中间步骤打分的模型,常用于引导轨迹剪枝或提前停止。</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tbl"><table class="en">
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><b>effort</b></td><td>Request-level parameter inside <code>output_config</code>, with five levels: low/medium/high/xhigh/max. Controls how many tokens Claude spends on this response; affects all output tokens.</td></tr>
+      <tr><td><b>task budget</b></td><td>Beta parameter giving the whole agentic loop a total token allowance. The model sees a server-injected countdown and uses it to prioritise and wrap up. Advisory, not enforced.</td></tr>
+      <tr><td><b>agentic loop</b></td><td>The multi-turn cycle of think → call tool → read result → think again, until the model produces a final answer and awaits human input.</td></tr>
+      <tr><td><b>thinking</b></td><td>Reasoning content the model produces before its answer. The <code>thinking</code> parameter decides whether blocks are produced; <code>effort</code> decides how often and how deeply in adaptive mode.</td></tr>
+      <tr><td><b>adaptive thinking</b></td><td>A thinking mode where the model decides when and how much to think. <b>It is a value of <code>thinking</code>, not of <code>effort</code>.</b></td></tr>
+      <tr><td><b>prompt caching</b></td><td>Caching an already-processed prompt prefix so later requests can read it at a lower price. Cache reads on Fable 5.1 cost $0.25/Mtok.</td></tr>
+      <tr><td><b>cache read</b></td><td>The model reading input it has already processed and stored. In context-heavy agentic workloads this is often the largest line on the bill.</td></tr>
+      <tr><td><b>compaction</b></td><td>Summarising or rewriting earlier turns of a long conversation to control context length. After compaction you must carry the task budget forward manually via <code>remaining</code>.</td></tr>
+      <tr><td><b>max_tokens</b></td><td>The <b>hard</b> per-request ceiling on generated tokens (thinking plus response text); hitting it yields <code>stop_reason: "max_tokens"</code>.</td></tr>
+      <tr><td><b>PRM</b></td><td>Process Reward Model — a model that scores intermediate reasoning steps, often used to guide trajectory pruning or early stopping.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="sources">
+  <h2 class="zh"><span class="num">10</span>来源</h2>
+  <h2 class="en"><span class="num">10</span>Sources</h2>
+  <ol class="srclist zh">
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/effort">Effort — Claude Platform Docs</a> · 档位定义、各模型建议、与 thinking 和缓存的交互、最佳实践(本文第 2、3、5 节的主要依据)</li>
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/task-budgets">Task budgets — Claude Platform Docs</a> · 倒计时机制、三轮 worked example、最小值 20,000、支持矩阵(第 4 节)</li>
+    <li><a href="https://www.anthropic.com/claude-fable-and-mythos-5-1">Introducing Claude Fable 5.1 and Claude Mythos 5.1 — Anthropic, 2026-09-01</a> · 缓存读取降价 75%、指数化成本图、各 effort 档位的成绩-成本曲线、基准表</li>
+    <li><a href="https://code.claude.com/docs/en/changelog">Claude Code changelog</a> · v2.1.257 的 <code>/effort</code> 会话级覆盖、<code>--effort</code> 语义变更、Fable 5.1 默认模型、gateway 别名说明</li>
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/thinking">Extended thinking — Claude Platform Docs</a> · thinking 与 effort 的分工、adaptive 模式</li>
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Prompt caching — Claude Platform Docs</a> · 缓存前缀失效机制</li>
+    <li><a href="https://arxiv.org/abs/2604.14853">Adaptive Test-Time Compute Allocation for Reasoning LLMs via Constrained Policy Optimization</a> · arXiv:2604.14853(第 8 节)</li>
+    <li><a href="https://epoch.ai/data-insights/llm-apis-accuracy-runtime-tradeoff">LLM providers offer a trade-off between accuracy and speed — Epoch AI</a> · ⚠️ 第三方分析,非厂商数据</li>
+    <li><a href="https://cs329a.stanford.edu/">Stanford CS329A: Self-Improving AI Agents</a> · test-time compute scaling 的课程背景</li>
+  </ol>
+  <ol class="srclist en">
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/effort">Effort — Claude Platform Docs</a> · Level definitions, per-model guidance, interaction with thinking and caching, best practices (primary basis for sections 2, 3, and 5)</li>
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/task-budgets">Task budgets — Claude Platform Docs</a> · Countdown mechanics, the three-turn worked example, the 20,000 minimum, support matrix (section 4)</li>
+    <li><a href="https://www.anthropic.com/claude-fable-and-mythos-5-1">Introducing Claude Fable 5.1 and Claude Mythos 5.1 — Anthropic, 2026-09-01</a> · The 75% cache-read price cut, indexed cost chart, score-vs-cost curves per effort level, benchmark table</li>
+    <li><a href="https://code.claude.com/docs/en/changelog">Claude Code changelog</a> · v2.1.257 session-only <code>/effort</code>, the <code>--effort</code> semantics change, Fable 5.1 as default model, gateway alias note</li>
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/thinking">Extended thinking — Claude Platform Docs</a> · How thinking and effort divide the work; adaptive mode</li>
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Prompt caching — Claude Platform Docs</a> · How cache prefixes are invalidated</li>
+    <li><a href="https://arxiv.org/abs/2604.14853">Adaptive Test-Time Compute Allocation for Reasoning LLMs via Constrained Policy Optimization</a> · arXiv:2604.14853 (section 8)</li>
+    <li><a href="https://epoch.ai/data-insights/llm-apis-accuracy-runtime-tradeoff">LLM providers offer a trade-off between accuracy and speed — Epoch AI</a> · ⚠️ Third-party analysis, not vendor data</li>
+    <li><a href="https://cs329a.stanford.edu/">Stanford CS329A: Self-Improving AI Agents</a> · Course background on test-time compute scaling</li>
+  </ol>
+</section>
+<footer>
+  <p class="zh">本文档由每日 AI 情报自动任务于 2026-09-02 生成,内容基于当日可检索的官方文档与公开发布。所有事实性陈述均在「来源」一节标注出处;涉及基准分数与价格的数字随版本变动,引用前请回溯原始页面核对。本文不构成投资建议。</p>
+  <p class="en">Generated on 2026-09-02 by a daily AI-intelligence task, from official documentation and public announcements retrievable that day. Every factual claim is attributed in the Sources section; benchmark numbers and prices change between releases, so verify against the original pages before citing. Nothing here is investment advice.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+  var body=document.body, btn=document.getElementById('lang'), htmlEl=document.documentElement;
+  function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+
+  var saved=load('adl-lang');
+  var init = saved || ((navigator.language||'en').toLowerCase().indexOf('zh')===0 ? 'zh' : 'en');
+  apply(init);
+
+  function apply(l){
+    body.setAttribute('data-lang', l);
+    htmlEl.setAttribute('lang', l==='zh' ? 'zh-CN' : 'en');
+    btn.textContent = (l==='zh') ? 'EN' : '中';
+    refreshFigures();
+  }
+  btn.addEventListener('click', function(){
+    var next = body.getAttribute('data-lang')==='zh' ? 'en' : 'zh';
+    store('adl-lang', next); apply(next);
+  });
+
+  var io=null;
+  if('IntersectionObserver' in window){
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.12});
+  }
+  function refreshFigures(){
+    var figs=document.querySelectorAll('figure:not(.in)');
+    for(var i=0;i<figs.length;i++){
+      var f=figs[i];
+      if(f.offsetParent===null) continue;           // hidden by language switch
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight && r.bottom > 0){ f.classList.add('in'); }
+      else if(io){ io.observe(f); }
+    }
+  }
+  refreshFigures();
+  window.addEventListener('load', refreshFigures);
+
+  var prog=document.getElementById('prog');
+  window.addEventListener('scroll', function(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+    prog.style.width = (max>0 ? (h.scrollTop||document.body.scrollTop)/max*100 : 0) + '%';
+  }, {passive:true});
+})();
+</script>
+</body>
+</html>
