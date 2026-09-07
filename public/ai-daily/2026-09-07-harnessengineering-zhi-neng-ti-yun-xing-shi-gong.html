@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harness Engineering:智能体运行时工程 | Harness Engineering: The Agent Runtime Discipline</title>
+<style>
+:root{
+  --paper:#f6f4f0; --paper-2:#efece6; --surface:#fffdfa; --ink:#1f1c19; --ink-2:#453f39;
+  --muted:#7d746a; --line:#ded7cc; --line-2:#c9c0b2;
+  --accent:#b5451d; --accent-soft:#fbeee7; --accent-deep:#7d2c0d;
+  --teal:#1f6f6b; --teal-soft:#e6f2f1; --amber:#a87a10; --amber-soft:#faf1da;
+  --code-bg:#f1ede6; --radius:12px;
+  --shadow:0 1px 2px rgba(31,28,25,.05), 0 8px 26px rgba(31,28,25,.07);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.82;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Georgia,serif;
+  -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Georgia,"Times New Roman",serif}
+
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:60;transition:width .1s linear}
+
+/* hero: grid + big type, no gradient wash */
+header.hero{position:relative;overflow:hidden;background:var(--paper-2);border-bottom:1px solid var(--line-2)}
+header.hero::before{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:34px 34px;opacity:.55;mask-image:linear-gradient(180deg,#000 0%,transparent 88%)}
+.hin{position:relative;max-width:860px;margin:0 auto;padding:64px 24px 46px}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 14px}
+h1{font-size:clamp(27px,5.4vw,44px);line-height:1.22;margin:0 0 14px;font-weight:800;letter-spacing:-.02em}
+h1 .hl{background:linear-gradient(transparent 62%,var(--accent-soft) 62%);padding:0 2px}
+.lede{font-size:clamp(16px,2.4vw,19px);color:var(--ink-2);margin:0 0 20px;max-width:64ch}
+.meta{font-family:var(--mono);font-size:12.5px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line-2);padding-top:16px}
+
+#langbtn{position:fixed;top:14px;right:16px;z-index:70;border:1.5px solid var(--line-2);background:var(--surface);
+  color:var(--ink);border-radius:99px;padding:7px 15px;font-size:13px;font-weight:750;cursor:pointer;
+  font-family:var(--mono);letter-spacing:.04em;box-shadow:var(--shadow)}
+#langbtn:hover{border-color:var(--accent);color:var(--accent)}
+
+.layout{max-width:1180px;margin:0 auto;display:flex;gap:34px;padding:0 24px}
+nav.toc{position:sticky;top:56px;align-self:flex-start;width:224px;flex:0 0 224px;max-height:calc(100vh - 80px);
+  overflow-y:auto;padding:20px 0 40px;font-size:13.5px;line-height:1.6}
+nav.toc .tt{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:5px 10px;border-left:2px solid var(--line);margin-bottom:1px}
+nav.toc a:hover{color:var(--accent);background:var(--accent-soft)}
+nav.toc a.on{color:var(--accent-deep);border-left-color:var(--accent);background:var(--accent-soft);font-weight:700}
+#tocbtn{display:none}
+
+main{flex:1;min-width:0;padding:34px 0 80px;max-width:760px}
+section{margin-bottom:52px;scroll-margin-top:70px}
+h2{font-size:clamp(21px,3.4vw,27px);margin:0 0 6px;font-weight:800;letter-spacing:-.015em;line-height:1.3}
+h2::before{content:attr(data-n);font-family:var(--mono);font-size:12px;color:var(--accent);display:block;
+  letter-spacing:.14em;font-weight:700;margin-bottom:6px}
+h3{font-size:19px;margin:30px 0 8px;font-weight:750;color:var(--ink)}
+h4{font-size:16.5px;margin:22px 0 6px;font-weight:750;color:var(--ink-2)}
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px;padding-left:1.35em}
+li{margin-bottom:7px}
+a{color:var(--accent-deep)}
+strong{font-weight:750}
+code{font-family:var(--mono);font-size:.87em;background:var(--code-bg);padding:1.5px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{background:var(--code-bg);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;
+  padding:13px 16px;overflow-x:auto;font-size:13.5px;line-height:1.62;margin:14px 0}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.def{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:18px 0;box-shadow:var(--shadow)}
+.def .dt{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:7px}
+.def p:last-child{margin-bottom:0}
+
+.callout{border-radius:var(--radius);padding:15px 18px;margin:18px 0;border:1px solid var(--line);border-left-width:4px}
+.callout p:last-child{margin-bottom:0}
+.callout .ct{font-weight:750;margin-bottom:5px;font-size:15px}
+.key{background:var(--accent-soft);border-left-color:var(--accent)}
+.key .ct{color:var(--accent-deep)}
+.warn{background:var(--amber-soft);border-left-color:var(--amber)}
+.warn .ct{color:#7a5807}
+.quote{background:var(--teal-soft);border-left-color:var(--teal);font-style:italic}
+.quote .ct{color:var(--teal);font-style:normal}
+
+.steps{counter-reset:st;margin:18px 0;padding:0;list-style:none}
+.steps li{counter-increment:st;position:relative;padding-left:40px;margin-bottom:14px}
+.steps li::before{content:counter(st);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;
+  background:var(--accent);color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow)}
+.stat .n{font-family:var(--mono);font-size:25px;font-weight:800;color:var(--accent);line-height:1.15;letter-spacing:-.02em}
+.stat .l{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.5}
+
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14.5px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--paper-2);font-weight:750;font-size:13px;letter-spacing:.02em}
+tr:last-child td{border-bottom:none}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+.glossary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:6px 20px;margin:20px 0;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:750;margin-top:14px;color:var(--accent-deep);font-size:15.5px}
+.glossary dd{margin:3px 0 14px;color:var(--ink-2);font-size:15px}
+
+.analogy{background:var(--teal-soft);border:1px dashed var(--teal);border-radius:var(--radius);padding:16px 19px;margin:18px 0}
+.analogy .at{font-weight:750;color:var(--teal);margin-bottom:5px;font-size:15px}
+.analogy p:last-child{margin-bottom:0}
+
+.figure{margin:26px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 18px 14px;box-shadow:var(--shadow);opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13px;color:var(--muted);margin-top:11px;text-align:center;line-height:1.6;border-top:1px solid var(--line);padding-top:9px}
+.figure [data-draw]{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600);transition:stroke-dashoffset 1.1s ease .2s}
+.figure.in [data-draw]{stroke-dashoffset:0}
+.figure [data-anim]{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease}
+.figure.in [data-anim]{opacity:1;transform:none}
+.figure.in [data-anim="2"]{transition-delay:.18s}
+.figure.in [data-anim="3"]{transition-delay:.34s}
+.figure.in [data-anim="4"]{transition-delay:.5s}
+.figure.in [data-anim="5"]{transition-delay:.66s}
+.figure.in [data-anim="6"]{transition-delay:.82s}
+@media(prefers-reduced-motion:reduce){
+  .figure,.figure [data-anim],.figure [data-draw]{opacity:1!important;transform:none!important;
+    stroke-dashoffset:0!important;transition:none!important}
+}
+
+.srcnote{font-size:13px;color:var(--muted);border-left:2px solid var(--line-2);padding-left:11px;margin:14px 0}
+.srcnote a{color:var(--accent-deep)}
+
+footer{border-top:1px solid var(--line-2);background:var(--paper-2);margin-top:40px}
+.fin{max-width:860px;margin:0 auto;padding:34px 24px 60px;font-size:14px;color:var(--ink-2)}
+.fin h3{margin-top:0}
+.fin ol{padding-left:1.3em}
+.fin li{margin-bottom:9px;font-size:13.5px;line-height:1.6}
+.disc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 17px;margin:18px 0;font-size:13.5px;color:var(--muted)}
+
+@media(max-width:900px){
+  nav.toc{position:fixed;top:0;left:0;width:min(280px,84vw);height:100vh;background:var(--surface);
+    z-index:65;transform:translateX(-102%);transition:transform .28s ease;padding:64px 12px 40px;
+    box-shadow:6px 0 26px rgba(31,28,25,.13);max-height:none;flex-basis:auto}
+  nav.toc.open{transform:none}
+  #tocbtn{display:block;position:fixed;top:14px;left:16px;z-index:70;border:1.5px solid var(--line-2);
+    background:var(--surface);color:var(--ink);border-radius:99px;padding:7px 13px;font-size:15px;cursor:pointer;box-shadow:var(--shadow)}
+  .layout{padding:0 18px;gap:0}
+  main{padding-top:26px}
+  .hin{padding:70px 20px 38px}
+  body{font-size:16px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="☰ EN 深度学习 · 2026-09-07 Deep Dive · 2026-09-07 一个 agent = 一个模型 + 一个 harness An agent = a model + a harness 2026…">
+<meta property="og:title" content="Harness Engineering:智能体运行时工程 | Harness Engineering: The Agent Runtime Discipline">
+<meta property="og:description" content="☰ EN 深度学习 · 2026-09-07 Deep Dive · 2026-09-07 一个 agent = 一个模型 + 一个 harness An agent = a model + a harness 2026…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-09-07-harnessengineering-zhi-neng-ti-yun-xing-shi-gong.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-09-07-harnessengineering-zhi-neng-ti-yun-xing-shi-gong.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Harness Engineering:智能体运行时工程 | Harness Engineering: The Agent Runtime Discipline", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-09-07-harnessengineering-zhi-neng-ti-yun-xing-shi-gong.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-07", "dateModified": "2026-09-07"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button id="tocbtn" aria-label="目录 / Contents">☰</button>
+<button id="langbtn" aria-label="切换语言 / Switch language">EN</button>
+
+<header class="hero"><div class="hin">
+  <p class="kicker zh">深度学习 · 2026-09-07</p>
+  <p class="kicker en">Deep Dive · 2026-09-07</p>
+  <h1 class="zh">一个 agent = 一个模型 + 一个 <span class="hl">harness</span></h1>
+  <h1 class="en">An agent = a model + a <span class="hl">harness</span></h1>
+  <p class="lede zh">2026 年上半年,「harness engineering」从一句行话变成了一门有实证底座的学科。这份文档把三条线索缝在一起:11 个生产级编码 harness 的源码解剖、Anthropic 三篇工程实录里的成本表与失败模式、以及一条最容易被忽略的原则——harness 里的每个组件都编码了一条关于「模型自己做不到什么」的假设,而这些假设会过期。</p>
+  <p class="lede en">In the first half of 2026, "harness engineering" went from jargon to a discipline with an empirical foundation. This document stitches together three threads: a source-code anatomy of eleven production coding harnesses, the cost tables and failure modes from three Anthropic engineering write-ups, and the principle that is easiest to overlook — every component in a harness encodes an assumption about what the model can't do on its own, and those assumptions go stale.</p>
+  <div class="meta zh"><span>调研时间:2026-09-07</span><span>主要来源:arXiv 2 篇 · Anthropic Engineering 3 篇 · 官方文档</span><span>阅读约 25 分钟</span></div>
+  <div class="meta en"><span>Researched: 2026-09-07</span><span>Sources: 2 arXiv papers · 3 Anthropic Engineering posts · official docs</span><span>~25 min read</span></div>
+</div></header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <div class="tt zh">目录</div>
+  <div class="tt en">Contents</div>
+  <a href="#s-tldr"><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></a>
+  <a href="#s-what"><span class="zh">1 · Harness 是什么</span><span class="en">1 · What a harness is</span></a>
+  <a href="#s-why"><span class="zh">2 · 为什么需要它:四种失败</span><span class="en">2 · Why: four failure modes</span></a>
+  <a href="#s-anatomy"><span class="zh">3 · 解剖:七个子系统</span><span class="en">3 · Anatomy: seven subsystems</span></a>
+  <a href="#s-arch"><span class="zh">4 · 三 agent 架构与冲刺契约</span><span class="en">4 · Three agents &amp; sprint contracts</span></a>
+  <a href="#s-boundary"><span class="zh">5 · 什么时候该把脚手架拆掉</span><span class="en">5 · When to remove scaffolding</span></a>
+  <a href="#s-meta"><span class="zh">6 · Meta-harness:解耦脑与手</span><span class="en">6 · Meta-harness: brain vs hands</span></a>
+  <a href="#s-findings"><span class="zh">7 · 11 系统审计的横切发现</span><span class="en">7 · Cross-cutting findings</span></a>
+  <a href="#s-howto"><span class="zh">8 · 怎么用:自建检查清单</span><span class="en">8 · How to use it</span></a>
+  <a href="#s-compare"><span class="zh">9 · 对比与选型</span><span class="en">9 · Comparison &amp; selection</span></a>
+  <a href="#s-pitfalls"><span class="zh">10 · 常见坑与限制</span><span class="en">10 · Pitfalls &amp; limits</span></a>
+  <a href="#s-glossary"><span class="zh">术语表</span><span class="en">Glossary</span></a>
+  <a href="#s-sources"><span class="zh">来源清单</span><span class="en">Sources</span></a>
+</nav>
+
+<main>
+
+<section id="s-tldr">
+  <h2 data-n="TL;DR"><span class="zh">30 秒速览</span><span class="en">The 30-second version</span></h2>
+
+  <div class="def">
+    <div class="dt zh">一句话</div>
+    <div class="dt en">In one sentence</div>
+    <p class="zh"><strong>Harness(直译「挽具」)是把一个语言模型接到真实世界的那层运行时</strong>——它负责循环调用模型、把模型说的「我要用这个工具」变成真的执行、管理上下文、加安全闸门、编排多个 agent、并提供扩展点。模型是发动机,harness 是传动系统与仪表盘。</p>
+    <p class="en"><strong>A harness is the runtime that couples a language model to the world</strong> — it runs the loop that calls the model, turns "I want to use this tool" into an actual execution, manages context, enforces safety controls, orchestrates multiple agents, and exposes extension surfaces. The model is the engine; the harness is the drivetrain and the dashboard.</p>
+  </div>
+
+  <p class="zh">2026 年 9 月 1–2 日,arXiv 上同期出现两篇把 harness 当作独立工程对象研究的论文,其中一篇对 <strong>11 个生产级编码 harness</strong> 做了源码级解剖(约 400 万行代码)。它的核心论断是:<strong>「2026 年上半年,编码 harness 完成了从工具到平台的转身。」</strong></p>
+  <p class="en">On 1–2 September 2026, two papers treating the harness as an engineering object in its own right appeared on arXiv within a day of each other. One of them performs a source-code anatomy of <strong>eleven production coding harnesses</strong> (roughly four million lines). Its thesis: <strong>"in the first half of 2026 the coding harness completed a turn from tool to platform."</strong></p>
+
+  <div class="stats">
+    <div class="stat"><div class="n">11</div><div class="l zh">被源码级解剖的生产 harness(Claude Code、Codex CLI、Gemini CLI、Aider…)</div><div class="l en">production harnesses dissected at source level (Claude Code, Codex CLI, Gemini CLI, Aider…)</div></div>
+    <div class="stat"><div class="n">0</div><div class="l zh">其中引入通用 agent 框架的数量;也是用向量嵌入检索代码的数量</div><div class="l en">of them import a general-purpose agent framework; also zero retrieve code with vector embeddings</div></div>
+    <div class="stat"><div class="n">9 : 8</div><div class="l zh">SKILL.md 形态 skills 的采用数 vs MCP 的采用数</div><div class="l en">adoption of SKILL.md-style skills vs MCP</div></div>
+    <div class="stat"><div class="n">~60%</div><div class="l zh">把 harness 从容器里解耦后,p50 首 token 时间的下降幅度</div><div class="l en">drop in p50 time-to-first-token after decoupling the harness from the container</div></div>
+  </div>
+
+  <p class="zh"><strong>这份文档要回答五个问题:</strong>harness 到底是什么、它在补模型的哪些短板、它由哪些子系统构成、什么时候该往里加东西又什么时候该拆、以及如果你自己在搭一个(哪怕只是一套 Claude Code 的 skills + hooks + CLAUDE.md),该照着什么清单检查。</p>
+  <p class="en"><strong>Five questions this document answers:</strong> what a harness actually is, which model weaknesses it compensates for, which subsystems it decomposes into, when to add components and when to strip them out, and — if you are building one yourself, even just a set of Claude Code skills, hooks and a CLAUDE.md — what checklist to work through.</p>
+
+  <div class="disc zh"><strong>关于本文的证据强度:</strong>文中标注「〔论文自报〕」的数字来自单篇预印本、尚无第三方复现;标注「〔Anthropic 实测〕」的来自官方工程博客的自述实验,同样是单一来源。定义与横切观察有多来源交叉;具体基准分数请当作方向性参考,不要当作定论。</div>
+  <div class="disc en"><strong>On evidence strength:</strong> figures marked "[paper-reported]" come from a single preprint with no third-party replication. Figures marked "[Anthropic-measured]" come from self-reported experiments on the official engineering blog — also a single source. Definitions and cross-cutting observations are corroborated across sources; treat specific benchmark numbers as directional, not settled.</div>
+</section>
+
+<section id="s-what">
+  <h2 data-n="01"><span class="zh">Harness 是什么</span><span class="en">What a harness is</span></h2>
+
+  <p class="zh">先讲一个大部分人已经有的直觉,再给正式定义。</p>
+  <p class="en">Start with an intuition most people already have, then get to the formal definition.</p>
+
+  <p class="zh">你在网页上和一个模型对话,它只能说话。你在 Claude Code 里和同一个模型对话,它能读文件、跑测试、开 PR、连着干两小时。<strong>模型是同一个,差别全在外面那一层。</strong>那一层就是 harness。</p>
+  <p class="en">Talk to a model in a web chat box and all it can do is talk. Talk to the same model inside Claude Code and it reads files, runs tests, opens PRs, and works for two hours straight. <strong>The model is identical; the entire difference is the layer around it.</strong> That layer is the harness.</p>
+
+  <div class="analogy">
+    <div class="at zh">类比:马和挽具</div>
+    <div class="at en">Analogy: the horse and the harness</div>
+    <p class="zh">Harness 这个词的本义是「挽具」——套在马身上、把马的力气传到车上的那套皮带和杆子。马再强,没有挽具也拉不动车;挽具设计得差,马的力气会浪费在打滑和别劲上。但反过来也成立:<strong>如果你的挽具是为一匹瘦马设计的,换上一匹强壮的马之后,那些额外的支撑杆就成了纯粹的重量。</strong>这句话是整篇文档的主线,后面会反复出现。</p>
+    <p class="en">"Harness" originally means the straps and rigging that transfer a horse's power to a cart. No matter how strong the horse, without a harness it pulls nothing; with a badly designed one, its power is wasted on slippage and strain. But the converse holds too: <strong>if your harness was designed for a weak horse, then once you hitch up a strong one, those extra support struts are pure dead weight.</strong> That sentence is the spine of this document and will recur.</p>
+  </div>
+
+  <div class="def">
+    <div class="dt zh">正式定义(来自 arXiv:2609.00006)</div>
+    <div class="dt en">Formal definition (from arXiv:2609.00006)</div>
+    <p class="zh">「一个 agent 是一个模型加一个 harness —— 那个通过<strong>循环、工具、上下文管理、安全控制、编排、扩展面</strong>把 LLM 耦合到世界上的运行时。Harness engineering,这个在 2026 年初被命名的学科,就是该运行时的设计与演化。」</p>
+    <p class="en">"An agent is a model plus a harness — the runtime that couples an LLM to the world through a <strong>loop, tools, context management, safety controls, orchestration, and extension surfaces</strong>. Harness engineering, named as a discipline in early 2026, is the design and evolution of that runtime."</p>
+  </div>
+
+  <div class="figure" id="f1">
+    <div class="zh">
+    <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="模型加 harness 构成 agent 的输入输出图">
+      <defs>
+        <marker id="ar1" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+          <polygon points="0 0, 9 3.5, 0 7" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect x="14" y="66" width="126" height="106" rx="10" fill="var(--paper-2)" stroke="var(--line-2)" stroke-width="1.5" data-anim="1"/>
+      <text x="77" y="112" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)" data-anim="1">语言模型</text>
+      <text x="77" y="134" text-anchor="middle" font-size="12" fill="var(--muted)" data-anim="1">只会输出文本</text>
+
+      <rect x="182" y="26" width="336" height="192" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8" data-anim="2"/>
+      <text x="350" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-deep)" letter-spacing="1.5" data-anim="2">H A R N E S S</text>
+      <g data-anim="3" font-size="12" fill="var(--ink-2)">
+        <rect x="198" y="62" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="271" y="82" text-anchor="middle">① 循环 loop</text>
+        <rect x="356" y="62" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="429" y="82" text-anchor="middle">② 工具 tools</text>
+        <rect x="198" y="100" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="271" y="120" text-anchor="middle">③ 上下文管理</text>
+        <rect x="356" y="100" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="429" y="120" text-anchor="middle">④ 安全控制</text>
+        <rect x="198" y="138" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="271" y="158" text-anchor="middle">⑤ 编排 orchestration</text>
+        <rect x="356" y="138" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="429" y="158" text-anchor="middle">⑥ 扩展面</text>
+      </g>
+      <rect x="560" y="66" width="126" height="106" rx="10" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5" data-anim="4"/>
+      <text x="623" y="106" text-anchor="middle" font-size="15" font-weight="700" fill="var(--teal)" data-anim="4">真实世界</text>
+      <text x="623" y="126" text-anchor="middle" font-size="12" fill="var(--muted)" data-anim="4">文件 · 终端</text>
+      <text x="623" y="144" text-anchor="middle" font-size="12" fill="var(--muted)" data-anim="4">网络 · 数据库</text>
+
+      <path d="M144 119 L176 119" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw style="--len:40"/>
+      <path d="M522 119 L554 119" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar1)" data-draw style="--len:40"/>
+      <path d="M623 178 Q623 236 350 236 Q77 236 77 178" stroke="var(--teal)" stroke-width="1.6" fill="none" stroke-dasharray="5 4" data-anim="5"/>
+      <text x="350" y="232" text-anchor="middle" font-size="11.5" fill="var(--teal)" data-anim="5">执行结果回流,进入下一轮循环</text>
+    </svg>
+    <p class="fig-cap">图 1 · 模型只输出文本;harness 的六类职责把文本变成对世界的动作,并把结果送回下一轮。子系统划分依据 arXiv:2609.00006。</p>
+    </div>
+    <div class="en">
+    <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Model plus harness forms an agent: input-output diagram">
+      <defs>
+        <marker id="ar1-e" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+          <polygon points="0 0, 9 3.5, 0 7" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect x="14" y="66" width="126" height="106" rx="10" fill="var(--paper-2)" stroke="var(--line-2)" stroke-width="1.5" data-anim="1"/>
+      <text x="77" y="112" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" data-anim="1">The model</text>
+      <text x="77" y="134" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="1">emits text only</text>
+
+      <rect x="182" y="26" width="336" height="192" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8" data-anim="2"/>
+      <text x="350" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-deep)" letter-spacing="1.5" data-anim="2">H A R N E S S</text>
+      <g data-anim="3" font-size="11.5" fill="var(--ink-2)">
+        <rect x="198" y="62" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="271" y="82" text-anchor="middle">1. Loop</text>
+        <rect x="356" y="62" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="429" y="82" text-anchor="middle">2. Tools</text>
+        <rect x="198" y="100" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="271" y="120" text-anchor="middle">3. Context mgmt</text>
+        <rect x="356" y="100" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="429" y="120" text-anchor="middle">4. Safety controls</text>
+        <rect x="198" y="138" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="271" y="158" text-anchor="middle">5. Orchestration</text>
+        <rect x="356" y="138" width="146" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="429" y="158" text-anchor="middle">6. Extension surfaces</text>
+      </g>
+      <rect x="560" y="66" width="126" height="106" rx="10" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5" data-anim="4"/>
+      <text x="623" y="106" text-anchor="middle" font-size="14" font-weight="700" fill="var(--teal)" data-anim="4">The world</text>
+      <text x="623" y="126" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="4">files · shell</text>
+      <text x="623" y="144" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="4">network · DBs</text>
+
+      <path d="M144 119 L176 119" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar1-e)" data-draw style="--len:40"/>
+      <path d="M522 119 L554 119" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar1-e)" data-draw style="--len:40"/>
+      <path d="M623 178 Q623 236 350 236 Q77 236 77 178" stroke="var(--teal)" stroke-width="1.6" fill="none" stroke-dasharray="5 4" data-anim="5"/>
+      <text x="350" y="232" text-anchor="middle" font-size="11" fill="var(--teal)" data-anim="5">results flow back into the next turn of the loop</text>
+    </svg>
+    <p class="fig-cap">Fig. 1 · The model only emits text; the harness's six responsibilities turn that text into actions on the world and feed results back. Subsystem breakdown per arXiv:2609.00006.</p>
+    </div>
+  </div>
+
+  <h3 class="zh">为什么现在才把它当成一门学科</h3>
+  <h3 class="en">Why it only now counts as a discipline</h3>
+  <p class="zh">因为直到最近,harness 都被当成「胶水代码」——写它的人各写各的,没有共享词汇,更没有可比较的设计空间。这两篇论文做的事就是给这个空间画地图:<strong>定义子系统边界、为每个子系统标出「最小实现」和「最大实现」两个端点、然后把 11 个真实系统摆进这个坐标系里对照。</strong>有了坐标系,「我们要不要做 X」才第一次变成一个可以论证的问题,而不是各凭手感。</p>
+  <p class="en">Because until recently the harness was treated as glue code — everyone wrote their own, with no shared vocabulary and no comparable design space. What these papers do is map that space: <strong>define subsystem boundaries, mark a minimal and a maximal implementation for each, then place eleven real systems into that coordinate system side by side.</strong> With a coordinate system, "should we build X?" becomes an arguable question for the first time rather than a matter of taste.</p>
+</section>
+
+<section id="s-why">
+  <h2 data-n="02"><span class="zh">为什么需要它:四种失败</span><span class="en">Why you need one: four failure modes</span></h2>
+
+  <p class="zh">Harness 不是为了好看而加的。它的每一个组件都是从一次具体的失败里长出来的。Anthropic 在 2025 年 11 月的《Effective harnesses for long-running agents》里,把长时程编码 agent 的失败归纳成四条,并给出了每条对应的解法——这张表是理解 harness 设计动机最快的入口。</p>
+  <p class="en">A harness isn't decoration. Every component grew out of a specific failure. In "Effective harnesses for long-running agents" (Nov 2025), Anthropic reduced the failure modes of long-running coding agents to four, each with a corresponding fix. This table is the fastest way in to the design motivation.</p>
+
+  <div class="tw"><table class="zh">
+    <thead><tr><th style="width:26%">失败模式</th><th style="width:34%">初始化 agent 该做什么</th><th style="width:40%">编码 agent 该做什么</th></tr></thead>
+    <tbody>
+      <tr><td>Claude 过早宣布「整个项目做完了」</td><td>建一个 feature list 文件:把输入 spec 展开成结构化 JSON 的端到端功能清单</td><td>会话开头先读 feature list,只挑<strong>一个</strong>功能开工</td></tr>
+      <tr><td>Claude 留下带 bug 或没记录的环境</td><td>初始化 git 仓库 + 一个 progress notes 文件</td><td>开头读 progress 文件与 git log,并对开发服务器跑一次基本测试抓出未记录的 bug;结尾写 commit 和 progress 更新</td></tr>
+      <tr><td>Claude 过早把功能标记为完成</td><td>建 feature list 文件</td><td>自验证所有功能,只有仔细测过才能标 "passing"</td></tr>
+      <tr><td>Claude 要花时间摸索怎么把应用跑起来</td><td>写一个能启动开发服务器的 <code>init.sh</code></td><td>会话开头先读 <code>init.sh</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table class="en">
+    <thead><tr><th style="width:26%">Failure mode</th><th style="width:34%">Initializer agent behavior</th><th style="width:40%">Coding agent behavior</th></tr></thead>
+    <tbody>
+      <tr><td>Claude declares victory on the entire project too early</td><td>Set up a feature list file: expand the input spec into a structured JSON list of end-to-end feature descriptions</td><td>Read the feature list at the start of a session. Choose a <strong>single</strong> feature to work on</td></tr>
+      <tr><td>Claude leaves the environment buggy or undocumented</td><td>Write an initial git repo and a progress notes file</td><td>Start by reading the progress file and git log, and run a basic test against the dev server to catch undocumented bugs; end by writing a commit and a progress update</td></tr>
+      <tr><td>Claude marks features as done prematurely</td><td>Set up a feature list file</td><td>Self-verify all features. Only mark them "passing" after careful testing</td></tr>
+      <tr><td>Claude spends time figuring out how to run the app</td><td>Write an <code>init.sh</code> that can start the dev server</td><td>Start the session by reading <code>init.sh</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="srcnote zh">来源:<a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">Effective harnesses for long-running agents</a>,Anthropic Engineering,2025-11-26。表格为原文表格的中译。</p>
+  <p class="srcnote en">Source: <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">Effective harnesses for long-running agents</a>, Anthropic Engineering, 2025-11-26. Table reproduced from the original.</p>
+
+  <h3 class="zh">一个特别值得记住的失败:上下文焦虑</h3>
+  <h3 class="en">One failure worth memorising: context anxiety</h3>
+
+  <div class="def">
+    <div class="dt zh">Context anxiety(上下文焦虑)</div>
+    <div class="dt en">Context anxiety</div>
+    <p class="zh">模型在<strong>自认为</strong>快要用完上下文窗口时,会开始草草收尾——不是真的用完了,而是它觉得快用完了,于是提前进入「总结陈词」模式。Anthropic 明确报告:<strong>Claude Sonnet 4.5 的上下文焦虑强到单靠 compaction(压缩)不足以支撑长任务表现。</strong></p>
+    <p class="en">A model starts wrapping up prematurely when it <em>believes</em> it is approaching the context limit — not because it has actually run out, but because it thinks it is about to, and shifts into closing-remarks mode. Anthropic reports this plainly: <strong>Claude Sonnet 4.5's context anxiety was strong enough that compaction alone was insufficient for long-task performance.</strong></p>
+  </div>
+
+  <p class="zh">这引出一个很多人分不清的区别:<strong>compaction(压缩)和 context reset(上下文重置)不是一回事。</strong></p>
+  <p class="en">This introduces a distinction many people blur: <strong>compaction and context reset are not the same thing.</strong></p>
+
+  <ul class="zh">
+    <li><strong>Compaction</strong>:就地把早期对话总结掉,<strong>同一个 agent</strong> 在缩短后的历史上继续跑。保留了连续性,但没有干净的白板——<em>所以上下文焦虑依然存在</em>。</li>
+    <li><strong>Context reset</strong>:彻底清空上下文窗口,起一个<strong>全新的 agent</strong>,靠一份结构化的 handoff(交接件)把状态和下一步传过去。给出了干净白板,代价是 handoff 必须包含足够的状态让下一个 agent 无缝接手。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Compaction</strong>: summarise the early conversation in place; the <strong>same agent</strong> continues on a shortened history. Continuity is preserved, but there's no clean slate — <em>so context anxiety persists</em>.</li>
+    <li><strong>Context reset</strong>: clear the context window entirely and start a <strong>fresh agent</strong>, carrying state and next steps across in a structured handoff. This gives a clean slate, at the cost of the handoff artifact having to contain enough state for the next agent to pick up seamlessly.</li>
+  </ul>
+
+  <div class="callout key">
+    <div class="ct zh">这条为什么重要,远超它本身</div>
+    <div class="ct en">Why this matters far beyond itself</div>
+    <p class="zh">Anthropic 后来把同一个 harness 用在 <strong>Opus 4.5</strong> 上,发现这个行为消失了。原文的措辞很不客气:<strong>「The resets had become dead weight.」(那些重置变成了死重量。)</strong>——你为一个模型缺陷做的补丁,在下一代模型上会变成纯粹的复杂度、token 开销和延迟。第 5 章整章在讲这件事怎么系统化处理。</p>
+    <p class="en">Anthropic later ran the same harness on <strong>Opus 4.5</strong> and found the behaviour had disappeared. The wording in the original is blunt: <strong>"The resets had become dead weight."</strong> A patch you built for one model's deficiency becomes pure complexity, token overhead and latency on the next generation. Section 5 is entirely about how to handle this systematically.</p>
+  </div>
+
+  <h3 class="zh">第五种失败:自评失效</h3>
+  <h3 class="en">A fifth failure: self-evaluation collapses</h3>
+  <p class="zh">还有一条不在上表里、但同样致命:<strong>让 agent 评价自己的产出时,它们倾向于自信地夸奖自己</strong>,即使人类一眼就看出质量平庸。在<strong>主观任务</strong>(比如界面设计——没有二元的可验证测试)上尤其严重。</p>
+  <p class="en">One more, not in the table above but equally lethal: <strong>when agents evaluate their own work, they tend to praise it confidently</strong>, even when a human immediately sees mediocre quality. This is worst on <strong>subjective tasks</strong> such as interface design, where there is no binary verifiable test.</p>
+  <p class="zh">解法是把「做事的 agent」和「评判的 agent」分开。但 Anthropic 给了一句很重要的限定,别跳过:<strong>分离本身不会立刻消除宽松</strong>——evaluator 仍然是 LLM,天然偏袒 LLM 生成的产物。真正的收益在于,<em>把一个独立的 evaluator 调教得挑剔,远比让 generator 批判自己的作品可行</em>;一旦外部反馈存在,generator 就有了具体的迭代靶子。</p>
+  <p class="en">The fix is to split the agent that does the work from the agent that judges it. But Anthropic adds an important qualifier — don't skip it: <strong>separation does not by itself eliminate leniency</strong>. The evaluator is still an LLM and is naturally biased toward LLM-generated artifacts. The real gain is that <em>tuning a separate evaluator to be skeptical is far more tractable than getting a generator to critique its own work</em>; once external feedback exists, the generator has a concrete target to iterate against.</p>
+
+  <div class="callout warn">
+    <div class="ct zh">今天(2026-09-04)刚好有论文从理论侧呼应这一点</div>
+    <div class="ct en">A paper from this week echoes this from the theory side</div>
+    <p class="zh">《The Illusion of Independent Quorums》(arXiv:2609.02925)直指多 agent 投票背后那条从未验证的假设——<strong>参与投票的 agent 之间失效是独立的</strong>。同日的《Inferred Generative-Process Diversity Predicts Correlated Failure Across Language Models》(arXiv:2609.03422)给出了可度量的量。共享训练语料、共享偏好训练、共享 prompt 骨架的模型,错的时候大概率<strong>一起错</strong>——投票只会把错误放大成共识。所以「多加一个 evaluator」不等于「多了一层独立保险」。</p>
+    <p class="en">"The Illusion of Independent Quorums" (arXiv:2609.02925) targets the never-validated assumption behind multi-agent voting: <strong>that failures across the voting agents are independent</strong>. The same day, "Inferred Generative-Process Diversity Predicts Correlated Failure Across Language Models" (arXiv:2609.03422) offers a measurable quantity for it. Models that share training corpora, share preference tuning and share prompt scaffolding tend to be wrong <strong>together</strong> — voting then amplifies error into consensus. So "add another evaluator" is not the same as "add an independent layer of insurance".</p>
+  </div>
+</section>
+
+<section id="s-anatomy">
+  <h2 data-n="03"><span class="zh">解剖:七个子系统</span><span class="en">Anatomy: seven subsystems</span></h2>
+
+  <p class="zh">论文对 11 个系统的解剖是按<strong>七个标准子系统</strong>切的,并且为每个子系统同时标出「最小实现」和「最大实现」两个端点。这个「最小—最大」的呈现方式比一张特性清单有用得多——它直接告诉你,<em>不做这件事最少能省到什么程度,做到极致又是什么样</em>,你的取舍落在中间哪个位置就一目了然。</p>
+  <p class="en">The eleven-system anatomy is cut along <strong>seven canonical subsystems</strong>, and for each subsystem the paper marks both a minimal and a maximal implementation. This min–max framing is far more useful than a feature list: it tells you directly <em>how little you can get away with, and what the ceiling looks like</em>, so you can see where your own trade-off sits.</p>
+
+  <div class="figure" id="f2">
+    <div class="zh">
+    <svg viewBox="0 0 700 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harness 子系统分层图">
+      <text x="350" y="22" text-anchor="middle" font-size="12" fill="var(--muted)" letter-spacing="1.2" data-anim="1">从最贴近模型,到最贴近外部世界</text>
+      <g data-anim="1">
+        <rect x="60" y="36" width="580" height="42" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6"/>
+        <text x="80" y="55" font-size="14" font-weight="750" fill="var(--accent-deep)">① 循环 / Loop</text>
+        <text x="80" y="71" font-size="11.5" fill="var(--ink-2)">最小:while 循环调 API;最大:带重试、预算、中断、并发的调度器 —— 全部手写,无框架</text>
+      </g>
+      <g data-anim="2">
+        <rect x="60" y="84" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="103" font-size="14" font-weight="750" fill="var(--ink)">② 上下文管理 / Context</text>
+        <text x="80" y="119" font-size="11.5" fill="var(--ink-2)">最小:什么都不做,塞满为止;最大:压缩 + 裁剪 + 重置 + 外部 session log + 缓存前缀编排</text>
+      </g>
+      <g data-anim="3">
+        <rect x="60" y="132" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="151" font-size="14" font-weight="750" fill="var(--ink)">③ 工具 / Tools</text>
+        <text x="80" y="167" font-size="11.5" fill="var(--ink-2)">最小:一个 bash 工具;最大:分层工具集 + 渐进式发现 + 确定性检索(注:11 系统无一用向量嵌入)</text>
+      </g>
+      <g data-anim="4">
+        <rect x="60" y="180" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="199" font-size="14" font-weight="750" fill="var(--ink)">④ 安全控制 / Safety</text>
+        <text x="80" y="215" font-size="11.5" fill="var(--ink-2)">最小:每次问用户;最大:规则引擎 + 沙箱 + 凭据隔离 + 网络白名单 + 爆炸半径上限</text>
+      </g>
+      <g data-anim="5">
+        <rect x="60" y="228" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="247" font-size="14" font-weight="750" fill="var(--ink)">⑤ 编排 / Orchestration</text>
+        <text x="80" y="263" font-size="11.5" fill="var(--ink-2)">最小:单 agent;最大:planner / generator / evaluator 分工、subagent、agent 团队、工作流</text>
+      </g>
+      <g data-anim="6">
+        <rect x="60" y="276" width="580" height="42" rx="8" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.6"/>
+        <text x="80" y="295" font-size="14" font-weight="750" fill="var(--teal)">⑥ 扩展面 / Extension surfaces</text>
+        <text x="80" y="311" font-size="11.5" fill="var(--ink-2)">SKILL.md skills(9/11)· MCP(8/11)· ACP(6/11,新出现第三种角色:harness 托管 harness)</text>
+      </g>
+      <path d="M40 40 L40 314" stroke="var(--accent)" stroke-width="2" fill="none" data-draw style="--len:280"/>
+      <text x="26" y="60" font-size="10.5" fill="var(--muted)" transform="rotate(-90 26 60)">贴近模型</text>
+      <text x="26" y="300" font-size="10.5" fill="var(--muted)" transform="rotate(-90 26 300)">贴近世界</text>
+    </svg>
+    <p class="fig-cap">图 2 · 六类职责的「最小实现—最大实现」跨度。第七个子系统是横切的:可观测性与状态持久化。划分与采用率数字依据 arXiv:2609.00006。</p>
+    </div>
+    <div class="en">
+    <svg viewBox="0 0 700 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harness subsystem layer diagram">
+      <text x="350" y="22" text-anchor="middle" font-size="11.5" fill="var(--muted)" letter-spacing="1" data-anim="1">from closest to the model, to closest to the outside world</text>
+      <g data-anim="1">
+        <rect x="60" y="36" width="580" height="42" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6"/>
+        <text x="80" y="55" font-size="13.5" font-weight="750" fill="var(--accent-deep)">1. Loop</text>
+        <text x="80" y="71" font-size="11" fill="var(--ink-2)">min: a while loop around the API — max: a scheduler with retries, budgets, interrupts, concurrency. All hand-rolled.</text>
+      </g>
+      <g data-anim="2">
+        <rect x="60" y="84" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="103" font-size="13.5" font-weight="750" fill="var(--ink)">2. Context management</text>
+        <text x="80" y="119" font-size="11" fill="var(--ink-2)">min: nothing, fill until full — max: compaction + trimming + resets + external session log + cache-prefix shaping</text>
+      </g>
+      <g data-anim="3">
+        <rect x="60" y="132" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="151" font-size="13.5" font-weight="750" fill="var(--ink)">3. Tools</text>
+        <text x="80" y="167" font-size="11" fill="var(--ink-2)">min: one bash tool — max: tiered toolsets + progressive discovery + deterministic retrieval (no vector search anywhere)</text>
+      </g>
+      <g data-anim="4">
+        <rect x="60" y="180" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="199" font-size="13.5" font-weight="750" fill="var(--ink)">4. Safety controls</text>
+        <text x="80" y="215" font-size="11" fill="var(--ink-2)">min: ask the user every time — max: rule engine + sandbox + credential isolation + network allowlist + blast-radius caps</text>
+      </g>
+      <g data-anim="5">
+        <rect x="60" y="228" width="580" height="42" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.4"/>
+        <text x="80" y="247" font-size="13.5" font-weight="750" fill="var(--ink)">5. Orchestration</text>
+        <text x="80" y="263" font-size="11" fill="var(--ink-2)">min: a single agent — max: planner / generator / evaluator roles, subagents, agent teams, workflows</text>
+      </g>
+      <g data-anim="6">
+        <rect x="60" y="276" width="580" height="42" rx="8" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.6"/>
+        <text x="80" y="295" font-size="13.5" font-weight="750" fill="var(--teal)">6. Extension surfaces</text>
+        <text x="80" y="311" font-size="11" fill="var(--ink-2)">SKILL.md skills (9/11) · MCP (8/11) · ACP (6/11, with a new third role: harness hosting)</text>
+      </g>
+      <path d="M40 40 L40 314" stroke="var(--accent)" stroke-width="2" fill="none" data-draw style="--len:280"/>
+      <text x="26" y="72" font-size="10" fill="var(--muted)" transform="rotate(-90 26 72)">near model</text>
+      <text x="26" y="304" font-size="10" fill="var(--muted)" transform="rotate(-90 26 304)">near world</text>
+    </svg>
+    <p class="fig-cap">Fig. 2 · The min–max span of the six responsibilities. The seventh subsystem is cross-cutting: observability and state persistence. Breakdown and adoption figures per arXiv:2609.00006.</p>
+    </div>
+  </div>
+
+  <div class="callout key">
+    <div class="ct zh">两个「缺席」,是这篇论文最反直觉的发现</div>
+    <div class="ct en">Two absences — the paper's most counter-intuitive finding</div>
+    <p class="zh">在约 <strong>400 万行</strong> Python、TypeScript 和 Rust 代码里,论文报告了两个经受住了语料三倍扩张的「缺席」:</p>
+    <p class="en">Across roughly <strong>four million lines</strong> of Python, TypeScript and Rust, the paper reports two absences that survived a threefold expansion of the corpus:</p>
+    <ol class="zh">
+      <li><strong>没有任何一个 agent 运行时引入通用 agent 框架。</strong>全都跑在手写的 async 循环上。</li>
+      <li><strong>没有任何一个用向量嵌入检索代码。</strong>全都用确定性检索(grep、glob、AST、语言服务器一类)。</li>
+    </ol>
+    <ol class="en">
+      <li><strong>No agent runtime imports a general-purpose agentic framework.</strong> They all run on hand-rolled async loops.</li>
+      <li><strong>None retrieves code with vector embeddings.</strong> They all use deterministic retrieval — grep, glob, AST, language servers and the like.</li>
+    </ol>
+    <p class="zh">如果你正在纠结「要不要上 LangGraph / 要不要给代码库做向量索引」,这条经验数据值得放在秤上:<em>目前没有一个进入生产的编码 agent 是这么做的。</em>这不构成「不该做」的证明,但它至少说明,这两条路在这个具体场景下没有被从业者验证为必需。</p>
+    <p class="en">If you are weighing "should we adopt LangGraph / should we build a vector index over the codebase", this empirical datum belongs on the scale: <em>no coding agent that reached production does either.</em> That isn't proof you shouldn't — but it does mean neither path has been validated as necessary by practitioners in this specific setting.</p>
+  </div>
+
+  <h3 class="zh">纵向观察:一个季度里发生了什么</h3>
+  <h3 class="en">The longitudinal view: what changed in one quarter</h3>
+  <p class="zh">这篇论文有个不常见的设计:它是四月那份八系统研究的扩充版,而原来那八个系统是<strong>重新固定版本(re-pinned)而不是替换掉</strong>的——于是它顺带包含了一个受控纵向样本:同一批 harness,隔一个季度做源码 diff。两条结论:</p>
+  <p class="en">The study has an unusual design: it is an expanded edition of an April eight-system study, and the original eight were <strong>re-pinned rather than replaced</strong> — which incidentally gives it a controlled longitudinal sample: the same harnesses, source-diffed across one quarter. Two findings:</p>
+  <ul class="zh">
+    <li><strong>趋同正在变成模仿</strong>(convergence becoming imitation)。设计不再是各自独立收敛到相似解,而是开始直接抄。</li>
+    <li><strong>行为策略正从 prompt 散文迁移到配置</strong>。以前写在 system prompt 里的一大段「你应该……」,正在变成结构化的配置文件条目。这对使用者是好消息:<em>配置能进 git、能 diff、能 review、能在 CI 里引用同一份;prompt 散文做不到。</em></li>
+  </ul>
+  <ul class="en">
+    <li><strong>Convergence becoming imitation.</strong> Designs no longer converge independently on similar solutions; they are increasingly copied outright.</li>
+    <li><strong>Behavioral policy migrating from prompt prose to configuration.</strong> Long "you should…" passages that used to live in the system prompt are becoming structured config entries. This is good news for users: <em>config goes into git, diffs, gets reviewed, and can be referenced by the same file in CI. Prompt prose can do none of that.</em></li>
+  </ul>
+</section>
+<section id="s-arch">
+  <h2 data-n="04"><span class="zh">三 agent 架构与冲刺契约</span><span class="en">Three agents and the sprint contract</span></h2>
+
+  <p class="zh">上面讲的是「有哪些零件」。这一章讲一个具体的、被真实跑过并记了账的组装方式。Anthropic 2026 年 3 月的《Harness design for long-running application development》记录了一次从 <strong>generator + evaluator</strong> 到 <strong>planner + generator + evaluator</strong> 的演化,目标是让 agent 无人干预地跑几个小时,产出完整全栈应用。</p>
+  <p class="en">The previous section covered what the parts are. This one covers one specific assembly that was actually run and accounted for. Anthropic's March 2026 post "Harness design for long-running application development" documents an evolution from <strong>generator + evaluator</strong> to <strong>planner + generator + evaluator</strong>, aimed at letting an agent run unattended for hours and produce a complete full-stack application.</p>
+
+  <p class="zh">灵感来源说得很直白:<strong>GAN(生成对抗网络)</strong>——一个负责生成、一个负责挑刺,互相推着走。</p>
+  <p class="en">The stated inspiration is blunt: <strong>GANs (generative adversarial networks)</strong> — one side generates, the other picks holes, and they push each other forward.</p>
+
+  <div class="figure" id="f3">
+    <div class="zh">
+    <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="planner generator evaluator 三 agent 循环图">
+      <defs>
+        <marker id="ar3" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+          <polygon points="0 0, 9 3.5, 0 7" fill="var(--accent)"/>
+        </marker>
+        <marker id="ar3b" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+          <polygon points="0 0, 9 3.5, 0 7" fill="var(--teal)"/>
+        </marker>
+      </defs>
+      <rect x="16" y="118" width="122" height="66" rx="9" fill="var(--paper-2)" stroke="var(--line-2)" stroke-width="1.5" data-anim="1"/>
+      <text x="77" y="146" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" data-anim="1">一句话 prompt</text>
+      <text x="77" y="165" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="1">1–4 句</text>
+
+      <rect x="176" y="118" width="122" height="66" rx="9" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1.6" data-anim="2"/>
+      <text x="237" y="142" text-anchor="middle" font-size="14" font-weight="750" fill="#7a5807" data-anim="2">Planner</text>
+      <text x="237" y="161" text-anchor="middle" font-size="11" fill="var(--ink-2)" data-anim="2">展开成完整 spec</text>
+      <text x="237" y="176" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="2">只定「交付什么」</text>
+
+      <rect x="356" y="42" width="140" height="70" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.7" data-anim="3"/>
+      <text x="426" y="68" text-anchor="middle" font-size="14" font-weight="750" fill="var(--accent-deep)" data-anim="3">Generator</text>
+      <text x="426" y="87" text-anchor="middle" font-size="11" fill="var(--ink-2)" data-anim="3">一次只做一个功能</text>
+      <text x="426" y="102" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="3">git 提交 + 自评</text>
+
+      <rect x="356" y="190" width="140" height="70" rx="9" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.7" data-anim="4"/>
+      <text x="426" y="216" text-anchor="middle" font-size="14" font-weight="750" fill="var(--teal)" data-anim="4">Evaluator</text>
+      <text x="426" y="235" text-anchor="middle" font-size="11" fill="var(--ink-2)" data-anim="4">Playwright 真点一遍</text>
+      <text x="426" y="250" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="4">四条标准 + 硬阈值</text>
+
+      <rect x="536" y="118" width="148" height="66" rx="9" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.5" stroke-dasharray="4 3" data-anim="5"/>
+      <text x="610" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" data-anim="5">Sprint contract</text>
+      <text x="610" y="160" text-anchor="middle" font-size="11" fill="var(--ink-2)" data-anim="5">动手前先谈好</text>
+      <text x="610" y="175" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="5">「done 长什么样」</text>
+
+      <path d="M142 151 L170 151" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw style="--len:36"/>
+      <path d="M302 140 Q330 100 350 82" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw style="--len:80"/>
+      <path d="M426 116 L426 186" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3)" data-draw style="--len:74"/>
+      <path d="M356 225 Q300 225 300 151 Q300 105 350 84" stroke="var(--teal)" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#ar3b)" data-anim="6"/>
+      <text x="286" y="200" text-anchor="middle" font-size="11" fill="var(--teal)" data-anim="6">失败反馈</text>
+      <path d="M500 77 Q560 77 560 114" stroke="var(--line-2)" stroke-width="1.5" fill="none" stroke-dasharray="3 3" data-anim="6"/>
+      <path d="M500 225 Q560 225 560 188" stroke="var(--line-2)" stroke-width="1.5" fill="none" stroke-dasharray="3 3" data-anim="6"/>
+      <text x="350" y="288" text-anchor="middle" font-size="11.5" fill="var(--muted)" data-anim="6">两个 agent 之间的通信全部通过文件:一个写文件,另一个读并在文件里回应</text>
+    </svg>
+    <p class="fig-cap">图 3 · planner / generator / evaluator 三角,以及每个 sprint 开工前的契约谈判。依据 Anthropic《Harness design for long-running application development》(2026-03-24)。</p>
+    </div>
+    <div class="en">
+    <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Planner generator evaluator three-agent loop">
+      <defs>
+        <marker id="ar3-e" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+          <polygon points="0 0, 9 3.5, 0 7" fill="var(--accent)"/>
+        </marker>
+        <marker id="ar3b-e" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+          <polygon points="0 0, 9 3.5, 0 7" fill="var(--teal)"/>
+        </marker>
+      </defs>
+      <rect x="16" y="118" width="122" height="66" rx="9" fill="var(--paper-2)" stroke="var(--line-2)" stroke-width="1.5" data-anim="1"/>
+      <text x="77" y="146" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ink)" data-anim="1">One-line prompt</text>
+      <text x="77" y="165" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="1">1–4 sentences</text>
+
+      <rect x="176" y="118" width="122" height="66" rx="9" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1.6" data-anim="2"/>
+      <text x="237" y="142" text-anchor="middle" font-size="14" font-weight="750" fill="#7a5807" data-anim="2">Planner</text>
+      <text x="237" y="161" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="2">expands to full spec</text>
+      <text x="237" y="176" text-anchor="middle" font-size="10.5" fill="var(--muted)" data-anim="2">constrains WHAT only</text>
+
+      <rect x="356" y="42" width="140" height="70" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.7" data-anim="3"/>
+      <text x="426" y="68" text-anchor="middle" font-size="14" font-weight="750" fill="var(--accent-deep)" data-anim="3">Generator</text>
+      <text x="426" y="87" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="3">one feature at a time</text>
+      <text x="426" y="102" text-anchor="middle" font-size="10.5" fill="var(--muted)" data-anim="3">git commits + self-review</text>
+
+      <rect x="356" y="190" width="140" height="70" rx="9" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.7" data-anim="4"/>
+      <text x="426" y="216" text-anchor="middle" font-size="14" font-weight="750" fill="var(--teal)" data-anim="4">Evaluator</text>
+      <text x="426" y="235" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="4">clicks through via Playwright</text>
+      <text x="426" y="250" text-anchor="middle" font-size="10.5" fill="var(--muted)" data-anim="4">4 criteria + hard thresholds</text>
+
+      <rect x="536" y="118" width="148" height="66" rx="9" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.5" stroke-dasharray="4 3" data-anim="5"/>
+      <text x="610" y="142" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ink)" data-anim="5">Sprint contract</text>
+      <text x="610" y="160" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="5">negotiated before code</text>
+      <text x="610" y="175" text-anchor="middle" font-size="10.5" fill="var(--muted)" data-anim="5">"what does done look like"</text>
+
+      <path d="M142 151 L170 151" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3-e)" data-draw style="--len:36"/>
+      <path d="M302 140 Q330 100 350 82" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3-e)" data-draw style="--len:80"/>
+      <path d="M426 116 L426 186" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#ar3-e)" data-draw style="--len:74"/>
+      <path d="M356 225 Q300 225 300 151 Q300 105 350 84" stroke="var(--teal)" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#ar3b-e)" data-anim="6"/>
+      <text x="286" y="200" text-anchor="middle" font-size="10.5" fill="var(--teal)" data-anim="6">failure feedback</text>
+      <path d="M500 77 Q560 77 560 114" stroke="var(--line-2)" stroke-width="1.5" fill="none" stroke-dasharray="3 3" data-anim="6"/>
+      <path d="M500 225 Q560 225 560 188" stroke="var(--line-2)" stroke-width="1.5" fill="none" stroke-dasharray="3 3" data-anim="6"/>
+      <text x="350" y="288" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="6">all inter-agent communication happens through files: one writes, the other reads and replies in place</text>
+    </svg>
+    <p class="fig-cap">Fig. 3 · The planner / generator / evaluator triangle, plus the contract negotiated before each sprint. Per Anthropic, "Harness design for long-running application development" (2026-03-24).</p>
+    </div>
+  </div>
+
+  <h3 class="zh">Planner:只约束「交付什么」,不指定「怎么做」</h3>
+  <h3 class="en">Planner: constrain WHAT, never HOW</h3>
+  <p class="zh">Planner 接收 1–4 句话的 prompt,把它展开成完整产品 spec,并被明确要求<strong>对范围有野心</strong>。但关键在于一条限制:planner 被指示<strong>聚焦产品语境和高层技术设计,而不是细粒度技术实现</strong>。</p>
+  <p class="en">The planner takes a 1–4 sentence prompt and expands it into a full product spec, and is explicitly told to be <strong>ambitious about scope</strong>. But the key is a restriction: the planner is instructed to focus on <strong>product context and high-level technical design, not fine-grained technical implementation</strong>.</p>
+  <div class="callout key">
+    <div class="ct zh">失败机理(值得抄进自己的 prompt)</div>
+    <div class="ct en">The failure mechanism (worth copying into your own prompts)</div>
+    <p class="zh">如果 planner 预先指定细粒度技术细节<strong>并且弄错了</strong>,spec 里的错误会<strong>级联</strong>进下游所有实现。更聪明的做法是:<strong>约束 agent 要交付什么,让它们在过程中自己找路径。</strong></p>
+    <p class="en">If the planner specifies fine-grained technical details up front <strong>and gets them wrong</strong>, that error <strong>cascades</strong> into every downstream implementation. The smarter move: <strong>constrain what the agents must deliver, and let them find the path themselves.</strong></p>
+  </div>
+
+  <h3 class="zh">Evaluator:开箱即用的 Claude 是个糟糕的 QA</h3>
+  <h3 class="en">Evaluator: out of the box, Claude is a poor QA agent</h3>
+  <p class="zh">这是原文里最直白的一句自我批评:<strong>「Out of the box, Claude is a poor QA agent.」</strong>作者眼看着它<em>识别出真实问题,然后说服自己这些问题不算大事,照样批准了工作</em>;它还倾向于表面化测试而不去探边界情况。</p>
+  <p class="en">The bluntest self-criticism in the piece: <strong>"Out of the box, Claude is a poor QA agent."</strong> The author watched it <em>identify real problems, then talk itself into deciding they weren't a big deal and approve the work anyway</em>. It also tended to test superficially rather than probe edge cases.</p>
+  <p class="zh">调教方法很朴素,但要跑好几轮:<strong>读 evaluator 的日志 → 找出它的判断与人的判断分歧的例子 → 更新 QA prompt 解决这些具体分歧。</strong>这不是一次性的 prompt 工程,是一个开发循环。</p>
+  <p class="en">The tuning method is unglamorous but requires several rounds: <strong>read the evaluator's logs → find cases where its judgement diverged from yours → update the QA prompt to address those specific divergences.</strong> This isn't one-shot prompt engineering; it's a development loop.</p>
+
+  <p class="zh">调教到位之后,evaluator 报出的问题长这样(原文表格节选):</p>
+  <p class="en">Once tuned, the issues it reports look like this (excerpted from the original table):</p>
+  <div class="tw"><table class="zh">
+    <thead><tr><th style="width:40%">契约条款</th><th>Evaluator 的发现</th></tr></thead>
+    <tbody>
+      <tr><td>矩形填充工具支持拖拽填充选中区域</td><td><strong>FAIL</strong> —— 工具只在拖拽起点/终点放了 tile,没有填充区域。<code>fillRectangle</code> 函数存在,但 mouseUp 时没被正确触发。</td></tr>
+      <tr><td>用户可以选中并删除已放置的 entity 生成点</td><td><strong>FAIL</strong> —— <code>LevelEditor.tsx:892</code> 的 Delete 键处理要求 <code>selection</code> 和 <code>selectedEntityId</code> 同时被设置,但点击 entity 只会设置后者。条件应改为 <code>selection || (selectedEntityId &amp;&amp; activeLayer === 'entity')</code>。</td></tr>
+      <tr><td>用户可通过 API 重排动画帧</td><td><strong>FAIL</strong> —— <code>PUT /frames/reorder</code> 路由定义在 <code>/{frame_id}</code> 之后,FastAPI 把 <code>reorder</code> 当成整型 frame_id 去匹配,返回 <strong>422</strong>:"unable to parse string as an integer"。</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table class="en">
+    <thead><tr><th style="width:40%">Contract criterion</th><th>Evaluator finding</th></tr></thead>
+    <tbody>
+      <tr><td>Rectangle fill tool allows click-drag to fill a rectangular area with selected tile</td><td><strong>FAIL</strong> — Tool only places tiles at drag start/end points instead of filling the region. <code>fillRectangle</code> function exists but isn't triggered properly on mouseUp.</td></tr>
+      <tr><td>User can select and delete placed entity spawn points</td><td><strong>FAIL</strong> — Delete key handler at <code>LevelEditor.tsx:892</code> requires both <code>selection</code> and <code>selectedEntityId</code> to be set, but clicking an entity only sets <code>selectedEntityId</code>. Condition should be <code>selection || (selectedEntityId &amp;&amp; activeLayer === 'entity')</code>.</td></tr>
+      <tr><td>User can reorder animation frames via API</td><td><strong>FAIL</strong> — <code>PUT /frames/reorder</code> route defined after <code>/{frame_id}</code> routes. FastAPI matches <code>reorder</code> as a frame_id integer and returns <strong>422</strong>: "unable to parse string as an integer."</td></tr>
+    </tbody>
+  </table></div>
+  <p class="zh">注意这三条的共同点:<strong>它们都是「代码存在、但接线断了」类型的 bug</strong>——静态读代码或跑单元测试很难发现,只有真的点一遍才暴露。这也是为什么 evaluator 必须配浏览器自动化工具(原文用的是 Playwright MCP),而不是只看 diff。</p>
+  <p class="en">Note what these three share: <strong>they are all "the code exists but the wiring is broken" bugs</strong> — hard to catch by reading code or running unit tests, and exposed only by actually clicking through. That is why the evaluator needs browser automation (Playwright MCP in the original) rather than just a diff.</p>
+
+  <h3 class="zh">Sprint contract:动手前先谈好「done 长什么样」</h3>
+  <h3 class="en">The sprint contract: agree on "done" before writing code</h3>
+  <div class="def">
+    <div class="dt zh">机制</div>
+    <div class="dt en">Mechanism</div>
+    <p class="zh">每个 sprint 开始<strong>之前</strong>,generator 提出「我要建什么、成功如何验证」,evaluator 审阅并确认它在建<strong>正确的东西</strong>,两者迭代到达成一致——<strong>然后才写第一行代码</strong>。存在的理由是:产品 spec 被刻意保持在高层,需要一个步骤来桥接「用户故事」和「可测试的实现」之间的鸿沟。原文里 Sprint 3 一个 sprint 就有 <strong>27 条 criteria</strong>。</p>
+    <p class="en">Before each sprint begins, the generator proposes what it will build and how success will be verified; the evaluator reviews the proposal to confirm the generator is building <strong>the right thing</strong>; the two iterate until they agree — <strong>and only then is the first line of code written</strong>. The rationale: the product spec is deliberately kept high-level, so a step is needed to bridge the gap between user stories and testable implementation. In the original, Sprint 3 alone carried <strong>27 criteria</strong>.</p>
+  </div>
+  <p class="zh">对个人开发者的可移植版本很简单:<strong>让 Claude 在动手前先把「这次改完之后,我怎么向你证明它好了」写下来,你确认,再开工。</strong>这就是一个人的 sprint contract。</p>
+  <p class="en">The portable version for a solo developer is simple: <strong>have Claude write down "here is how I will prove to you this is done" before it starts, confirm it, then let it go.</strong> That is a one-person sprint contract.</p>
+
+  <h3 class="zh">账单:harness 贵 20 倍以上,但差别是「能不能用」</h3>
+  <h3 class="en">The bill: 20× more expensive, but the difference is "does it work at all"</h3>
+  <p class="zh">同一句 prompt(「做一个 2D 复古游戏制作器,含关卡编辑器、精灵编辑器、实体行为、可试玩模式」),模型都是 Claude Opus 4.5:</p>
+  <p class="en">The same prompt ("Create a 2D retro game maker with features including a level editor, sprite editor, entity behaviors, and a playable test mode"), same model, Claude Opus 4.5:</p>
+  <div class="tw"><table class="zh">
+    <thead><tr><th>配置</th><th>耗时</th><th>成本</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td>单 agent(solo)</td><td>20 分钟</td><td>$9</td><td>布局浪费空间;工作流僵硬;<strong>游戏是坏的</strong>——entity 出现在屏幕上但对输入无响应,实体定义与运行时之间的接线断了,而界面上没有任何提示</td></tr>
+      <tr><td>完整 harness</td><td>6 小时</td><td>$200</td><td>planner 把一句话展开成横跨 <strong>10 个 sprint 的 16 功能 spec</strong>;含精灵动画系统、行为模板、音效音乐、AI 辅助生成器、带分享链接的导出;<strong>试玩模式真的能玩</strong></td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table class="en">
+    <thead><tr><th>Setup</th><th>Duration</th><th>Cost</th><th>Outcome</th></tr></thead>
+    <tbody>
+      <tr><td>Solo agent</td><td>20 min</td><td>$9</td><td>Wasted layout space; rigid workflow; <strong>the game was broken</strong> — entities appeared on screen but didn't respond to input; the wiring between entity definitions and the game runtime was severed, with nothing in the UI to indicate it</td></tr>
+      <tr><td>Full harness</td><td>6 hr</td><td>$200</td><td>The planner expanded one sentence into a <strong>16-feature spec across 10 sprints</strong>; sprite animation system, behavior templates, sound and music, AI-assisted generators, export with shareable links; <strong>play mode actually plays</strong></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout quote">
+    <div class="ct zh">值得注意的诚实</div>
+    <div class="ct en">A notable piece of honesty</div>
+    <p class="zh">原文也记下了 harness 没解决的问题:工作流仍然没说清「要先建精灵和实体再填关卡」;物理有毛边(角色跳上平台后与平台重叠);AI 生成的关卡里有一堵跳不过去的墙导致卡死。作者把第一条判为<strong>基础模型产品直觉的欠缺,而不是 harness 该解决的问题</strong>——这个归因判断本身就是 harness 设计的核心技能:分清哪些是模型的问题,哪些是你的脚手架的问题。</p>
+    <p class="en">The post also records what the harness didn't fix: the workflow still failed to communicate that you build sprites and entities before filling in a level; physics had rough edges (a character overlapping a platform after jumping onto it); an AI-generated level contained an unjumpable wall that softlocked the game. The author attributes the first to <strong>a gap in the base model's product intuition, not something harness design should solve</strong> — and that attribution judgement is itself the core skill of harness design: telling apart what is the model's problem from what is your scaffolding's problem.</p>
+  </div>
+</section>
+
+<section id="s-boundary">
+  <h2 data-n="05"><span class="zh">什么时候该把脚手架拆掉</span><span class="en">When to remove the scaffolding</span></h2>
+
+  <p class="zh">这是整个学科最重要、也最容易被跳过的一章。</p>
+  <p class="en">This is the most important section of the discipline, and the easiest to skip.</p>
+
+  <div class="callout key">
+    <div class="ct zh">核心原则(原文)</div>
+    <div class="ct en">The core principle (verbatim in spirit)</div>
+    <p class="zh">「Harness 里的每一个组件,都编码了一条关于<strong>模型自己做不到什么</strong>的假设。这些假设值得被压力测试——既因为它们可能本来就错,也因为它们会随模型进步<strong>迅速过期</strong>。」</p>
+    <p class="en">"Every component in a harness encodes an assumption about <strong>what the model can't do on its own</strong>. Those assumptions are worth stress-testing — both because they may have been wrong to begin with, and because they <strong>go stale quickly</strong> as models improve."</p>
+  </div>
+
+  <p class="zh">第一版 harness 令人鼓舞,但<strong>臃肿、慢、贵</strong>。于是作者动手精简。这里有一条方法论教训值得单独记下:</p>
+  <p class="en">The first version of the harness was encouraging but <strong>bloated, slow and expensive</strong>. So the author set about trimming it. One methodological lesson deserves its own note:</p>
+
+  <div class="callout warn">
+    <div class="ct zh">别一次砍一大片</div>
+    <div class="ct en">Don't cut a big chunk at once</div>
+    <p class="zh">第一次尝试是<strong>激进砍掉 harness 并同时试几个有创意的新点子</strong>,结果<strong>无法复现原性能,而且很难判断哪些设计片段真正是承重的(load-bearing)、以何种方式承重</strong>。改成有条理的做法后才走通:<strong>一次移除一个组件,逐个检查对最终结果的影响。</strong></p>
+    <p class="en">The first attempt was to <strong>aggressively cut the harness while trying several creative new ideas at the same time</strong>. The result: <strong>the original performance couldn't be reproduced, and it was hard to tell which design pieces were genuinely load-bearing, and in what way.</strong> Only a methodical approach worked: <strong>remove one component at a time and inspect its effect on the final result.</strong></p>
+  </div>
+
+  <h3 class="zh">V1 → V2 具体删了什么、留了什么</h3>
+  <h3 class="en">What V1 → V2 actually removed and kept</h3>
+  <ul class="zh">
+    <li><strong>删掉 sprint 结构。</strong>它原本是为了把工作切成 chunk 保持连贯;Opus 4.6 之后有理由相信模型能原生处理。</li>
+    <li><strong>删掉 context resets。</strong>Opus 4.5 起 context anxiety 基本自行消除,整个构建改为跑成一个连续 session,靠 Agent SDK 的自动 compaction 处理上下文增长。</li>
+    <li><strong>保留 planner。</strong>理由是实测的:<em>没有 planner 时 generator 会 under-scope</em>——拿到原始 prompt 就不写 spec 直接开建,最终做出的应用功能少得多。</li>
+    <li><strong>保留 evaluator,但降级为整个 run 结束时的单次 pass</strong>,不再按 sprint 打分。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Removed the sprint structure.</strong> It existed to break work into chunks for coherence; after Opus 4.6 there was reason to believe the model handles that natively.</li>
+    <li><strong>Removed context resets.</strong> From Opus 4.5 on, context anxiety largely disappeared on its own, so the whole build runs as one continuous session with the Agent SDK's automatic compaction handling context growth.</li>
+    <li><strong>Kept the planner.</strong> The reason is empirical: <em>without it the generator under-scopes</em> — given the raw prompt it starts building without writing a spec, and ends up with a far less featured application.</li>
+    <li><strong>Kept the evaluator, but downgraded it to a single pass at the end of the run</strong> rather than scoring every sprint.</li>
+  </ul>
+
+  <div class="figure" id="f4">
+    <div class="zh">
+    <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="模型能力边界移动导致 harness 组件过期的示意图">
+      <line x1="60" y1="200" x2="660" y2="200" stroke="var(--line-2)" stroke-width="1.5" data-anim="1"/>
+      <text x="60" y="222" font-size="11.5" fill="var(--muted)" data-anim="1">任务简单</text>
+      <text x="660" y="222" text-anchor="end" font-size="11.5" fill="var(--muted)" data-anim="1">任务复杂</text>
+
+      <rect x="60" y="86" width="230" height="108" fill="var(--teal-soft)" opacity=".75" data-anim="2"/>
+      <line x1="290" y1="70" x2="290" y2="200" stroke="var(--teal)" stroke-width="2" stroke-dasharray="6 4" data-anim="2"/>
+      <text x="290" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)" data-anim="2">4.5 的能力边界</text>
+
+      <rect x="290" y="86" width="200" height="108" fill="var(--accent-soft)" opacity=".7" data-anim="3"/>
+      <line x1="490" y1="70" x2="490" y2="200" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4" data-anim="3"/>
+      <text x="490" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)" data-anim="3">4.6 的能力边界</text>
+
+      <rect x="490" y="86" width="170" height="108" fill="var(--amber-soft)" opacity=".8" data-anim="4"/>
+
+      <text x="175" y="122" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--teal)" data-anim="2">模型单干就行</text>
+      <text x="175" y="144" text-anchor="middle" font-size="11" fill="var(--ink-2)" data-anim="2">evaluator = 纯 overhead</text>
+      <text x="390" y="122" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)" data-anim="3">4.5 需要 / 4.6 不再需要</text>
+      <text x="390" y="144" text-anchor="middle" font-size="11" fill="var(--ink-2)" data-anim="3">脚手架在这里过期</text>
+      <text x="575" y="122" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5807" data-anim="4">仍在边界之外</text>
+      <text x="575" y="144" text-anchor="middle" font-size="11" fill="var(--ink-2)" data-anim="4">evaluator 仍带来真实提升</text>
+
+      <path d="M300 32 L478 32" stroke="var(--accent)" stroke-width="2" fill="none" data-draw style="--len:180"/>
+      <polygon points="478 27, 490 32, 478 37" fill="var(--accent)" data-anim="4"/>
+      <text x="389" y="24" text-anchor="middle" font-size="11.5" fill="var(--accent)" data-anim="4">模型变强 → 边界外移</text>
+      <text x="350" y="248" text-anchor="middle" font-size="11.5" fill="var(--muted)" data-anim="4">「组件是否值得,不是一个固定的是非题;它取决于任务落在边界的哪一侧。」</text>
+    </svg>
+    <p class="fig-cap">图 4 · 能力边界外移时,原本承重的组件会变成 overhead——但只在边界扫过的那段区间里。依据 Anthropic 2026-03 工程文的原文论断。</p>
+    </div>
+    <div class="en">
+    <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Capability frontier shifting and harness components going stale">
+      <line x1="60" y1="200" x2="660" y2="200" stroke="var(--line-2)" stroke-width="1.5" data-anim="1"/>
+      <text x="60" y="222" font-size="11" fill="var(--muted)" data-anim="1">simple task</text>
+      <text x="660" y="222" text-anchor="end" font-size="11" fill="var(--muted)" data-anim="1">complex task</text>
+
+      <rect x="60" y="86" width="230" height="108" fill="var(--teal-soft)" opacity=".75" data-anim="2"/>
+      <line x1="290" y1="70" x2="290" y2="200" stroke="var(--teal)" stroke-width="2" stroke-dasharray="6 4" data-anim="2"/>
+      <text x="290" y="60" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--teal)" data-anim="2">4.5 solo frontier</text>
+
+      <rect x="290" y="86" width="200" height="108" fill="var(--accent-soft)" opacity=".7" data-anim="3"/>
+      <line x1="490" y1="70" x2="490" y2="200" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4" data-anim="3"/>
+      <text x="490" y="60" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--accent-deep)" data-anim="3">4.6 solo frontier</text>
+
+      <rect x="490" y="86" width="170" height="108" fill="var(--amber-soft)" opacity=".8" data-anim="4"/>
+
+      <text x="175" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="var(--teal)" data-anim="2">model handles it solo</text>
+      <text x="175" y="144" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="2">evaluator = pure overhead</text>
+      <text x="390" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)" data-anim="3">needed at 4.5, not at 4.6</text>
+      <text x="390" y="144" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="3">scaffolding goes stale here</text>
+      <text x="575" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#7a5807" data-anim="4">still beyond the frontier</text>
+      <text x="575" y="144" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="4">evaluator still adds real value</text>
+
+      <path d="M300 32 L478 32" stroke="var(--accent)" stroke-width="2" fill="none" data-draw style="--len:180"/>
+      <polygon points="478 27, 490 32, 478 37" fill="var(--accent)" data-anim="4"/>
+      <text x="389" y="24" text-anchor="middle" font-size="11" fill="var(--accent)" data-anim="4">better model → frontier moves out</text>
+      <text x="350" y="248" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="4">"The evaluator is not a fixed yes-or-no decision. It depends on which side of the frontier the task sits."</text>
+    </svg>
+    <p class="fig-cap">Fig. 4 · As the capability frontier moves out, previously load-bearing components become overhead — but only in the band the frontier sweeps across. Per the March 2026 Anthropic engineering post.</p>
+    </div>
+  </div>
+
+  <div class="callout quote">
+    <div class="ct zh">最该记住的一句</div>
+    <div class="ct en">The line to remember</div>
+    <p class="zh">「Evaluator 值不值,不是一个固定的是非题。<strong>当任务落在当前模型单干无法可靠解决的范围之外时,它才值这个成本。</strong>」</p>
+    <p class="en">"The evaluator is not a fixed yes-or-no decision. <strong>It is worth the cost when the task sits beyond what the current model does reliably solo.</strong>"</p>
+  </div>
+
+  <h3 class="zh">V2 的账单:更快、更便宜、连续跑 2 小时</h3>
+  <h3 class="en">The V2 bill: faster, cheaper, two hours unbroken</h3>
+  <p class="zh">V2 的 prompt 是「用 Web Audio API 在浏览器里做一个功能完整的 DAW(数字音频工作站)」。总计约 4 小时、$124.70。注意 Build Round 1 单独就连续跑了 <strong>2 小时 7 分钟且没有 sprint 分解</strong>——而 Opus 4.5 需要 sprint 分解才能做到。</p>
+  <p class="en">The V2 prompt: "Build a fully featured DAW in the browser using the Web Audio API." Roughly 4 hours and $124.70 total. Note that Build Round 1 alone ran <strong>2 hours 7 minutes continuously with no sprint decomposition</strong> — whereas Opus 4.5 required it.</p>
+  <div class="tw"><table class="zh">
+    <thead><tr><th>阶段</th><th>耗时</th><th>成本</th></tr></thead>
+    <tbody>
+      <tr><td>Planner</td><td>4.7 分钟</td><td>$0.46</td></tr>
+      <tr><td>Build(第 1 轮)</td><td>2 小时 7 分</td><td>$71.08</td></tr>
+      <tr><td>QA(第 1 轮)</td><td>8.8 分钟</td><td>$3.24</td></tr>
+      <tr><td>Build(第 2 轮)</td><td>1 小时 2 分</td><td>$36.89</td></tr>
+      <tr><td>QA(第 2 轮)</td><td>6.8 分钟</td><td>$3.09</td></tr>
+      <tr><td>Build(第 3 轮)</td><td>10.9 分钟</td><td>$5.88</td></tr>
+      <tr><td>QA(第 3 轮)</td><td>9.6 分钟</td><td>$4.06</td></tr>
+      <tr><td><strong>合计</strong></td><td><strong>3 小时 50 分</strong></td><td><strong>$124.70</strong></td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table class="en">
+    <thead><tr><th>Agent &amp; phase</th><th>Duration</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td>Planner</td><td>4.7 min</td><td>$0.46</td></tr>
+      <tr><td>Build (Round 1)</td><td>2 hr 7 min</td><td>$71.08</td></tr>
+      <tr><td>QA (Round 1)</td><td>8.8 min</td><td>$3.24</td></tr>
+      <tr><td>Build (Round 2)</td><td>1 hr 2 min</td><td>$36.89</td></tr>
+      <tr><td>QA (Round 2)</td><td>6.8 min</td><td>$3.09</td></tr>
+      <tr><td>Build (Round 3)</td><td>10.9 min</td><td>$5.88</td></tr>
+      <tr><td>QA (Round 3)</td><td>9.6 min</td><td>$4.06</td></tr>
+      <tr><td><strong>Total</strong></td><td><strong>3 hr 50 min</strong></td><td><strong>$124.70</strong></td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="zh">V2 的 QA 反馈也很有代表性——第一轮指出的核心问题是:<em>「应用看起来很唬人、AI 集成也能用,但好几个 DAW 核心功能是纯展示的:片段不能在时间线上拖动,没有乐器 UI 面板(合成器旋钮、鼓垫),没有可视化效果编辑器(EQ 曲线、压缩器表头)。这些不是边界情况,这就是让 DAW 可用的核心交互,而且 spec 里明确要求了。」</em>结论性的失败模式:<strong>generator 在无人看管时仍倾向于漏掉细节、或把功能做成存根(stub)。QA 在抓这些「最后一公里」问题上仍然有价值。</strong></p>
+  <p class="en">The V2 QA feedback is representative. Round 1's core finding: <em>"the app looks impressive and the AI integration works well, [but] several core DAW features are display-only without interactive depth: clips can't be dragged/moved on the timeline, there are no instrument UI panels (synth knobs, drum pads), and no visual effect editors (EQ curves, compressor meters). These aren't edge cases — they're the core interactions that make a DAW usable, and the spec explicitly calls for them."</em> The conclusive failure mode: <strong>left unsupervised, the generator still tends to skip details or stub features out. QA still earns its keep on these last-mile problems.</strong></p>
+  <div class="callout warn">
+    <div class="ct zh">一个模态限制,提醒你 evaluator 不是万能的</div>
+    <div class="ct en">A modality limit — the evaluator is not omniscient</div>
+    <p class="zh">原文点名:<strong>Claude 听不见</strong>。这让 QA 反馈回路在「这段音乐好不好听」这一层完全失效。同理,你的 evaluator 只在<em>它能感知的维度上</em>有效——设计上要清楚这条边界在哪。</p>
+    <p class="en">The post names it directly: <strong>Claude can't actually hear.</strong> That renders the QA feedback loop useless at the level of "does this music sound good". By the same token, your evaluator is only effective <em>along dimensions it can perceive</em> — know where that boundary is when you design it.</p>
+  </div>
+</section>
+
+<section id="s-meta">
+  <h2 data-n="06"><span class="zh">Meta-harness:把脑和手解耦</span><span class="en">Meta-harness: decoupling brain from hands</span></h2>
+
+  <p class="zh">如果「假设会过期」是真的,那不断重写 harness 就是个无底洞。2026 年 4 月的《Scaling Managed Agents: Decoupling the brain from the hands》给出了另一条路:<strong>不去猜未来需要什么 harness,而是设计一组能比任何具体 harness 活得更久的接口。</strong></p>
+  <p class="en">If assumptions really do go stale, then endlessly rewriting the harness is a bottomless pit. Anthropic's April 2026 post "Scaling Managed Agents: Decoupling the brain from the hands" offers a different route: <strong>don't guess which harness the future needs; design a small set of interfaces meant to outlive any particular one.</strong></p>
+
+  <div class="analogy">
+    <div class="at zh">类比:操作系统</div>
+    <div class="at en">Analogy: the operating system</div>
+    <p class="zh">几十年前,操作系统把硬件虚拟化成 <strong>process</strong>、<strong>file</strong> 这类抽象。抽象比硬件活得久:<em><code>read()</code> 这条命令,对它访问的是 1970 年代的磁盘组还是现代 SSD,是完全无感知的。</em>上层抽象稳定,底层实现自由更换。Managed Agents 想做的就是这件事的 agent 版。</p>
+    <p class="en">Decades ago, operating systems virtualised hardware into abstractions like <strong>process</strong> and <strong>file</strong>. The abstractions outlived the hardware: <em>a <code>read()</code> call is indifferent to whether it touches a 1970s disk pack or a modern SSD.</em> Stable abstraction on top, freely replaceable implementation underneath. Managed Agents attempts the agent-shaped version of that.</p>
+  </div>
+
+  <p class="zh">被虚拟化的是三个东西:</p>
+  <p class="en">Three things get virtualised:</p>
+  <div class="glossary">
+    <dl class="zh">
+      <dt>session</dt><dd>「一切发生之事的<strong>追加式日志</strong>」——注意它<strong>不等于</strong>模型的上下文窗口,后面会展开。</dd>
+      <dt>harness</dt><dd>「调用 Claude、并把 Claude 的工具调用路由到相应基础设施的<strong>循环</strong>」。</dd>
+      <dt>sandbox</dt><dd>「Claude 可以跑代码、改文件的<strong>执行环境</strong>」。</dd>
+    </dl>
+    <dl class="en">
+      <dt>session</dt><dd>"the <strong>append-only log</strong> of everything that happened" — note this is <strong>not</strong> the model's context window; more on that below.</dd>
+      <dt>harness</dt><dd>"the <strong>loop</strong> that calls Claude and routes Claude's tool calls to the relevant infrastructure".</dd>
+      <dt>sandbox</dt><dd>"an <strong>execution environment</strong> where Claude can run code and edit files".</dd>
+    </dl>
+  </div>
+  <p class="zh">团队的态度写得很清楚:<strong>「我们对这些接口的形状有立场,对它们背后跑的是什么没有立场。」</strong></p>
+  <p class="en">The team's stance is stated plainly: <strong>"We're opinionated about the shape of these interfaces, not about what runs behind them."</strong></p>
+
+  <h3 class="zh">起点是一个失败:「别养宠物」</h3>
+  <h3 class="en">It starts with a failure: "don't adopt a pet"</h3>
+  <p class="zh">最初的架构把所有组件塞进<strong>一个容器</strong>——session、harness、sandbox 共享环境。好处是文件编辑就是一次系统调用,不需要设计任何服务边界。坏处是三条:</p>
+  <p class="en">The initial architecture put every component inside <strong>one container</strong> — session, harness and sandbox sharing an environment. The upside: file editing is a direct syscall, with no service boundary to design. The downsides were three:</p>
+  <ol class="zh">
+    <li><strong>服务器变成了「宠物」。</strong>容器一挂,session 就丢;容器无响应,就得手工把它「救回来」。(pets vs. cattle:宠物有名字、需要照料、丢不起;牛群是可互换的。)</li>
+    <li><strong>可观测性坍缩。</strong>唯一的观察窗口是 WebSocket 事件流,但它说不出失败发生在哪里——<em>harness 里的 bug、事件流丢包、容器下线,三者表现完全相同</em>。要查清必须在容器内开 shell,而那个容器往往同时装着用户数据。</li>
+    <li><strong>harness 假设它要处理的东西和它住在同一个容器里。</strong>于是客户想把 Claude 连到自己的 VPC 时,只能要么把网络与 Anthropic 对等互联,要么在自己环境里跑 Anthropic 的 harness。</li>
+  </ol>
+  <ol class="en">
+    <li><strong>The server became a pet.</strong> If the container died, the session was lost; if it went unresponsive, you had to nurse it back to health. (Pets vs cattle: a pet has a name, needs hand-care, and can't be lost; cattle are interchangeable.)</li>
+    <li><strong>Observability collapsed.</strong> The only window was the WebSocket event stream, and it couldn't say where a failure happened — <em>a bug in the harness, a dropped event, and a container going offline all looked identical</em>. Diagnosing meant opening a shell inside the container, which also held user data.</li>
+    <li><strong>The harness assumed whatever Claude needed lived in the same container.</strong> So a customer wanting Claude to work against resources in their own VPC had to either peer their network with Anthropic's, or run Anthropic's harness in their environment.</li>
+  </ol>
+
+  <div class="figure" id="f5">
+    <div class="zh">
+    <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="brain hands session 解耦架构图">
+      <text x="175" y="24" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)" data-anim="1">耦合:一切都在一个容器里</text>
+      <rect x="40" y="38" width="270" height="140" rx="10" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1.6" stroke-dasharray="5 4" data-anim="1"/>
+      <rect x="60" y="58" width="106" height="42" rx="6" fill="var(--surface)" stroke="var(--line-2)" data-anim="1"/>
+      <text x="113" y="84" text-anchor="middle" font-size="12" fill="var(--ink)" data-anim="1">harness</text>
+      <rect x="184" y="58" width="106" height="42" rx="6" fill="var(--surface)" stroke="var(--line-2)" data-anim="1"/>
+      <text x="237" y="84" text-anchor="middle" font-size="12" fill="var(--ink)" data-anim="1">session</text>
+      <rect x="60" y="112" width="230" height="42" rx="6" fill="var(--surface)" stroke="var(--line-2)" data-anim="1"/>
+      <text x="175" y="138" text-anchor="middle" font-size="12" fill="var(--ink)" data-anim="1">sandbox + 凭据</text>
+      <text x="175" y="196" text-anchor="middle" font-size="11" fill="#7a5807" data-anim="1">容器挂 = session 丢 · 一次注入就能读到凭据</text>
+
+      <text x="522" y="24" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent-deep)" data-anim="2">解耦:三者各自可失败、可替换</text>
+      <rect x="352" y="38" width="150" height="52" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6" data-anim="3"/>
+      <text x="427" y="60" text-anchor="middle" font-size="13" font-weight="750" fill="var(--accent-deep)" data-anim="3">brain</text>
+      <text x="427" y="78" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="3">Claude + harness(无状态)</text>
+
+      <rect x="542" y="38" width="150" height="52" rx="8" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.6" data-anim="4"/>
+      <text x="617" y="60" text-anchor="middle" font-size="13" font-weight="750" fill="var(--teal)" data-anim="4">hands</text>
+      <text x="617" y="78" text-anchor="middle" font-size="10.5" fill="var(--ink-2)" data-anim="4">sandbox / MCP / 任意工具</text>
+
+      <rect x="352" y="128" width="340" height="52" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.6" data-anim="5"/>
+      <text x="522" y="150" text-anchor="middle" font-size="13" font-weight="750" fill="var(--ink)" data-anim="5">session · 追加式事件日志(持久,活在两者之外)</text>
+      <text x="522" y="168" text-anchor="middle" font-size="10.5" fill="var(--muted)" data-anim="5">getEvents() 支持按位置切片回看</text>
+
+      <path d="M502 64 L538 64" stroke="var(--ink-2)" stroke-width="1.6" fill="none" data-anim="6"/>
+      <text x="520" y="106" text-anchor="middle" font-size="10" fill="var(--muted)" data-anim="6">execute(name, input) → string</text>
+      <path d="M427 92 L427 124" stroke="var(--line-2)" stroke-width="1.4" stroke-dasharray="3 3" data-anim="6"/>
+      <path d="M617 92 L617 124" stroke="var(--line-2)" stroke-width="1.4" stroke-dasharray="3 3" data-anim="6"/>
+      <text x="522" y="212" text-anchor="middle" font-size="11" fill="var(--accent-deep)" data-anim="6">harness 崩了就 wake(sessionId) 起一个新的,从最后一个事件恢复</text>
+      <text x="522" y="232" text-anchor="middle" font-size="11" fill="var(--teal)" data-anim="6">容器挂了就当作 tool-call error,provision({resources}) 起一个新的</text>
+      <text x="350" y="276" text-anchor="middle" font-size="11.5" fill="var(--muted)" data-anim="6">「harness 并不知道 sandbox 是一个容器、一部手机,还是一个宝可梦模拟器。」</text>
+    </svg>
+    <p class="fig-cap">图 5 · 从「一切都在一个容器里」到 brain / hands / session 三分。接口签名为原文所列。依据 Anthropic《Scaling Managed Agents》(2026-04-08)。</p>
+    </div>
+    <div class="en">
+    <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Brain hands session decoupled architecture">
+      <text x="175" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)" data-anim="1">Coupled: everything in one container</text>
+      <rect x="40" y="38" width="270" height="140" rx="10" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1.6" stroke-dasharray="5 4" data-anim="1"/>
+      <rect x="60" y="58" width="106" height="42" rx="6" fill="var(--surface)" stroke="var(--line-2)" data-anim="1"/>
+      <text x="113" y="84" text-anchor="middle" font-size="12" fill="var(--ink)" data-anim="1">harness</text>
+      <rect x="184" y="58" width="106" height="42" rx="6" fill="var(--surface)" stroke="var(--line-2)" data-anim="1"/>
+      <text x="237" y="84" text-anchor="middle" font-size="12" fill="var(--ink)" data-anim="1">session</text>
+      <rect x="60" y="112" width="230" height="42" rx="6" fill="var(--surface)" stroke="var(--line-2)" data-anim="1"/>
+      <text x="175" y="138" text-anchor="middle" font-size="12" fill="var(--ink)" data-anim="1">sandbox + credentials</text>
+      <text x="175" y="196" text-anchor="middle" font-size="10.5" fill="#7a5807" data-anim="1">container dies = session lost · one injection reaches the tokens</text>
+
+      <text x="522" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-deep)" data-anim="2">Decoupled: each fails and swaps alone</text>
+      <rect x="352" y="38" width="150" height="52" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6" data-anim="3"/>
+      <text x="427" y="60" text-anchor="middle" font-size="13" font-weight="750" fill="var(--accent-deep)" data-anim="3">brain</text>
+      <text x="427" y="78" text-anchor="middle" font-size="10" fill="var(--ink-2)" data-anim="3">Claude + harness (stateless)</text>
+
+      <rect x="542" y="38" width="150" height="52" rx="8" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.6" data-anim="4"/>
+      <text x="617" y="60" text-anchor="middle" font-size="13" font-weight="750" fill="var(--teal)" data-anim="4">hands</text>
+      <text x="617" y="78" text-anchor="middle" font-size="10" fill="var(--ink-2)" data-anim="4">sandbox / MCP / any tool</text>
+
+      <rect x="352" y="128" width="340" height="52" rx="8" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.6" data-anim="5"/>
+      <text x="522" y="150" text-anchor="middle" font-size="12" font-weight="750" fill="var(--ink)" data-anim="5">session · append-only event log (durable, outside both)</text>
+      <text x="522" y="168" text-anchor="middle" font-size="10" fill="var(--muted)" data-anim="5">getEvents() supports positional slices for re-reading</text>
+
+      <path d="M502 64 L538 64" stroke="var(--ink-2)" stroke-width="1.6" fill="none" data-anim="6"/>
+      <text x="520" y="106" text-anchor="middle" font-size="10" fill="var(--muted)" data-anim="6">execute(name, input) → string</text>
+      <path d="M427 92 L427 124" stroke="var(--line-2)" stroke-width="1.4" stroke-dasharray="3 3" data-anim="6"/>
+      <path d="M617 92 L617 124" stroke="var(--line-2)" stroke-width="1.4" stroke-dasharray="3 3" data-anim="6"/>
+      <text x="522" y="212" text-anchor="middle" font-size="10.5" fill="var(--accent-deep)" data-anim="6">harness crashes → wake(sessionId), resume from the last event</text>
+      <text x="522" y="232" text-anchor="middle" font-size="10.5" fill="var(--teal)" data-anim="6">container dies → caught as a tool-call error, provision({resources}) a new one</text>
+      <text x="350" y="276" text-anchor="middle" font-size="11" fill="var(--muted)" data-anim="6">"The harness doesn't know whether the sandbox is a container, a phone, or a Pokémon emulator."</text>
+    </svg>
+    <p class="fig-cap">Fig. 5 · From "everything in one container" to a brain / hands / session split. Interface signatures as listed in the original. Per Anthropic, "Scaling Managed Agents" (2026-04-08).</p>
+    </div>
+  </div>
+
+  <h3 class="zh">安全:一条被明确写出来的攻击链</h3>
+  <h3 class="en">Security: an attack chain spelled out</h3>
+  <p class="zh">这一段值得逐句读:</p>
+  <p class="en">This passage rewards a close reading:</p>
+  <ol class="zh">
+    <li>耦合设计下,<strong>Claude 生成的不可信代码与凭据跑在同一个容器里</strong>。</li>
+    <li>于是一次 prompt injection <strong>只需要说服 Claude 去读自己的环境变量</strong>。</li>
+    <li>一旦攻击者拿到这些 token,<strong>就能派生全新的、不受限的 session,并把工作委派给它们</strong>。</li>
+  </ol>
+  <ol class="en">
+    <li>In the coupled design, <strong>untrusted Claude-generated code and the credentials run in the same container</strong>.</li>
+    <li>So a prompt injection <strong>only needs to convince Claude to read its own environment variables</strong>.</li>
+    <li>Once an attacker holds those tokens, <strong>they can spawn brand-new, unconstrained sessions and delegate work to them</strong>.</li>
+  </ol>
+  <p class="zh">「把 token 权限收窄」是显而易见的缓解——但注意原文的反驳:<strong>那本身又编码了一条关于「Claude 拿一个受限 token 做不到什么」的假设,而 Claude 越来越聪明。</strong>(又是那条主线。)</p>
+  <p class="en">"Narrow the token's scope" is the obvious mitigation — but note the rebuttal: <strong>that itself encodes an assumption about what Claude can't do with a restricted token, and Claude keeps getting smarter.</strong> (That spine again.)</p>
+  <p class="zh">结构性修复是:<strong>确保 token 从 Claude 生成的代码所运行的沙箱里根本不可达。</strong>两种落地模式:</p>
+  <p class="en">The structural fix: <strong>make the token unreachable from the sandbox where Claude-generated code runs.</strong> Two patterns:</p>
+  <ul class="zh">
+    <li><strong>凭据与资源捆绑</strong>:对 Git,在<strong>沙箱初始化时</strong>用每个 repo 的 access token 克隆 repo,并把它接进本地 git remote。这样沙箱内的 <code>push</code> / <code>pull</code> 正常工作,而 <em>agent 自始至终没碰过 token</em>。</li>
+    <li><strong>凭据存在沙箱之外的保险库</strong>:对自定义工具走 MCP,OAuth token 存进 vault。Claude 通过一个<strong>专用 proxy</strong> 调 MCP 工具;proxy 收到一个<em>与 session 关联的 token</em>,据此从 vault 取出真凭据向外发请求。原文:<strong>「The harness is never made aware of any credentials.」</strong></li>
+  </ul>
+  <ul class="en">
+    <li><strong>Bundle credentials with the resource</strong>: for Git, clone the repo <strong>at sandbox initialisation</strong> using a per-repo access token and wire it into the local git remote. <code>push</code> and <code>pull</code> then work inside the sandbox, while <em>the agent never touches the token at all</em>.</li>
+    <li><strong>Keep credentials in a vault outside the sandbox</strong>: for custom tools, go through MCP with OAuth tokens in a secure vault. Claude calls MCP tools through a <strong>dedicated proxy</strong>; the proxy receives a <em>session-associated token</em> and uses it to fetch the real credential from the vault before calling out. Verbatim: <strong>"The harness is never made aware of any credentials."</strong></li>
+  </ul>
+
+  <h3 class="zh">Session ≠ 上下文窗口</h3>
+  <h3 class="en">Session ≠ context window</h3>
+  <p class="zh">这是这篇文章最有迁移价值的一个概念区分。长任务常常超出上下文窗口,而标准应对手段——compaction、memory 工具、context trimming——<strong>都涉及关于「保留什么」的不可逆决策</strong>。失败机理是:<em>很难知道未来的回合需要哪些 token。</em>一旦某条消息被压缩步骤转换掉,harness 就会把原消息从上下文窗口移除,而它只有<strong>被存下来</strong>才可恢复。</p>
+  <p class="en">This is the most transferable conceptual distinction in the piece. Long tasks routinely exceed the context window, and the standard responses — compaction, a memory tool, context trimming — <strong>all involve irreversible decisions about what to keep</strong>. The failure mechanism: <em>it's hard to know which tokens a future turn will need.</em> Once a message has been transformed by a compaction step, the harness removes the original from the context window, and it is recoverable only if it was <strong>stored</strong>.</p>
+  <div class="callout key">
+    <div class="ct zh">解法:让 context 活在窗口之外</div>
+    <div class="ct en">The fix: let context live outside the window</div>
+    <p class="zh">Managed Agents 让 <strong>session 就是那个活在上下文窗口之外的 context 对象</strong>——但它不存在沙箱或 REPL 里,而是<strong>持久存储在 session log</strong>。<code>getEvents()</code> 支持三种用法:从上次停止阅读的地方接着读;<strong>回退到某个具体时刻之前几个事件</strong>去看前因;在某个具体动作之前重读 context。取回的事件可以在 harness 里被<em>任意转换</em>后再送进上下文窗口——包括为了拉高 prompt 缓存命中率而做的组织。</p>
+    <p class="en">Managed Agents makes <strong>the session itself the context object living outside the context window</strong> — not in a sandbox or a REPL, but <strong>durably in the session log</strong>. <code>getEvents()</code> supports three uses: continue from where you stopped reading; <strong>rewind to a few events before a specific moment</strong> to see what led up to it; and re-read context immediately before a specific action. Retrieved events can be <em>arbitrarily transformed</em> in the harness before entering the context window — including whatever shaping raises the prompt-cache hit rate.</p>
+    <p class="zh">关注点分离的理由说得很清楚:<strong>无法预测未来模型需要什么具体的 context engineering</strong>,所以接口把 context 管理推到 harness 里,而<em>只保证 session 是持久的、可被审问的</em>。</p>
+    <p class="en">The rationale for the separation is explicit: <strong>you cannot predict what specific context engineering future models will need</strong>, so the interface pushes context management into the harness and <em>guarantees only that the session is durable and interrogable</em>.</p>
+  </div>
+
+  <h3 class="zh">性能上的意外收获</h3>
+  <h3 class="en">An unexpected performance win</h3>
+  <p class="zh">brain 在容器里时,<strong>多少个 brain 就需要多少个容器</strong>,而每个 brain 在容器 provision 完成前无法开始任何推理——<em>即使是永远不会碰 sandbox 的 session,也得先 clone repo、boot 进程、fetch 待处理事件。</em>这段死时间直接体现在 TTFT(首 token 时间)上,是用户最直接感受到的延迟。</p>
+  <p class="en">When the brain lives in the container, <strong>you need as many containers as brains</strong>, and no brain can start reasoning until its container is provisioned — <em>even a session that will never touch the sandbox has to clone the repo, boot processes, and fetch pending events first.</em> That dead time lands directly on time-to-first-token, the latency a user feels most.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">-60%</div><div class="l zh">解耦后 p50 TTFT 的下降幅度〔Anthropic 实测〕</div><div class="l en">drop in p50 TTFT after decoupling [Anthropic-measured]</div></div>
+    <div class="stat"><div class="n">-90%+</div><div class="l zh">p95 TTFT 的下降幅度〔Anthropic 实测〕</div><div class="l en">drop in p95 TTFT [Anthropic-measured]</div></div>
+  </div>
+  <p class="zh">因为没有任何一只手与任何一个 brain 耦合,还带来一个额外能力:<strong>brain 之间可以互相传递手。</strong></p>
+  <p class="en">And because no hand is coupled to any particular brain, there's an extra capability: <strong>brains can pass hands to one another.</strong></p>
+</section>
+
+<section id="s-findings">
+  <h2 data-n="07"><span class="zh">11 系统审计的横切发现</span><span class="en">Cross-cutting findings from the eleven-system audit</span></h2>
+
+  <p class="zh">把论文里最有决策价值的几条单独拎出来。<strong>注意:这些是对生产系统的观察,不是规范。</strong></p>
+  <p class="en">The findings with the most decision value, pulled out. <strong>Note: these are observations of production systems, not prescriptions.</strong></p>
+
+  <div class="tw"><table class="zh">
+    <thead><tr><th style="width:34%">发现</th><th>对你的含义</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0/11 引入通用 agent 框架</strong></td><td>手写 async 循环仍是生产选择。上框架前先问:框架替我解决了哪个我真的遇到过的问题?</td></tr>
+      <tr><td><strong>0/11 用向量嵌入检索代码</strong></td><td>确定性检索(grep / glob / AST)在代码这个场景里赢了。给代码库做向量索引在生产里未被验证为必需。</td></tr>
+      <tr><td><strong>SKILL.md skills 9/11,MCP 8/11</strong></td><td>skills 采用率<strong>已超过</strong> MCP。做扩展时,「一个 markdown 文件 + 渐进式披露」的形态门槛更低、传播更快。</td></tr>
+      <tr><td><strong>ACP 进入 6/11,出现第三种角色:harness hosting</strong></td><td>harness 开始互相托管——「用哪个编码 agent」正在从二选一变成可组合。</td></tr>
+      <tr><td><strong>行为策略从 prompt 散文迁移到配置</strong></td><td>把你的规则从 CLAUDE.md 的散文段落改写成结构化配置/hooks/权限规则,能进 git、能 diff、能被 CI 引用同一份。</td></tr>
+      <tr><td><strong>趋同正在变成模仿</strong></td><td>差异化不在「有没有某个功能」上了。想做不一样的东西,得往子系统组合方式上想。</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table class="en">
+    <thead><tr><th style="width:34%">Finding</th><th>What it means for you</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0/11 import a general-purpose agent framework</strong></td><td>Hand-rolled async loops remain the production choice. Before adopting a framework, ask: which problem I have actually hit does it solve?</td></tr>
+      <tr><td><strong>0/11 retrieve code with vector embeddings</strong></td><td>Deterministic retrieval (grep / glob / AST) wins in the code setting. Vector-indexing a codebase is not validated as necessary in production.</td></tr>
+      <tr><td><strong>SKILL.md skills 9/11 vs MCP 8/11</strong></td><td>Skills adoption has <strong>overtaken</strong> MCP. For extensions, "one markdown file plus progressive disclosure" has a lower barrier and spreads faster.</td></tr>
+      <tr><td><strong>ACP in 6/11, with a third role: harness hosting</strong></td><td>Harnesses have begun hosting one another — "which coding agent" is shifting from either/or to composable.</td></tr>
+      <tr><td><strong>Behavioral policy migrating from prompt prose to config</strong></td><td>Rewriting your rules from CLAUDE.md prose into structured config / hooks / permission rules makes them git-tracked, diffable, and referenceable from CI.</td></tr>
+      <tr><td><strong>Convergence becoming imitation</strong></td><td>Differentiation is no longer about having a given feature. To build something different, think at the level of how subsystems combine.</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="srcnote zh">来源:arXiv:2609.00006(2026-09-02 上架 cs.SE,提交日 2026-07-15)。83 页,7 图 18 表,含 13 条横切观察、29 个设计模式、18 条设计建议和一份 90 行的最小可用 harness 脚手架。〔单篇预印本,无第三方复现〕</p>
+  <p class="srcnote en">Source: arXiv:2609.00006 (listed in cs.SE 2026-09-02, submitted 2026-07-15). 83 pages, 7 figures, 18 tables; 13 cross-cutting observations, 29 design patterns, 18 design recommendations, and a 90-line minimum-viable-harness scaffold. [Single preprint, no third-party replication.]</p>
+</section>
+
+<section id="s-howto">
+  <h2 data-n="08"><span class="zh">怎么用:自建 harness 的检查清单</span><span class="en">How to use this: a checklist for your own harness</span></h2>
+
+  <p class="zh">你不需要从零写一个 harness 才用得上这些。<strong>如果你在 Claude Code 里维护一套 CLAUDE.md + skills + hooks + 权限规则 + subagent 定义,你就已经在做 harness 工程了。</strong>下面这份清单同时适用于两种情况。</p>
+  <p class="en">You don't need to build a harness from scratch for any of this to apply. <strong>If you maintain a CLAUDE.md plus skills, hooks, permission rules and subagent definitions in Claude Code, you are already doing harness engineering.</strong> The checklist below applies to both cases.</p>
+
+  <ol class="steps zh">
+    <li><strong>先给每个组件写下它的「假设」。</strong>逐条问:这个 hook / 这段 CLAUDE.md / 这个 subagent,是在补模型的哪个短板?写不出那个短板,这个组件就是凭感觉加的。</li>
+    <li><strong>约束「交付什么」,不要预先指定「怎么做」。</strong>细粒度技术决策写死在 spec 里,一旦错了会级联进所有下游实现。</li>
+    <li><strong>把「做」和「判」分开,但不要以为分开就够了。</strong>Evaluator 仍是 LLM、仍偏袒 LLM 产物;它需要被<em>调教</em>——读它的日志,找它和你判断分歧的地方,针对性改它的 prompt,跑好几轮。</li>
+    <li><strong>给 evaluator 真正的感知手段。</strong>只看 diff 的评审抓不到「代码存在但接线断了」的 bug。浏览器自动化、真实运行、真实点击——evaluator 只在它能感知的维度上有效。</li>
+    <li><strong>动手前先谈好「done 长什么样」。</strong>让它写下验收标准、你确认、再开工。这是最便宜的一条,收益却很大。</li>
+    <li><strong>把状态放在 agent 之外。</strong>progress 文件、feature list JSON、git commit ——这些不是文档洁癖,它们是下一个上下文窗口唯一能读到的东西。</li>
+    <li><strong>让凭据从代码运行的地方不可达。</strong>不是「收窄权限」,是「根本拿不到」。参考 git remote 预挂载 与 vault + proxy 两种模式。</li>
+    <li><strong>每次模型升级,重新审视一遍 harness。</strong>剥掉不再承重的部分,加上此前不可能实现的新部分。<strong>一次只动一个组件</strong>,否则你分不清是谁在起作用。</li>
+  </ol>
+  <ol class="steps en">
+    <li><strong>Write down each component's assumption first.</strong> Ask of every hook, every CLAUDE.md paragraph, every subagent: which model weakness does this compensate for? If you can't name the weakness, the component was added on vibes.</li>
+    <li><strong>Constrain WHAT, not HOW.</strong> Fine-grained technical decisions baked into a spec cascade into every downstream implementation once they're wrong.</li>
+    <li><strong>Separate doing from judging — but don't assume separation is enough.</strong> The evaluator is still an LLM and still favours LLM output; it has to be <em>tuned</em>: read its logs, find where its judgement diverged from yours, patch its prompt for those cases, repeat over several rounds.</li>
+    <li><strong>Give the evaluator real perception.</strong> A review that only sees the diff won't catch "the code exists but the wiring is broken" bugs. Browser automation, real runs, real clicks — an evaluator is only effective along dimensions it can perceive.</li>
+    <li><strong>Agree on "done" before any code is written.</strong> Have it write the acceptance criteria, confirm them, then let it go. The cheapest item on this list and one of the highest-yield.</li>
+    <li><strong>Keep state outside the agent.</strong> A progress file, a feature-list JSON, git commits — this isn't documentation fastidiousness; it's the only thing the next context window can read.</li>
+    <li><strong>Make credentials unreachable from where code runs.</strong> Not "narrow the scope" — unreachable. See the pre-mounted git remote and the vault + proxy patterns.</li>
+    <li><strong>Revisit the harness on every model upgrade.</strong> Strip what is no longer load-bearing; add what was previously impossible. <strong>Change one component at a time</strong>, or you won't be able to tell what is doing the work.</li>
+  </ol>
+
+  <div class="callout key">
+    <div class="ct zh">最小可行起点</div>
+    <div class="ct en">A minimum viable starting point</div>
+    <p class="zh">如果只做三件事:<strong>①</strong> 一个 <code>init.sh</code>(怎么把东西跑起来);<strong>②</strong> 一个结构化的功能清单 JSON(什么算做完,只允许改 <code>passes</code> 字段);<strong>③</strong> 每次会话结尾写 git commit + 一段进展记录。这三件事覆盖了 Anthropic 那张失败模式表里的全部四条。</p>
+    <p class="en">If you only do three things: <strong>(1)</strong> an <code>init.sh</code> (how to get the thing running); <strong>(2)</strong> a structured feature-list JSON (what counts as done, with only the <code>passes</code> field editable); <strong>(3)</strong> a git commit plus a progress note at the end of every session. Those three cover all four rows of Anthropic's failure-mode table.</p>
+  </div>
+</section>
+
+<section id="s-compare">
+  <h2 data-n="09"><span class="zh">对比与选型</span><span class="en">Comparison and selection</span></h2>
+
+  <p class="zh">「我该自己搭 harness 吗?」这个问题有四个层次的答案,选哪个取决于你的任务落在能力边界的哪一侧、以及你能承担多少复杂度。</p>
+  <p class="en">"Should I build my own harness?" has four tiers of answer, and which one fits depends on where your task sits relative to the capability frontier and how much complexity you can carry.</p>
+
+  <div class="tw"><table class="zh">
+    <thead><tr><th>做法</th><th>适合</th><th>代价</th></tr></thead>
+    <tbody>
+      <tr><td><strong>直接用现成 harness</strong>(Claude Code、Codex CLI 等)</td><td>绝大多数编码与自动化任务。这些系统已经把七个子系统的成熟实现打包好了</td><td>基本没有;上限受限于该 harness 的设计选择</td></tr>
+      <tr><td><strong>用现成 harness + 自定义扩展</strong>(skills / hooks / MCP / subagent / CLAUDE.md)</td><td>你有稳定重复的工作流、有团队约定要执行、有外部系统要接</td><td>低。且这是 11 系统审计里采用率最高的扩展路径(skills 9/11)</td></tr>
+      <tr><td><strong>基于 Agent SDK 自己写编排</strong>(planner / generator / evaluator)</td><td>任务确实超出单 agent 可靠完成的范围,且你愿意为质量付 20 倍成本</td><td>高。要写编排、要调教 evaluator(好几轮)、要设计文件通信协议</td></tr>
+      <tr><td><strong>Meta-harness 路线</strong>(brain / hands / session 解耦)</td><td>要跑很多并发 agent、要连很多异构执行环境、有真实的安全边界要求</td><td>最高。但它换来的是「不必每代模型都重写 harness」</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table class="en">
+    <thead><tr><th>Approach</th><th>Fits when</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Use an off-the-shelf harness</strong> (Claude Code, Codex CLI, …)</td><td>The vast majority of coding and automation tasks. These systems already ship mature implementations of all seven subsystems</td><td>Essentially none; your ceiling is that harness's design choices</td></tr>
+      <tr><td><strong>Off-the-shelf plus custom extensions</strong> (skills / hooks / MCP / subagents / CLAUDE.md)</td><td>You have a repeating workflow, team conventions to enforce, or external systems to reach</td><td>Low. Also the highest-adoption extension path in the eleven-system audit (skills, 9/11)</td></tr>
+      <tr><td><strong>Write your own orchestration on the Agent SDK</strong> (planner / generator / evaluator)</td><td>The task genuinely exceeds what a single agent completes reliably, and you'll pay ~20× for quality</td><td>High. You write the orchestration, tune the evaluator over several rounds, and design a file-based protocol</td></tr>
+      <tr><td><strong>The meta-harness route</strong> (brain / hands / session decoupling)</td><td>Many concurrent agents, many heterogeneous execution environments, real security boundaries</td><td>Highest. What you buy is not having to rewrite the harness every model generation</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout quote">
+    <div class="ct zh">一条来自原文的判断依据</div>
+    <div class="ct en">A decision rule from the original</div>
+    <p class="zh">「找到可能的最简方案,只在需要时才增加复杂度。」——这句出自 Anthropic 更早的《Building effective agents》,在 2026 年的这两篇里被反复引用。配套的判断是:模型变强时,<strong>有时候你可以什么都不做,等下一个模型,某些问题自己就解决了</strong>;但另一方面,<strong>模型越好,越有空间去开发能达成「超出模型 baseline」复杂任务的 harness</strong>。</p>
+    <p class="en">"Find the simplest solution possible, and only increase complexity when needed." — from Anthropic's earlier "Building effective agents", repeatedly cited in both 2026 posts. Its companion judgement: as models improve, <strong>sometimes you can do nothing and wait for the next model to solve the problem for you</strong>; but equally, <strong>the better the model, the more room there is to build a harness that reaches tasks beyond its baseline</strong>.</p>
+  </div>
+  <p class="zh">原文对这条的收尾是一句我认为值得记住的话:<strong>「有趣的 harness 组合空间并不随模型变强而缩小。它只是移动了。」</strong></p>
+  <p class="en">The post closes that thread with a line worth keeping: <strong>"the space of interesting harness combinations doesn't shrink as models improve. Instead, it moves."</strong></p>
+</section>
+
+<section id="s-pitfalls">
+  <h2 data-n="10"><span class="zh">常见坑与限制</span><span class="en">Pitfalls and limits</span></h2>
+
+  <div class="callout warn">
+    <div class="ct zh">坑 1:把 compaction 当成 context reset</div>
+    <div class="ct en">Pitfall 1: mistaking compaction for a context reset</div>
+    <p class="zh">压缩保留连续性但不给白板,<strong>上下文焦虑照样存在</strong>。如果你观察到模型在长任务后半程草草收尾,压缩解决不了它。〔Anthropic 官方实测,针对 Sonnet 4.5〕</p>
+    <p class="en">Compaction preserves continuity but gives no clean slate, so <strong>context anxiety persists</strong>. If you see a model wrapping up prematurely in the back half of a long task, compaction won't fix it. [Anthropic-measured, on Sonnet 4.5.]</p>
+  </div>
+  <div class="callout warn">
+    <div class="ct zh">坑 2:一次砍掉一大片脚手架</div>
+    <div class="ct en">Pitfall 2: cutting a large slab of scaffolding at once</div>
+    <p class="zh">Anthropic 第一次精简就是这么干的——<strong>无法复现原性能,且分不清哪些片段是承重的</strong>。正确做法是一次移除一个组件。</p>
+    <p class="en">Anthropic's first trimming attempt did exactly this — <strong>the original performance couldn't be reproduced and load-bearing pieces couldn't be identified</strong>. Remove one component at a time.</p>
+  </div>
+  <div class="callout warn">
+    <div class="ct zh">坑 3:以为「加个 evaluator」= 「加了独立保险」</div>
+    <div class="ct en">Pitfall 3: assuming "add an evaluator" = "add independent insurance"</div>
+    <p class="zh">Evaluator 是 LLM、偏袒 LLM 产物,而且本周的两篇论文(arXiv:2609.02925 / 2609.03422)正好在质疑多 agent 之间失效独立性这条前提。<strong>多个同源模型互相复核,可能只是把同一个错误确认了两遍。</strong></p>
+    <p class="en">The evaluator is an LLM and favours LLM artifacts — and this week's two papers (arXiv:2609.02925 / 2609.03422) question the very premise of failure independence across agents. <strong>Same-lineage models checking each other may just be confirming the same error twice.</strong></p>
+  </div>
+  <div class="callout warn">
+    <div class="ct zh">坑 4:让 planner 把技术细节写死</div>
+    <div class="ct en">Pitfall 4: letting the planner nail down technical details</div>
+    <p class="zh">Spec 里错误的细粒度技术决策会<strong>级联</strong>进所有下游实现。Planner 该管产品语境和高层设计,路径留给执行者自己找。</p>
+    <p class="en">A wrong fine-grained technical decision in the spec <strong>cascades</strong> into every downstream implementation. The planner should own product context and high-level design; leave the path to whoever executes.</p>
+  </div>
+  <div class="callout warn">
+    <div class="ct zh">坑 5:evaluator 在它感知不到的维度上「打分」</div>
+    <div class="ct en">Pitfall 5: an evaluator scoring dimensions it cannot perceive</div>
+    <p class="zh">Claude 听不见,所以它评不了音乐好不好听;类似地,只读 diff 的 reviewer 评不了「点下去有没有反应」。<strong>先想清楚这个 evaluator 能感知什么,再决定让它打哪几条分。</strong></p>
+    <p class="en">Claude can't hear, so it can't judge whether music sounds good; likewise a diff-only reviewer can't judge whether a click does anything. <strong>Work out what the evaluator can perceive before deciding what it scores.</strong></p>
+  </div>
+
+  <h3 class="zh">这份材料本身的限制</h3>
+  <h3 class="en">Limits of this material itself</h3>
+  <div class="disc zh">
+    <p><strong>1. 单一来源风险。</strong>arXiv:2609.00006 的所有数字(11 系统、400 万行、9/11 vs 8/11)来自单篇预印本,截至调研时无第三方复现。Anthropic 三篇的成本表和 TTFT 数字是官方自述实验,同样是单一来源。</p>
+    <p><strong>2. HEART 的基准分数未经复现。</strong>「超过 GPT-5.4 / Claude-4.6-Sonnet / Gemini-3.1-Pro 平均 6%」「API 成本降 85%」「真实任务完成率 84% vs 22%」全部来自论文自报,应视为方向性参考。</p>
+    <p><strong>3. 模型版本在快速移动。</strong>本文引用的实验分别跑在 Sonnet 4.5、Opus 4.5 和 Opus 4.6 上;截至 2026-09-07,前沿已经是 Fable 5.1 / Opus 5 / Mythos 5.1 一代。<strong>「哪些脚手架已经过期」这个具体判断,必须在你自己用的模型上重跑一遍</strong>——这恰恰是本文的核心论点。</p>
+    <p><strong>4. 领域偏向。</strong>11 系统审计的对象全是<strong>编码</strong> harness。结论对编码 agent 最可靠;迁移到科研、金融建模、内容生产等场景时需要重新验证。</p>
+  </div>
+  <div class="disc en">
+    <p><strong>1. Single-source risk.</strong> All figures from arXiv:2609.00006 (eleven systems, four million lines, 9/11 vs 8/11) come from a single preprint with no third-party replication as of this writing. The cost tables and TTFT figures in the three Anthropic posts are self-reported experiments — also single-source.</p>
+    <p><strong>2. HEART's benchmark numbers are unreplicated.</strong> "6% above GPT-5.4 / Claude-4.6-Sonnet / Gemini-3.1-Pro on average", "up to 85% lower API cost", "84% vs 22% real-task completion" are all paper-reported and should be treated as directional.</p>
+    <p><strong>3. Model versions are moving fast.</strong> The experiments cited here ran on Sonnet 4.5, Opus 4.5 and Opus 4.6 respectively; as of 2026-09-07 the frontier is the Fable 5.1 / Opus 5 / Mythos 5.1 generation. <strong>The specific judgement of "which scaffolding has gone stale" must be re-run on the model you actually use</strong> — which is precisely this document's central claim.</p>
+    <p><strong>4. Domain bias.</strong> The eleven-system audit covers <strong>coding</strong> harnesses exclusively. The conclusions are most reliable for coding agents; transferring them to scientific research, financial modelling or content production needs fresh validation.</p>
+  </div>
+</section>
+
+<section id="s-glossary">
+  <h2 data-n="※"><span class="zh">术语表</span><span class="en">Glossary</span></h2>
+  <div class="glossary">
+    <dl class="zh">
+      <dt>Harness</dt><dd>把语言模型接到真实世界的运行时层:循环、工具、上下文管理、安全控制、编排、扩展面。中文没有定译,直译是「挽具」。</dd>
+      <dt>Meta-harness</dt><dd>不实现某个具体 harness,而是提供一组能容纳多种 harness 的通用接口(如 brain / hands / session 三分)。</dd>
+      <dt>Context anxiety(上下文焦虑)</dt><dd>模型在自认为接近上下文上限时提前草草收尾的行为。</dd>
+      <dt>Compaction(压缩)</dt><dd>就地总结早期对话,同一个 agent 在缩短的历史上继续。保留连续性,不给白板。</dd>
+      <dt>Context reset(上下文重置)</dt><dd>清空上下文窗口、起全新 agent,靠结构化 handoff 传递状态。给白板,但要求 handoff 足够完整。</dd>
+      <dt>Sprint contract(冲刺契约)</dt><dd>动手前 generator 与 evaluator 就「这块工作的 done 长什么样」谈成的一致文件。</dd>
+      <dt>Load-bearing(承重)</dt><dd>形容一个 harness 组件是否真的在支撑性能。判断方法是移除它并观察结果——一次只移除一个。</dd>
+      <dt>Pets vs. cattle</dt><dd>运维术语。宠物有名字、需要照料、丢不起;牛群可互换、坏了就换新的。Harness 组件应该是后者。</dd>
+      <dt>Session log</dt><dd>一切发生之事的追加式日志,持久存储在 agent 之外。它<strong>不是</strong>模型的上下文窗口。</dd>
+      <dt>TTFT(time-to-first-token)</dt><dd>会话从接受工作到吐出第一个响应 token 的等待时长,是用户最直接感受到的延迟。</dd>
+      <dt>Tool Primitives</dt><dd>arXiv:2609.01736 提出的设计:把每个工具包一层 LLM 接口,用自然语言而非 JSON schema 作为调用界面。</dd>
+      <dt>ACP</dt><dd>一种 agent 间协议,在 11 系统中出现于 6 个,并带来「harness 托管 harness」这一新角色。</dd>
+    </dl>
+    <dl class="en">
+      <dt>Harness</dt><dd>The runtime layer coupling a language model to the world: loop, tools, context management, safety controls, orchestration, extension surfaces.</dd>
+      <dt>Meta-harness</dt><dd>Not an implementation of a particular harness, but a set of general interfaces that can accommodate many (e.g. the brain / hands / session split).</dd>
+      <dt>Context anxiety</dt><dd>A model wrapping up prematurely when it believes it is nearing the context limit.</dd>
+      <dt>Compaction</dt><dd>Summarising the early conversation in place; the same agent continues on a shortened history. Preserves continuity; gives no clean slate.</dd>
+      <dt>Context reset</dt><dd>Clearing the context window and starting a fresh agent, carrying state across in a structured handoff. Gives a clean slate but demands a complete handoff.</dd>
+      <dt>Sprint contract</dt><dd>A file the generator and evaluator negotiate to agreement, before code is written, on what "done" looks like for that unit of work.</dd>
+      <dt>Load-bearing</dt><dd>Describes whether a harness component genuinely supports performance. Test by removing it and observing — one component at a time.</dd>
+      <dt>Pets vs. cattle</dt><dd>An ops idiom. A pet has a name, needs hand-care and can't be lost; cattle are interchangeable and simply replaced. Harness components should be the latter.</dd>
+      <dt>Session log</dt><dd>The append-only record of everything that happened, stored durably outside the agent. It is <strong>not</strong> the model's context window.</dd>
+      <dt>TTFT (time-to-first-token)</dt><dd>How long a session waits between accepting work and emitting its first response token — the latency a user feels most directly.</dd>
+      <dt>Tool Primitives</dt><dd>The design proposed in arXiv:2609.01736: wrap each tool in an LLM interface and use natural language, rather than a JSON schema, as the calling surface.</dd>
+      <dt>ACP</dt><dd>An inter-agent protocol present in 6 of the 11 systems, bringing with it the new role of one harness hosting another.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="s-sources">
+  <h2 data-n="★"><span class="zh">来源清单与延伸阅读</span><span class="en">Sources and further reading</span></h2>
+  <p class="zh">调研时间 2026-09-07。以下是本文每个关键事实的出处;标注日期为来源自身的发布日期。</p>
+  <p class="en">Researched 2026-09-07. Below is the provenance for every key fact in this document; dates are those of the sources themselves.</p>
+  <ol class="zh">
+    <li><a href="https://arxiv.org/abs/2609.00006">Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems</a> — Barbaste, Darrigol, Vu, Wiltberger. arXiv:2609.00006, cs.SE。提交 2026-07-15,列于 2026-09-02。<em>子系统划分、两个「缺席」、9/11 vs 8/11、纵向观察。</em></li>
+    <li><a href="https://arxiv.org/abs/2609.01736">Harness Engineering in LLM Tool Use via Agent-Native Reusable Tool Primitives</a> — Jin, Wang, Yu, Luo, Wang. arXiv:2609.01736,2026-09-01。<em>Tool Primitives / ToolFace / HEART 及全部基准数字(论文自报)。</em></li>
+    <li><a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">Effective harnesses for long-running agents</a> — Justin Young, Anthropic Engineering, 2025-11-26。<em>四种失败模式表、初始化 agent / 编码 agent 分工、feature list JSON、init.sh。</em></li>
+    <li><a href="https://www.anthropic.com/engineering/harness-design-long-running-apps">Harness design for long-running application development</a> — Prithvi Rajasekaran, Anthropic Engineering, 2026-03-24。<em>planner / generator / evaluator、sprint contract、context anxiety、成本表($9 vs $200、V2 $124.70)、「Claude is a poor QA agent」、能力边界论。</em></li>
+    <li><a href="https://www.anthropic.com/engineering/managed-agents">Scaling Managed Agents: Decoupling the brain from the hands</a> — Martin, Cemaj, Cohen, Anthropic Engineering, 2026-04-08。<em>brain / hands / session 三分、接口签名、凭据攻击链与两种隔离模式、session ≠ context window、TTFT 数字。</em></li>
+    <li><a href="https://arxiv.org/abs/2609.02925">The Illusion of Independent Quorums: Epistemic Fault Domains and Correlated Cognitive Failures in Agentic Quorums</a> — arXiv:2609.02925, cs.DC, 2026-09-04。</li>
+    <li><a href="https://arxiv.org/abs/2609.03422">Inferred Generative-Process Diversity Predicts Correlated Failure Across Language Models</a> — arXiv:2609.03422, cs.LG, 2026-09-04。</li>
+    <li><a href="https://www.anthropic.com/engineering/building-effective-agents">Building effective agents</a> — Anthropic Engineering, 2024-12-19。<em>「找到最简方案,只在需要时增加复杂度」的出处。</em></li>
+    <li><a href="https://www.anthropic.com/engineering">Engineering at Anthropic</a> · <a href="https://platform.claude.com/docs/en/agent-sdk/overview">Claude Agent SDK 文档</a> — 上述实验所用的编排底座。</li>
+  </ol>
+  <ol class="en">
+    <li><a href="https://arxiv.org/abs/2609.00006">Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems</a> — Barbaste, Darrigol, Vu, Wiltberger. arXiv:2609.00006, cs.SE. Submitted 2026-07-15, listed 2026-09-02. <em>Subsystem breakdown, the two absences, 9/11 vs 8/11, longitudinal findings.</em></li>
+    <li><a href="https://arxiv.org/abs/2609.01736">Harness Engineering in LLM Tool Use via Agent-Native Reusable Tool Primitives</a> — Jin, Wang, Yu, Luo, Wang. arXiv:2609.01736, 2026-09-01. <em>Tool Primitives / ToolFace / HEART and all benchmark figures (paper-reported).</em></li>
+    <li><a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">Effective harnesses for long-running agents</a> — Justin Young, Anthropic Engineering, 2025-11-26. <em>The four-failure-mode table, initializer/coding agent split, feature-list JSON, init.sh.</em></li>
+    <li><a href="https://www.anthropic.com/engineering/harness-design-long-running-apps">Harness design for long-running application development</a> — Prithvi Rajasekaran, Anthropic Engineering, 2026-03-24. <em>Planner / generator / evaluator, sprint contracts, context anxiety, the cost tables ($9 vs $200; V2 at $124.70), "Claude is a poor QA agent", the capability-frontier argument.</em></li>
+    <li><a href="https://www.anthropic.com/engineering/managed-agents">Scaling Managed Agents: Decoupling the brain from the hands</a> — Martin, Cemaj, Cohen, Anthropic Engineering, 2026-04-08. <em>The brain / hands / session split, interface signatures, the credential attack chain and two isolation patterns, session ≠ context window, the TTFT figures.</em></li>
+    <li><a href="https://arxiv.org/abs/2609.02925">The Illusion of Independent Quorums: Epistemic Fault Domains and Correlated Cognitive Failures in Agentic Quorums</a> — arXiv:2609.02925, cs.DC, 2026-09-04.</li>
+    <li><a href="https://arxiv.org/abs/2609.03422">Inferred Generative-Process Diversity Predicts Correlated Failure Across Language Models</a> — arXiv:2609.03422, cs.LG, 2026-09-04.</li>
+    <li><a href="https://www.anthropic.com/engineering/building-effective-agents">Building effective agents</a> — Anthropic Engineering, 2024-12-19. <em>Origin of "find the simplest solution possible, and only increase complexity when needed".</em></li>
+    <li><a href="https://www.anthropic.com/engineering">Engineering at Anthropic</a> · <a href="https://platform.claude.com/docs/en/agent-sdk/overview">Claude Agent SDK docs</a> — the orchestration substrate used in the experiments above.</li>
+  </ol>
+</section>
+
+</main>
+</div>
+
+<footer><div class="fin">
+  <h3 class="zh">关于这份文档</h3>
+  <h3 class="en">About this document</h3>
+  <p class="zh">调研时间:<strong>2026-09-07</strong>。本文的每个关键事实都对应上方来源清单中的某一条;论文自报数字与官方自述实验已在正文中标注,未做第三方复现。Harness 设计与模型能力强绑定,而模型迭代很快——<strong>文中所有「什么该拆、什么该留」的具体判断,请在你自己实际使用的模型上重新验证。</strong>以官方最新文档为准。</p>
+  <p class="en">Researched: <strong>2026-09-07</strong>. Every key fact here maps to an entry in the source list above; paper-reported figures and self-reported vendor experiments are labelled inline and have not been independently replicated. Harness design is tightly coupled to model capability, and models iterate fast — <strong>re-validate every specific "keep it / strip it" judgement here against the model you actually use.</strong> Defer to the latest official documentation.</p>
+  <p class="zh" style="margin-bottom:0">AIDaily · 每日 AI 技术情报 · 深度学习文档</p>
+  <p class="en" style="margin-bottom:0">AIDaily · Daily AI intelligence brief · Deep-dive document</p>
+</div></footer>
+
+<script>
+(function(){
+  var body=document.body, btn=document.getElementById('langbtn'), root=document.documentElement;
+  function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function load(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+
+  var saved=load('aidaily-lang');
+  var initial = saved || ((navigator.language||'en').toLowerCase().indexOf('zh')===0 ? 'zh' : 'en');
+  applyLang(initial, true);
+
+  function applyLang(lang, silent){
+    body.setAttribute('data-lang', lang);
+    root.setAttribute('lang', lang==='zh' ? 'zh-CN' : 'en');
+    btn.textContent = lang==='zh' ? 'EN' : '中';
+    btn.setAttribute('aria-label', lang==='zh' ? 'Switch to English' : '切换为中文');
+    if(!silent){ store('aidaily-lang', lang); refreshFigures(); }
+  }
+  btn.addEventListener('click', function(){
+    applyLang(body.getAttribute('data-lang')==='zh' ? 'en' : 'zh', false);
+  });
+
+  /* progress bar */
+  var bar=document.getElementById('bar');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    bar.style.width = (h>0 ? (window.scrollY/h*100) : 0) + '%';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  /* mobile toc */
+  var toc=document.getElementById('toc'), tbtn=document.getElementById('tocbtn');
+  tbtn.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.closest('a')) toc.classList.remove('open'); });
+
+  /* toc highlight */
+  var links=[].slice.call(toc.querySelectorAll('a'));
+  var secs=links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+  var spy=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('on'); });
+        var m=toc.querySelector('a[href="#'+e.target.id+'"]');
+        if(m) m.classList.add('on');
+      }
+    });
+  }, {rootMargin:'-15% 0px -70% 0px'});
+  secs.forEach(function(s){ spy.observe(s); });
+
+  /* figure entrance animation, language-switch aware */
+  var figObs=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); figObs.unobserve(e.target); }
+    });
+  }, {threshold:0.12});
+
+  function visibleNow(el){
+    var r=el.getBoundingClientRect();
+    return r.top < window.innerHeight && r.bottom > 0 && r.width > 0 && r.height > 0;
+  }
+  function refreshFigures(){
+    /* display:none elements never fire IntersectionObserver, so after a language
+       switch we re-observe unplayed figures and mark any already on screen. */
+    [].forEach.call(document.querySelectorAll('.figure'), function(f){
+      if(f.classList.contains('in')) return;
+      if(visibleNow(f)){ f.classList.add('in'); }
+      else { figObs.unobserve(f); figObs.observe(f); }
+    });
+  }
+  [].forEach.call(document.querySelectorAll('.figure'), function(f){ figObs.observe(f); });
+  requestAnimationFrame(refreshFigures);
+})();
+</script>
+</body>
+</html>
