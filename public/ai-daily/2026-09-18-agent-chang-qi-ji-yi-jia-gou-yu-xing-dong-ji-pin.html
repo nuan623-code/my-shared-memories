@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 长期记忆:架构选型与行动级评测 | Long-Term Memory for Agents: Architecture Choices and Action-Level Evaluation</title>
+<style>
+:root{
+  --paper:#faf6f0;
+  --paper-2:#f2ebe1;
+  --ink:#2a2118;
+  --ink-2:#4d4237;
+  --muted:#8a7a68;
+  --line:#e0d5c6;
+  --accent:#b45309;
+  --accent-2:#d97706;
+  --accent-soft:#fde9cf;
+  --teal:#0f766e;
+  --teal-soft:#d6f0ec;
+  --red:#b91c1c;
+  --red-soft:#fbe3e1;
+  --card:#fffdfa;
+  --shadow:0 1px 2px rgba(42,33,24,.05),0 8px 24px rgba(42,33,24,.06);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --serif:Georgia,"Songti SC","Noto Serif SC",serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px;line-height:1.82;-webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));z-index:200;transition:width .1s linear}
+
+#langbtn{position:fixed;top:14px;right:16px;z-index:210;border:1px solid var(--line);background:var(--card);
+  color:var(--ink);border-radius:999px;padding:7px 15px;font-size:13px;font-weight:700;cursor:pointer;
+  box-shadow:var(--shadow);letter-spacing:.04em}
+#langbtn:hover{border-color:var(--accent);color:var(--accent)}
+
+header{padding:78px 20px 52px;background:
+  radial-gradient(1100px 380px at 12% -12%,var(--accent-soft) 0%,rgba(253,233,207,0) 62%),
+  linear-gradient(180deg,var(--paper-2) 0%,var(--paper) 100%);
+  border-bottom:1px solid var(--line)}
+.hin{max-width:900px;margin:0 auto}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:0 0 16px}
+h1{font-family:var(--serif);font-size:clamp(30px,5.2vw,50px);line-height:1.18;margin:0 0 18px;font-weight:700;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:clamp(16px,2.1vw,19px);color:var(--ink-2);margin:0 0 22px;max-width:70ch}
+.meta{font-size:13px;color:var(--muted);font-family:var(--mono)}
+
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 90px}
+aside#toc{position:fixed;left:calc(50% - 700px);top:96px;width:220px;z-index:120;
+  background:rgba(255,253,250,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:14px;padding:14px 12px;box-shadow:var(--shadow);max-height:76vh;overflow:auto}
+aside#toc .tt{font-size:11px;font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 9px;padding-left:8px}
+aside#toc a{display:block;font-size:13px;color:var(--ink-2);text-decoration:none;padding:5px 8px;border-radius:7px;line-height:1.45;border-left:2px solid transparent}
+aside#toc a:hover{background:var(--paper-2);color:var(--ink)}
+aside#toc a.on{color:var(--accent);background:var(--accent-soft);border-left-color:var(--accent);font-weight:600}
+#tocT{display:none}
+@media(max-width:1480px){
+  aside#toc{left:auto;right:16px;top:auto;bottom:70px;width:230px;transform:translateX(120%);transition:transform .25s ease}
+  aside#toc.open{transform:none}
+  #tocT{display:block;position:fixed;right:16px;bottom:16px;z-index:130;width:46px;height:46px;border-radius:50%;
+    border:1px solid var(--line);background:var(--card);color:var(--accent);font-size:19px;cursor:pointer;box-shadow:var(--shadow)}
+}
+
+section{padding:44px 0 8px;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h2{font-family:var(--serif);font-size:clamp(23px,3.4vw,30px);line-height:1.3;margin:0 0 6px;font-weight:700}
+h2 .n{font-family:var(--mono);font-size:13px;color:var(--accent);display:block;margin-bottom:7px;letter-spacing:.1em}
+h3{font-size:19px;margin:32px 0 10px;font-weight:700;color:var(--ink)}
+h4{font-size:16px;margin:22px 0 8px;font-weight:700;color:var(--ink-2)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px;padding-left:22px}
+li{margin:0 0 8px}
+b,strong{font-weight:700;color:var(--ink)}
+code{font-family:var(--mono);font-size:.87em;background:var(--paper-2);padding:2px 6px;border-radius:5px;color:var(--accent)}
+pre{background:#2a2118;color:#f0e6d8;padding:16px 18px;border-radius:12px;overflow-x:auto;font-family:var(--mono);
+  font-size:13.5px;line-height:1.66;margin:0 0 18px;box-shadow:var(--shadow)}
+pre code{background:none;color:inherit;padding:0;font-size:inherit}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+a:hover{border-bottom-color:var(--accent)}
+
+.def{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:0 12px 12px 0;
+  padding:18px 20px;margin:0 0 20px;box-shadow:var(--shadow)}
+.def .dt{font-weight:700;font-size:17px;margin:0 0 8px;color:var(--accent)}
+.def p:last-child{margin-bottom:0}
+
+.callout{border-radius:12px;padding:16px 18px;margin:0 0 20px;border:1px solid}
+.callout p:last-child{margin-bottom:0}
+.callout .ct{font-weight:700;display:block;margin-bottom:6px;font-size:15px}
+.key{background:var(--teal-soft);border-color:#a7ddd5}
+.key .ct{color:var(--teal)}
+.warn{background:var(--red-soft);border-color:#f3c4c0}
+.warn .ct{color:var(--red)}
+.quote{background:var(--paper-2);border-color:var(--line);font-family:var(--serif);font-size:17px;color:var(--ink-2)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 22px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
+.stat .v{font-family:var(--serif);font-size:27px;font-weight:700;color:var(--accent);line-height:1.1}
+.stat .l{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.45}
+
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 22px}
+.steps li{counter-increment:s;position:relative;padding:0 0 0 42px;margin:0 0 16px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:28px;height:28px;border-radius:50%;
+  background:var(--accent);color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+
+.tbl{overflow-x:auto;margin:0 0 22px;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--paper-2);font-weight:700;font-size:13px;letter-spacing:.02em}
+tr:last-child td{border-bottom:none}
+td .ok{color:var(--teal);font-weight:700}
+td .bad{color:var(--red);font-weight:700}
+
+.figure{margin:0 0 26px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 18px 14px;box-shadow:var(--shadow);
+  opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block;max-width:100%}
+.fig-cap{font-size:13px;color:var(--muted);margin:12px 0 0;text-align:center;line-height:1.6}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}}
+
+.glossary{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 18px;margin:0 0 22px;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:700;margin:14px 0 4px;color:var(--accent);font-size:15px}
+.glossary dd{margin:0 0 14px;font-size:15px;color:var(--ink-2);line-height:1.7}
+
+.rephrase{border:1px dashed var(--line);border-radius:10px;padding:0 16px;margin:0 0 20px;background:var(--paper-2)}
+.rephrase summary{cursor:pointer;padding:12px 0;font-size:14.5px;font-weight:600;color:var(--ink-2);list-style:none}
+.rephrase summary::-webkit-details-marker{display:none}
+.rephrase summary::before{content:"▸ ";color:var(--accent)}
+.rephrase[open] summary::before{content:"▾ "}
+.rephrase .body{padding:0 0 14px;font-size:15px;color:var(--ink-2)}
+.rephrase .body p:last-child{margin-bottom:0}
+
+.srcs{font-size:13.5px;color:var(--muted);line-height:1.8}
+.srcs li{margin-bottom:7px}
+
+footer{border-top:1px solid var(--line);padding:32px 20px 60px;text-align:center;color:var(--muted);font-size:13px;background:var(--paper-2)}
+footer .fin{max-width:900px;margin:0 auto}
+
+@media(max-width:640px){
+  body{font-size:16px}
+  header{padding:62px 16px 40px}
+  .wrap{padding:0 16px 80px}
+  pre{font-size:12.5px;padding:13px 14px}
+  .stat .v{font-size:23px}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN ☰ 深度学习文档 · 2026-09-18 Deep Dive · 2026-09-18 Agent 长期记忆 :架构选型与行动级评测 Long-Term Memory for Agents: Architectu…">
+<meta property="og:title" content="Agent 长期记忆:架构选型与行动级评测 | Long-Term Memory for Agents: Architecture Choices and Action-Level Evaluation">
+<meta property="og:description" content="EN ☰ 深度学习文档 · 2026-09-18 Deep Dive · 2026-09-18 Agent 长期记忆 :架构选型与行动级评测 Long-Term Memory for Agents: Architectu…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-09-18-agent-chang-qi-ji-yi-jia-gou-yu-xing-dong-ji-pin.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-09-18-agent-chang-qi-ji-yi-jia-gou-yu-xing-dong-ji-pin.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent 长期记忆:架构选型与行动级评测 | Long-Term Memory for Agents: Architecture Choices and Action-Level Evaluation", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-09-18-agent-chang-qi-ji-yi-jia-gou-yu-xing-dong-ji-pin.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-18", "dateModified": "2026-09-18"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button id="langbtn" type="button">EN</button>
+<button id="tocT" type="button" aria-label="目录">☰</button>
+
+<header><div class="hin">
+  <p class="kicker zh">深度学习文档 · 2026-09-18</p>
+  <p class="kicker en">Deep Dive · 2026-09-18</p>
+  <h1 class="zh">Agent <em>长期记忆</em>:架构选型与行动级评测</h1>
+  <h1 class="en">Long-Term <em>Memory</em> for Agents: Architecture Choices and Action-Level Evaluation</h1>
+  <p class="lede zh">给智能体上记忆,大多数人的默认动作是「切片 + 向量库 + 语义检索」。但在事实会被修改的场景里——地址、配置、日程,也就是绝大多数运营事实——这个默认选择不只是稍差一点,而是<b>不可预测</b>。本文用一份 2026 年 9 月的实证研究,把记忆从「存得准不准」重讲成「做得对不对」。</p>
+  <p class="lede en">The default move when adding memory to an agent is "chunk it, embed it, retrieve it." But for facts that get <em>revised</em> — addresses, configs, schedules, which is to say most operational facts — that default is not merely a bit worse. It is <b>unpredictable</b>. This piece uses a September 2026 empirical study to reframe memory from "did it store the right thing" to "did the agent do the right thing."</p>
+  <p class="meta zh">调研时间:2026-09-18 · 核心来源:arXiv 2609.05441(MERIT)、mem0 基准综述、LangChain 官方文档 · 阅读时间约 22 分钟</p>
+  <p class="meta en">Researched: 2026-09-18 · Primary sources: arXiv 2609.05441 (MERIT), mem0 benchmark guide, LangChain docs · ~22 min read</p>
+</div></header>
+
+<aside id="toc">
+  <p class="tt"><span class="zh">目录</span><span class="en">Contents</span></p>
+  <a href="#s1"><span class="zh">1 · 30 秒速览</span><span class="en">1 · The 30-second version</span></a>
+  <a href="#s2"><span class="zh">2 · 为什么长上下文替代不了记忆</span><span class="en">2 · Why long context isn't memory</span></a>
+  <a href="#s3"><span class="zh">3 · 五种记忆架构</span><span class="en">3 · Five memory architectures</span></a>
+  <a href="#s4"><span class="zh">4 · 四个反直觉的实证发现</span><span class="en">4 · Four counterintuitive findings</span></a>
+  <a href="#s5"><span class="zh">5 · 怎么评测:从答对到做对</span><span class="en">5 · Evaluation: from answering to acting</span></a>
+  <a href="#s6"><span class="zh">6 · 怎么用:落地与代码</span><span class="en">6 · How to use it: code and practice</span></a>
+  <a href="#s7"><span class="zh">7 · 对比与选型</span><span class="en">7 · Comparison and selection</span></a>
+  <a href="#s8"><span class="zh">8 · 常见坑与限制</span><span class="en">8 · Pitfalls and limits</span></a>
+  <a href="#s9"><span class="zh">9 · 学习资源</span><span class="en">9 · Resources</span></a>
+</aside>
+
+<div class="wrap">
+
+<!-- ========== S1 ========== -->
+<section id="s1">
+  <h2 class="zh"><span class="n">01</span>30 秒速览:一句话和一张图</h2>
+  <h2 class="en"><span class="n">01</span>The 30-second version</h2>
+
+  <p class="zh">先说结论,再解释为什么。<b>如果你的 agent 依赖的事实会被更新</b>(用户改了地址、运维改了配置、日程被挪了),那么<b>基于向量检索的记忆是错误的默认选项</b>——不是慢一点或者差一点,而是同一套系统换个随机种子成功率能从 0.45 跳到 0.90,换个模型能从 0.30 跳到 0.95。原因很朴素:检索会把「旧值」和「新值」并排塞进上下文,而检索本身<b>不带时间仲裁</b>,agent 只能靠猜。</p>
+  <p class="en">Conclusion first, explanation after. <b>If the facts your agent depends on get revised</b> — the user changed their address, ops changed a config, a meeting moved — then <b>vector-retrieval memory is the wrong default</b>. Not slightly slower or slightly worse: the same system swings from 0.45 to 0.90 success just by changing the random seed, and from 0.30 to 0.95 across agent models. The reason is plain: retrieval puts the stale value and the fresh value side by side in context, and retrieval itself carries <b>no recency arbitration</b>. The agent is left guessing.</p>
+
+  <p class="zh">对应的正确默认是<b>「写时覆盖」(update-on-write)</b>:在写入记忆的那一刻就把冲突解决掉,而不是留到读取时让模型去判断。结构化事实库属于这一类;有点出人意料的是,<b>LLM 摘要也属于这一类</b>——因为它每个 episode 都重写一遍摘要,天然保留最新值。</p>
+  <p class="en">The right default is <b>update-on-write</b>: resolve the conflict at write time instead of leaving it for the model to adjudicate at read time. A structured fact store does this. Somewhat surprisingly, <b>LLM summarization does too</b> — because it rewrites the summary every episode, it naturally keeps the latest value.</p>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="长上下文与长期记忆的区别示意图">
+      <defs><marker id="arw" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#8a7a68"/></marker></defs>
+      <rect x="18" y="26" width="344" height="250" rx="14" fill="#f2ebe1" stroke="#e0d5c6"/>
+      <text x="190" y="54" text-anchor="middle" font-size="16" font-weight="700" fill="#2a2118">长上下文 = 容量</text>
+      <text x="190" y="76" text-anchor="middle" font-size="12.5" fill="#8a7a68">一次给一大坨输入,一次读完</text>
+      <rect x="52" y="96" width="276" height="56" rx="9" fill="#fffdfa" stroke="#e0d5c6"/>
+      <text x="190" y="121" text-anchor="middle" font-size="12.5" fill="#4d4237">1M token 的单次输入</text>
+      <text x="190" y="140" text-anchor="middle" font-size="11.5" fill="#8a7a68">状态固定 · 没有写入 · 调用完即消失</text>
+      <line x1="190" y1="158" x2="190" y2="188" stroke="#8a7a68" stroke-width="1.6" marker-end="url(#arw)"/>
+      <rect x="52" y="192" width="276" height="56" rx="9" fill="#fde9cf" stroke="#d97706"/>
+      <text x="190" y="216" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">失败方式:注意力落在错误的片段</text>
+      <text x="190" y="235" text-anchor="middle" font-size="11.5" fill="#b45309">基准:NIAH / RULER / BABILong</text>
+
+      <rect x="398" y="26" width="344" height="250" rx="14" fill="#d6f0ec" stroke="#a7ddd5"/>
+      <text x="570" y="54" text-anchor="middle" font-size="16" font-weight="700" fill="#0f766e">长期记忆 = 连续性</text>
+      <text x="570" y="76" text-anchor="middle" font-size="12.5" fill="#0f766e">跨会话写入-读取的循环</text>
+      <rect x="432" y="96" width="126" height="56" rx="9" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="495" y="120" text-anchor="middle" font-size="12" fill="#4d4237">第 1 次会话</text>
+      <text x="495" y="138" text-anchor="middle" font-size="11" fill="#8a7a68">写入事实</text>
+      <rect x="582" y="96" width="126" height="56" rx="9" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="645" y="120" text-anchor="middle" font-size="12" fill="#4d4237">第 50 次会话</text>
+      <text x="645" y="138" text-anchor="middle" font-size="11" fill="#8a7a68">读取并行动</text>
+      <line x1="560" y1="124" x2="578" y2="124" stroke="#0f766e" stroke-width="1.6" marker-end="url(#arw)"/>
+      <line x1="570" y1="158" x2="570" y2="188" stroke="#0f766e" stroke-width="1.6" marker-end="url(#arw)"/>
+      <rect x="432" y="192" width="276" height="56" rx="9" fill="#fffdfa" stroke="#0f766e"/>
+      <text x="570" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#0f766e">失败方式:存错 / 取错 / 排序错</text>
+      <text x="570" y="231" text-anchor="middle" font-size="11.5" fill="#0f766e">基准:LoCoMo / LongMemEval / BEAM / MERIT</text>
+    </svg>
+    <p class="fig-cap">图 1:长上下文解决「容量」,记忆解决「连续性」。两者失败方式不同,同一个分数不能同时衡量两者。</p>
+  </div>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Long context versus long-term memory">
+      <defs><marker id="arw-e" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#8a7a68"/></marker></defs>
+      <rect x="18" y="26" width="344" height="250" rx="14" fill="#f2ebe1" stroke="#e0d5c6"/>
+      <text x="190" y="54" text-anchor="middle" font-size="16" font-weight="700" fill="#2a2118">Long context = capacity</text>
+      <text x="190" y="76" text-anchor="middle" font-size="12.5" fill="#8a7a68">One big input, read in a single pass</text>
+      <rect x="52" y="96" width="276" height="56" rx="9" fill="#fffdfa" stroke="#e0d5c6"/>
+      <text x="190" y="121" text-anchor="middle" font-size="12.5" fill="#4d4237">A single 1M-token input</text>
+      <text x="190" y="140" text-anchor="middle" font-size="11.5" fill="#8a7a68">Fixed state · no write · gone after the call</text>
+      <line x1="190" y1="158" x2="190" y2="188" stroke="#8a7a68" stroke-width="1.6" marker-end="url(#arw-e)"/>
+      <rect x="52" y="192" width="276" height="56" rx="9" fill="#fde9cf" stroke="#d97706"/>
+      <text x="190" y="216" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">Fails by: attending to the wrong span</text>
+      <text x="190" y="235" text-anchor="middle" font-size="11.5" fill="#b45309">Benchmarks: NIAH / RULER / BABILong</text>
+
+      <rect x="398" y="26" width="344" height="250" rx="14" fill="#d6f0ec" stroke="#a7ddd5"/>
+      <text x="570" y="54" text-anchor="middle" font-size="16" font-weight="700" fill="#0f766e">Long-term memory = continuity</text>
+      <text x="570" y="76" text-anchor="middle" font-size="12.5" fill="#0f766e">A write-then-retrieve loop across sessions</text>
+      <rect x="432" y="96" width="126" height="56" rx="9" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="495" y="120" text-anchor="middle" font-size="12" fill="#4d4237">Session 1</text>
+      <text x="495" y="138" text-anchor="middle" font-size="11" fill="#8a7a68">write the fact</text>
+      <rect x="582" y="96" width="126" height="56" rx="9" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="645" y="120" text-anchor="middle" font-size="12" fill="#4d4237">Session 50</text>
+      <text x="645" y="138" text-anchor="middle" font-size="11" fill="#8a7a68">read it and act</text>
+      <line x1="560" y1="124" x2="578" y2="124" stroke="#0f766e" stroke-width="1.6" marker-end="url(#arw-e)"/>
+      <line x1="570" y1="158" x2="570" y2="188" stroke="#0f766e" stroke-width="1.6" marker-end="url(#arw-e)"/>
+      <rect x="432" y="192" width="276" height="56" rx="9" fill="#fffdfa" stroke="#0f766e"/>
+      <text x="570" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#0f766e">Fails by: storing / retrieving / ranking wrong</text>
+      <text x="570" y="231" text-anchor="middle" font-size="11.5" fill="#0f766e">Benchmarks: LoCoMo / LongMemEval / BEAM / MERIT</text>
+    </svg>
+    <p class="fig-cap">Fig. 1 — Long context solves capacity; memory solves continuity. They fail differently, and one score cannot measure both.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">23,440</div><div class="l zh">MERIT 研究中计分的 episode 总数,总 API 花费 42.57 美元</div><div class="l en">Scored episodes in the MERIT study, at $42.57 total API cost</div></div>
+    <div class="stat"><div class="v">0.30–0.95</div><div class="l zh">更新事实档位上,向量检索式记忆跨模型×领域的成功率跨度</div><div class="l en">Success spread of embedding retrieval on updated facts, across models × domains</div></div>
+    <div class="stat"><div class="v">45%</div><div class="l zh">正确的值已在上下文里,agent 仍然不去用它的比例</div><div class="l en">Of episodes where the correct value was in context and the agent still didn't act on it</div></div>
+    <div class="stat"><div class="v">2.7–3.9×</div><div class="l zh">全量回放相对每个领域最优方案的单位成本劣势</div><div class="l en">Cost-efficiency penalty of full replay vs. the per-domain best condition</div></div>
+  </div>
+</section>
+
+<!-- ========== S2 ========== -->
+<section id="s2">
+  <h2 class="zh"><span class="n">02</span>为什么长上下文替代不了记忆</h2>
+  <h2 class="en"><span class="n">02</span>Why a long context window isn't memory</h2>
+
+  <p class="zh">2026 年上下文窗口已经到了百万级别,一个很自然的想法是:那还要什么记忆系统?把历史全塞进去不就行了。这个想法有三处站不住。</p>
+  <p class="en">Context windows reached a million tokens in 2026, so the natural thought is: why build a memory system at all, when you can just stuff the whole history in? Three things break that idea.</p>
+
+  <h3 class="zh">第一,长上下文基准测的根本不是同一件事</h3>
+  <h3 class="en">First, long-context benchmarks measure something else entirely</h3>
+  <p class="zh">NIAH、RULER、BABILong、InfiniteBench、LongBench 这些常被拿来当「记忆能力」证据的基准,测的都是<b>单次固定输入上的注意力</b>:给你一大段文字,里面藏一根针,你能不能找出来。这里没有写入步骤、没有淘汰、没有按用户分区、没有 token 预算。而记忆系统至少是四件事:<b>从对话流里抽取有用事实、写进外部存储、推理时取回正确的那些、以及在它们过时时更新或删除</b>。只测检索,等于只测了四分之一。</p>
+  <p class="en">NIAH, RULER, BABILong, InfiniteBench and LongBench — routinely cited as evidence of "memory" — all measure <b>attention over a single fixed input</b>: here is a long passage with a needle in it, can you find it. There is no write step, no eviction, no per-user partition, no token budget. Memory, meanwhile, is at least four capabilities: <b>extracting useful facts from a stream of dialogue, writing them to an external store, retrieving the right ones at inference time, and updating or pruning them when they go stale</b>. Testing retrieval alone tests one quarter of the system.</p>
+
+  <div class="callout key">
+    <span class="ct zh">🔑 核心区分</span>
+    <span class="ct en">🔑 The core distinction</span>
+    <p class="zh">长上下文基准失败,是因为模型<b>注意到了错误的片段</b>。记忆基准失败,可能是因为系统<b>存错了东西</b>、存对了但<b>取错了</b>、或者存对取对却<b>排序排坏了</b>。混淆两者会让一个系统看起来比实际更好。</p>
+    <p class="en">A long-context benchmark fails when the model <b>attends to the wrong span</b>. A memory benchmark fails when the system <b>stores the wrong thing</b>, stores the right thing but <b>retrieves the wrong one</b>, or stores and retrieves the right thing but <b>ranks it badly</b>. Conflating them makes a system look better than it is.</p>
+  </div>
+
+  <h3 class="zh">第二,实测证明模型能力再强也替代不了记忆</h3>
+  <h3 class="en">Second, raw model capability measurably does not substitute for memory</h3>
+  <p class="zh">MERIT 研究做了一个很干脆的对照实验:在「泄漏检查」(leak check)保证下——即答案所需的事实<b>确实不在本次 episode 的任何输入里、也不在世界初始状态里</b>——把记忆整个关掉(C0 条件)。结果:<b>九个(领域×难度)格子上,C0 全部得 0.000</b>。这个 0 在 Claude Opus 4.8 和 Claude Sonnet 5 这两个 2026 世代的前沿模型上同样成立。而这些模型在「本 episode 内可解」的独立任务上得分 0.83–1.00,说明任务本身没问题。</p>
+  <p class="en">The MERIT study ran a blunt control: with a <b>leak check</b> guaranteeing that the required fact is genuinely absent from the episode's inputs <em>and</em> from the initial world state, turn memory off entirely (condition C0). Result: <b>C0 scored 0.000 in all nine (domain × difficulty) cells</b>. That zero holds for Claude Opus 4.8 and Claude Sonnet 5, both 2026-generation frontier models. On independent tasks solvable within the episode, the same models score 0.83–1.00, confirming the tasks themselves are solvable.</p>
+
+  <h3 class="zh">第三,token 预算是真实约束</h3>
+  <h3 class="en">Third, the token budget is a real constraint</h3>
+  <p class="zh">一个在每次查询注入 5 万 token 记忆的系统,和一个注入 7 千 token 达到同样准确率的系统,不是同一个产品。mem0 公布的数据是:四个基准上平均每次检索 6.7K–7.0K token,而全上下文基线每次查询消耗 25,000+ token,相当于同等准确率下<b>约 3–4 倍的 token 成本差</b>。MERIT 用更严格的方式说了同一件事:全量回放<b>在任何一个领域都不是经济选择</b>,单位成本上比该领域最优方案差 2.7–3.9 倍。</p>
+  <p class="en">A system that injects 50K tokens of memory per query is not the same product as one that hits the same accuracy with 7K. Mem0 reports a mean of 6.7K–7.0K tokens per retrieval across four benchmarks, against full-context baselines consuming 25,000+ tokens per query — roughly a <b>3–4× token cost difference</b> at comparable accuracy. MERIT says the same thing more strictly: full replay is <b>never the economical choice in any domain</b>, running 2.7–3.9× worse per unit of success than that domain's best condition.</p>
+
+  <details class="rephrase">
+    <summary class="zh">换个说法:用图书馆打个比方</summary>
+    <summary class="en">Put differently: a library analogy</summary>
+    <div class="body zh"><p>长上下文像是「把整个书库搬到你桌上,你自己翻」。书确实都在,但每次都要重新搬一遍(贵),而且书越多你越容易翻错页(注意力衰减)。记忆系统则是「有个图书管理员,平时帮你做卡片索引,你来了他递给你该看的那几页」。管理员会不会记卡片(写入)、卡片准不准(抽取质量)、旧卡片过期了会不会换掉(更新)——这些才是记忆系统的真问题,而它们在「把书搬上桌」这件事里根本不存在。</p></div>
+    <div class="body en"><p>Long context is "wheel the entire stacks onto your desk and flip through them yourself." The books are all there, but you pay to wheel them in every single time, and the more there are the likelier you turn to the wrong page. A memory system is "a librarian who keeps index cards and hands you the few pages you need." Whether the librarian writes cards at all, whether the cards are accurate, and whether stale cards get replaced — those are memory's real problems, and none of them exist in the wheel-the-stacks-in approach.</p></div>
+  </details>
+</section>
+
+<!-- ========== S3 ========== -->
+<section id="s3">
+  <h2 class="zh"><span class="n">03</span>五种记忆架构:先把选项摆清楚</h2>
+  <h2 class="en"><span class="n">03</span>Five memory architectures: laying out the options</h2>
+
+  <p class="zh">在讨论谁好谁坏之前,先把候选项统一到一个接口下——所有记忆系统都只做两件事:<code>write(episode)</code>(这一轮结束,把该记的记下来)和 <code>read(context)</code>(这一轮开始,把该给的给出来)。MERIT 正是按这个接口把业界主流架构重新实现成五个条件,以便<b>把架构机制和产品工程解耦</b>比较。</p>
+  <p class="en">Before arguing about which is better, put all candidates behind one interface. Every memory system does exactly two things: <code>write(episode)</code> — at the end of a turn, store what's worth storing — and <code>read(context)</code> — at the start of a turn, surface what's worth surfacing. MERIT reimplements the field's main architecture families as five conditions behind exactly this interface, so that <b>the mechanism can be compared separately from the product engineering around it</b>.</p>
+
+  <div class="glossary">
+    <dl>
+      <dt class="zh">C0 · 无记忆(none)</dt>
+      <dd class="zh">什么都不存。作为地板线存在:如果一个任务在 C0 上也能做成,说明它根本不依赖跨会话的事实。</dd>
+      <dt class="en">C0 · No memory</dt>
+      <dd class="en">Store nothing. It exists as the floor: if a task succeeds under C0, it never depended on a cross-session fact in the first place.</dd>
+
+      <dt class="zh">C1 · 全量回放(full replay)</dt>
+      <dd class="zh">把此前所有会话的完整逐字记录原样塞回上下文。信息最全,天然按时间顺序排列,因此能靠先后关系分辨新旧。代价是 token 成本和「信息都在但组合不出来」的问题。</dd>
+      <dt class="en">C1 · Full replay</dt>
+      <dd class="en">Paste every prior transcript back into context verbatim. Maximum information, chronologically ordered, so recency can be resolved from the order itself. The cost is tokens — and a "has everything, can't compose it" problem.</dd>
+
+      <dt class="zh">C2 · 检索(retrieval)</dt>
+      <dd class="zh">把历史切片后向量化,查询时按语义相似度取回最相关的几条。这是绝大多数人的默认做法(MERIT 的真实实现用 <code>text-embedding-3-small</code>)。关键性质:它<b>累积</b>——新旧值会并存。</dd>
+      <dt class="en">C2 · Retrieval</dt>
+      <dd class="en">Chunk the history, embed it, and pull back the most semantically similar entries at query time. This is most people's default (MERIT's real implementation uses <code>text-embedding-3-small</code>). Key property: it <b>accumulates</b> — stale and fresh values coexist.</dd>
+
+      <dt class="zh">C3 · 滚动摘要(rolling summary)</dt>
+      <dd class="zh">每个 episode 结束后,用 LLM 把「旧摘要 + 本轮内容」重写成一份新摘要。关键性质:因为每次都<b>重写</b>,它其实天然属于「写时覆盖」家族——这一点直到被实测才被看清。</dd>
+      <dt class="en">C3 · Rolling summary</dt>
+      <dd class="en">After each episode, have an LLM rewrite "old summary + this episode" into a new summary. Key property: because it <b>rewrites</b> every time, it actually belongs to the update-on-write family — a kinship that only became visible once it was measured.</dd>
+
+      <dt class="zh">C4 · 结构化事实库(structured fact store,写时覆盖)</dt>
+      <dd class="zh">用 LLM 从对话里抽取结构化事实(键值对),写入时<b>同键覆盖</b>。关键性质:冲突在写入侧就被消灭了,读取时只有一个值。</dd>
+      <dt class="en">C4 · Structured fact store (update-on-write)</dt>
+      <dd class="en">Use an LLM to extract structured facts (key–value) from the dialogue and <b>overwrite on the same key</b> at write time. Key property: the conflict is eliminated on the write side, so only one value exists at read time.</dd>
+
+      <dt class="zh">C5 · 混合(hybrid = C4 + C2)</dt>
+      <dd class="zh">事实库 + 检索一起上。直觉上「两者取长补短」,实测结果见下一节——这是本文最值得记住的一个反直觉结论。</dd>
+      <dt class="en">C5 · Hybrid (C4 + C2)</dt>
+      <dd class="en">Fact store plus retrieval together. Intuitively "best of both." The measured result is in the next section, and it is the single most worth-remembering counterintuitive finding here.</dd>
+    </dl>
+  </div>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="五种记忆架构在写入侧的行为差异">
+      <text x="380" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#2a2118">同一个事实被修改时,五种架构的写入侧行为</text>
+      <text x="380" y="48" text-anchor="middle" font-size="12" fill="#8a7a68">场景:第 2 轮说「退款 50 元」,第 4 轮改成「退款 80 元」,第 5 轮要执行退款</text>
+
+      <rect x="24" y="70" width="712" height="58" rx="10" fill="#fffdfa" stroke="#e0d5c6"/>
+      <text x="42" y="94" font-size="13" font-weight="700" fill="#2a2118">C1 全量回放</text>
+      <rect x="180" y="82" width="120" height="34" rx="7" fill="#f2ebe1" stroke="#e0d5c6"/><text x="240" y="104" text-anchor="middle" font-size="11.5" fill="#4d4237">…50 元…</text>
+      <rect x="312" y="82" width="120" height="34" rx="7" fill="#fde9cf" stroke="#d97706"/><text x="372" y="104" text-anchor="middle" font-size="11.5" fill="#b45309">…80 元…</text>
+      <text x="470" y="104" font-size="11.5" fill="#0f766e">✔ 按时间先后可判新旧,但 token 全额付</text>
+
+      <rect x="24" y="136" width="712" height="58" rx="10" fill="#fffdfa" stroke="#f3c4c0"/>
+      <text x="42" y="160" font-size="13" font-weight="700" fill="#b91c1c">C2 向量检索</text>
+      <rect x="180" y="148" width="120" height="34" rx="7" fill="#fbe3e1" stroke="#b91c1c"/><text x="240" y="170" text-anchor="middle" font-size="11.5" fill="#b91c1c">50 元(旧)</text>
+      <rect x="312" y="148" width="120" height="34" rx="7" fill="#fbe3e1" stroke="#b91c1c"/><text x="372" y="170" text-anchor="middle" font-size="11.5" fill="#b91c1c">80 元(新)</text>
+      <text x="470" y="170" font-size="11.5" fill="#b91c1c">✘ 语义同样近,并排返回,无时间仲裁</text>
+
+      <rect x="24" y="202" width="712" height="58" rx="10" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="42" y="226" font-size="13" font-weight="700" fill="#0f766e">C3 滚动摘要</text>
+      <rect x="180" y="214" width="252" height="34" rx="7" fill="#d6f0ec" stroke="#0f766e"/><text x="306" y="236" text-anchor="middle" font-size="11.5" fill="#0f766e">摘要被重写为「退款 80 元」</text>
+      <text x="470" y="236" font-size="11.5" fill="#0f766e">✔ 每轮重写 ⇒ 天然保留最新值</text>
+
+      <rect x="24" y="268" width="712" height="58" rx="10" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="42" y="292" font-size="13" font-weight="700" fill="#0f766e">C4 事实库</text>
+      <rect x="180" y="280" width="252" height="34" rx="7" fill="#d6f0ec" stroke="#0f766e"/><text x="306" y="302" text-anchor="middle" font-size="11.5" fill="#0f766e">refund_amount = 80(覆盖 50)</text>
+      <text x="470" y="302" font-size="11.5" fill="#0f766e">✔ 同键覆盖 ⇒ 读取时只有一个值</text>
+    </svg>
+    <p class="fig-cap">图 2:差别不在「存了多少」,而在「冲突在哪一侧解决」。C2 把冲突推给读取时的模型;C3/C4 在写入时就消灭它。</p>
+  </div>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Write-side behaviour of five memory architectures">
+      <text x="380" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#2a2118">Write-side behaviour when a fact gets revised</text>
+      <text x="380" y="48" text-anchor="middle" font-size="12" fill="#8a7a68">Scenario: episode 2 agrees a $50 refund, episode 4 revises it to $80, episode 5 must issue it</text>
+
+      <rect x="24" y="70" width="712" height="58" rx="10" fill="#fffdfa" stroke="#e0d5c6"/>
+      <text x="42" y="94" font-size="13" font-weight="700" fill="#2a2118">C1 Full replay</text>
+      <rect x="180" y="82" width="120" height="34" rx="7" fill="#f2ebe1" stroke="#e0d5c6"/><text x="240" y="104" text-anchor="middle" font-size="11.5" fill="#4d4237">…$50…</text>
+      <rect x="312" y="82" width="120" height="34" rx="7" fill="#fde9cf" stroke="#d97706"/><text x="372" y="104" text-anchor="middle" font-size="11.5" fill="#b45309">…$80…</text>
+      <text x="462" y="104" font-size="11.5" fill="#0f766e">✔ Chronology resolves recency; you pay full tokens</text>
+
+      <rect x="24" y="136" width="712" height="58" rx="10" fill="#fffdfa" stroke="#f3c4c0"/>
+      <text x="42" y="160" font-size="13" font-weight="700" fill="#b91c1c">C2 Embedding retrieval</text>
+      <rect x="205" y="148" width="105" height="34" rx="7" fill="#fbe3e1" stroke="#b91c1c"/><text x="257" y="170" text-anchor="middle" font-size="11.5" fill="#b91c1c">$50 (stale)</text>
+      <rect x="322" y="148" width="105" height="34" rx="7" fill="#fbe3e1" stroke="#b91c1c"/><text x="374" y="170" text-anchor="middle" font-size="11.5" fill="#b91c1c">$80 (fresh)</text>
+      <text x="462" y="170" font-size="11.5" fill="#b91c1c">✘ Equally similar, returned side by side, no recency</text>
+
+      <rect x="24" y="202" width="712" height="58" rx="10" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="42" y="226" font-size="13" font-weight="700" fill="#0f766e">C3 Rolling summary</text>
+      <rect x="205" y="214" width="222" height="34" rx="7" fill="#d6f0ec" stroke="#0f766e"/><text x="316" y="236" text-anchor="middle" font-size="11.5" fill="#0f766e">summary rewritten to "$80 refund"</text>
+      <text x="462" y="236" font-size="11.5" fill="#0f766e">✔ Rewritten each episode ⇒ keeps the latest</text>
+
+      <rect x="24" y="268" width="712" height="58" rx="10" fill="#fffdfa" stroke="#a7ddd5"/>
+      <text x="42" y="292" font-size="13" font-weight="700" fill="#0f766e">C4 Fact store</text>
+      <rect x="205" y="280" width="222" height="34" rx="7" fill="#d6f0ec" stroke="#0f766e"/><text x="316" y="302" text-anchor="middle" font-size="11.5" fill="#0f766e">refund_amount = 80 (overwrites 50)</text>
+      <text x="462" y="302" font-size="11.5" fill="#0f766e">✔ Overwrite on key ⇒ one value at read time</text>
+    </svg>
+    <p class="fig-cap">Fig. 2 — The difference isn't how much is stored, but on which side the conflict is resolved. C2 defers it to the model at read time; C3/C4 kill it at write time.</p>
+  </div>
+</section>
+
+<!-- ========== S4 ========== -->
+<section id="s4">
+  <h2 class="zh"><span class="n">04</span>四个反直觉的实证发现</h2>
+  <h2 class="en"><span class="n">04</span>Four counterintuitive empirical findings</h2>
+
+  <p class="zh">下面的数字全部来自 arXiv 2609.05441(MERIT,2026 年 7 月预印本 v1.1,9 月检索到)。实验规模:两代试点(gpt-4.1-mini,9,940 个 episode)加上一份<b>预注册</b>的 3 模型 × 3 领域 × 3 难度 × 3 种子完整网格(13,500 个 episode),合计 23,440 个计分 episode、42.57 美元 API 成本。所有配对比较用按 arc 聚类的配对 bootstrap(10,000 次重采样)、Holm–Bonferroni 校正。</p>
+  <p class="en">All numbers below come from arXiv 2609.05441 (MERIT, July 2026 preprint v1.1, retrieved September 2026). Scale: a two-generation pilot (gpt-4.1-mini, 9,940 episodes) plus a <b>preregistered</b> 3-model × 3-domain × 3-tier × 3-seed grid (13,500 episodes), totalling 23,440 scored episodes at $42.57 in API cost. Paired comparisons use an arc-clustered paired bootstrap (10,000 resamples) with Holm–Bonferroni correction.</p>
+
+  <h3 class="zh">发现 1:更新过的事实会打崩检索式记忆——而且是<b>不可预测</b>地崩</h3>
+  <h3 class="en">Finding 1: updated facts break retrieval memory — <b>unpredictably</b></h3>
+  <p class="zh">在「hard 档」(事实先被建立、后被修改、探测时必须用最新值)上,向量检索(C2)跌到 0.35–0.70,而全量回放(C1)保持 0.95–1.00、事实库(C4)保持 0.75–1.00。这本身还只是「更差」。真正的问题在完整网格里才暴露出来:</p>
+  <p class="en">On the <b>hard tier</b> (a fact is planted, later revised, and the probe requires the latest value), embedding retrieval (C2) falls to 0.35–0.70 while full replay (C1) holds 0.95–1.00 and the fact store (C4) holds 0.75–1.00. That alone is just "worse." The real problem only surfaces in the full grid:</p>
+  <ul>
+    <li class="zh"><b>跨种子</b>:九个 3 种子格子里,C2 的最大两两差距平均 0.16,最坏一格 0.45(D1-hard 三个种子分别是 0.45 / 0.90 / 0.75)。C1 平均 0.07,C3/C4 平均 0.11–0.12。</li>
+    <li class="en"><b>Across seeds</b>: over nine 3-seed cells, C2's maximum pairwise gap averages 0.16, with a worst cell of 0.45 (D1-hard: 0.45 / 0.90 / 0.75 across seeds). C1 averages 0.07; C3/C4 average 0.11–0.12.</li>
+    <li class="zh"><b>跨模型</b>:Haiku 4.5 在单事实领域稳住(D1/D2 为 0.90 / 0.95),却在多事实的 D3 上跌到 0.30;GPT-4.1 和 gpt-4.1-mini 反过来,在 D1/D2 掉到 0.38–0.70。<b>每个模型都至少有一个领域 ≤0.60,但崩在哪里因模型而异。</b></li>
+    <li class="en"><b>Across models</b>: Haiku 4.5 holds the single-fact domains (0.90 / 0.95 on D1 / D2) but drops to 0.30 on multi-fact D3; GPT-4.1 and gpt-4.1-mini do the opposite, falling to 0.38–0.70 on D1/D2. <b>Every model has at least one domain at ≤0.60, but where it collapses is model-idiosyncratic.</b></li>
+    <li class="zh">同期 C3(LLM 摘要)在同样的格子上跨度是 0.80–1.00,C4 是 0.70–1.00,<b>对每个模型、每个领域、每个种子都稳</b>。</li>
+    <li class="en">On the same cells, C3 (LLM summarization) spans 0.80–1.00 and C4 spans 0.70–1.00 — <b>robust for every model, domain, and seed</b>.</li>
+  </ul>
+
+  <div class="tbl">
+    <table>
+      <thead><tr>
+        <th><span class="zh">hard 档 · 依赖任务成功率</span><span class="en">Hard tier · dependent-task success</span></th>
+        <th><span class="zh">领域</span><span class="en">Domain</span></th>
+        <th>Haiku 4.5</th><th>GPT-4.1</th><th>gpt-4.1-mini (±sd)</th>
+      </tr></thead>
+      <tbody>
+        <tr><td rowspan="3"><span class="zh">C2 向量检索</span><span class="en">C2 embedding retrieval</span></td><td>D1</td><td class="bad">0.90</td><td class="bad">0.70</td><td class="bad">0.70 ± 0.23</td></tr>
+        <tr><td>D2</td><td class="bad">0.95</td><td class="bad">0.45</td><td class="bad">0.38 ± 0.08</td></tr>
+        <tr><td>D3</td><td class="bad">0.30</td><td class="bad">0.60</td><td class="bad">0.37 ± 0.03</td></tr>
+        <tr><td rowspan="3"><span class="zh">C3 LLM 摘要</span><span class="en">C3 LLM summarization</span></td><td>D1</td><td class="ok">1.00</td><td class="ok">1.00</td><td class="ok">0.98 ± 0.03</td></tr>
+        <tr><td>D2</td><td class="ok">1.00</td><td class="ok">0.90</td><td class="ok">0.80 ± 0.10</td></tr>
+        <tr><td>D3</td><td class="ok">1.00</td><td class="ok">1.00</td><td class="ok">1.00 ± 0.00</td></tr>
+        <tr><td rowspan="3"><span class="zh">C4 结构化事实库</span><span class="en">C4 structured fact store</span></td><td>D1</td><td class="ok">1.00</td><td class="ok">1.00</td><td class="ok">0.93 ± 0.08</td></tr>
+        <tr><td>D2</td><td class="ok">1.00</td><td class="ok">1.00</td><td class="ok">0.90 ± 0.05</td></tr>
+        <tr><td>D3</td><td class="ok">0.70</td><td class="ok">0.90</td><td class="ok">0.90 ± 0.09</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="zh" style="font-size:13.5px;color:var(--muted);margin-top:-8px">记忆侧全部固定为 gpt-4.1-mini,唯一变动的是 agent 模型。C0 地板线为 0.00–0.05,C1 全量回放对每个模型都是 1.00(表中略去)。领域:D1 电商客服 / D2 IT 运维 / D3 个人助理。</p>
+  <p class="en" style="font-size:13.5px;color:var(--muted);margin-top:-8px">The memory side is pinned to gpt-4.1-mini throughout; the agent model is the only varying factor. The C0 floor is 0.00–0.05 and C1 full replay is 1.00 for every model (omitted). Domains: D1 retail support / D2 IT ops / D3 personal assistant.</p>
+
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 对选型的直接含义</span>
+    <span class="ct en">⚠️ What this means for your selection process</span>
+    <p class="zh">一个开发者<b>用单模型、单种子的基准分数来选记忆系统,会系统性地高估或低估向量检索</b>——同一套系统诚实地报告出来的数字可以是 0.45,也可以是 0.90。只有「多种子均值 + 离散度」才是站得住的汇报方式。</p>
+    <p class="en">A practitioner <b>choosing a memory system from a single-model, single-seed benchmark number will systematically over- or under-estimate embedding retrieval</b> — the same system can honestly report anywhere from 0.45 to 0.90. Seed means reported with their spread are the only defensible summary.</p>
+  </div>
+
+  <h3 class="zh">发现 2:混合方案比它更好的那一半还差</h3>
+  <h3 class="en">Finding 2: the hybrid is worse than its better half</h3>
+  <p class="zh">C5(事实库 + 检索)在 hard 档的三个领域上是 0.50–0.80,而单独用 C4 是 0.75–1.00。原因很直白:<b>检索那一半把事实库已经消除掉的陈旧性重新导了回来</b>。在陈旧污染实验里,C5 也是唯一一个通过 Holm 校正的显著受害者(污染率 ρ=0.3 时陈旧记忆伤害 +0.25,Holm 校正后 p=0.030)。</p>
+  <p class="en">C5 (fact store + retrieval) scores 0.50–0.80 across the three domains on the hard tier, while C4 alone scores 0.75–1.00. The reason is direct: <b>the retrieval half re-imports the staleness the fact store had eliminated</b>. In the corruption sweep, C5 is also the only condition with a Holm-significant harm (stale-memory harm of +0.25 at corruption rate ρ=0.3, Holm-adjusted p=0.030).</p>
+  <p class="zh"><b>可迁移的教训</b>:不要假设混合方案会继承更好那个组件的行为。它更可能继承更差那个组件的失败模式。要么实测,要么别混。</p>
+  <p class="en"><b>The transferable lesson</b>: do not assume a hybrid inherits the better component's behaviour. It is more likely to inherit the worse component's failure mode. Measure it, or don't hybridize.</p>
+
+  <h3 class="zh">发现 3:记忆写对了也没用——agent 有 45% 概率无视它</h3>
+  <h3 class="en">Finding 3: getting the memory right isn't enough — agents ignore it 45% of the time</h3>
+  <p class="zh">这是整篇研究里最容易被忽略、却最该被工程师记住的一条。MERIT 定义了一个指标叫 <b>MUR(memory utilization rate,记忆利用率)</b>:只统计那些「正确的值确实已经出现在检索回来的记忆块里」的 episode,看 agent 在实际执行的工具调用参数里有没有用上这个值。<b>无视率 = 1 − MUR</b>。</p>
+  <p class="en">This is the finding most easily skipped and most worth remembering. MERIT defines <b>MUR (memory utilization rate)</b>: among only those episodes where every gold value <em>was</em> present in the retrieved memory block, the fraction where each value actually appears in the executed tool-call arguments. <b>Ignore Rate = 1 − MUR</b>.</p>
+  <p class="zh">结果:hard 档汇总三个领域,正确的最新值出现在 C2 的记忆块里共 55 次,agent 真正据此行动的只有 30 次——<b>无视率 0.45</b>。把检索质量从关键词升级到向量嵌入,这个数字几乎不动(试点一代是 0.53)。更扎心的是 C1:记忆块就是干干净净的完整逐字记录,在多事实(medium 档)episode 上无视率仍然高达 0.50。</p>
+  <p class="en">The result: pooling domains on the hard tier, the correct latest value appeared in C2's retrieved block in 55 probe episodes; the agent acted on it in 30 — an <b>Ignore Rate of 0.45</b>. Upgrading retrieval from keyword overlap to embeddings barely moves it (0.53 in the starter generation). More pointedly, C1 — whose memory block is a clean full transcript — still ignores up to 0.50 of held facts on multi-fact (medium-tier) episodes.</p>
+  <p class="zh">研究者从 trace 里看出两种模式:<b>(i)</b> 检索条件下,新旧值同时出现,agent 会取平均、发问、或干脆选了旧的——因为<b>没有来源和时间戳可供仲裁</b>;<b>(ii)</b> 多事实组合时,agent 只对「和任务措辞最近的那几个事实」下手。</p>
+  <p class="en">The authors identify two patterns in the traces: <b>(i)</b> under retrieval, stale and fresh values co-occur and the agent averages, asks, or picks the stale one — because <b>there is no provenance or timestamp to arbitrate with</b>; <b>(ii)</b> under multi-fact composition, agents act on the subset of facts nearest the task phrasing.</p>
+
+  <div class="callout key">
+    <span class="ct zh">🔑 记忆的「呈现方式」和「存储方式」一样重要</span>
+    <span class="ct en">🔑 Memory presentation matters as much as memory storage</span>
+    <p class="zh">给记忆块加上<b>来源标注、时间戳、显式的冲突提示</b>(「这个键有两个值,较新的是 X」),和优化你的向量检索同样重要——很可能更重要,因为 45% 的损失发生在检索<b>已经成功之后</b>。</p>
+    <p class="en">Adding <b>provenance, recency markers, and explicit contradiction surfacing</b> to the memory block ("this key has two values; the newer one is X") matters as much as tuning your retriever — probably more, since 45% of the loss happens <em>after</em> retrieval already succeeded.</p>
+  </div>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="记忆管道的三个漏点">
+      <text x="380" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#2a2118">记忆管道有三处漏水,大多数人只补了中间那处</text>
+      <rect x="30" y="58" width="196" height="88" rx="12" fill="#fde9cf" stroke="#d97706"/>
+      <text x="128" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#b45309">① 写入 / 抽取</text>
+      <text x="128" y="108" text-anchor="middle" font-size="11.5" fill="#b45309">该记什么?抽得准吗?</text>
+      <text x="128" y="126" text-anchor="middle" font-size="11.5" fill="#b45309">实测:换抽取实现 ±60 分</text>
+      <rect x="282" y="58" width="196" height="88" rx="12" fill="#d6f0ec" stroke="#0f766e"/>
+      <text x="380" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#0f766e">② 检索 / 排序</text>
+      <text x="380" y="108" text-anchor="middle" font-size="11.5" fill="#0f766e">取回来的是对的那条吗?</text>
+      <text x="380" y="126" text-anchor="middle" font-size="11.5" fill="#0f766e">大部分基准只测这里</text>
+      <rect x="534" y="58" width="196" height="88" rx="12" fill="#fbe3e1" stroke="#b91c1c"/>
+      <text x="632" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#b91c1c">③ 呈现 / 使用</text>
+      <text x="632" y="108" text-anchor="middle" font-size="11.5" fill="#b91c1c">给了它,它会用吗?</text>
+      <text x="632" y="126" text-anchor="middle" font-size="11.5" fill="#b91c1c">实测:45% 的情况下不用</text>
+      <path d="M226 102 L278 102" stroke="#8a7a68" stroke-width="2" marker-end="url(#arw)"/>
+      <path d="M478 102 L530 102" stroke="#8a7a68" stroke-width="2" marker-end="url(#arw)"/>
+      <rect x="30" y="172" width="700" height="58" rx="10" fill="#f2ebe1" stroke="#e0d5c6"/>
+      <text x="380" y="196" text-anchor="middle" font-size="12.5" fill="#4d4237">只优化 ② 的系统:在基准上分数很好看,在真实任务里仍然做错事</text>
+      <text x="380" y="216" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">端到端的记忆效用 = ① 的质量 × ② 的质量 × ③ 的利用率</text>
+    </svg>
+    <p class="fig-cap">图 3:记忆系统准确率会高估端到端收益,除非利用率也被测量。</p>
+  </div>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three leak points in the memory pipeline">
+      <text x="380" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#2a2118">The memory pipeline leaks in three places; most people patch only the middle one</text>
+      <rect x="30" y="58" width="196" height="88" rx="12" fill="#fde9cf" stroke="#d97706"/>
+      <text x="128" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#b45309">① Write / extract</text>
+      <text x="128" y="108" text-anchor="middle" font-size="11.5" fill="#b45309">What's worth keeping? Extracted right?</text>
+      <text x="128" y="126" text-anchor="middle" font-size="11.5" fill="#b45309">Measured: ±60 pts on implementation swap</text>
+      <rect x="282" y="58" width="196" height="88" rx="12" fill="#d6f0ec" stroke="#0f766e"/>
+      <text x="380" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#0f766e">② Retrieve / rank</text>
+      <text x="380" y="108" text-anchor="middle" font-size="11.5" fill="#0f766e">Is the right entry coming back?</text>
+      <text x="380" y="126" text-anchor="middle" font-size="11.5" fill="#0f766e">Most benchmarks test only this</text>
+      <rect x="534" y="58" width="196" height="88" rx="12" fill="#fbe3e1" stroke="#b91c1c"/>
+      <text x="632" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#b91c1c">③ Present / use</text>
+      <text x="632" y="108" text-anchor="middle" font-size="11.5" fill="#b91c1c">Given the fact, does it act on it?</text>
+      <text x="632" y="126" text-anchor="middle" font-size="11.5" fill="#b91c1c">Measured: it doesn't, 45% of the time</text>
+      <path d="M226 102 L278 102" stroke="#8a7a68" stroke-width="2" marker-end="url(#arw-e)"/>
+      <path d="M478 102 L530 102" stroke="#8a7a68" stroke-width="2" marker-end="url(#arw-e)"/>
+      <rect x="30" y="172" width="700" height="58" rx="10" fill="#f2ebe1" stroke="#e0d5c6"/>
+      <text x="380" y="196" text-anchor="middle" font-size="12.5" fill="#4d4237">A system tuned only at ② scores well on benchmarks and still does the wrong thing in production</text>
+      <text x="380" y="216" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">End-to-end utility = write quality × retrieval quality × utilization rate</text>
+    </svg>
+    <p class="fig-cap">Fig. 3 — Memory-system accuracy overstates end-task benefit unless utilization is measured too.</p>
+  </div>
+
+  <h3 class="zh">发现 4:写入路径是一等风险,不是实现细节</h3>
+  <h3 class="en">Finding 4: the write path is a first-class risk, not an implementation detail</h3>
+  <p class="zh">MERIT 做了一件很聪明的事:把同一个架构的「简易实现」和「真实实现」放在<b>完全相同的网格</b>上各跑一遍。结果是双向的:</p>
+  <p class="en">MERIT does something clever: it runs a "starter" and a "real" implementation of each architecture on the <b>identical grid</b>. The swap moves things in both directions:</p>
+  <ul>
+    <li class="zh"><b>C3 从截断升级为 LLM 摘要</b>:hard 档从 0.00 / 0.15 / 0.00 跳到 1.00 / 0.70 / 1.00。之前那个 0 不是架构的地板,是实现的地板——<b>截断不是摘要</b>。</li>
+    <li class="en"><b>C3, truncation → LLM summarization</b>: hard tier jumps from 0.00 / 0.15 / 0.00 to 1.00 / 0.70 / 1.00. That zero was a floor set by the implementation, not the architecture — <b>truncation is not summarization</b>.</li>
+    <li class="zh"><b>C4 从正则模式升级为 LLM 抽取</b>:D2(IT 运维)的 medium 档<b>从 1.00 掉到 0.40</b>。手工调过的领域模式不是死重量;通用的 LLM 抽取器漏掉了它们能抓到的运维事实。</li>
+    <li class="en"><b>C4, pattern-based → LLM extraction</b>: D2 (IT ops) on the medium tier <b>falls from 1.00 to 0.40</b>. The hand-tuned domain patterns were not dead weight; the generic LLM extractor misses IT-ops facts they caught.</li>
+    <li class="zh">同一次升级还带来一个副作用:LLM 抽取器<b>更愿意把被污染的记录吞进去</b>(陈旧伤害从 ≤0.05 升到 +0.20),而僵硬的正则模式会拒掉它们。</li>
+    <li class="en">The same swap has a side effect: the LLM extractor is <b>more willing to ingest corrupted records</b> (stale harm rises from ≤0.05 to +0.20) where the rigid patterns rejected them.</li>
+  </ul>
+  <p class="zh">研究者称之为<b>「抽取税」</b>:结构化记忆必然要为抽取质量付费,要么付领域工程的人力,要么付计量出来的 token,<b>但绝不会是零</b>。</p>
+  <p class="en">The authors call this the <b>extraction tax</b>: structured memory always pays for extraction quality, either in domain engineering or in metered tokens, <b>but never zero</b>.</p>
+</section>
+
+<!-- ========== S5 ========== -->
+<section id="s5">
+  <h2 class="zh"><span class="n">05</span>怎么评测:从「答得对」到「做得对」</h2>
+  <h2 class="en"><span class="n">05</span>Evaluation: from answering right to acting right</h2>
+
+  <h3 class="zh">现有基准全景(以及它们各自漏了什么)</h3>
+  <h3 class="en">The benchmark landscape (and what each one misses)</h3>
+
+  <div class="tbl">
+    <table>
+      <thead><tr>
+        <th><span class="zh">基准</span><span class="en">Benchmark</span></th>
+        <th><span class="zh">年份</span><span class="en">Year</span></th>
+        <th><span class="zh">它测什么</span><span class="en">What it tests</span></th>
+        <th><span class="zh">产出类型</span><span class="en">Output type</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td><b>LoCoMo</b></td><td>2024</td>
+          <td><span class="zh">超长多会话对话召回。每段对话平均约 300 轮、约 9,000 token,跨最多 35 个会话;1,540 道题,含单会话、多会话、时间线排序</span><span class="en">Very long multi-session dialogue recall. ~300 turns and ~9,000 tokens per conversation across up to 35 sessions; 1,540 questions spanning single-session, multi-session and timeline ordering</span></td>
+          <td><span class="zh">答案</span><span class="en">Answers</span></td></tr>
+        <tr><td><b>LongMemEval</b></td><td>2024</td>
+          <td><span class="zh">五种能力:信息抽取、多会话推理、时间推理、<b>知识更新</b>、<b>弃权</b>(问不存在的事时应拒答而非编造)。S 版约 115K token / 约 40 会话,M 版约 500 会话</span><span class="en">Five abilities: information extraction, multi-session reasoning, temporal reasoning, <b>knowledge updates</b>, and <b>abstention</b> (declining on events that never happened). The S split is ~115K tokens over ~40 sessions; M reaches ~500 sessions</span></td>
+          <td><span class="zh">答案</span><span class="en">Answers</span></td></tr>
+        <tr><td><b>BEAM</b></td><td>2026 (ICLR)</td>
+          <td><span class="zh">十种记忆能力,100 段对话、每段最长 1000 万 token、2,000 道探测题;分 BEAM-1M 与 BEAM-10M 两个赛道。设计上就不让任何现有架构刷满</span><span class="en">Ten memory capabilities over 100 conversations of up to 10M tokens each, with 2,000 probing questions; split into BEAM-1M and BEAM-10M tracks. Designed so no current architecture saturates it</span></td>
+          <td><span class="zh">答案</span><span class="en">Answers</span></td></tr>
+        <tr><td><b>HaluMem</b></td><td>2025</td>
+          <td><span class="zh">在<b>记忆操作层面</b>评幻觉:抽取、更新、问答三个环节各自的幻觉率</span><span class="en">Hallucination at the level of <b>memory operations</b>: extraction, updating, and QA each scored separately</span></td>
+          <td><span class="zh">答案</span><span class="en">Answers</span></td></tr>
+        <tr><td><b>MERIT</b></td><td>2026</td>
+          <td><span class="zh"><b>行动级</b>:成功判定是可变世界状态(SQLite)上的谓词翻转,不是回答正确。带泄漏检查、难度阶梯(单事实→多事实→更新事实)、受控记忆污染、逐 token 计费</span><span class="en"><b>Action-level</b>: success is a predicate flipping on a mutable world state (SQLite), not a correct answer. Includes leak checks, a difficulty ladder (single-fact → multi-fact → updated-fact), controlled corruption, and full token/dollar metering</span></td>
+          <td><span class="zh"><b>动作</b></span><span class="en"><b>Actions</b></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="zh">为什么「行动级」这个区别是本质的</h3>
+  <h3 class="en">Why "action-level" is a substantive distinction</h3>
+  <p class="zh">对话召回基准问的是「你记得用户三周前说了什么吗」。生产环境要问的是「你记得之后,你做对事了吗」。这两者中间隔着上一节那 45%。MERIT 把 LongMemEval 和 HaluMem 用对话方式探测的「知识更新」维度,变成了一个<b>行为测试</b>:agent 有没有真的<b>按最新值去执行</b>那次退款、那次配置变更、那次日程创建。</p>
+  <p class="en">Conversational recall benchmarks ask "do you remember what the user said three weeks ago." Production asks "having remembered, did you do the right thing." Between the two sits the 45% from the last section. MERIT converts the knowledge-update dimension that LongMemEval and HaluMem probe conversationally into a <b>behavioural test</b>: did the agent actually <b>act on the latest value</b> when issuing that refund, applying that config, creating that event.</p>
+
+  <h3 class="zh">两个容易被忽略的方法学教训</h3>
+  <h3 class="en">Two easily-missed methodological lessons</h3>
+  <ol class="steps">
+    <li class="zh"><b>对世界状态做泄漏检查,而不只是对 prompt。</b> 早期跑测时,「积极」的 agent 会在事实刚被建立的那一轮就抢先处理退款,结果后面的探测轮次靠继承来的世界状态「成功」了。MERIT 用<b>增量计分(delta scoring)</b>修掉这个洞:只有当检查谓词在<b>这一轮之内</b>由假翻真才算成功。9,940 个 episode 里有 22 个探测在到达时谓词已满足,全部记为失败。</li>
+    <li class="en"><b>Leak-check the world state, not just the prompt.</b> In early runs, eager agents processed refunds during the episode where the fact was merely established, and later probes then "succeeded" off inherited world state. MERIT closes this with <b>delta scoring</b>: an episode counts as successful only if its checker predicate flips from false to true <em>during that episode</em>. Across 9,940 episodes, the 22 probes that arrived already satisfied score as failures, never as inherited successes.</li>
+    <li class="zh"><b>跨模型比分数时,先跑「全量回放」对照组。</b> 研究者在 Claude Opus 4.8 上跑了一个诊断格子,结果 C1 全量回放<b>掉到 0.75</b>(其余三个模型都是 1.00)。看 trace 才明白:在更新事实的探测上,模型<b>引用了记住的金额,然后拒绝据此行动</b>,理由是这条更新链「只追溯到我自己的确认消息」、只是在重复用户主张的数值,因此要求主管确认。作者的判断是:这<b>可能恰恰是生产 agent 的正确行为</b>,是安全训练的产物。<b>因此原始成功率会把「用了记忆」和「出于谨慎不用」混在一起</b>,而 C1 对照组正好能检出这种混淆。同厂商的 Claude Sonnet 5 则干净地通过对照(C1=1.00),并复现了 C2 0.75 vs C3/C4 1.00 的模式——说明这是特定安全姿态的性质,不是模型世代的性质。</li>
+    <li class="en"><b>Run a full-replay control before comparing scores across models.</b> The authors ran one diagnostic cell on Claude Opus 4.8 and C1 full replay <b>collapsed to 0.75</b> (1.00 for all three grid models). The traces explain it: on updated-fact probes the model <b>quotes the remembered amounts and then declines to act on them</b>, observing that the update trail "traces back only to my own confirmation messages" repeating user-asserted values, and requesting supervisor confirmation. The authors' read: this is <b>arguably correct behaviour for a production agent</b> and plausibly a product of safety training. <b>Raw task-success comparisons therefore conflate memory use with policy prudence</b>, and the C1 control is exactly what detects it. Claude Sonnet 5, the same vendor's current agentic-tuned model, passes the control cleanly (C1=1.00) and reproduces the pattern (C2 0.75 vs C3/C4 1.00) — so the confound is a property of specific safety postures, not of model generation.</li>
+  </ol>
+
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 厂商自报分数的可比性问题</span>
+    <span class="ct en">⚠️ On the comparability of vendor-reported scores</span>
+    <p class="zh">公开的 LoCoMo 榜单本身就自相矛盾:Mem0 自报 92.5%、Zep 自报 94.7%、Dakera 88.2%(明确说明是标准协议、无 LLM 重排)、ByteRover 和 ZeroMemory 都自报 96.1%。而 ByteRover 自己发布的对比表把 Zep 放在 75.1%、Mem0 放在 66.9%。差异主要来自三个变量:<b>判分用的 judge 模型、生成答案的模型、以及是否加了重排等后处理</b>。Mem0 自己的文章直接引用 Dakera 的说法:两家最高分「用了不同模型和评测设置,不可直接比较」。<b>看到一个记忆基准分数时,先问是哪套模型栈跑出来的、厂商有没有公开完整协议。</b></p>
+    <p class="en">The public LoCoMo leaderboard contradicts itself: Mem0 self-reports 92.5%, Zep 94.7%, Dakera 88.2% (explicitly under the standard protocol with no LLM reranking), and ByteRover and ZeroMemory both report 96.1%. ByteRover's own comparison table, meanwhile, puts Zep at 75.1% and Mem0 at 66.9%. Three variables account for most of the spread: <b>the judge model, the answering model, and whether reranking or other post-processing is applied</b>. Mem0's own post quotes Dakera directly: the two highest claims "use different models and evaluation setups — not directly comparable." <b>When you see a memory benchmark score, ask what model stack produced it and whether the vendor documents the exact protocol.</b></p>
+  </div>
+</section>
+
+<!-- ========== S6 ========== -->
+<section id="s6">
+  <h2 class="zh"><span class="n">06</span>怎么用:落地路径与代码</h2>
+  <h2 class="en"><span class="n">06</span>How to use it: practice and code</h2>
+
+  <h3 class="zh">第一步:先分清你需要的是短期还是长期记忆</h3>
+  <h3 class="en">Step 1: separate short-term from long-term memory</h3>
+  <p class="zh">LangGraph 官方文档把这两件事分成两个原语,这个划分本身就值得照搬:</p>
+  <p class="en">The LangChain docs split these into two primitives, and the split itself is worth copying:</p>
+  <ul>
+    <li class="zh"><b>Checkpointer(检查点)</b> = <b>短期、线程内</b>。把一个 thread 的图状态存成 checkpoint,用于对话连续性、人在环流程、时间旅行、故障恢复。</li>
+    <li class="en"><b>Checkpointer</b> = <b>short-term, thread-scoped</b>. Persists a thread's graph state as checkpoints, for conversation continuity, human-in-the-loop, time travel, and fault tolerance.</li>
+    <li class="zh"><b>Store(存储)</b> = <b>长期、跨线程</b>。把应用自定义的数据存在图状态之外,用于用户偏好、事实、共享知识。<b>这才是本文讨论的「记忆」。</b></li>
+    <li class="en"><b>Store</b> = <b>long-term, cross-thread</b>. Persists application-defined data outside the graph state, for user preferences, facts, and shared knowledge. <b>This is what this piece calls "memory."</b></li>
+  </ul>
+  <p class="zh">官方的说法是:大多数应用两个都要——checkpointer 跟住当前 thread,store 跟住跨 thread 的持久信息。用户下周带着新 <code>thread_id</code> 回来时,checkpoint 帮不上忙,store 才行。</p>
+  <p class="en">The docs' guidance: most applications use both — a checkpointer tracks the current thread, a store tracks durable information across threads. When the user returns next week under a new <code>thread_id</code>, the checkpoint cannot help; the store can.</p>
+
+  <h3 class="zh">第二步:按「事实会不会被修改」决定架构</h3>
+  <h3 class="en">Step 2: pick the architecture by whether facts get revised</h3>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="记忆架构选型决策树">
+      <rect x="250" y="16" width="260" height="46" rx="10" fill="#2a2118"/>
+      <text x="380" y="45" text-anchor="middle" font-size="13.5" font-weight="700" fill="#faf6f0">任务依赖跨会话的事实吗?</text>
+      <path d="M380 62 L380 86" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw)"/>
+      <text x="196" y="82" text-anchor="middle" font-size="11.5" fill="#8a7a68">否</text>
+      <path d="M250 39 L150 39 L150 150" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw)" fill="none"/>
+      <rect x="66" y="154" width="168" height="46" rx="10" fill="#f2ebe1" stroke="#e0d5c6"/>
+      <text x="150" y="176" text-anchor="middle" font-size="12" fill="#4d4237">不上记忆(C0)</text>
+      <text x="150" y="193" text-anchor="middle" font-size="11" fill="#8a7a68">省 token,少一层故障面</text>
+
+      <rect x="250" y="90" width="260" height="46" rx="10" fill="#fde9cf" stroke="#d97706"/>
+      <text x="380" y="112" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">这些事实会被<tspan font-size="14">修改</tspan>吗?</text>
+      <text x="380" y="128" text-anchor="middle" font-size="10.5" fill="#b45309">地址 / 配置 / 日程 / 金额 → 几乎一定会</text>
+
+      <path d="M380 136 L380 168" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw)"/>
+      <text x="400" y="158" font-size="11.5" fill="#b91c1c">会</text>
+      <rect x="252" y="172" width="256" height="62" rx="10" fill="#d6f0ec" stroke="#0f766e"/>
+      <text x="380" y="194" text-anchor="middle" font-size="13" font-weight="700" fill="#0f766e">用写时覆盖:C4 事实库 或 C3 LLM 摘要</text>
+      <text x="380" y="212" text-anchor="middle" font-size="11" fill="#0f766e">hard 档 0.70–1.00,跨模型跨种子都稳</text>
+      <text x="380" y="228" text-anchor="middle" font-size="11" fill="#0f766e">⚠️ 不要再叠一层检索(混合更差)</text>
+
+      <path d="M510 113 L620 113 L620 168" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw)" fill="none"/>
+      <text x="580" y="106" font-size="11.5" fill="#8a7a68">不会</text>
+      <rect x="530" y="172" width="200" height="62" rx="10" fill="#fffdfa" stroke="#e0d5c6"/>
+      <text x="630" y="194" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2a2118">检索(C2)可以用</text>
+      <text x="630" y="212" text-anchor="middle" font-size="11" fill="#4d4237">仅追加的事实、偏好、知识库</text>
+      <text x="630" y="228" text-anchor="middle" font-size="11" fill="#4d4237">仍需多种子验证</text>
+
+      <rect x="66" y="258" width="664" height="58" rx="10" fill="#fbe3e1" stroke="#b91c1c"/>
+      <text x="398" y="280" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">无论走哪条分支,都要做的两件事</text>
+      <text x="398" y="300" text-anchor="middle" font-size="11.5" fill="#b91c1c">① 给记忆块加来源与时间戳(对付 45% 无视率) ② 用行动级用例回归,而不是问答用例</text>
+    </svg>
+    <p class="fig-cap">图 4:选型决策树。分叉点不是「数据量多大」,而是「事实会不会被改写」。</p>
+  </div>
+
+  <div class="figure" data-anim>
+    <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Memory architecture decision tree">
+      <rect x="250" y="16" width="260" height="46" rx="10" fill="#2a2118"/>
+      <text x="380" y="45" text-anchor="middle" font-size="13" font-weight="700" fill="#faf6f0">Does the task depend on cross-session facts?</text>
+      <path d="M380 62 L380 86" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw-e)"/>
+      <text x="196" y="82" text-anchor="middle" font-size="11.5" fill="#8a7a68">No</text>
+      <path d="M250 39 L150 39 L150 150" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw-e)" fill="none"/>
+      <rect x="56" y="154" width="188" height="46" rx="10" fill="#f2ebe1" stroke="#e0d5c6"/>
+      <text x="150" y="176" text-anchor="middle" font-size="12" fill="#4d4237">Ship no memory (C0)</text>
+      <text x="150" y="193" text-anchor="middle" font-size="11" fill="#8a7a68">Cheaper, one less failure surface</text>
+
+      <rect x="250" y="90" width="260" height="46" rx="10" fill="#fde9cf" stroke="#d97706"/>
+      <text x="380" y="112" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">Do those facts get <tspan font-size="14">revised</tspan>?</text>
+      <text x="380" y="128" text-anchor="middle" font-size="10.5" fill="#b45309">Addresses / configs / schedules / amounts → almost certainly</text>
+
+      <path d="M380 136 L380 168" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw-e)"/>
+      <text x="400" y="158" font-size="11.5" fill="#b91c1c">Yes</text>
+      <rect x="248" y="172" width="264" height="62" rx="10" fill="#d6f0ec" stroke="#0f766e"/>
+      <text x="380" y="194" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0f766e">Update-on-write: C4 fact store or C3 LLM summary</text>
+      <text x="380" y="212" text-anchor="middle" font-size="11" fill="#0f766e">0.70–1.00 on hard; stable across models and seeds</text>
+      <text x="380" y="228" text-anchor="middle" font-size="11" fill="#0f766e">⚠️ Do not layer retrieval on top (hybrid is worse)</text>
+
+      <path d="M512 113 L620 113 L620 168" stroke="#8a7a68" stroke-width="1.8" marker-end="url(#arw-e)" fill="none"/>
+      <text x="580" y="106" font-size="11.5" fill="#8a7a68">No</text>
+      <rect x="528" y="172" width="204" height="62" rx="10" fill="#fffdfa" stroke="#e0d5c6"/>
+      <text x="630" y="194" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2a2118">Retrieval (C2) is fine</text>
+      <text x="630" y="212" text-anchor="middle" font-size="11" fill="#4d4237">Append-only facts, preferences, knowledge</text>
+      <text x="630" y="228" text-anchor="middle" font-size="11" fill="#4d4237">Still validate across seeds</text>
+
+      <rect x="56" y="258" width="676" height="58" rx="10" fill="#fbe3e1" stroke="#b91c1c"/>
+      <text x="394" y="280" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">Two things to do regardless of branch</text>
+      <text x="394" y="300" text-anchor="middle" font-size="11.5" fill="#b91c1c">① Add provenance and timestamps to the memory block (for the 45%) ② Regress on action-level cases, not QA cases</text>
+    </svg>
+    <p class="fig-cap">Fig. 4 — The decision tree. The fork isn't "how much data" but "do the facts get rewritten."</p>
+  </div>
+
+  <h3 class="zh">第三步:把记忆块的呈现方式当成一等工程</h3>
+  <h3 class="en">Step 3: treat memory presentation as first-class engineering</h3>
+  <p class="zh">这是针对 45% 无视率的直接对策。下面是一个说明性的写法对比——<b>不是从某个官方文档抄来的 API,而是把研究结论翻译成的 prompt 结构</b>:</p>
+  <p class="en">This is the direct countermeasure to the 45% ignore rate. The contrast below is illustrative — <b>not an API copied from any vendor's docs, but the study's conclusions translated into prompt structure</b>:</p>
+
+  <pre><code># ❌ 常见写法:裸的检索结果,新旧并排,无仲裁信息
+&lt;memory&gt;
+- 用户同意退款金额 50 元
+- 用户同意退款金额 80 元
+- 用户地址:朝阳区 XX 路 1 号
+- 用户地址:海淀区 YY 街 8 号
+&lt;/memory&gt;
+
+# ✅ 带来源与时间仲裁,并显式标注冲突
+&lt;memory&gt;
+&lt;fact key="refund_amount" value="80" unit="CNY"
+      set_at="2026-09-16T10:12Z" source="episode_4:user_utterance"
+      supersedes="50 (set_at 2026-09-12)" /&gt;
+&lt;fact key="shipping_address" value="海淀区 YY 街 8 号"
+      set_at="2026-09-15T09:03Z" source="episode_3:user_utterance"
+      supersedes="朝阳区 XX 路 1 号 (set_at 2026-08-30)" /&gt;
+&lt;conflicts&gt;none unresolved&lt;/conflicts&gt;
+&lt;/memory&gt;
+
+# 并在系统提示里加一条硬规则:
+# "当 &lt;fact&gt; 带 supersedes 属性时，只使用 value，绝不使用 supersedes 中的旧值。
+#  若 &lt;conflicts&gt; 非 none，先向用户确认再执行任何写操作。"</code></pre>
+
+  <p class="zh">三个要点:<b>(1)</b> 每条事实带 <code>set_at</code> 时间戳和 <code>source</code> 来源,让模型有仲裁依据;<b>(2)</b> 用 <code>supersedes</code> 显式说明「这条替代了什么」,而不是让模型从两条并列记录里猜;<b>(3)</b> 单独一个 <code>&lt;conflicts&gt;</code> 区块,把「有未解决冲突」变成一个模型能看见的信号,而不是一个它得自己发现的问题。</p>
+  <p class="en">Three points: <b>(1)</b> every fact carries a <code>set_at</code> timestamp and a <code>source</code>, so the model has something to arbitrate with; <b>(2)</b> <code>supersedes</code> states explicitly what this entry replaced, instead of leaving the model to infer it from two parallel records; <b>(3)</b> a separate <code>&lt;conflicts&gt;</code> block turns "there is an unresolved conflict" into a signal the model can see, rather than a problem it has to discover.</p>
+
+  <h3 class="zh">第四步:建行动级回归用例,不是问答用例</h3>
+  <h3 class="en">Step 4: build action-level regression cases, not QA cases</h3>
+  <p class="zh">照搬 MERIT 的 arc 结构,在你自己的领域上造一套最小回归集。一个 arc 是 4–6 个共享实体的 episode,包含四类:</p>
+  <p class="en">Copy MERIT's arc structure to build a minimal regression suite in your own domain. An arc is 4–6 episodes sharing entities, containing four kinds:</p>
+  <ol class="steps">
+    <li class="zh"><b>plant(建立)</b>:某个事实被对话确立,并且<b>用户明确说「先别执行」</b>——这一句很关键,否则积极的 agent 会当场就把事做了。</li>
+    <li class="en"><b>Plant</b>: a fact is established conversationally, and <b>the user explicitly forbids acting on it yet</b> — that clause matters, or an eager agent will just do the thing on the spot.</li>
+    <li class="zh"><b>update(更新,可选)</b>:同一个事实被改成新值。</li>
+    <li class="en"><b>Update</b> (optional): the same fact is revised to a new value.</li>
+    <li class="zh"><b>probe(探测)</b>:成功必须用到这个事实,且这个事实<b>不出现在本轮的任何输入里</b>。这是泄漏检查要保证的。</li>
+    <li class="en"><b>Probe</b>: success requires the fact, and the fact is <b>absent from this episode's inputs</b>. That's what the leak check guarantees.</li>
+    <li class="zh"><b>independent(独立)</b>:本轮内可解,用作「任务本身没问题」的对照。</li>
+    <li class="en"><b>Independent</b>: solvable within the episode, serving as the "the task itself is fine" control.</li>
+  </ol>
+  <p class="zh">每个探测轮次的判分是一个<b>程序化的世界状态谓词</b>(数据库里那一行的值是不是 80),并且必须用增量计分:谓词得在这一轮之内由假翻真。此外,至少跑<b>三个随机种子</b>——单种子结果对检索式记忆完全不可信。</p>
+  <p class="en">Each probe is scored by a <b>programmatic world-state predicate</b> (is that database row now 80?), with delta scoring: the predicate must flip from false to true within that episode. And run at least <b>three seeds</b> — single-seed results are simply not trustworthy for retrieval-based memory.</p>
+</section>
+
+<!-- ========== S7 ========== -->
+<section id="s7">
+  <h2 class="zh"><span class="n">07</span>对比与选型</h2>
+  <h2 class="en"><span class="n">07</span>Comparison and selection</h2>
+
+  <div class="tbl">
+    <table>
+      <thead><tr>
+        <th><span class="zh">方案</span><span class="en">Approach</span></th>
+        <th><span class="zh">更新事实上的表现</span><span class="en">On updated facts</span></th>
+        <th><span class="zh">成本</span><span class="en">Cost</span></th>
+        <th><span class="zh">什么时候选它</span><span class="en">When to pick it</span></th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><b>C4 <span class="zh">结构化事实库</span><span class="en">Structured fact store</span></b></td>
+          <td class="ok">0.70–1.00 <span class="zh">(稳)</span><span class="en">(stable)</span></td>
+          <td><span class="zh">$0.00066/episode,D1/D3 的最佳性价比(4,839 / 3,245 分每边际美元)</span><span class="en">$0.00066/episode; best CAMU in D1/D3 (4,839 / 3,245 points per marginal dollar)</span></td>
+          <td><span class="zh"><b>默认首选</b>。事实有清晰的键(金额、地址、配置项)、领域窄到能为抽取器调模式</span><span class="en"><b>The default</b>. Facts have clean keys (amounts, addresses, config entries) and the domain is narrow enough to tune the extractor</span></td>
+        </tr>
+        <tr>
+          <td><b>C3 <span class="zh">LLM 滚动摘要</span><span class="en">Rolling LLM summary</span></b></td>
+          <td class="ok">0.80–1.00 <span class="zh">(全网格最稳)</span><span class="en">(most robust in the grid)</span></td>
+          <td>$0.00095/episode</td>
+          <td><span class="zh">事实是叙事性的、不好切成键值对;或者你不想承担抽取器的领域工程</span><span class="en">Facts are narrative and don't split cleanly into key–value pairs; or you don't want to own extractor domain engineering</span></td>
+        </tr>
+        <tr>
+          <td><b>C2 <span class="zh">向量检索</span><span class="en">Embedding retrieval</span></b></td>
+          <td class="bad">0.30–0.95 <span class="zh">(不可预测)</span><span class="en">(unpredictable)</span></td>
+          <td><span class="zh">$0.00073/episode;在 D2 反而是最佳性价比(6,629 分每美元)</span><span class="en">$0.00073/episode; best CAMU in D2 (6,629 pts/$)</span></td>
+          <td><span class="zh"><b>仅当事实只追加不修改</b>:知识库检索、历史工单查询、不变的偏好</span><span class="en"><b>Only when facts are append-only</b>: knowledge-base lookup, historical ticket search, immutable preferences</span></td>
+        </tr>
+        <tr>
+          <td><b>C1 <span class="zh">全量回放</span><span class="en">Full replay</span></b></td>
+          <td class="ok">0.95–1.00</td>
+          <td class="bad"><span class="zh">$0.00126/episode(2,914 token,C0 的 2.7 倍);性价比 1,222–1,741 分每美元,比各领域最优差 2.7–3.9 倍</span><span class="en">$0.00126/episode (2,914 tokens, 2.7× C0); 1,222–1,741 pts/$, i.e. 2.7–3.9× worse than the per-domain best</span></td>
+          <td><span class="zh">仅作<b>对照基线</b>和调试工具。另有一个限制:D1-medium 上只有 0.60——<b>信息全在,但组合不出来</b></span><span class="en">As a <b>control baseline</b> and debugging tool only. One further limit: 0.60 on D1-medium — <b>it has every fact and still can't compose them</b></span></td>
+        </tr>
+        <tr>
+          <td><b>C5 <span class="zh">混合</span><span class="en">Hybrid</span></b></td>
+          <td class="bad">0.50–0.80 <span class="zh">(比 C4 差)</span><span class="en">(worse than C4)</span></td>
+          <td class="bad">$0.00111/episode</td>
+          <td><span class="zh"><b>默认不要</b>。检索半边会把事实库消除掉的陈旧性导回来,且是唯一 Holm 显著的陈旧受害者</span><span class="en"><b>Not by default</b>. The retrieval half re-imports the staleness the fact store removed, and it's the only Holm-significant victim of stale corruption</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout key">
+    <span class="ct zh">🔑 CAMU:准确率排名和性价比排名在每个领域都不一致</span>
+    <span class="ct en">🔑 CAMU: accuracy ranking and cost-efficiency ranking disagree in every domain</span>
+    <p class="zh">MERIT 定义了 <b>CAMU(成本感知边际效用)</b>= 相对 C0 的成功率增量 ÷ 相对 C0 的成本增量。结论是:在三个领域里,CAMU 最优的条件和准确率最优的条件<b>从来不是同一个</b>。特别值得注意:在 D2(IT 运维),C4 因为 LLM 抽取器的准确率退化而失去优势,CAMU 最优反而是 C2。<b>这说明「用哪种记忆」不是一个全局答案,而是一个逐领域的实测问题。</b></p>
+    <p class="en">MERIT defines <b>CAMU (cost-aware marginal utility)</b> = ΔTSR vs. C0 ÷ Δcost vs. C0. The result: across all three domains, the best-CAMU condition and the best-accuracy condition are <b>never the same one</b>. Notably, in D2 (IT ops) C4 loses its edge to the LLM extractor's accuracy regression and C2 takes the best CAMU. <b>Which memory to use is not a global answer but a per-domain empirical question.</b></p>
+  </div>
+
+  <p class="zh"><b>关于绝对成本数字的时效提醒</b>:上表的每 episode 美元数绑定在 2026 年年中的 API 定价上,随价格变动会漂移。作者明确指出,<b>不随价格变化的结论</b>只有两条:决定性因素是鲁棒性而非单次成本(在这个价位上所有条件的盈亏平衡任务价值都是不到一分钱),以及全量回放在 CAMU 上从不领先——因为这依赖的是各条件之间的<b>成本差</b>之比,而非绝对价格。</p>
+  <p class="en"><b>A timeliness caveat on the absolute figures</b>: the per-episode dollar amounts are tied to mid-2026 API pricing and will drift. The authors are explicit that only two conclusions are price-independent: robustness rather than per-episode cost is the deciding factor (at these prices, break-even task value is a fraction of a cent for every condition), and full replay never leads on CAMU — because that rests on ratios of <b>cost differences</b> between conditions, not absolute prices.</p>
+</section>
+
+<!-- ========== S8 ========== -->
+<section id="s8">
+  <h2 class="zh"><span class="n">08</span>常见坑与限制</h2>
+  <h2 class="en"><span class="n">08</span>Pitfalls and limits</h2>
+
+  <h3 class="zh">工程上的坑</h3>
+  <h3 class="en">Engineering pitfalls</h3>
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 1. 把「截断」当「摘要」</span>
+    <span class="ct en">⚠️ 1. Mistaking truncation for summarization</span>
+    <p class="zh">抽取式截断在 hard 档得 0.00 / 0.15 / 0.00,换成 LLM 摘要后是 1.00 / 0.70 / 1.00。<b>同一个架构,60–100 分的差距全在实现上。</b>如果你的「摘要记忆」实际上只是掐掉前 N 轮,那它不是摘要记忆。</p>
+    <p class="en">Extractive truncation scores 0.00 / 0.15 / 0.00 on the hard tier; LLM summarization on the same architecture scores 1.00 / 0.70 / 1.00. <b>Same architecture, 60–100 points of difference, entirely in the implementation.</b> If your "summary memory" is really "drop the first N turns," it is not summary memory.</p>
+  </div>
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 2. 以为通用 LLM 抽取器一定比手写规则强</span>
+    <span class="ct en">⚠️ 2. Assuming a generic LLM extractor beats hand-written rules</span>
+    <p class="zh">在 IT 运维领域,换成通用 LLM 抽取器后 medium 档<b>从 1.00 掉到 0.40</b>,同时对被污染记录的吞入意愿也上升了。通用性是有代价的,而这个代价在窄领域上可能大到无法接受。</p>
+    <p class="en">In the IT-ops domain, swapping to a generic LLM extractor dropped the medium tier <b>from 1.00 to 0.40</b>, while also increasing willingness to ingest corrupted records. Generality has a price, and in a narrow domain that price can be unacceptable.</p>
+  </div>
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 3. 单种子、单模型下结论</span>
+    <span class="ct en">⚠️ 3. Concluding from a single seed and a single model</span>
+    <p class="zh">C2 在最坏一格上三个种子分别是 0.45 / 0.90 / 0.75。你跑一次得到 0.90,写进技术方案,上线后发现是 0.45——这不是运气不好,是方法学问题。</p>
+    <p class="en">C2's worst cell scores 0.45 / 0.90 / 0.75 across three seeds. You run it once, get 0.90, write it into the design doc, and ship something that behaves like 0.45. That is not bad luck; it is a methodology failure.</p>
+  </div>
+  <div class="callout warn">
+    <span class="ct zh">⚠️ 4. 只在 prompt 层面做泄漏检查</span>
+    <span class="ct en">⚠️ 4. Leak-checking only at the prompt level</span>
+    <p class="zh">对话式 QA 基准没有这个问题,但行动级评测有:积极的 agent 会提前把事做了,后面的探测靠继承的世界状态「成功」。必须对<b>世界状态</b>做泄漏检查,并用增量计分。</p>
+    <p class="en">Conversational QA benchmarks don't have this problem; action-level evaluation does. Eager agents act early, and later probes then "succeed" off inherited world state. Leak-check the <b>world state</b>, and use delta scoring.</p>
+  </div>
+
+  <h3 class="zh">这份研究本身的限制(作者自陈)</h3>
+  <h3 class="en">Limits of the study itself (per the authors)</h3>
+  <ul>
+    <li class="zh"><b>三个合成领域、脚本化用户</b>:D1 电商客服、D2 IT 运维、D3 个人助理,每格 10 个 arc。不是真实生产流量。</li>
+    <li class="en"><b>Three synthetic domains with scripted users</b>: D1 retail support, D2 IT ops, D3 personal assistant, 10 arcs per cell. Not real production traffic.</li>
+    <li class="zh"><b>每种架构只有一个代表实现</b>:一个 embedding 模型、一个摘要 prompt、一个抽取 prompt。而第 5.3 节自己就证明了这些选择有多要命。</li>
+    <li class="en"><b>One representative implementation per family</b>: one embedding model, one summarization prompt, one extraction prompt — and §5.3 itself shows how consequential those choices are.</li>
+    <li class="zh"><b>MUR 追踪器是字符串包含</b>,由单个人类标注者验证(93% 一致,Cohen's κ=0.63)。七处分歧全部同向(追踪器低估利用率,通常是格式改写导致包含检查漏掉),所以报告的无视率是<b>保守上界</b>。独立双标注留待后续。</li>
+    <li class="en"><b>The MUR tracer is string containment</b>, validated against a single human annotator (93% agreement, Cohen's κ=0.63). All seven disagreements go the same way (the tracer under-counts utilization, typically on reformatted values), so the reported Ignore Rates are <b>conservative upper bounds</b>. Independent double annotation is future work.</li>
+    <li class="zh"><b>污染实验只在 D1 上做了完整扫描</b>;矛盾与干扰项两种污染模式在试点规模上效应小且不显著。</li>
+    <li class="en"><b>The corruption sweep is complete only on D1</b>; contradiction and distractor modes produce small, non-significant effects at pilot scale.</li>
+    <li class="zh"><b>这是一份 arXiv 预印本</b>(v1.1,2026 年 7 月),截至调研时未见同行评议发表记录。作者做了预注册(假设族 H1–H4 在实验前提交到公开仓库,commit 历史即预注册记录),代码、trace 与 $0 mock 模式全部开源,这些都提高了可信度,但读者仍应按预印本对待。</li>
+    <li class="en"><b>This is an arXiv preprint</b> (v1.1, July 2026); no peer-reviewed publication record was found at the time of research. The authors did preregister (hypothesis families H1–H4 committed to a public repo before experiments, with the commit history as the preregistration record) and released code, traces, and a $0 mock mode — all of which raise confidence — but treat it as a preprint.</li>
+  </ul>
+
+  <div class="callout quote">
+    <p class="zh">一个值得单独想一想的开放问题:Opus 4.8 那个「引用了记住的金额,然后拒绝据此行动,要求主管确认」的行为——作者指出,MERIT 的「用户跨会话重新协商金额」这种 arc,<b>结构上和社会工程学升级很像</b>。安全训练过的模型可能会越来越把<b>记忆的来源</b>当成决策的一部分。只按任务完成度打分的基准,会系统性地低估这类模型。</p>
+    <p class="en">One open question worth sitting with: the Opus 4.8 behaviour — quoting the remembered amounts, then declining to act and asking for supervisor confirmation. The authors note that MERIT's updated-fact arcs (a user renegotiating an amount across sessions) are <b>structurally similar to social-engineering escalations</b>. Safety-tuned models may increasingly treat <b>memory provenance</b> as part of the decision. Benchmarks that score only task completion will systematically under-credit such models.</p>
+  </div>
+</section>
+
+<!-- ========== S9 ========== -->
+<section id="s9">
+  <h2 class="zh"><span class="n">09</span>学习资源</h2>
+  <h2 class="en"><span class="n">09</span>Resources</h2>
+
+  <h3 class="zh">一手论文与代码</h3>
+  <h3 class="en">Primary papers and code</h3>
+  <ul class="srcs">
+    <li><a href="https://arxiv.org/abs/2609.05441" target="_blank" rel="noopener">arXiv 2609.05441 — When Does Memory Help? A Cost-Aware Evaluation of Long-Term Memory in Tool-Using LLM Agents</a><span class="zh">(MERIT,本文的主要依据;v1.1,2026 年 7 月)</span><span class="en"> (MERIT — the primary basis of this piece; v1.1, July 2026)</span></li>
+    <li><a href="https://github.com/smshweta/merit-bench" target="_blank" rel="noopener">github.com/smshweta/merit-bench</a><span class="zh"> — 基准、harness、全部 trace 与预注册记录;含 $0 的 mock 模式,可以先跑通再花钱</span><span class="en"> — benchmark, harness, all traces, and the preregistration record; includes a $0 mock mode so you can run the pipeline before spending anything</span></li>
+    <li><a href="https://snap-research.github.io/locomo/" target="_blank" rel="noopener">LoCoMo — Evaluating Very Long-Term Conversational Memory of LLM Agents</a></li>
+  </ul>
+
+  <h3 class="zh">基准综述与榜单(注意方法学差异)</h3>
+  <h3 class="en">Benchmark surveys and leaderboards (mind the methodology gaps)</h3>
+  <ul class="srcs">
+    <li><a href="https://mem0.ai/blog/ai-memory-benchmarks-in-2026" target="_blank" rel="noopener">LoCoMo vs. LongMemEval vs. BEAM: The 2026 AI Memory Benchmark Guide</a><span class="zh">(mem0,2026-05-11 发布 / 2026-09-09 更新。厂商自家博客,对自家产品有立场,但它对「为什么各家分数不一致」的剖析相当坦诚)</span><span class="en"> (mem0, published 2026-05-11, updated 2026-09-09. A vendor blog with a stake in the outcome, but unusually candid about why the scores disagree)</span></li>
+    <li><a href="https://mem0.ai/blog/state-of-ai-agent-memory-2026" target="_blank" rel="noopener">State of AI Agent Memory 2026</a><span class="zh">(架构、模式与厂商全景)</span><span class="en"> (architectures, patterns, vendor map)</span></li>
+  </ul>
+
+  <h3 class="zh">框架文档</h3>
+  <h3 class="en">Framework documentation</h3>
+  <ul class="srcs">
+    <li><a href="https://docs.langchain.com/oss/python/langgraph/persistence" target="_blank" rel="noopener">LangGraph Persistence — Checkpointers 与 Stores</a><span class="zh">(官方;checkpointer=线程内短期,store=跨线程长期)</span><span class="en"> (official; checkpointer = short-term in-thread, store = long-term cross-thread)</span></li>
+    <li><a href="https://docs.mem0.ai/introduction" target="_blank" rel="noopener">Mem0 Developer Docs</a> · <a href="https://github.com/mem0ai/mem0" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+
+  <h3 class="zh">相关综述</h3>
+  <h3 class="en">Related surveys</h3>
+  <ul class="srcs">
+    <li><a href="https://arxiv.org/pdf/2603.07670" target="_blank" rel="noopener">Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers</a></li>
+    <li><a href="https://github.com/Shichun-Liu/Agent-Memory-Paper-List" target="_blank" rel="noopener">Agent-Memory-Paper-List</a><span class="zh">(《Memory in the Age of AI Agents: A Survey》配套论文列表)</span><span class="en"> (companion list to "Memory in the Age of AI Agents: A Survey")</span></li>
+    <li><a href="https://github.com/RUC-NLPIR/Awesome-Long-Horizon-Agents" target="_blank" rel="noopener">Awesome-Long-Horizon-Agents</a></li>
+  </ul>
+</section>
+
+</div>
+
+<footer><div class="fin">
+  <p class="zh"><b>调研时间:2026-09-18</b>。本文所有数字均来自上方列出的、调研当天实际抓取阅读的来源;MERIT 的实验数据来自 arXiv 2609.05441 v1.1 全文(摘要、§3 基准设计、§5 结果、§6 讨论、§7 限制)。基准榜单数字来自 mem0 的综述文章,该文本身明确标注了各家分数的自报性质与方法学差异——<b>引用这些榜单数字时请连同方法学一起引用</b>。</p>
+  <p class="en"><b>Researched 2026-09-18.</b> Every figure here comes from the sources listed above, fetched and read on the day of research; MERIT's experimental data comes from the full text of arXiv 2609.05441 v1.1 (abstract, §3 benchmark design, §5 results, §6 discussion, §7 limitations). Leaderboard figures come from mem0's survey post, which itself flags the self-reported nature of each score and the methodology gaps between them — <b>cite those numbers together with their methodology</b>.</p>
+  <p class="zh">本文区分:<b>官方/论文一手结论</b>(MERIT 的实验数字、LangChain 文档对 checkpointer 与 store 的定义)与<b>厂商自报或社区观点</b>(各记忆产品的基准分数)。记忆系统与基准生态迭代很快,涉及具体版本与分数时请以各自最新官方页面为准。</p>
+  <p class="en">This piece distinguishes <b>first-party findings</b> (MERIT's measured numbers; LangChain's definitions of checkpointer vs. store) from <b>vendor-reported or community claims</b> (product benchmark scores). Memory systems and their benchmarks iterate quickly; for specific versions and scores, defer to each project's current official pages.</p>
+  <p class="zh" style="margin-top:18px">AI 每日简报 · 深度学习文档 · 2026-09-18</p>
+  <p class="en" style="margin-top:18px">AI Daily Briefing · Deep Dive · 2026-09-18</p>
+</div></footer>
+
+<script>
+(function(){
+  "use strict";
+  var body=document.body, btn=document.getElementById('langbtn');
+
+  function readLS(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function writeLS(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+  var saved=readLS('aid-lang');
+  var initial = saved || ((navigator.language||'en').toLowerCase().indexOf('zh')===0 ? 'zh' : 'en');
+  setLang(initial, false);
+
+  function setLang(lang, persist){
+    body.setAttribute('data-lang', lang);
+    document.documentElement.setAttribute('lang', lang==='zh' ? 'zh-CN' : 'en');
+    btn.textContent = (lang==='zh') ? 'EN' : '中';
+    btn.setAttribute('aria-label', lang==='zh' ? 'Switch to English' : '切换到中文');
+    if(persist) writeLS('aid-lang', lang);
+    refreshFigures();
+  }
+  btn.addEventListener('click', function(){
+    setLang(body.getAttribute('data-lang')==='zh' ? 'en' : 'zh', true);
+  });
+
+  // ---- figure entrance animation ----
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs = Array.prototype.slice.call(document.querySelectorAll('.figure'));
+  var io = null;
+  if(!reduce && 'IntersectionObserver' in window){
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    },{threshold:0.12});
+  }
+  function visibleNow(el){
+    if(el.offsetParent===null && getComputedStyle(el).display==='none') return false;
+    var r=el.getBoundingClientRect();
+    return r.top < (window.innerHeight||0) && r.bottom > 0;
+  }
+  function refreshFigures(){
+    if(reduce || !io){ figs.forEach(function(f){f.classList.add('in');}); return; }
+    figs.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      if(getComputedStyle(f).display==='none') return;   // hidden lang: skip, observe later
+      if(visibleNow(f)){ f.classList.add('in'); }
+      else { io.observe(f); }
+    });
+  }
+  refreshFigures();
+
+  // ---- progress bar ----
+  var bar=document.getElementById('bar');
+  function onScroll(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    bar.style.width = (h>0 ? (window.scrollY/h*100) : 0) + '%';
+    spy();
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', function(){ onScroll(); refreshFigures(); }, {passive:true});
+
+  // ---- toc scroll spy ----
+  var links=Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var secs=links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function spy(){
+    var y=window.scrollY+140, cur=0;
+    for(var i=0;i<secs.length;i++){ if(secs[i] && secs[i].offsetTop<=y) cur=i; }
+    links.forEach(function(a,i){ a.classList.toggle('on', i===cur); });
+  }
+
+  // ---- mobile toc ----
+  var toc=document.getElementById('toc'), tt=document.getElementById('tocT');
+  tt.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  links.forEach(function(a){ a.addEventListener('click', function(){ toc.classList.remove('open'); }); });
+
+  onScroll();
+})();
+</script>
+</body>
+</html>
