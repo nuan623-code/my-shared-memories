@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent 插件供应链安全:Plugin4Shell 与失效的 SHA 钉扎 | Agent Plugin Supply Chain Security: Plugin4Shell and the SHA Pin That Wasn't</title>
+<style>
+:root{
+  --bg:#faf7f3; --paper:#ffffff; --ink:#221f1c; --ink-2:#4a423a; --muted:#8c8075;
+  --line:#e6ddd2; --line-2:#d3c6b7;
+  --alarm:#b4402a; --alarm-deep:#8a2f1e; --alarm-soft:#f6e6e0;
+  --safe:#1e6a58; --safe-soft:#e2efe9;
+  --amber:#c58a20; --amber-soft:#faf0d9;
+  --code-bg:#f3ece3; --shadow:0 1px 2px rgba(60,40,25,.06),0 8px 26px rgba(60,40,25,.06);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.82 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC","Hiragino Sans GB",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+body[data-lang="en"]{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--alarm),var(--amber));z-index:999;transition:width .12s linear}
+
+#langbtn{position:fixed;top:14px;right:14px;z-index:1000;border:1px solid var(--line-2);background:rgba(255,255,255,.88);
+  backdrop-filter:blur(10px);color:var(--ink);border-radius:999px;padding:7px 15px;font-size:13.5px;font-weight:700;
+  cursor:pointer;letter-spacing:.04em;box-shadow:var(--shadow)}
+#langbtn:hover{border-color:var(--alarm);color:var(--alarm)}
+
+header{position:relative;overflow:hidden;background:
+  repeating-linear-gradient(135deg,rgba(180,64,42,.055) 0 12px,transparent 12px 26px),
+  linear-gradient(170deg,#fffdfa 0%,#f7efe6 100%);
+  border-bottom:1px solid var(--line-2)}
+.hin{max-width:900px;margin:0 auto;padding:72px 28px 44px}
+.kicker{display:inline-block;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;
+  color:var(--alarm-deep);background:var(--alarm-soft);border:1px solid #edcfc4;border-radius:5px;padding:4px 10px}
+h1{margin:16px 0 10px;font-size:40px;line-height:1.22;letter-spacing:-.018em;font-weight:800}
+h1 .thin{display:block;font-size:24px;font-weight:500;color:var(--alarm);letter-spacing:-.01em;margin-top:8px}
+.lede{font-size:18.5px;color:var(--ink-2);margin:0;max-width:63ch}
+.meta{margin-top:22px;font-size:13.5px;color:var(--muted);border-top:1px dashed var(--line-2);padding-top:14px}
+
+.layout{max-width:1180px;margin:0 auto;padding:0 28px;display:flex;gap:38px;align-items:flex-start}
+nav.toc{position:sticky;top:26px;flex:0 0 232px;margin-top:40px;background:rgba(255,255,255,.72);backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:14px;padding:16px 14px;box-shadow:var(--shadow);max-height:calc(100vh - 60px);overflow:auto}
+nav.toc b{display:block;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+nav.toc a{display:block;font-size:13.8px;color:var(--ink-2);text-decoration:none;padding:6px 9px;border-radius:7px;line-height:1.4}
+nav.toc a:hover{background:var(--alarm-soft);color:var(--alarm-deep)}
+nav.toc a.on{background:var(--alarm);color:#fff;font-weight:700}
+#tocToggle{display:none}
+
+main{flex:1;min-width:0;padding:40px 0 60px;max-width:760px}
+section{margin-bottom:54px;scroll-margin-top:70px}
+h2{font-size:27px;line-height:1.3;letter-spacing:-.012em;margin:0 0 6px;font-weight:800;position:relative;padding-left:16px}
+h2::before{content:"";position:absolute;left:0;top:.28em;width:5px;height:.86em;background:var(--alarm);border-radius:3px}
+h3{font-size:19.5px;margin:30px 0 8px;font-weight:700;letter-spacing:-.008em}
+p{margin:0 0 15px}
+ul,ol{margin:0 0 16px;padding-left:1.35em}
+li{margin-bottom:7px}
+a{color:var(--alarm-deep)}
+b,strong{font-weight:700;color:var(--ink)}
+code{font-family:var(--mono);font-size:.885em;background:var(--code-bg);border:1px solid var(--line);
+  border-radius:5px;padding:1px 5px;color:var(--alarm-deep)}
+pre{background:#231f1c;color:#f0e7dc;border-radius:11px;padding:15px 17px;overflow-x:auto;
+  font-family:var(--mono);font-size:13.4px;line-height:1.66;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+pre .c{color:#9c8f80}
+pre .k{color:#e0906f}
+pre .g{color:#8fbfa8}
+
+.def{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--alarm);
+  border-radius:0 12px 12px 0;padding:16px 20px;margin:20px 0;box-shadow:var(--shadow)}
+.def .l{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--alarm);font-weight:800;display:block;margin-bottom:5px}
+.def p:last-child{margin-bottom:0}
+
+.callout{border-radius:12px;padding:15px 19px;margin:20px 0;font-size:16px;border:1px solid}
+.callout p:last-child{margin-bottom:0}
+.callout .h{display:block;font-weight:800;margin-bottom:5px;font-size:15px}
+.callout.key{background:var(--amber-soft);border-color:#ecd9a8}
+.callout.key .h{color:#8a6210}
+.callout.warn{background:var(--alarm-soft);border-color:#eccbc0}
+.callout.warn .h{color:var(--alarm-deep)}
+.callout.good{background:var(--safe-soft);border-color:#bcdccf}
+.callout.good .h{color:var(--safe)}
+
+.steps{counter-reset:s;margin:20px 0;padding:0;list-style:none}
+.steps li{counter-increment:s;position:relative;padding:13px 16px 13px 50px;background:var(--paper);
+  border:1px solid var(--line);border-radius:11px;margin-bottom:9px;box-shadow:var(--shadow);font-size:16px}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:13px;width:24px;height:24px;border-radius:50%;
+  background:var(--alarm);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.steps li b{display:block;margin-bottom:2px}
+
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:15px;background:var(--paper);
+  border:1px solid var(--line);border-radius:11px;overflow:hidden;box-shadow:var(--shadow)}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f4ece3;font-size:13px;letter-spacing:.03em;font-weight:800;color:var(--ink)}
+tr:last-child td{border-bottom:none}
+.tblwrap{overflow-x:auto}
+
+.figure{margin:28px 0;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 16px 12px;
+  box-shadow:var(--shadow);opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:13.2px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6}
+
+.glossary{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:6px 20px;margin:20px 0;box-shadow:var(--shadow)}
+.glossary dl{margin:0}
+.glossary dt{font-weight:800;font-size:15.5px;margin-top:14px;color:var(--alarm-deep)}
+.glossary dd{margin:2px 0 14px;font-size:15.5px;color:var(--ink-2)}
+
+details.rephrase{border:1px dashed var(--line-2);border-radius:10px;padding:10px 15px;margin:18px 0;background:rgba(255,255,255,.6)}
+details.rephrase summary{cursor:pointer;font-weight:700;font-size:15px;color:var(--alarm-deep)}
+details.rephrase p{margin:10px 0 2px;font-size:15.5px}
+
+.srclist{font-size:14.5px;line-height:1.75}
+.srclist li{margin-bottom:9px;color:var(--ink-2)}
+
+footer{border-top:1px solid var(--line-2);background:#f4ece3;margin-top:20px}
+.fin{max-width:900px;margin:0 auto;padding:30px 28px 44px;font-size:14px;color:var(--muted)}
+
+@media(max-width:940px){
+  nav.toc{position:fixed;top:0;left:0;height:100vh;width:250px;border-radius:0;margin:0;z-index:998;
+    transform:translateX(-102%);transition:transform .25s ease;max-height:100vh;padding-top:58px}
+  #tocToggle:checked ~ .layout nav.toc{transform:none}
+  .tocbtn{display:flex!important}
+  main{padding-top:28px}
+  .layout{padding:0 20px}
+  h1{font-size:31px}
+  h1 .thin{font-size:19px}
+  .hin{padding:64px 20px 34px}
+  body{font-size:16.5px}
+}
+.tocbtn{display:none;position:fixed;top:12px;left:12px;z-index:1001;width:38px;height:38px;border-radius:9px;
+  border:1px solid var(--line-2);background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;font-size:17px;cursor:pointer;box-shadow:var(--shadow)}
+@media(prefers-reduced-motion:reduce){
+  .figure{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN ☰ 深度学习 · 2026-09-21 Deep Dive · 2026-09-21 Agent 插件供应链安全 Plugin4Shell,与那个没兑现的 SHA 钉扎 Agent Plugin Supply Ch…">
+<meta property="og:title" content="Agent 插件供应链安全:Plugin4Shell 与失效的 SHA 钉扎 | Agent Plugin Supply Chain Security: Plugin4Shell and the SHA Pin That Wasn&#x27;t">
+<meta property="og:description" content="EN ☰ 深度学习 · 2026-09-21 Deep Dive · 2026-09-21 Agent 插件供应链安全 Plugin4Shell,与那个没兑现的 SHA 钉扎 Agent Plugin Supply Ch…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-09-21-agent-cha-jian-gong-ying-lian-an-quan-plugin4she.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-09-21-agent-cha-jian-gong-ying-lian-an-quan-plugin4she.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent 插件供应链安全:Plugin4Shell 与失效的 SHA 钉扎 | Agent Plugin Supply Chain Security: Plugin4Shell and the SHA Pin That Wasn't", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-09-21-agent-cha-jian-gong-ying-lian-an-quan-plugin4she.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-21", "dateModified": "2026-09-21"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button id="langbtn" type="button">EN</button>
+<input type="checkbox" id="tocToggle">
+<label class="tocbtn" for="tocToggle">☰</label>
+
+<header><div class="hin">
+  <span class="kicker zh">深度学习 · 2026-09-21</span>
+  <span class="kicker en">Deep Dive · 2026-09-21</span>
+  <h1>
+    <span class="zh">Agent 插件供应链安全<span class="thin">Plugin4Shell,与那个没兑现的 SHA 钉扎</span></span>
+    <span class="en">Agent Plugin Supply Chain Security<span class="thin">Plugin4Shell, and the SHA Pin That Never Was</span></span>
+  </h1>
+  <p class="lede zh">四家做编码 Agent 的公司,各自独立实现了插件安装,然后犯了<b>同一个错</b>:按 commit SHA 签出,却从不确认签出后真的落在那个 commit 上。这一份文档把这个错误拆到 git 的解析规则层面,再带你把自己的机器检查一遍。</p>
+  <p class="lede en">Four companies built plugin installation for their coding agents independently, and all four made <b>the same mistake</b>: check out a pinned commit SHA, then never verify the working tree actually landed on it. This document takes that mistake apart down to git's own ref-resolution rules, then walks you through auditing your own machine.</p>
+  <div class="meta zh">调研时间:2026-09-21 · 主要来源:AIR Security 原始研究(2026-09-17)、Help Net Security、The Register、Claude Code changelog、Claude Code 官方文档 · 全文事实均标注来源,推断与观点单独标记</div>
+  <div class="meta en">Researched 2026-09-21 · Primary sources: AIR Security original research (2026-09-17), Help Net Security, The Register, Claude Code changelog, Claude Code docs · Every factual claim is sourced; inference and opinion are marked separately</div>
+</div></header>
+
+<div class="layout">
+<nav class="toc">
+  <b><span class="zh">目录</span><span class="en">Contents</span></b>
+  <a href="#s1"><span class="zh">1 · 30 秒速览</span><span class="en">1 · The 30-Second Version</span></a>
+  <a href="#s2"><span class="zh">2 · 背景:add-on 成了攻击面</span><span class="en">2 · Background: Add-ons Became the Attack Surface</span></a>
+  <a href="#s3"><span class="zh">3 · 机制:git 为什么被骗</span><span class="en">3 · Mechanism: How git Gets Fooled</span></a>
+  <a href="#s4"><span class="zh">4 · 为什么是「零点击」</span><span class="en">4 · Why It Is "Zero-Click"</span></a>
+  <a href="#s5"><span class="zh">5 · 修复:一行断言</span><span class="en">5 · The Fix: One Assertion</span></a>
+  <a href="#s6"><span class="zh">6 · 动手:自检你的机器</span><span class="en">6 · Hands-On: Audit Your Machine</span></a>
+  <a href="#s7"><span class="zh">7 · 对比:传统包管理器怎么做</span><span class="en">7 · Comparison: How Package Managers Do It</span></a>
+  <a href="#s8"><span class="zh">8 · 坑与误解</span><span class="en">8 · Pitfalls and Misreadings</span></a>
+  <a href="#s9"><span class="zh">9 · 术语表</span><span class="en">9 · Glossary</span></a>
+  <a href="#s10"><span class="zh">10 · 来源清单</span><span class="en">10 · Sources</span></a>
+</nav>
+
+<main>
+
+<!-- ========== 1 ========== -->
+<section id="s1">
+  <h2><span class="zh">1 · 30 秒速览</span><span class="en">1 · The 30-Second Version</span></h2>
+
+  <p class="zh">2026 年 9 月 17 日,以色列安全公司 AIR 公布了一个叫 <b>Plugin4Shell</b> 的漏洞。受影响的是四款主流 AI 编码 Agent:<b>Claude Code、OpenAI Codex、GitHub Copilot、Gemini CLI</b>。</p>
+  <p class="en">On 17 September 2026, Israeli security firm AIR disclosed a vulnerability they named <b>Plugin4Shell</b>. It affects four mainstream AI coding agents: <b>Claude Code, OpenAI Codex, GitHub Copilot, and Gemini CLI</b>.</p>
+
+  <p class="zh">先说它为什么值得你花二十分钟:这不是「有人装了来路不明的插件所以中招」。受害者做的每一步<b>都是对的</b>——从可信的 marketplace 安装、插件经过审查、审查后钉扎到一个具体的 commit。这套流程正是行业推荐的做法。Plugin4Shell 攻击的就是<b>这套流程本身</b>。</p>
+  <p class="en">Why it is worth twenty minutes: this is not "someone installed a sketchy plugin and got burned." The victim did <b>everything right</b> — installed from a marketplace they trust, from a plugin that passed review, pinned to a specific reviewed commit afterwards. That is exactly the process the industry recommends. Plugin4Shell attacks <b>the process itself</b>.</p>
+
+  <div class="def zh">
+    <span class="l">一句话定义</span>
+    <p><b>Plugin4Shell 是一个「插件 SHA 钉扎绕过」漏洞</b>:Agent 按 marketplace 钉扎的那个 commit SHA 执行 <code>git checkout</code>,但<b>从不校验签出之后工作区真的停在那个 commit 上</b>。控制了插件仓库的攻击者,可以让这次签出解析到自己的恶意代码,而钉扎在外部看起来完全正常。结果是在四款 Agent 上都能拿到零点击的远程代码执行。</p>
+  </div>
+  <div class="def en">
+    <span class="l">In one sentence</span>
+    <p><b>Plugin4Shell is a plugin SHA-pinning bypass</b>: the agent runs <code>git checkout</code> against the commit SHA the marketplace pinned, but <b>never verifies that the working tree actually landed on that commit</b>. An attacker who controls the plugin's repository can make that checkout resolve to malicious code while the pin still looks honored from the outside. The result is zero-click remote code execution across all four agents.</p>
+  </div>
+
+  <div class="figure" data-anim>
+    <span class="zh">
+    <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="期望与实际的对比图:期望路径下钉扎 SHA 指向被审查的代码,实际路径下签出解析到攻击者的同名分支">
+      <defs>
+        <marker id="ar-ok" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#1e6a58"/></marker>
+        <marker id="ar-bad" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#b4402a"/></marker>
+      </defs>
+      <text x="16" y="24" font-size="14" font-weight="700" fill="#1e6a58">你以为发生的事</text>
+      <rect x="16" y="38" width="150" height="52" rx="9" fill="#e2efe9" stroke="#bcdccf"/>
+      <text x="91" y="60" font-size="12.5" text-anchor="middle" fill="#221f1c">marketplace</text>
+      <text x="91" y="78" font-size="12.5" text-anchor="middle" fill="#4a423a">钉扎 SHA aaa…</text>
+      <line x1="170" y1="64" x2="250" y2="64" stroke="#1e6a58" stroke-width="2" marker-end="url(#ar-ok)"/>
+      <rect x="256" y="38" width="160" height="52" rx="9" fill="#e2efe9" stroke="#bcdccf"/>
+      <text x="336" y="60" font-size="12.5" text-anchor="middle" fill="#221f1c">git checkout aaa…</text>
+      <text x="336" y="78" font-size="12.5" text-anchor="middle" fill="#4a423a">解析为 commit 对象</text>
+      <line x1="420" y1="64" x2="500" y2="64" stroke="#1e6a58" stroke-width="2" marker-end="url(#ar-ok)"/>
+      <rect x="506" y="38" width="178" height="52" rx="9" fill="#ffffff" stroke="#1e6a58" stroke-width="1.6"/>
+      <text x="595" y="60" font-size="12.5" text-anchor="middle" fill="#1e6a58" font-weight="700">✓ 被审查过的代码</text>
+      <text x="595" y="78" font-size="12" text-anchor="middle" fill="#4a423a">和审查那一刻一致</text>
+
+      <line x1="16" y1="118" x2="684" y2="118" stroke="#d3c6b7" stroke-dasharray="5 5"/>
+
+      <text x="16" y="150" font-size="14" font-weight="700" fill="#b4402a">实际可能发生的事</text>
+      <rect x="16" y="164" width="150" height="52" rx="9" fill="#f6e6e0" stroke="#eccbc0"/>
+      <text x="91" y="186" font-size="12.5" text-anchor="middle" fill="#221f1c">marketplace</text>
+      <text x="91" y="204" font-size="12.5" text-anchor="middle" fill="#4a423a">钉扎 SHA aaa…(没变)</text>
+      <line x1="170" y1="190" x2="250" y2="190" stroke="#b4402a" stroke-width="2" marker-end="url(#ar-bad)"/>
+      <rect x="256" y="164" width="160" height="52" rx="9" fill="#f6e6e0" stroke="#eccbc0"/>
+      <text x="336" y="184" font-size="12.5" text-anchor="middle" fill="#221f1c">git checkout aaa…</text>
+      <text x="336" y="202" font-size="12" text-anchor="middle" fill="#b4402a">解析为同名「分支」</text>
+      <line x1="420" y1="190" x2="500" y2="190" stroke="#b4402a" stroke-width="2" marker-end="url(#ar-bad)"/>
+      <rect x="506" y="164" width="178" height="52" rx="9" fill="#ffffff" stroke="#b4402a" stroke-width="1.6"/>
+      <text x="595" y="186" font-size="12.5" text-anchor="middle" fill="#b4402a" font-weight="700">✗ 攻击者控制的代码</text>
+      <text x="595" y="204" font-size="12" text-anchor="middle" fill="#4a423a">Agent 仍报告「安装成功」</text>
+
+      <text x="336" y="240" font-size="11.5" text-anchor="middle" fill="#8c8075">两条路径里,marketplace 和钉扎值完全相同 —— 差别只在客户端怎么解析那串字符</text>
+    </svg>
+    </span>
+    <span class="en">
+    <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram contrasting the expected path, where the pinned SHA resolves to reviewed code, with the actual path, where checkout resolves to an attacker branch of the same name">
+      <defs>
+        <marker id="ar-ok-e" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#1e6a58"/></marker>
+        <marker id="ar-bad-e" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#b4402a"/></marker>
+      </defs>
+      <text x="16" y="24" font-size="14" font-weight="700" fill="#1e6a58">What you think happens</text>
+      <rect x="16" y="38" width="150" height="52" rx="9" fill="#e2efe9" stroke="#bcdccf"/>
+      <text x="91" y="60" font-size="12.5" text-anchor="middle" fill="#221f1c">marketplace</text>
+      <text x="91" y="78" font-size="12.5" text-anchor="middle" fill="#4a423a">pins SHA aaa…</text>
+      <line x1="170" y1="64" x2="250" y2="64" stroke="#1e6a58" stroke-width="2" marker-end="url(#ar-ok-e)"/>
+      <rect x="256" y="38" width="160" height="52" rx="9" fill="#e2efe9" stroke="#bcdccf"/>
+      <text x="336" y="60" font-size="12.5" text-anchor="middle" fill="#221f1c">git checkout aaa…</text>
+      <text x="336" y="78" font-size="12.5" text-anchor="middle" fill="#4a423a">resolves to the commit</text>
+      <line x1="420" y1="64" x2="500" y2="64" stroke="#1e6a58" stroke-width="2" marker-end="url(#ar-ok-e)"/>
+      <rect x="506" y="38" width="178" height="52" rx="9" fill="#ffffff" stroke="#1e6a58" stroke-width="1.6"/>
+      <text x="595" y="60" font-size="12.5" text-anchor="middle" fill="#1e6a58" font-weight="700">✓ the reviewed code</text>
+      <text x="595" y="78" font-size="12" text-anchor="middle" fill="#4a423a">identical to review time</text>
+
+      <line x1="16" y1="118" x2="684" y2="118" stroke="#d3c6b7" stroke-dasharray="5 5"/>
+
+      <text x="16" y="150" font-size="14" font-weight="700" fill="#b4402a">What can actually happen</text>
+      <rect x="16" y="164" width="150" height="52" rx="9" fill="#f6e6e0" stroke="#eccbc0"/>
+      <text x="91" y="186" font-size="12.5" text-anchor="middle" fill="#221f1c">marketplace</text>
+      <text x="91" y="204" font-size="12.5" text-anchor="middle" fill="#4a423a">pins SHA aaa… (unchanged)</text>
+      <line x1="170" y1="190" x2="250" y2="190" stroke="#b4402a" stroke-width="2" marker-end="url(#ar-bad-e)"/>
+      <rect x="256" y="164" width="160" height="52" rx="9" fill="#f6e6e0" stroke="#eccbc0"/>
+      <text x="336" y="184" font-size="12.5" text-anchor="middle" fill="#221f1c">git checkout aaa…</text>
+      <text x="336" y="202" font-size="12" text-anchor="middle" fill="#b4402a">resolves to a branch</text>
+      <line x1="420" y1="190" x2="500" y2="190" stroke="#b4402a" stroke-width="2" marker-end="url(#ar-bad-e)"/>
+      <rect x="506" y="164" width="178" height="52" rx="9" fill="#ffffff" stroke="#b4402a" stroke-width="1.6"/>
+      <text x="595" y="186" font-size="12.5" text-anchor="middle" fill="#b4402a" font-weight="700">✗ attacker-controlled code</text>
+      <text x="595" y="204" font-size="12" text-anchor="middle" fill="#4a423a">agent still reports success</text>
+
+      <text x="336" y="240" font-size="11.5" text-anchor="middle" fill="#8c8075">The marketplace and the pin value are identical on both paths — only client-side resolution differs</text>
+    </svg>
+    </span>
+    <div class="fig-cap zh">图 1:同一个钉扎值,两种解析结果。信任链断在客户端,而不是 marketplace。(依据 AIR 研究绘制)</div>
+    <div class="fig-cap en">Figure 1: One pin value, two resolutions. The trust chain breaks on the client, not at the marketplace. (Drawn from AIR's research)</div>
+  </div>
+
+  <div class="callout warn">
+    <span class="h zh">修复状态并不整齐(截至 2026-09-21)</span>
+    <span class="h en">Patch status is uneven (as of 2026-09-21)</span>
+    <p class="zh"><b>Claude Code</b>:Anthropic 已在 <b>2.1.179</b> 修复(AIR 记录的确认日期为 2026-06-17)。<b>Codex</b>:OpenAI 在 <b>0.146.0</b> 修复(2026-08-12 验证)。<b>GitHub Copilot</b>:微软收到同样的披露,<b>至今未发布补丁</b>。<b>Gemini CLI</b>:Google 于 2026-08-04 确认<b>不会修复</b>——该产品已弃用,官方建议迁移到 Antigravity。</p>
+    <p class="en"><b>Claude Code</b>: Anthropic patched it in <b>2.1.179</b> (AIR records the confirmation date as 2026-06-17). <b>Codex</b>: OpenAI patched in <b>0.146.0</b>, verified 2026-08-12. <b>GitHub Copilot</b>: Microsoft received the same disclosure and <b>has shipped no fix</b>. <b>Gemini CLI</b>: on 2026-08-04 Google confirmed it <b>will not be patched</b> — the product is deprecated, and users are told to migrate to Antigravity.</p>
+  </div>
+</section>
+
+<!-- ========== 2 ========== -->
+<section id="s2">
+  <h2><span class="zh">2 · 背景:add-on 怎么变成了攻击面</span><span class="en">2 · Background: How Add-ons Became the Attack Surface</span></h2>
+
+  <p class="zh">要看懂 Plugin4Shell 为什么是个转折点,得先明白它之前发生了什么。AIR 自己把这称为「第三幕」,前两幕都是他们做的。</p>
+  <p class="en">To see why Plugin4Shell is a turning point, you need what came before it. AIR calls this "the third act" of a story — and they wrote the first two acts themselves.</p>
+
+  <p class="zh">大约一年前,编码 Agent 还是个封闭的东西:一个 CLI,一个模型,你的代码。现在它是一个<b>插件宿主</b>——skill、plugin、MCP server、hook,全都从第三方仓库装进来,并且<b>以你的身份、在你的机器上、带着你的凭据运行</b>。安全边界就此从「模型会不会说错话」移到了「这些东西是从哪来的」。</p>
+  <p class="en">A year ago a coding agent was a closed thing: one CLI, one model, your code. Today it is a <b>plugin host</b> — skills, plugins, MCP servers, hooks, all pulled in from third-party repositories and <b>running as you, on your machine, with your credentials</b>. The security boundary moved from "might the model say something wrong" to "where did all of this come from."</p>
+
+  <div class="figure" data-anim>
+    <span class="zh">
+    <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="时间线:从 The Story of Skills 到 SkillJacking、MCPJacking,再到 Plugin4Shell">
+      <line x1="40" y1="96" x2="660" y2="96" stroke="#d3c6b7" stroke-width="2"/>
+      <g>
+        <circle cx="105" cy="96" r="9" fill="#c58a20"/>
+        <text x="105" y="70" font-size="13" text-anchor="middle" font-weight="700" fill="#221f1c">The Story of Skills</text>
+        <text x="105" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">自建恶意 skill 走红</text>
+        <text x="105" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">26,000+ agent</text>
+      </g>
+      <g>
+        <circle cx="290" cy="96" r="9" fill="#c58a20"/>
+        <text x="290" y="70" font-size="13" text-anchor="middle" font-weight="700" fill="#221f1c">SkillJacking</text>
+        <text x="290" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">925 个在用 skill 被劫持</text>
+        <text x="290" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">134,000 agent</text>
+      </g>
+      <g>
+        <circle cx="460" cy="96" r="9" fill="#c58a20"/>
+        <text x="460" y="70" font-size="13" text-anchor="middle" font-weight="700" fill="#221f1c">MCPJacking · 08-27</text>
+        <text x="460" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">官方 marketplace 中</text>
+        <text x="460" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">155 个可劫持 MCP</text>
+      </g>
+      <g>
+        <circle cx="620" cy="96" r="12" fill="#b4402a"/>
+        <text x="620" y="66" font-size="13.5" text-anchor="middle" font-weight="800" fill="#b4402a">Plugin4Shell</text>
+        <text x="620" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">防上面三者的机制</text>
+        <text x="620" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">本身失效 · 09-17</text>
+      </g>
+      <rect x="40" y="176" width="620" height="30" rx="8" fill="#f6e6e0" stroke="#eccbc0"/>
+      <text x="350" y="196" font-size="12.5" text-anchor="middle" fill="#8a2f1e">共同结论:Agent 的信任边界不在模型,在 add-on 的分发链路上</text>
+    </svg>
+    </span>
+    <span class="en">
+    <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline from The Story of Skills through SkillJacking and MCPJacking to Plugin4Shell">
+      <line x1="40" y1="96" x2="660" y2="96" stroke="#d3c6b7" stroke-width="2"/>
+      <g>
+        <circle cx="105" cy="96" r="9" fill="#c58a20"/>
+        <text x="105" y="70" font-size="13" text-anchor="middle" font-weight="700" fill="#221f1c">The Story of Skills</text>
+        <text x="105" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">a planted skill went viral</text>
+        <text x="105" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">26,000+ agents</text>
+      </g>
+      <g>
+        <circle cx="290" cy="96" r="9" fill="#c58a20"/>
+        <text x="290" y="70" font-size="13" text-anchor="middle" font-weight="700" fill="#221f1c">SkillJacking</text>
+        <text x="290" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">925 in-use skills hijacked</text>
+        <text x="290" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">134,000 agents</text>
+      </g>
+      <g>
+        <circle cx="460" cy="96" r="9" fill="#c58a20"/>
+        <text x="460" y="70" font-size="13" text-anchor="middle" font-weight="700" fill="#221f1c">MCPJacking · Aug 27</text>
+        <text x="460" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">in the official marketplace</text>
+        <text x="460" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">155 hijackable MCPs</text>
+      </g>
+      <g>
+        <circle cx="620" cy="96" r="12" fill="#b4402a"/>
+        <text x="620" y="66" font-size="13.5" text-anchor="middle" font-weight="800" fill="#b4402a">Plugin4Shell</text>
+        <text x="620" y="128" font-size="11.5" text-anchor="middle" fill="#4a423a">the defence against all three</text>
+        <text x="620" y="145" font-size="11.5" text-anchor="middle" fill="#b4402a" font-weight="700">itself fails · Sep 17</text>
+      </g>
+      <rect x="40" y="176" width="620" height="30" rx="8" fill="#f6e6e0" stroke="#eccbc0"/>
+      <text x="350" y="196" font-size="12.5" text-anchor="middle" fill="#8a2f1e">Shared lesson: an agent's trust boundary is the add-on distribution path, not the model</text>
+    </svg>
+    </span>
+    <div class="fig-cap zh">图 2:AIR 的四项研究构成一条完整链条。数字来自 AIR 官方披露。</div>
+    <div class="fig-cap en">Figure 2: AIR's four pieces of research form one chain. Figures are from AIR's own disclosures.</div>
+  </div>
+
+  <p class="zh">行业对前三幕给出的答案就是 <b>SHA 钉扎</b>:审查某一个 commit 的代码,把这个 commit 钉住,之后跑的永远是这个 commit。听起来无懈可击——commit SHA 是内容哈希,改一个字节哈希就变了,这是 git 的地基。</p>
+  <p class="en">The industry's answer to those first three acts was <b>SHA pinning</b>: review the code at one commit, pin that commit, and trust that the pinned commit is what runs forever after. It sounds airtight — a commit SHA is a content hash, change one byte and the hash changes. That is bedrock git.</p>
+
+  <p class="zh">Plugin4Shell 的洞见是:<b>问题从来不在哈希本身,而在「把那串字符交给 git 时,git 会拿它去找什么」</b>。</p>
+  <p class="en">Plugin4Shell's insight is that <b>the hash was never the weak part — the weak part is what git goes looking for when you hand it that string</b>.</p>
+</section>
+
+<!-- ========== 3 ========== -->
+<section id="s3">
+  <h2><span class="zh">3 · 机制:git 为什么会被骗</span><span class="en">3 · Mechanism: How git Gets Fooled</span></h2>
+
+  <h3><span class="zh">先讲清一件 git 的事:ref 优先于 object id</span><span class="en">One git fact first: refs beat object ids</span></h3>
+
+  <div class="def zh">
+    <span class="l">术语:ref 与 object id</span>
+    <p><b>object id</b> 就是那串 40 位十六进制的 commit SHA,它直接指向仓库里的一个对象。<b>ref</b> 是「人类起的名字」——分支名、tag 名都是 ref,它是一个指向某个 object id 的可变指针。你敲 <code>git checkout main</code> 用的是 ref,敲 <code>git checkout a1b2c3…</code> 用的是 object id。</p>
+  </div>
+  <div class="def en">
+    <span class="l">Terms: ref vs object id</span>
+    <p>An <b>object id</b> is that 40-character hex commit SHA; it points directly at an object in the repository. A <b>ref</b> is a human-given name — branch names and tags are refs, each a mutable pointer to some object id. <code>git checkout main</code> uses a ref; <code>git checkout a1b2c3…</code> uses an object id.</p>
+  </div>
+
+  <p class="zh">关键问题:如果一个名字<b>同时是</b>合法的 ref 和合法的 object id,git 选哪个?</p>
+  <p class="en">The key question: if a name is <b>both</b> a valid ref and a valid object id, which does git pick?</p>
+
+  <p class="zh">git 选 <b>ref</b>,并且只打印一行 <code>warning: refname '…' is ambiguous</code>——一句警告,然后照常执行。这不是 bug,是 git 长期以来的既定行为(GitLab、Azure Pipelines 等项目的 issue 里都有关于这个歧义解析的记录)。</p>
+  <p class="en">git picks the <b>ref</b>, printing a single <code>warning: refname '…' is ambiguous</code> line and then carrying on. This is not a bug; it is long-standing documented git behaviour (issues about this ambiguity exist in GitLab, Azure Pipelines and other projects).</p>
+
+  <p class="zh">那么下一个问题自然是:分支名<b>能</b>叫成 40 位十六进制吗?git 自己的 <code>git check-ref-format</code> 是<b>接受</b>的,遵守协议的托管方也接受。<b>GitHub 是例外</b>——它直接拒绝 40 位十六进制的分支名。但 <b>Bitbucket 和任何自建 git 服务器都允许</b>,而 Anthropic 官方文档明确把 Bitbucket 和自建 git 列为合法的 marketplace 后端。</p>
+  <p class="en">Which raises the next question: <b>can</b> a branch be named as 40 hex characters? git's own <code>git check-ref-format</code> <b>accepts</b> it, and hosts that follow the protocol accept it too. <b>GitHub is the exception</b> — it rejects 40-hex branch names outright. But <b>Bitbucket and any self-hosted git server allow them</b>, and Anthropic's own documentation lists Bitbucket and self-hosted git as valid marketplace backends.</p>
+
+  <h3><span class="zh">变体一:Claude Code / Codex / Copilot</span><span class="en">Variant one: Claude Code / Codex / Copilot</span></h3>
+
+  <p class="zh">这三家的安装逻辑本质上是两行:</p>
+  <p class="en">For these three, installation boils down to two lines:</p>
+
+<pre><code><span class="c"># AIR 记录的安装序列</span>
+git clone &lt;plugin repo&gt; ./
+git checkout aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code></pre>
+
+  <p class="zh">攻击者控制了上游仓库之后,建一个分支,名字就是那 40 位 SHA,并把它设为仓库<b>默认分支</b>。上面那句朴素的 <code>git clone</code> 于是把它作为本地分支拉下来;<code>git checkout</code> 解析那串字符时,ref 优先,签出的是分支。<b>被钉扎的那个 commit 还在不在,已经完全不重要了。</b></p>
+  <p class="en">Once the attacker controls the upstream repository, they create a branch whose name is exactly that 40-hex SHA and make it the repository's <b>default branch</b>. The plain <code>git clone</code> above then brings it down as a local branch of that name, and <code>git checkout</code> resolves the string to the ref rather than the object. <b>Whether the pinned commit still exists stops mattering entirely.</b></p>
+
+  <div class="callout key">
+    <span class="h zh">两个必要条件,缺一不可</span>
+    <span class="h en">Two necessary conditions</span>
+    <p class="zh">① 托管方允许 40 位十六进制的分支名(GitHub 不允许,Bitbucket 和自建允许);② 该分支必须是仓库<b>默认分支</b>——非默认分支只会被拉成 remote-tracking ref,签出会回落到 commit 对象,攻击不成立。</p>
+    <p class="en">① The host must allow 40-hex branch names (GitHub does not; Bitbucket and self-hosted do); ② the branch must be the repository's <b>default</b> — a non-default branch is only fetched as a remote-tracking ref, the checkout falls back to the commit, and the attack fails.</p>
+  </div>
+
+  <h3><span class="zh">变体二:Gemini CLI 的 FETCH_HEAD</span><span class="en">Variant two: Gemini CLI and FETCH_HEAD</span></h3>
+
+  <p class="zh">Gemini CLI 用 <code>--ref</code> 钉扎,分三步安装:</p>
+  <p class="en">Gemini CLI pins with <code>--ref</code> and installs in three steps:</p>
+
+<pre><code>git clone --depth 1 &lt;plugin repo&gt; ./
+git fetch origin 41d0bc0a4aeb2fbf797dacea39e876d98c95024b
+git checkout FETCH_HEAD</code></pre>
+
+  <p class="zh">这里 <code>git fetch</code> 确实取到了正确的 commit,并把它记进 <code>.git/FETCH_HEAD</code> 文件。但 <code>git checkout FETCH_HEAD</code> <b>不一定会去读那个文件</b>——如果仓库的默认分支名就叫 <code>FETCH_HEAD</code>,签出解析到的是那个分支,刚刚取回的 commit 被静默丢弃。</p>
+  <p class="en">Here <code>git fetch</code> does retrieve the correct commit and records it in <code>.git/FETCH_HEAD</code>. But <code>git checkout FETCH_HEAD</code> <b>does not have to read that file</b> — if the repository's default branch is itself named <code>FETCH_HEAD</code>, the checkout resolves to the branch and the fetched commit is silently discarded.</p>
+
+  <details class="rephrase zh">
+    <summary>换个说法:用寄快递打比方</summary>
+    <p>你告诉快递员:「送到<b>朝阳区幸福里 3 号</b>」——这是一个精确地址(object id)。但小区物业允许住户把自家门牌<b>改名</b>成「朝阳区幸福里 3 号」。快递员的规矩是:先看有没有叫这个名字的门牌,有就送那儿,没有才按地址找。攻击者把自己家的门牌改成了那串地址,并且把它挂在小区大门口最显眼处(默认分支)。快递员嘟囔一句「这名字有点歧义」,然后把包裹送给了攻击者。</p>
+  </details>
+  <details class="rephrase en">
+    <summary>Another way to put it: a parcel delivery</summary>
+    <p>You tell the courier: deliver to <b>3 Happiness Lane, Chaoyang</b> — a precise address (the object id). But the building management lets any resident <b>rename their own door plate</b> to "3 Happiness Lane, Chaoyang." The courier's rule is: first look for a door plate with that name, and only fall back to the address if none exists. The attacker renames their own plate to that string and hangs it at the main gate where it is seen first (the default branch). The courier mutters "that name is a bit ambiguous," and hands over the parcel.</p>
+  </details>
+
+  <div class="callout warn">
+    <span class="h zh">这不是四次独立的实现失误</span>
+    <span class="h en">This is not four independent slips</span>
+    <p class="zh">AIR 强调的一点值得单独记住:<b>同一个设计错误出现在每一款受影响的 Agent 里</b>。这不是某家公司写码时的疏忽,而是整个行业对「钉扎」这件事的理解都停在「把 SHA 传给 checkout」这一步,没人走到「确认 checkout 的结果」那一步。</p>
+    <p class="en">One point AIR makes is worth remembering on its own: <b>the same design error sits in every affected agent</b>. This is not one company's coding slip — it is an entire industry's understanding of "pinning" stopping at "pass the SHA to checkout" and never reaching "verify what checkout produced."</p>
+  </div>
+</section>
+
+<!-- ========== 4 ========== -->
+<section id="s4">
+  <h2><span class="zh">4 · 为什么是「零点击」</span><span class="en">4 · Why It Is "Zero-Click"</span></h2>
+
+  <p class="zh">到这里为止,你可能会想:那我不装新插件不就行了?</p>
+  <p class="en">At this point you might think: fine, I just won't install anything new.</p>
+
+  <p class="zh">不行。让这个漏洞变成<b>零点击</b>的,是插件<b>后台自动更新</b>——AIR 指出,这在 Claude Code 和 Codex 里是<b>默认行为</b>。同一句 <code>git checkout</code> 会在后台更新时重新执行。所以当 marketplace 把钉扎的 SHA 往前推一版时,替换会送达<b>已经装好的插件</b>:没有安装步骤,没有提示框,没有任何可察觉的动静。</p>
+  <p class="en">That does not help. What makes this <b>zero-click</b> is plugin <b>background auto-update</b> — which AIR notes is the <b>default</b> in Claude Code and Codex. The same <code>git checkout</code> re-runs on auto-update. So when the marketplace bumps the pinned SHA, the swap reaches <b>already-installed plugins</b>: no install step, no prompt, nothing to notice.</p>
+
+  <p class="zh">完整的攻击链是五步:</p>
+  <p class="en">The full attack chain has five steps:</p>
+
+  <ol class="steps zh">
+    <li><b>种下</b>攻击者发布一个<b>真的无害</b>的插件到可信 marketplace,钉扎在 commit <code>aaa…</code>,顺利通过审查。</li>
+    <li><b>被采用</b>人们开始安装。每次安装都钉扎到 <code>aaa…</code>——那个被审查过、可信的版本。</li>
+    <li><b>版本更新</b>攻击者发布一次常规更新,marketplace 重新钉扎到新 commit <code>bbb…</code>。这个新版本<b>仍然是无害的</b>,审查照样通过。</li>
+    <li><b>抽梯子</b>攻击者建一个<b>名叫 <code>bbb…</code> 的分支</b>,设为默认分支,指向恶意代码。被钉扎的那个 commit 本身可以原封不动。</li>
+    <li><b>自动更新即 RCE</b>钉扎值变了,触发每个 Agent 的后台自动更新。签出把 <code>bbb…</code> 解析成分支,恶意代码落地运行。无提示,无点击。</li>
+  </ol>
+  <ol class="steps en">
+    <li><b>Plant</b>The attacker publishes a <b>genuinely benign</b> plugin to a trusted marketplace, pinned at commit <code>aaa…</code>. It passes review.</li>
+    <li><b>Adoption</b>People install it. Every install is pinned to <code>aaa…</code> — the reviewed, trusted version.</li>
+    <li><b>Version bump</b>The attacker ships a routine update; the marketplace re-pins to a new commit <code>bbb…</code>. That version is <b>still benign</b> and passes review too.</li>
+    <li><b>Rug-pull</b>The attacker creates a <b>branch named <code>bbb…</code></b>, sets it as the default, and points it at malicious code. The pinned commit itself can stay untouched.</li>
+    <li><b>Auto-update to RCE</b>The changed pin triggers every agent's background auto-update. The checkout resolves <code>bbb…</code> to the branch, and the malicious code runs. No prompt, no click.</li>
+  </ol>
+
+  <div class="figure" data-anim>
+    <span class="zh">
+    <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="五步攻击链流程图:种下、被采用、版本更新、抽梯子、自动更新即 RCE">
+      <defs><marker id="fl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8c8075"/></marker></defs>
+      <g>
+        <rect x="8" y="52" width="118" height="62" rx="10" fill="#e2efe9" stroke="#bcdccf"/>
+        <text x="67" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#1e6a58">① 种下</text>
+        <text x="67" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">无害插件</text>
+        <text x="67" y="108" font-size="11" text-anchor="middle" fill="#8c8075">pin=aaa…</text>
+      </g>
+      <line x1="130" y1="83" x2="148" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl)"/>
+      <g>
+        <rect x="152" y="52" width="118" height="62" rx="10" fill="#e2efe9" stroke="#bcdccf"/>
+        <text x="211" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#1e6a58">② 被采用</text>
+        <text x="211" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">用户安装</text>
+        <text x="211" y="108" font-size="11" text-anchor="middle" fill="#8c8075">审查通过</text>
+      </g>
+      <line x1="274" y1="83" x2="292" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl)"/>
+      <g>
+        <rect x="296" y="52" width="118" height="62" rx="10" fill="#faf0d9" stroke="#ecd9a8"/>
+        <text x="355" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#8a6210">③ 版本更新</text>
+        <text x="355" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">仍然无害</text>
+        <text x="355" y="108" font-size="11" text-anchor="middle" fill="#8c8075">pin=bbb…</text>
+      </g>
+      <line x1="418" y1="83" x2="436" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl)"/>
+      <g>
+        <rect x="440" y="52" width="118" height="62" rx="10" fill="#f6e6e0" stroke="#eccbc0"/>
+        <text x="499" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#b4402a">④ 抽梯子</text>
+        <text x="499" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">建分支 bbb…</text>
+        <text x="499" y="108" font-size="11" text-anchor="middle" fill="#8c8075">设为默认</text>
+      </g>
+      <line x1="562" y1="83" x2="580" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl)"/>
+      <g>
+        <rect x="584" y="52" width="108" height="62" rx="10" fill="#b4402a"/>
+        <text x="638" y="76" font-size="12.5" text-anchor="middle" font-weight="800" fill="#fff">⑤ RCE</text>
+        <text x="638" y="94" font-size="11.5" text-anchor="middle" fill="#fbe9e3">后台自动更新</text>
+        <text x="638" y="108" font-size="11" text-anchor="middle" fill="#f4cfc4">零交互</text>
+      </g>
+      <rect x="8" y="140" width="684" height="34" rx="9" fill="#f3ece3" stroke="#e6ddd2"/>
+      <text x="350" y="155" font-size="12" text-anchor="middle" fill="#4a423a">注意:①②③ 每一步在 marketplace 侧看都完全正常 —— 审查、钉扎、更新流程全部照章执行</text>
+      <text x="350" y="169" font-size="12" text-anchor="middle" fill="#b4402a">被攻破的只有第 ④ 步,而它发生在 marketplace 看不见的地方</text>
+    </svg>
+    </span>
+    <span class="en">
+    <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five-step attack chain: plant, adoption, version bump, rug-pull, auto-update to RCE">
+      <defs><marker id="fl-e" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8c8075"/></marker></defs>
+      <g>
+        <rect x="8" y="52" width="118" height="62" rx="10" fill="#e2efe9" stroke="#bcdccf"/>
+        <text x="67" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#1e6a58">① Plant</text>
+        <text x="67" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">benign plugin</text>
+        <text x="67" y="108" font-size="11" text-anchor="middle" fill="#8c8075">pin=aaa…</text>
+      </g>
+      <line x1="130" y1="83" x2="148" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl-e)"/>
+      <g>
+        <rect x="152" y="52" width="118" height="62" rx="10" fill="#e2efe9" stroke="#bcdccf"/>
+        <text x="211" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#1e6a58">② Adoption</text>
+        <text x="211" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">users install</text>
+        <text x="211" y="108" font-size="11" text-anchor="middle" fill="#8c8075">review passed</text>
+      </g>
+      <line x1="274" y1="83" x2="292" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl-e)"/>
+      <g>
+        <rect x="296" y="52" width="118" height="62" rx="10" fill="#faf0d9" stroke="#ecd9a8"/>
+        <text x="355" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#8a6210">③ Version bump</text>
+        <text x="355" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">still benign</text>
+        <text x="355" y="108" font-size="11" text-anchor="middle" fill="#8c8075">pin=bbb…</text>
+      </g>
+      <line x1="418" y1="83" x2="436" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl-e)"/>
+      <g>
+        <rect x="440" y="52" width="118" height="62" rx="10" fill="#f6e6e0" stroke="#eccbc0"/>
+        <text x="499" y="76" font-size="12.5" text-anchor="middle" font-weight="700" fill="#b4402a">④ Rug-pull</text>
+        <text x="499" y="94" font-size="11.5" text-anchor="middle" fill="#4a423a">branch "bbb…"</text>
+        <text x="499" y="108" font-size="11" text-anchor="middle" fill="#8c8075">set as default</text>
+      </g>
+      <line x1="562" y1="83" x2="580" y2="83" stroke="#8c8075" stroke-width="1.6" marker-end="url(#fl-e)"/>
+      <g>
+        <rect x="584" y="52" width="108" height="62" rx="10" fill="#b4402a"/>
+        <text x="638" y="76" font-size="12.5" text-anchor="middle" font-weight="800" fill="#fff">⑤ RCE</text>
+        <text x="638" y="94" font-size="11.5" text-anchor="middle" fill="#fbe9e3">auto-update</text>
+        <text x="638" y="108" font-size="11" text-anchor="middle" fill="#f4cfc4">no interaction</text>
+      </g>
+      <rect x="8" y="140" width="684" height="34" rx="9" fill="#f3ece3" stroke="#e6ddd2"/>
+      <text x="350" y="155" font-size="12" text-anchor="middle" fill="#4a423a">Note: steps ①②③ look entirely normal from the marketplace side — review, pin and update all proceed by the book</text>
+      <text x="350" y="169" font-size="12" text-anchor="middle" fill="#b4402a">Only step ④ is the compromise, and it happens where the marketplace cannot see it</text>
+    </svg>
+    </span>
+    <div class="fig-cap zh">图 3:五步攻击链。AIR 同时给出了第二条路径——直接接管一个<b>别人写的</b>、marketplace 已经信任的插件仓库,跳过①②③,从第④步开始。</div>
+    <div class="fig-cap en">Figure 3: The five-step chain. AIR also describes a second path — hijack the repository behind a plugin <b>someone else wrote</b> that the marketplace already trusts, skipping ①②③ and starting at step ④.</div>
+  </div>
+
+  <div class="callout warn">
+    <span class="h zh">最刺人的一句话</span>
+    <span class="h en">The line that stings</span>
+    <p class="zh">AIR 的原文值得直引其意:做对了事并不能保护你。那些走得比社区 marketplace 更远的组织——自己审查插件、自己钉扎到审查过的 commit——正是把 SHA 钉扎当作最后防线的人,而 Plugin4Shell 悄悄把这条防线抹掉了:审查通过、钉扎写入,装进来的却是另一份代码。<b>所有建立在钉扎之上的下游审核流程,都继承了这次失败。</b></p>
+    <p class="en">AIR's own framing is worth keeping: doing the right thing does not protect you. Organizations that go beyond a community marketplace — reviewing plugins themselves, pinning to a reviewed commit — are precisely the ones relying on SHA pinning as their safeguard, and Plugin4Shell quietly nullifies it: review passes, the pin is written, and different code installs. <b>Every downstream vetting process built on pinning inherits the failure.</b></p>
+  </div>
+</section>
+
+<!-- ========== 5 ========== -->
+<section id="s5">
+  <h2><span class="zh">5 · 修复:一行断言</span><span class="en">5 · The Fix: One Assertion</span></h2>
+
+  <p class="zh">两个变体,一个修法。签出之后,把工作区<b>实际所在</b>的 commit 解析出来,和钉扎值比对,不相等就中止:</p>
+  <p class="en">Two variants, one fix. After checkout, resolve the commit the working tree is <b>actually on</b>, compare it to the pin, and abort on mismatch:</p>
+
+<pre><code>git checkout "$PINNED_SHA"
+<span class="g">test "$(git rev-parse HEAD)" = "$PINNED_SHA" || abort</span></code></pre>
+
+  <p class="zh">有两个细节决定了这行断言有没有用:</p>
+  <p class="en">Two details decide whether that assertion actually works:</p>
+
+  <ul class="zh">
+    <li><b>必须检查解析后的 <code>HEAD</code>,而不是「你请求的那个 ref」。</b>这个区别正是 Gemini CLI 变体钻过去的地方——它请求的 <code>FETCH_HEAD</code> 名义上没错,错的是它解析到了什么。</li>
+    <li><b>必须跑在 Agent 内部。</b>钉扎是在客户端解析的,所以<b>任何 marketplace 都无法代为强制执行它自己宣传的这个保证</b>。marketplace 最多能缓解分支名变体——只允许那些拒绝 SHA 形状分支名的托管方(实际上等于「只允许 GitHub」),但这会禁掉 Agent 官方支持的其他托管方,而且对 Gemini CLI 那个变体完全无效。</li>
+  </ul>
+  <ul class="en">
+    <li><b>It must check the resolved <code>HEAD</code>, not the ref you asked for.</b> That distinction is exactly what the Gemini CLI variant slips through — the requested <code>FETCH_HEAD</code> is nominally correct; what it resolved to is not.</li>
+    <li><b>It must run inside the agent.</b> The pin is resolved on the client, so <b>no marketplace can enforce the guarantee it advertises</b>. A marketplace can at best blunt the branch-name variant by allowing only hosts that reject SHA-shaped names — effectively GitHub-only — but that bans hosts the agents officially support, and does nothing for the Gemini CLI variant.</li>
+  </ul>
+
+  <div class="tblwrap">
+  <table class="zh">
+    <tr><th>Agent</th><th>状态</th><th>版本 / 日期</th></tr>
+    <tr><td><b>Claude Code</b></td><td style="color:#1e6a58;font-weight:700">已修复</td><td>2.1.179(AIR 记录确认日 2026-06-17)</td></tr>
+    <tr><td><b>OpenAI Codex</b></td><td style="color:#1e6a58;font-weight:700">已修复</td><td>0.146.0(2026-08-12 验证)</td></tr>
+    <tr><td><b>GitHub Copilot</b></td><td style="color:#b4402a;font-weight:700">未修复</td><td>微软已收到披露,截至本文调研时无补丁</td></tr>
+    <tr><td><b>Gemini CLI</b></td><td style="color:#b4402a;font-weight:700">不会修复</td><td>2026-08-04 Google 确认产品弃用,建议迁移 Antigravity</td></tr>
+  </table>
+  <table class="en">
+    <tr><th>Agent</th><th>Status</th><th>Version / date</th></tr>
+    <tr><td><b>Claude Code</b></td><td style="color:#1e6a58;font-weight:700">Patched</td><td>2.1.179 (AIR records confirmation on 2026-06-17)</td></tr>
+    <tr><td><b>OpenAI Codex</b></td><td style="color:#1e6a58;font-weight:700">Patched</td><td>0.146.0 (verified 2026-08-12)</td></tr>
+    <tr><td><b>GitHub Copilot</b></td><td style="color:#b4402a;font-weight:700">Unpatched</td><td>Microsoft received the disclosure; no fix as of this research</td></tr>
+    <tr><td><b>Gemini CLI</b></td><td style="color:#b4402a;font-weight:700">Will not be fixed</td><td>On 2026-08-04 Google confirmed deprecation; migrate to Antigravity</td></tr>
+  </table>
+  </div>
+
+  <div class="callout key">
+    <span class="h zh">时间线(AIR 官方披露)</span>
+    <span class="h en">Timeline (AIR's own disclosure)</span>
+    <p class="zh">2026 年 5 月 · AIR 研究团队发现,并对四款 Agent 都做出可用 PoC → 2026 年 6 月 · 按协同披露流程通知四家厂商 → 2026-06-17 Anthropic 确认修复 → 2026-08-04 Google 确认不修 → 2026-08-12 Codex 验证修复 → <b>2026-09-17 公开披露</b>(90 天窗口届满)。</p>
+    <p class="en">May 2026 · found by AIR's research lab with working PoCs against all four agents → June 2026 · disclosed to all four vendors under coordinated disclosure → 2026-06-17 Anthropic confirms the fix → 2026-08-04 Google confirms no fix → 2026-08-12 Codex verified fixed → <b>2026-09-17 public disclosure</b> (90-day window elapsed).</p>
+  </div>
+</section>
+
+<!-- ========== 6 ========== -->
+<section id="s6">
+  <h2><span class="zh">6 · 动手:把你自己的机器检一遍</span><span class="en">6 · Hands-On: Audit Your Own Machine</span></h2>
+
+  <p class="zh">如果你用 Claude Code,升级就是<b>完整</b>的缓解措施。但升级只解决了「以后不会再被骗」,它不回答「我这台机器上现在装着什么」。三步:</p>
+  <p class="en">If you use Claude Code, updating is the <b>complete</b> mitigation. But updating only answers "this can't fool me again" — it does not answer "what is on this machine right now." Three steps:</p>
+
+<pre><code><span class="c"># 1. 确认版本(任何 ≥ 2.1.179 都已修;你大概率已在 2.1.27x)</span>
+claude --version
+
+<span class="c"># 2. 盘点:装了什么、来自哪个 marketplace、钉在哪个 commit</span>
+<span class="c">#    用 JSON 输出,别靠肉眼读面板</span>
+claude plugin list --json | jq -r '.[] | "\(.name)\t\(.marketplace)\t\(.commit // "no-pin")"'
+
+<span class="c"># 3. 两周没用过的插件,卸掉</span>
+claude plugin uninstall &lt;name&gt;</code></pre>
+
+  <p class="zh">为什么第 3 步也算安全动作、而不只是省 token?因为<b>受害面 = 你装着的插件数 × 每个插件仓库被接管的概率</b>。第二个因子不是理论值:SkillJacking 已经证明了<b>925 个在用的 skill</b> 被从原维护者手里劫持;MCPJacking 在官方 marketplace 里找到 <b>155 个依赖过期域名、可被直接注册接管的 MCP</b>。每一个你不再使用却留着的插件,都是一条<b>仍然开着的自动更新通道</b>。</p>
+  <p class="en">Why does step 3 count as a security action rather than just token thrift? Because <b>your exposure = number of installed plugins × probability each plugin's repository gets taken over</b>. That second factor is not theoretical: SkillJacking demonstrated <b>925 in-use skills</b> hijacked from their original maintainers; MCPJacking found <b>155 MCPs in the official marketplace relying on expired domains</b>, registerable by anyone. Every plugin you no longer use but still have installed is <b>an auto-update channel left open</b>.</p>
+
+  <h3><span class="zh">团队与企业:把 marketplace 收口</span><span class="en">Teams and enterprises: lock down the marketplace</span></h3>
+
+  <p class="zh">Claude Code 官方文档提供了 <code>strictKnownMarketplaces</code>:在<b>托管设置(managed settings)</b>里限制用户可以添加哪些插件 marketplace。因为它写在托管设置里,<b>个人配置和项目配置都无法覆盖</b>。空数组 = 完全锁死不允许任何第三方 marketplace;给一个列表 = 白名单;配 <code>hostPattern</code> 正则 = 域名级控制。常见做法是与 <code>extraKnownMarketplaces</code> 搭配——后者负责给全团队自动下发官方内部 marketplace,前者负责堵住其余一切。</p>
+  <p class="en">Claude Code's documentation provides <code>strictKnownMarketplaces</code>: a <b>managed settings</b> key restricting which plugin marketplaces users may add. Because it lives in managed settings, <b>neither user nor project configuration can override it</b>. An empty array is full lockdown with no third-party marketplaces; a list is an allowlist; a <code>hostPattern</code> regex gives domain-level control. The common pairing is with <code>extraKnownMarketplaces</code>, which provisions your official internal marketplace team-wide while the former blocks everything else.</p>
+
+  <div class="callout good">
+    <span class="h zh">一个务实的收口顺序</span>
+    <span class="h en">A pragmatic lockdown order</span>
+    <p class="zh">① 先升级(唯一的完整缓解);② 盘点并卸掉闲置插件(缩小受害面);③ 企业侧用 <code>strictKnownMarketplaces</code> 把 marketplace 收到白名单;④ 如果你自己运营 marketplace,优先选<b>拒绝 SHA 形状分支名</b>的托管方(GitHub 会拒),这不是完整防护,但能堵掉分支名变体。</p>
+    <p class="en">① Update first (the only complete mitigation); ② inventory and uninstall idle plugins (shrink the exposure); ③ on the enterprise side, restrict marketplaces to an allowlist with <code>strictKnownMarketplaces</code>; ④ if you run your own marketplace, prefer a host that <b>rejects SHA-shaped branch names</b> (GitHub does) — not complete protection, but it closes the branch-name variant.</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="h zh">不用那两款工具也值得知道</span>
+    <span class="h en">Worth knowing even if you don't use those two</span>
+    <p class="zh"><b>GitHub Copilot 至今没有补丁;Gemini CLI 被弃用、永远不会修。</b>如果你的开发机、构建机或 CI 镜像里还留着它们,那不是「待打补丁」,是<b>永久暴露</b>——处理方式只能是卸载或替换,不是等。</p>
+    <p class="en"><b>GitHub Copilot has no patch; Gemini CLI is deprecated and will never get one.</b> If either is still on a dev box, build machine or CI image, that is not "pending a patch" — it is <b>permanent exposure</b>, and the only response is removal or replacement, not waiting.</p>
+  </div>
+</section>
+
+<!-- ========== 7 ========== -->
+<section id="s7">
+  <h2><span class="zh">7 · 对比:传统包管理器早就解决了这个问题</span><span class="en">7 · Comparison: Package Managers Solved This Long Ago</span></h2>
+
+  <p class="zh">这一节是概念对比,帮你把 Plugin4Shell 放进更大的背景里——<b>下面的机制描述是各生态公认的设计事实,不是来自本次调研的某一篇来源</b>,细节请以各自官方文档为准。</p>
+  <p class="en">This section is a conceptual comparison to place Plugin4Shell in a larger context — <b>the mechanisms described below are widely established design facts of each ecosystem rather than claims from a source fetched in this research</b>; consult each ecosystem's own documentation for details.</p>
+
+  <div class="tblwrap">
+  <table class="zh">
+    <tr><th>生态</th><th>完整性保证的做法</th><th>校验发生在哪</th></tr>
+    <tr><td>npm / yarn</td><td>lockfile 里记录 tarball 的 integrity 哈希,安装时对下载内容重新计算并比对</td><td>客户端,<b>且真的比对了</b></td></tr>
+    <tr><td>Go modules</td><td>模块内容哈希写进 <code>go.sum</code>,并有公共 checksum database 做交叉见证</td><td>客户端 + 第三方公证</td></tr>
+    <tr><td>容器镜像</td><td>按 digest(内容哈希)拉取,运行时校验镜像层哈希</td><td>客户端,<b>且真的比对了</b></td></tr>
+    <tr style="background:#f6e6e0"><td><b>Agent 插件(修复前)</b></td><td>记录 commit SHA,执行 <code>git checkout</code></td><td><b>没有比对这一步</b></td></tr>
+  </table>
+  <table class="en">
+    <tr><th>Ecosystem</th><th>How integrity is guaranteed</th><th>Where verification happens</th></tr>
+    <tr><td>npm / yarn</td><td>Tarball integrity hashes recorded in the lockfile; the downloaded content is re-hashed and compared on install</td><td>Client-side, <b>and actually compared</b></td></tr>
+    <tr><td>Go modules</td><td>Module content hashes in <code>go.sum</code>, cross-witnessed by a public checksum database</td><td>Client-side plus third-party notarization</td></tr>
+    <tr><td>Container images</td><td>Pulled by digest (content hash), with layer hashes verified at runtime</td><td>Client-side, <b>and actually compared</b></td></tr>
+    <tr style="background:#f6e6e0"><td><b>Agent plugins (pre-fix)</b></td><td>Record a commit SHA, run <code>git checkout</code></td><td><b>The comparison step was missing</b></td></tr>
+  </table>
+  </div>
+
+  <p class="zh">看出模式了吗?其他生态都做了同一件事:<b>拿到东西之后,重新算一遍哈希,和预期值比。</b>Agent 插件生态借用了 git 的哈希,却<b>把「比对」这一步交给了 git 本身</b>——而 git 从来没承诺过「你给我一个 SHA,我一定给你那个 commit」。它承诺的是「我按我的解析规则找一个叫这个名字的东西」。误会就在这里。</p>
+  <p class="en">See the pattern? Every other ecosystem does the same thing: <b>after fetching, re-compute the hash and compare it to what you expected.</b> The agent plugin ecosystem borrowed git's hashes but <b>delegated the comparison step to git itself</b> — and git never promised "give me a SHA and I'll give you that commit." It promised "I'll look up something by that name using my resolution rules." That is where the misunderstanding lives.</p>
+
+  <details class="rephrase zh">
+    <summary>顺带一提:这个坑在别处出现过</summary>
+    <p>「分支名伪装成 commit SHA」并不是 2026 年的新发明。安全研究者 Teddy Katz 在 2022 年就写过利用歧义 ref 从 GitHub Actions 里偷密钥的手法;GitLab 的 issue 追踪里也有「ambiguous branch name exploitation」的条目。<b>换句话说,这是一个已知的 git 陷阱,只是在 2026 年被四个新生态同时踩了一遍。</b></p>
+  </details>
+  <details class="rephrase en">
+    <summary>An aside: this trap has appeared before</summary>
+    <p>Branch names masquerading as commit SHAs are not a 2026 invention. Security researcher Teddy Katz wrote in 2022 about using ambiguous refs to steal secrets from GitHub Actions, and GitLab's issue tracker carries an "ambiguous branch name exploitation" entry. <b>In other words, this is a known git trap — four new ecosystems just walked into it simultaneously in 2026.</b></p>
+  </details>
+</section>
+
+<!-- ========== 8 ========== -->
+<section id="s8">
+  <h2><span class="zh">8 · 坑与误解</span><span class="en">8 · Pitfalls and Misreadings</span></h2>
+
+  <div class="callout warn">
+    <span class="h zh">误解一:「我只用 GitHub 上的 marketplace,所以没事」</span>
+    <span class="h en">Misreading 1: "I only use GitHub-hosted marketplaces, so I'm fine"</span>
+    <p class="zh">GitHub 确实拒绝 40 位十六进制的分支名,这挡住了<b>分支名变体</b>。但:① 你信任的 marketplace 里,某个<b>插件</b>的仓库可能托管在别处(marketplace 和插件仓库不必同源);② Gemini CLI 的 <code>FETCH_HEAD</code> 变体和分支名是否像 SHA <b>完全无关</b>;③ 这是「减少一条路径」,不是「关闭这个漏洞」。<b>升级 Agent 才是完整缓解。</b></p>
+    <p class="en">GitHub does reject 40-hex branch names, which blocks the <b>branch-name variant</b>. But: ① inside a marketplace you trust, an individual <b>plugin's</b> repository may be hosted elsewhere (the marketplace and the plugin repo need not share a host); ② Gemini CLI's <code>FETCH_HEAD</code> variant has <b>nothing to do</b> with whether a branch name looks like a SHA; ③ this narrows one path, it does not close the vulnerability. <b>Updating the agent is the complete mitigation.</b></p>
+  </div>
+
+  <div class="callout warn">
+    <span class="h zh">误解二:「marketplace 加强审核就能解决」</span>
+    <span class="h en">Misreading 2: "Tighter marketplace review would fix this"</span>
+    <p class="zh">不能,而且这是整件事最反直觉的地方。攻击的第①②③步里,marketplace 审到的每一版<b>都真的是无害的</b>——审核没有失职。被换掉的内容发生在第④步,发生在 marketplace 的视野之外、在客户端解析的那一瞬间。AIR 说得很直接:<b>钉扎是在客户端解析的,所以 marketplace 无法强制执行它自己宣传的那个保证。</b></p>
+    <p class="en">It cannot, and this is the most counter-intuitive part. In steps ①②③, every version the marketplace reviewed <b>really was benign</b> — review did not fail. The swap happens at step ④, outside the marketplace's view, in the instant of client-side resolution. AIR puts it plainly: <b>the pin is resolved on the client, so no marketplace can enforce the guarantee it advertises.</b></p>
+  </div>
+
+  <div class="callout warn">
+    <span class="h zh">误解三:「关掉自动更新就行了」</span>
+    <span class="h en">Misreading 3: "I'll just turn off auto-update"</span>
+    <p class="zh">关掉自动更新去掉的是<b>「零点击」这个修饰词</b>,不是漏洞本身。下一次你手动 <code>claude plugin update</code> 或者装一个新插件时,同一句 <code>git checkout</code> 照样跑,照样被骗。自动更新只是决定了<b>什么时候</b>触发,不决定<b>会不会</b>中招。</p>
+    <p class="en">Disabling auto-update removes the <b>"zero-click" qualifier</b>, not the vulnerability. The next time you manually run <code>claude plugin update</code> or install a new plugin, the same <code>git checkout</code> runs and is fooled the same way. Auto-update decides <b>when</b> it triggers, not <b>whether</b> you are exposed.</p>
+  </div>
+
+  <div class="callout key">
+    <span class="h zh">可以带走的一条通则</span>
+    <span class="h en">One general rule to take away</span>
+    <p class="zh">凡是你依赖某个「保证」的地方,问一句:<b>这个保证是谁在什么时候、用什么动作兑现的?</b>「我钉扎了 SHA」是一个意图,不是一个保证;真正兑现它的动作是「签出之后把 HEAD 解析出来比一遍」。意图和动作之间的那条缝,就是所有这类漏洞的栖身之处。</p>
+    <p class="en">Wherever you rely on a "guarantee," ask: <b>who redeems it, when, and with what concrete action?</b> "I pinned the SHA" is an intent, not a guarantee; the action that redeems it is "resolve HEAD after checkout and compare." The gap between intent and action is where this whole class of vulnerability lives.</p>
+  </div>
+</section>
+
+<!-- ========== 9 ========== -->
+<section id="s9">
+  <h2><span class="zh">9 · 术语表</span><span class="en">9 · Glossary</span></h2>
+
+  <div class="glossary zh"><dl>
+    <dt>SHA pinning(SHA 钉扎)</dt>
+    <dd>把某个依赖锁定到一个具体的 commit 哈希,而不是「最新版」或某个分支。目的是让「审查过的代码」和「实际跑的代码」永远是同一份。</dd>
+    <dt>ref / object id</dt>
+    <dd>ref 是可变的名字(分支、tag);object id 是那串 40 位十六进制的内容哈希。git 解析一个字符串时,<b>ref 优先于 object id</b>——这是 Plugin4Shell 的地基。</dd>
+    <dt>default branch(默认分支)</dt>
+    <dd>仓库被 <code>git clone</code> 时自动检出的那个分支。攻击必须把恶意分支设为默认——非默认分支只会成为 remote-tracking ref,签出会回落到 commit 对象。</dd>
+    <dt>FETCH_HEAD</dt>
+    <dd>git 在 <code>git fetch</code> 后写下的一个文件,记录刚取回的内容。它通常被当作一个「特殊名字」使用,但如果仓库里真有一个叫这个名字的分支,解析结果就会变。</dd>
+    <dt>zero-click(零点击)</dt>
+    <dd>受害者不需要做任何事(不点链接、不确认弹窗、不安装)即可被攻击。这里的零点击来自插件后台自动更新。</dd>
+    <dt>rug-pull(抽梯子)</dt>
+    <dd>先建立信任、被广泛采用之后,再把内容换成恶意版本。供应链攻击里最经典的形态。</dd>
+    <dt>coordinated disclosure(协同披露)</dt>
+    <dd>研究者先私下通知厂商、给出修复窗口(常见 90 天),到期再公开。AIR 走的就是这个流程:5 月发现,6 月通知,9 月 17 日公开。</dd>
+  </dl></div>
+
+  <div class="glossary en"><dl>
+    <dt>SHA pinning</dt>
+    <dd>Locking a dependency to a specific commit hash rather than "latest" or a branch, so that the code reviewed and the code running are always the same code.</dd>
+    <dt>ref / object id</dt>
+    <dd>A ref is a mutable name (branch, tag); an object id is the 40-hex content hash. When git resolves a string, <b>refs take precedence over object ids</b> — the bedrock of Plugin4Shell.</dd>
+    <dt>default branch</dt>
+    <dd>The branch checked out automatically on <code>git clone</code>. The attack requires the malicious branch to be the default — a non-default branch arrives only as a remote-tracking ref and the checkout falls back to the commit object.</dd>
+    <dt>FETCH_HEAD</dt>
+    <dd>A file git writes after <code>git fetch</code> recording what was just retrieved. It is normally treated as a special name, but if the repository genuinely has a branch by that name, resolution changes.</dd>
+    <dt>zero-click</dt>
+    <dd>The victim needs to do nothing — no link, no prompt, no install — to be compromised. Here it comes from background plugin auto-update.</dd>
+    <dt>rug-pull</dt>
+    <dd>Build trust, get widely adopted, then swap the contents for a malicious version. The classic shape of a supply-chain attack.</dd>
+    <dt>coordinated disclosure</dt>
+    <dd>Researchers notify vendors privately with a fix window (commonly 90 days), then publish. AIR followed exactly this: found in May, disclosed in June, published 17 September.</dd>
+  </dl></div>
+</section>
+
+<!-- ========== 10 ========== -->
+<section id="s10">
+  <h2><span class="zh">10 · 来源清单</span><span class="en">10 · Sources</span></h2>
+
+  <p class="zh">本文的事实性内容均来自以下来源,调研日期 <b>2026-09-21</b>。安全领域的修复状态变动很快——<b>Copilot 的补丁状态请以微软官方公告为准</b>。</p>
+  <p class="en">Every factual claim here comes from the sources below, researched on <b>2026-09-21</b>. Patch status in security moves fast — <b>check Microsoft's own announcements for Copilot's current state</b>.</p>
+
+  <ol class="srclist zh">
+    <li><b>一手研究(核心来源)</b>:AIR Security, <a href="https://www.air.security/blog-posts/plugin4shell" target="_blank" rel="noopener">Plugin4Shell — Zero Click RCE Vulnerability found in top 4 most popular coding agents</a>,作者 Or Nevo / Dor Granat / Niv Hoffman,2026-09-17。技术细节、攻击链、时间线、修复版本号均出自此文。</li>
+    <li><b>独立报道</b>:Help Net Security, <a href="https://www.helpnetsecurity.com/2026/09/18/plugin4shell-ai-coding-agents-vulnerability/" target="_blank" rel="noopener">Zero-click RCE vulnerability hit four major AI coding agents, two remain unpatched</a>,2026-09-18。用于交叉验证修复状态与影响范围。</li>
+    <li><b>独立报道</b>:The Register, <a href="https://www.theregister.com/security/2026/09/17/ai_coding_agents_0-click_rce_flaw_could_hand_attackers_keys_to_the_kingdom/5297335" target="_blank" rel="noopener">AI coding agents' 0-click RCE flaw could hand attackers keys to the kingdom</a>,2026-09-17。</li>
+    <li><b>相关前序研究</b>:AIR Security, <a href="https://www.air.security/blog-posts/mcpjacking" target="_blank" rel="noopener">MCPJacking: 155 Hijackable MCPs Discovered Live in the Official MCP Marketplace</a>,2026-08-27。</li>
+    <li><b>git 歧义 ref 背景</b>:Teddy Katz, <a href="https://blog.teddykatz.com/2022/02/23/ghosts-of-branches-past.html" target="_blank" rel="noopener">Stealing a few more GitHub Actions secrets</a>,2022;以及 GitLab issue <a href="https://gitlab.com/gitlab-org/gitlab/-/issues/406844" target="_blank" rel="noopener">Ambiguous branch name exploitation</a>。用于说明该 git 行为是已知的、长期存在的。</li>
+    <li><b>官方文档</b>:Claude Code, <a href="https://code.claude.com/docs/en/plugin-marketplaces" target="_blank" rel="noopener">Create and distribute a plugin marketplace</a>(<code>strictKnownMarketplaces</code> / <code>extraKnownMarketplaces</code> 的说明来源)。</li>
+    <li><b>版本上下文</b>:Claude Code changelog(经 <a href="https://releasebot.io/updates/anthropic/claude-code" target="_blank" rel="noopener">Releasebot 聚合</a>),用于核对 v2.1.277 / v2.1.278 的当前版本状态。</li>
+  </ol>
+
+  <ol class="srclist en">
+    <li><b>Primary research (core source)</b>: AIR Security, <a href="https://www.air.security/blog-posts/plugin4shell" target="_blank" rel="noopener">Plugin4Shell — Zero Click RCE Vulnerability found in top 4 most popular coding agents</a>, by Or Nevo / Dor Granat / Niv Hoffman, 2026-09-17. All technical detail, the attack chain, the timeline and the fix versions come from this piece.</li>
+    <li><b>Independent reporting</b>: Help Net Security, <a href="https://www.helpnetsecurity.com/2026/09/18/plugin4shell-ai-coding-agents-vulnerability/" target="_blank" rel="noopener">Zero-click RCE vulnerability hit four major AI coding agents, two remain unpatched</a>, 2026-09-18. Used to cross-check patch status and scope.</li>
+    <li><b>Independent reporting</b>: The Register, <a href="https://www.theregister.com/security/2026/09/17/ai_coding_agents_0-click_rce_flaw_could_hand_attackers_keys_to_the_kingdom/5297335" target="_blank" rel="noopener">AI coding agents' 0-click RCE flaw could hand attackers keys to the kingdom</a>, 2026-09-17.</li>
+    <li><b>Related prior research</b>: AIR Security, <a href="https://www.air.security/blog-posts/mcpjacking" target="_blank" rel="noopener">MCPJacking: 155 Hijackable MCPs Discovered Live in the Official MCP Marketplace</a>, 2026-08-27.</li>
+    <li><b>Background on ambiguous git refs</b>: Teddy Katz, <a href="https://blog.teddykatz.com/2022/02/23/ghosts-of-branches-past.html" target="_blank" rel="noopener">Stealing a few more GitHub Actions secrets</a>, 2022; and GitLab issue <a href="https://gitlab.com/gitlab-org/gitlab/-/issues/406844" target="_blank" rel="noopener">Ambiguous branch name exploitation</a>. Cited to show this git behaviour is known and long-standing.</li>
+    <li><b>Official documentation</b>: Claude Code, <a href="https://code.claude.com/docs/en/plugin-marketplaces" target="_blank" rel="noopener">Create and distribute a plugin marketplace</a> (source for <code>strictKnownMarketplaces</code> / <code>extraKnownMarketplaces</code>).</li>
+    <li><b>Version context</b>: Claude Code changelog (via <a href="https://releasebot.io/updates/anthropic/claude-code" target="_blank" rel="noopener">Releasebot</a>), used to confirm current version state around v2.1.277 / v2.1.278.</li>
+  </ol>
+
+  <div class="callout key">
+    <span class="h zh">诚实说明:本文没能覆盖的部分</span>
+    <span class="h en">Honest note: what this document could not cover</span>
+    <p class="zh">① <b>没有 CVE 编号</b>——截至调研时未找到公开分配的 CVE,本文因此不给编号;② <b>没有野外利用证据</b>——AIR 展示的是 PoC 与前序研究里的真实劫持,但<b>没有证据表明 Plugin4Shell 本身已在野外被利用</b>,不要把它读成「你已经被黑了」;③ 第 7 节的包管理器对比是概念性的,细节以各生态官方文档为准。</p>
+    <p class="en">① <b>No CVE identifier</b> — none was found publicly assigned at research time, so none is quoted here; ② <b>no evidence of exploitation in the wild</b> — AIR demonstrates PoCs and real hijacks from its prior research, but <b>nothing indicates Plugin4Shell itself has been exploited in the wild</b>; do not read it as "you have already been breached"; ③ the package-manager comparison in section 7 is conceptual — consult each ecosystem's documentation for specifics.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer><div class="fin">
+  <p class="zh">深度学习文档 · <b>Agent 插件供应链安全:Plugin4Shell 与失效的 SHA 钉扎</b> · 调研时间 2026-09-21 · 由 mingyu 的每日 AI 情报任务生成。安全领域变化快,修复状态与配置项请以各厂商官方文档最新版本为准。</p>
+  <p class="en">Deep dive · <b>Agent Plugin Supply Chain Security: Plugin4Shell and the SHA Pin That Wasn't</b> · Researched 2026-09-21 · Produced by mingyu's daily AI intelligence task. Security moves fast — always check each vendor's current documentation for patch status and configuration keys.</p>
+</div></footer>
+
+<script>
+(function(){
+  var body=document.body, btn=document.getElementById('langbtn');
+  function apply(l){
+    body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang', l==='zh'?'zh-CN':'en');
+    btn.textContent = (l==='zh'?'EN':'中');
+    try{localStorage.setItem('p4s-lang',l);}catch(e){}
+    refreshFigures();
+  }
+  var saved=null;
+  try{saved=localStorage.getItem('p4s-lang');}catch(e){}
+  if(!saved){ saved = (navigator.language||'en').toLowerCase().indexOf('zh')===0 ? 'zh' : 'en'; }
+  apply(saved);
+  btn.addEventListener('click',function(){ apply(body.getAttribute('data-lang')==='zh'?'en':'zh'); });
+
+  // progress bar
+  var bar=document.getElementById('bar');
+  function prog(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    bar.style.width = (h>0 ? (window.scrollY/h*100) : 0) + '%';
+  }
+  window.addEventListener('scroll',prog,{passive:true}); prog();
+
+  // figure entrance animation
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var figs = Array.prototype.slice.call(document.querySelectorAll('.figure[data-anim]'));
+  var io = null;
+  if(!reduce && 'IntersectionObserver' in window){
+    io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{threshold:.12});
+  }
+  function refreshFigures(){
+    if(reduce || !io){ figs.forEach(function(f){f.classList.add('in');}); return; }
+    figs.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      var r=f.getBoundingClientRect();
+      if(r.top < window.innerHeight && r.bottom > 0 && f.offsetParent !== null){ f.classList.add('in'); }
+      else { io.observe(f); }
+    });
+  }
+  refreshFigures();
+
+  // toc scroll spy
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function spy(){
+    var best=0;
+    for(var i=0;i<secs.length;i++){ if(secs[i] && secs[i].getBoundingClientRect().top <= 90) best=i; }
+    links.forEach(function(a,i){ a.classList.toggle('on', i===best); });
+  }
+  window.addEventListener('scroll',spy,{passive:true}); spy();
+  links.forEach(function(a){ a.addEventListener('click',function(){ var t=document.getElementById('tocToggle'); if(t) t.checked=false; }); });
+})();
+</script>
+</body>
+</html>
