@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Harness 怎样进化才不"刷题":RRSI 正则化递归自我改进拆解 | How Agent Harnesses Evolve Without Gaming the Test: A Deep Dive into RRSI</title>
+<meta name="description" content="深度拆解 Google Cloud AI Research 于 2026-09-21 发布的 RRSI 论文:给 Agent Harness 的递归自我进化加上提案侧与选择侧双重正则化,防止在固定评测集上刷分、换任务就崩的适应性过拟合。">
+<style>
+:root{
+  --bg:#0b0d16;
+  --surface:#12151f;
+  --surface2:#1a1e2c;
+  --surface3:#212639;
+  --border:#262b3d;
+  --ink:#eef0f8;
+  --muted:#9199b3;
+  --muted2:#666d87;
+  --accent:#7c83fd;
+  --accent-soft:#7c83fd22;
+  --accent-deep:#a5a9ff;
+  --accent2:#2dd4bf;
+  --accent2-soft:#2dd4bf22;
+  --warn:#f5a524;
+  --warn-soft:#f5a52422;
+  --danger:#ef4a6b;
+  --radius:13px;
+  --radius-sm:8px;
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--font-sans);font-size:16px;line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+}
+body[data-lang="zh"] .en{display:none !important}
+body[data-lang="en"] .zh{display:none !important}
+body[data-lang="en"]{font-size:16px;line-height:1.75}
+a{color:var(--accent-deep)}
+.term{color:var(--accent2);font-weight:600;border-bottom:1px dotted var(--accent2)}
+
+/* top progress + toggle */
+.top-progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:200;transition:width .1s linear}
+.toc-toggle{display:none;position:fixed;top:14px;left:14px;z-index:190;width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);font-size:18px;cursor:pointer}
+.lang-toggle{position:fixed;top:14px;right:14px;z-index:190;display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:4px}
+.lang-toggle button{border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;padding:6px 14px;border-radius:99px;cursor:pointer;font-family:var(--font-sans)}
+.lang-toggle button.active{background:var(--accent);color:#0b0d16}
+
+/* side toc */
+.side-toc{position:fixed;top:0;left:0;bottom:0;width:270px;background:var(--surface);border-right:1px solid var(--border);padding:22px 18px;overflow-y:auto;z-index:150}
+.st-brand{font-size:15px;font-weight:800;letter-spacing:-.01em;margin-bottom:2px;display:flex;gap:6px;align-items:center}
+.st-brand span:first-child{color:var(--accent)}
+.st-sub{font-size:12px;color:var(--muted2);margin-bottom:14px}
+.st-progress{height:3px;background:var(--surface3);border-radius:99px;margin-bottom:18px;overflow:hidden}
+.st-progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.side-toc ol{list-style:none;margin:0;padding:0;counter-reset:none}
+.side-toc li{margin-bottom:2px}
+.side-toc a{display:flex;gap:9px;align-items:baseline;padding:7px 9px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.35}
+.side-toc a .idx{font-family:var(--font-mono);font-size:11px;color:var(--muted2);flex-shrink:0}
+.side-toc a:hover{background:var(--surface2);color:var(--ink)}
+.side-toc a.active{background:var(--accent-soft);color:var(--accent-deep);font-weight:700}
+
+main{margin-left:270px}
+.container{max-width:780px;margin:0 auto;padding:0 24px 40px}
+
+/* hero */
+.hero{position:relative;padding:70px 24px 46px;border-bottom:1px solid var(--border);overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:42px 42px;opacity:.28;mask-image:radial-gradient(ellipse 70% 60% at 50% 0%,#000 40%,transparent 90%)}
+.hero-inner{max-width:780px;margin:0 auto;position:relative}
+.kicker{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;letter-spacing:.04em;color:var(--accent2);text-transform:uppercase;margin-bottom:16px}
+.kicker .dot{width:6px;height:6px;border-radius:99px;background:var(--accent2);box-shadow:0 0 0 3px var(--accent2-soft)}
+.hero-title{font-size:clamp(26px,4.4vw,38px);font-weight:840;letter-spacing:-.02em;margin:0 0 18px;line-height:1.28}
+.hero-title .hl{color:var(--accent-deep)}
+.hero-lede{font-size:16.5px;color:var(--muted);max-width:680px;margin:0 0 22px}
+.hero-lede strong{color:var(--ink)}
+.hero-meta{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13px;color:var(--muted2)}
+.hero-meta b{color:var(--muted)}
+
+/* section chrome */
+section{padding:52px 0;border-bottom:1px solid var(--border)}
+section:last-of-type{border-bottom:none}
+.sec-eyebrow{font-family:var(--font-mono);font-size:12.5px;color:var(--muted2);letter-spacing:.03em;margin:0 0 6px}
+h2{font-size:26px;font-weight:820;letter-spacing:-.015em;margin:0 0 20px;display:flex;align-items:center;gap:10px}
+h2 .icon{font-size:22px}
+h3{font-size:18.5px;font-weight:760;margin:28px 0 10px;color:var(--ink)}
+p{margin:0 0 16px}
+.lede{font-size:17px;color:var(--ink)}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin-bottom:7px}
+
+/* figure */
+.figure{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 16px 14px;margin:22px 0;opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}
+.figure.in{opacity:1;transform:translateY(0)}
+.figure svg{width:100%;height:auto;display:block}
+.fig-cap{font-size:12.5px;color:var(--muted2);margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
+
+/* callouts */
+.callout{border-radius:var(--radius);padding:16px 18px;margin:18px 0;border:1px solid var(--border);background:var(--surface)}
+.callout.warn{border-color:#f5a52455;background:var(--warn-soft)}
+.callout.warn .co-t{color:var(--warn)}
+.callout.tip{border-color:#2dd4bf55;background:var(--accent2-soft)}
+.callout.tip .co-t{color:var(--accent2)}
+.co-t{font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block}
+
+/* glossary */
+.glossary{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gterm{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.gterm b{display:block;color:var(--accent-deep);font-size:14.5px;margin-bottom:4px}
+.gterm p{margin:0;font-size:13.5px;color:var(--muted)}
+
+/* tables */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--border)}
+th{color:var(--muted2);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.02em}
+td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+tr.hl td{background:var(--accent-soft);color:var(--accent-deep);font-weight:700}
+tr.bad td{color:var(--danger)}
+.tbl-wrap{overflow-x:auto}
+
+/* code */
+pre{background:#0e1119;border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 15px;overflow-x:auto;font-size:13px;line-height:1.6;margin:14px 0}
+code{font-family:var(--font-mono)}
+p code,li code{background:var(--surface3);padding:1px 6px;border-radius:5px;font-size:.9em}
+
+/* checklist */
+.checklist{list-style:none;padding:0;margin:16px 0}
+.checklist li{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border)}
+.checklist li:last-child{border-bottom:none}
+.checklist .ck{color:var(--accent2);font-weight:800;flex-shrink:0}
+
+footer{padding:40px 24px 60px;color:var(--muted2);font-size:13px}
+footer .fin{max-width:780px;margin:0 auto}
+footer a{color:var(--accent-deep)}
+.disclaimer{font-size:12px;color:var(--muted2);border-top:1px solid var(--border);padding-top:16px;margin-top:20px}
+
+@media(max-width:980px){
+  .side-toc{transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.5)}
+  .side-toc.open{transform:translateX(0)}
+  main{margin-left:0}
+  .toc-toggle{display:block}
+  .glossary{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .hero{padding:64px 18px 36px}
+  .container{padding:0 16px 30px}
+  section{padding:38px 0}
+}
+</style>
+
+<!-- ms-seo -->
+<meta property="og:title" content="Agent Harness 怎样进化才不&quot;刷题&quot;:RRSI 正则化递归自我改进拆解 | How Agent Harnesses Evolve Without Gaming the Test: A Deep Dive into RRSI">
+<meta property="og:description" content="深度拆解 Google Cloud AI Research 于 2026-09-21 发布的 RRSI 论文:给 Agent Harness 的递归自我进化加上提案侧与选择侧双重正则化,防止在固定评测集上刷分、换任务就崩的适应性过拟合。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-09-24-agentharness-zi-wo-jin-hua-rrsi.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-09-24-agentharness-zi-wo-jin-hua-rrsi.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent Harness 怎样进化才不\"刷题\":RRSI 正则化递归自我改进拆解 | How Agent Harnesses Evolve Without Gaming the Test: A Deep Dive into RRSI", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-09-24-agentharness-zi-wo-jin-hua-rrsi.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-24", "dateModified": "2026-09-24"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div class="top-progress" id="topProgress"></div>
+<button class="toc-toggle" id="tocToggle" aria-label="Toggle table of contents">☰</button>
+<div class="lang-toggle" id="langToggle">
+  <button data-lang="zh" class="active">中</button>
+  <button data-lang="en">EN</button>
+</div>
+
+<nav class="side-toc" id="sideToc">
+  <div class="st-brand"><span>▍</span><span class="zh">RRSI 深度解读</span><span class="en">RRSI Deep Dive</span></div>
+  <div class="st-sub zh">Agent Harness · 递归自我改进 · 正则化</div>
+  <div class="st-sub en">Agent Harness · Recursive Self-Improvement · Regularization</div>
+  <div class="st-progress"><div class="st-progress-fill" id="stProgressFill"></div></div>
+  <ol>
+    <li><a href="#overview"><span class="idx">01</span><span class="zh">开篇速览</span><span class="en">Overview</span></a></li>
+    <li><a href="#background"><span class="idx">02</span><span class="zh">背景:Harness 为什么要"自己进化"</span><span class="en">Background: Why Harnesses Self-Evolve</span></a></li>
+    <li><a href="#mechanism"><span class="idx">03</span><span class="zh">机制拆解:双侧正则化怎么运作</span><span class="en">Mechanism: Dual-Side Regularization</span></a></li>
+    <li><a href="#glossary"><span class="idx">04</span><span class="zh">术语表</span><span class="en">Glossary</span></a></li>
+    <li><a href="#results"><span class="idx">05</span><span class="zh">实验结果:数字说了什么</span><span class="en">Results: What the Numbers Say</span></a></li>
+    <li><a href="#comparison"><span class="idx">06</span><span class="zh">对比选型:同类方法的位置</span><span class="en">Comparison: Where Peers Stand</span></a></li>
+    <li><a href="#apply"><span class="idx">07</span><span class="zh">怎么用:把思路搬进自己的流水线</span><span class="en">How To Apply This</span></a></li>
+    <li><a href="#pitfalls"><span class="idx">08</span><span class="zh">常见误读与审慎边界</span><span class="en">Misreadings &amp; Caveats</span></a></li>
+    <li><a href="#scenarios"><span class="idx">09</span><span class="zh">谁该关心这件事</span><span class="en">Who Should Care</span></a></li>
+    <li><a href="#resources"><span class="idx">10</span><span class="zh">学习资源清单</span><span class="en">Further Reading</span></a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <span class="kicker zh"><span class="dot"></span>深度学习 · 2026-09-24</span>
+    <span class="kicker en"><span class="dot"></span>Deep Dive · 2026-09-24</span>
+    <h1 class="hero-title zh">让 Agent Harness <span class="hl">自己进化</span>,却不让它<span class="hl">刷题刷崩</span>:RRSI 拆解</h1>
+    <h1 class="hero-title en">Letting Agent Harnesses <span class="hl">Self-Evolve</span> Without Letting Them <span class="hl">Game the Test</span>: Inside RRSI</h1>
+    <p class="hero-lede zh">2026 年 9 月 21 日,Google Cloud AI Research 联合 Stanford、UNC-Chapel Hill、Washington University in St. Louis 等机构提交了论文《RRSI: Regularized Recursive Self-Improvement of Agent Harnesses》。它解决的是一个很具体、很多做 Agent 平台的团队都撞过的问题:让 Harness(提示词、控制流、工具、记忆管理这一整套"脚手架")自动迭代进化,几乎总能在你拿来打分的那个评测集上一路涨分——可一换成没见过的新任务,分数就塌了。RRSI 给这套自动进化流程加了一整套<strong>正则化约束</strong>,让"在评测集上进步"和"换个任务也真的更好用"这两件事,第一次在多个基准上同时成立。</p>
+    <p class="hero-lede en">On September 21, 2026, a team from Google Cloud AI Research — together with Stanford, UNC-Chapel Hill, and Washington University in St. Louis — submitted "RRSI: Regularized Recursive Self-Improvement of Agent Harnesses." It tackles a very specific problem that plenty of teams building agent platforms have already hit: let a harness (the whole scaffolding of prompts, control flow, tools, and memory management) evolve itself automatically, and it will almost always climb the score on whatever evaluation set you're using to grade it — then collapse the moment you point it at an unseen task. RRSI wraps that automated-evolution loop in a full set of <strong>regularization constraints</strong>, and is the first work to make "improving on the evolve set" and "actually being better on new tasks" hold true at the same time, across multiple benchmarks.</p>
+    <div class="hero-meta">
+      <span class="zh"><b>论文日期:</b>2026-09-21</span><span class="en"><b>Paper date:</b>2026-09-21</span>
+      <span class="zh"><b>机构:</b>Google Cloud AI Research · Stanford · UNC-Chapel Hill · WashU</span><span class="en"><b>Institutions:</b>Google Cloud AI Research · Stanford · UNC-Chapel Hill · WashU</span>
+      <span class="zh"><b>阅读时长:</b>约 18 分钟</span><span class="en"><b>Reading time:</b>~16 min</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ================= 01 OVERVIEW ================= -->
+<section id="overview">
+  <p class="sec-eyebrow zh">01 · 30 秒版本</p>
+  <p class="sec-eyebrow en">01 · The 30-Second Version</p>
+  <h2><span class="icon">🎯</span><span class="zh">开篇速览</span><span class="en">Overview</span></h2>
+
+  <p class="lede zh">Agent 能不能干好活,一半靠模型本身,另一半靠 <span class="term">Harness</span>——也就是围绕模型搭的那套提示词、控制流、工具接口、上下文管理、记忆和子代理配置。人工调 Harness 很慢,于是最近一批工作让 Harness <strong>自己进化</strong>:每一轮生成若干候选修改,拿去在一个固定评测集(evolve set)上打分,留下分数最高的那版,循环往复。问题是,这个循环天然会滑向"死记硬背":候选方案越来越针对这个具体评测集的题目特征做优化,而不是真的把 Agent 变强——论文把这叫 <span class="term">适应性过拟合(adaptive overfitting)</span>。</p>
+  <p class="lede en">How well an agent performs is half about the backbone model and half about the <span class="term">harness</span> — the prompts, control flow, tool interfaces, context management, memory, and subagent configuration built around that model. Tuning a harness by hand is slow, so a recent line of work lets the harness <strong>evolve itself</strong>: each round generates candidate edits, scores them against a fixed evaluation set (the evolve set), and keeps the highest scorer, round after round. The problem is that this loop naturally drifts toward rote memorization: candidates get increasingly tuned to the quirks of that specific evolve set rather than genuinely making the agent better — the paper calls this <span class="term">adaptive overfitting</span>.</p>
+
+  <p class="zh">RRSI(Regularized Recursive Self-Improvement)的做法不是"少进化几轮"这种粗暴限流,而是在<strong>提案(proposal)</strong>和<strong>选择(selection)</strong>两个阶段分别加正则约束——前者管"每一步能改多少、怎么改",后者管"改完之后,凭什么留下来"。作者在编码、办公 Agent、工程设计三大类共 8 个基准上验证:分布外(OOD,没见过的新任务)平均提升 3.9 分,是所有对比方法里唯一 OOD 收益为正且稳定的;同时策略 token 用量比不加正则的版本少 30%。</p>
+  <p class="en">RRSI's (Regularized Recursive Self-Improvement) approach isn't a blunt instrument like "just run fewer rounds." Instead, it adds regularization at both the <strong>proposal</strong> and <strong>selection</strong> stages — the former governs how much can change per step and how, the latter governs what earns the right to survive. The authors validate this across 8 benchmarks in three domains — coding, agentic workspace, and engineering design — and see a 3.9-point average gain out-of-distribution (OOD, on unseen tasks), the only method among all baselines with a positive and stable OOD gain, while using 30% fewer policy tokens than the unregularized version.</p>
+
+  <div class="callout tip">
+    <span class="co-t zh">为什么值得读</span><span class="co-t en">Why It's Worth Reading</span>
+    <p class="zh" style="margin:0">如果你在做任何"让 Agent 自动变强"的流水线——不管是自动调 prompt、自动挑工具组合,还是自动进化 skills/subagents——RRSI 给出的不是一个具体产品,而是一套<strong>可以直接搬过去用</strong>的设计模式:怎么设计"退火式"的改动预算、怎么设一个防刷分的验收门槛、怎么判断该剪掉哪些没用的历史遗留组件。</p>
+    <p class="en" style="margin:0">If you're building any pipeline that automatically makes an agent better — auto-tuning prompts, auto-selecting tool combinations, or auto-evolving skills and subagents — RRSI isn't a product to adopt, it's a design pattern you can port directly: how to design an annealed edit budget, how to set an anti-gaming acceptance bar, and how to decide which stale legacy components to prune.</p>
+  </div>
+</section>
+
+<!-- ================= 02 BACKGROUND ================= -->
+<section id="background">
+  <p class="sec-eyebrow zh">02 · 问题从哪来</p>
+  <p class="sec-eyebrow en">02 · Where the Problem Comes From</p>
+  <h2><span class="icon">🧩</span><span class="zh">背景:Harness 为什么要"自己进化"</span><span class="en">Background: Why Harnesses Self-Evolve</span></h2>
+
+  <p class="zh">同一个底层模型,换一套 Harness,任务成功率能差出十几个百分点——这在生产环境里已经是共识。但 Harness 的搜索空间很大:提示词怎么写、要不要加规划步骤、上下文该怎么裁剪、工具描述精简到什么程度、要不要拆子代理……人工试错的成本随维度数量指数上升。于是出现了一批"让 Harness 自己进化"的方法(论文里对比的 Meta-Harness、AHE、TTHE、HarnessX 都是这类),整体框架都类似:</p>
+  <p class="en">The same backbone model can swing performance by ten-plus percentage points depending on the harness wrapped around it — that much is already common wisdom in production settings. But the harness search space is large: how to phrase prompts, whether to add planning steps, how to trim context, how terse tool descriptions should be, whether to split out subagents — and manual trial and error scales exponentially with the number of dimensions. This spawned a family of "let the harness evolve itself" methods (the paper's baselines — Meta-Harness, AHE, TTHE, HarnessX — all belong to this family), sharing roughly the same framework:</p>
+
+  <ol class="zh">
+    <li>拿一个基线 Harness H₀,在一个固定的评测集 D_evolve 上跑出基线分数;</li>
+    <li>让一个"提案器"(可以是另一个 LLM)基于历史结果,生成若干候选修改 H';</li>
+    <li>把候选在 D_evolve 上重新打分,选出分数最高的一版作为下一轮的 H;</li>
+    <li>重复 N 轮,直到收敛或达到预算上限。</li>
+  </ol>
+  <ol class="en">
+    <li>Start from a baseline harness H₀ and score it on a fixed evaluation set D_evolve;</li>
+    <li>Have a "proposer" (often another LLM) generate candidate edits H' based on the history so far;</li>
+    <li>Re-score the candidates on D_evolve and keep whichever scores highest as the next round's H;</li>
+    <li>Repeat for N rounds until convergence or the budget runs out.</li>
+  </ol>
+
+  <p class="zh">这个循环的致命伤在于:D_evolve 是<strong>有限且固定</strong>的,而候选是<strong>反复针对它打分、反复针对它调整</strong>的。论文把由此产生的三种失效模式概括为:</p>
+  <p class="en">The fatal flaw in this loop is that D_evolve is <strong>finite and fixed</strong>, while candidates are <strong>repeatedly scored against it and repeatedly tuned to it</strong>. The paper summarizes the resulting failure modes into three patterns:</p>
+
+  <div class="glossary" style="margin-top:6px">
+    <div class="gterm">
+      <b class="zh">基准特化拟合</b><b class="en">Benchmark-Specific Fitting</b>
+      <p class="zh">候选修改里悄悄编码了具体任务名、实体名或评测集特有的判分逻辑——离开这个评测集就毫无意义。</p>
+      <p class="en">Candidates quietly encode specific task names, entity names, or eval-set-specific scoring logic — meaningless the moment you leave that eval set.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">追逐噪声</b><b class="en">Noise Chasing</b>
+      <p class="zh">评测集本身有随机波动,系统会把这种波动误当成"真实提升"去追,不断做无意义的微调。</p>
+      <p class="en">The eval set has inherent random variance, and the system mistakes that variance for genuine improvement, chasing it with meaningless micro-tweaks.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">复杂度累积</b><b class="en">Complexity Accumulation</b>
+      <p class="zh">每轮都倾向于"加点东西"而不是"删掉没用的东西",Harness 越滚越臃肿、越跑越贵、越难维护。</p>
+      <p class="en">Every round tends to add rather than remove, so the harness snowballs into something bloated, expensive to run, and hard to maintain.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">分布外崩溃</b><b class="en">OOD Collapse</b>
+      <p class="zh">以上三点叠加的结果:evolve 集分数一路走高,换成没见过的新任务,分数反而可能低于没进化过的基线 H₀。</p>
+      <p class="en">The compound result of the above: evolve-set scores keep climbing while scores on unseen tasks can actually fall below the un-evolved baseline H₀.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 MECHANISM ================= -->
+<section id="mechanism">
+  <p class="sec-eyebrow zh">03 · 拆开来看</p>
+  <p class="sec-eyebrow en">03 · Under the Hood</p>
+  <h2><span class="icon">⚙️</span><span class="zh">机制拆解:双侧正则化怎么运作</span><span class="en">Mechanism: Dual-Side Regularization</span></h2>
+
+  <p class="zh">RRSI 的核心洞察是:<strong>正则化管的是"搜索轨迹",不是"能改哪些东西"</strong>。可编辑的 Harness 组件词表依然很宽——prompt(提示词)、control_flow(控制流)、config(配置)、context_mgmt(上下文管理)、client_tool(客户端工具)、skill(技能)、memory(记忆)、subagent(子代理)——RRSI 不缩小这个范围,而是约束"每一步能走多远"和"凭什么算数"。具体拆成提案侧三条、选择侧三条,共六道关卡:</p>
+  <p class="en">RRSI's core insight is that <strong>regularization governs the search trajectory, not the scope of what can be edited</strong>. The editable harness component vocabulary stays wide — prompt, control_flow, config, context_mgmt, client_tool, skill, memory, subagent — RRSI doesn't shrink that scope; it constrains how far each step can go and what earns the right to count. Concretely, that's three gates on the proposal side and three on the selection side, six in total:</p>
+
+  <h3 class="zh">提案侧:管"怎么改"</h3>
+  <h3 class="en">Proposal Side: Governing "How to Edit"</h3>
+  <ul class="zh">
+    <li><strong>退火式编辑稀疏度</strong>:每轮允许改动的数量(edit budget)随进化轮数用余弦退火从 b_max(早期,可一次性打包 3-4 处关联改动)降到 b_min = 1(后期,只允许单点、可归因的改动)——早期允许探索,后期强制克制。</li>
+    <li><strong>证据感知的信用归因</strong>:完整记录每次改动涉及的组件、提出的假设、对应的代码 diff、带来的分数/成本变化、是否被采纳——防止反复提出已经被证伪过的同一个假设。</li>
+    <li><strong>结构化探索</strong>:当进步在噪声容忍带 δ 内连续停滞 w 轮时,系统会主动把提案配额让给"词表里还没试过的组件",而不是继续在已经收益递减的地方内卷。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Annealed update sparsity</strong>: the per-round edit budget follows a cosine-annealed schedule from b_max (early rounds, allowing 3-4 bundled related edits at once) down to b_min = 1 (late rounds, single attributable edits only) — exploration early, forced restraint late.</li>
+    <li><strong>Evidence-aware credit assignment</strong>: keeps a full history of which component each edit touched, the hypothesis behind it, the corresponding code diff, the resulting score/cost change, and whether it was accepted — preventing the same already-falsified hypothesis from being re-proposed.</li>
+    <li><strong>Structured exploration</strong>: when progress stalls within an empirical noise band δ for w consecutive rounds, the system reserves proposal capacity for untried components in the vocabulary instead of continuing to squeeze diminishing returns from an already-exhausted area.</li>
+  </ul>
+
+  <h3 class="zh">选择侧:管"凭什么留下"</h3>
+  <h3 class="en">Selection Side: Governing "What Earns Survival"</h3>
+  <ul class="zh">
+    <li><strong>泄漏筛查</strong>:一个"批评者(critic)"角色在正式评分前,先拦截编码了具体任务名、实体名、评测特化逻辑或无实际作用的冗余机制的候选。</li>
+    <li><strong>噪声地板接受</strong>:候选分数 Ŝ(H′) 必须满足 Ŝ(H′) ≥ S★ − δ(S★ 是历史最佳分,δ 是经验校准的噪声容忍度)——差距在噪声范围内的"伪提升"直接被挡在门外。</li>
+    <li><strong>复杂度感知接受(岭回归式 L2)</strong>:若提升超出噪声容忍(ΔS &gt; δ),相对成本增幅 ΔC 必须满足 ΔC ≤ β₀ + β₁ΔS——涨分必须配得上多花的资源,杜绝无节制堆料。</li>
+    <li><strong>结构化剪枝(Lasso 式 L1)</strong>:在一个剪枝窗口 n_prune 轮内持续没有正向实测收益的组件会被直接移除——每个组件都要不断"挣回"自己留在 Harness 里的资格。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Leakage screening</strong>: a "critic" role intercepts candidates that encode specific task names, entity names, benchmark-specific logic, or inert padding mechanisms before formal scoring even happens.</li>
+    <li><strong>Noise-floor acceptance</strong>: a candidate's score Ŝ(H′) must satisfy Ŝ(H′) ≥ S★ − δ (S★ being the best observed score, δ an empirically calibrated noise tolerance) — "gains" within the noise band are simply turned away at the door.</li>
+    <li><strong>Complexity-aware acceptance (ridge/L2-style)</strong>: for gains exceeding the noise tolerance (ΔS &gt; δ), the relative cost increase ΔC must satisfy ΔC ≤ β₀ + β₁ΔS — a score bump has to justify the extra resources it costs, blocking unchecked bloat.</li>
+    <li><strong>Structural pruning (Lasso/L1-style)</strong>: components with no positive measured gain over a pruning window of n_prune rounds are removed outright — every component has to keep earning its place in the harness.</li>
+  </ul>
+
+  <div class="figure" id="fig-loop">
+    <svg viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" class="zh">
+      <defs>
+        <marker id="mArr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#666d87"/></marker>
+      </defs>
+      <text x="410" y="26" text-anchor="middle" fill="#9199b3" font-size="13" font-family="ui-monospace,monospace">RRSI 单轮循环(第 t 轮 → 第 t+1 轮)</text>
+
+      <rect x="24" y="52" width="168" height="70" rx="10" fill="#1a1e2c" stroke="#7c83fd"/>
+      <text x="108" y="80" text-anchor="middle" fill="#eef0f8" font-size="13" font-weight="700">提案器</text>
+      <text x="108" y="98" text-anchor="middle" fill="#9199b3" font-size="10">退火预算 bₜ · 探索指令 Eₜ</text>
+      <text x="108" y="112" text-anchor="middle" fill="#9199b3" font-size="10">生成候选 H'</text>
+
+      <line x1="192" y1="87" x2="248" y2="87" stroke="#666d87" stroke-width="2" marker-end="url(#mArr)"/>
+
+      <rect x="250" y="52" width="150" height="70" rx="10" fill="#1a1e2c" stroke="#f5a524"/>
+      <text x="325" y="80" text-anchor="middle" fill="#eef0f8" font-size="13" font-weight="700">泄漏筛查</text>
+      <text x="325" y="98" text-anchor="middle" fill="#9199b3" font-size="10">拦截基准特化</text>
+      <text x="325" y="112" text-anchor="middle" fill="#9199b3" font-size="10">逻辑 / 冗余机制</text>
+
+      <line x1="400" y1="87" x2="456" y2="87" stroke="#666d87" stroke-width="2" marker-end="url(#mArr)"/>
+
+      <rect x="458" y="52" width="150" height="70" rx="10" fill="#1a1e2c" stroke="#2dd4bf"/>
+      <text x="533" y="80" text-anchor="middle" fill="#eef0f8" font-size="13" font-weight="700">D_evolve 打分</text>
+      <text x="533" y="98" text-anchor="middle" fill="#9199b3" font-size="10">固定评测集</text>
+      <text x="533" y="112" text-anchor="middle" fill="#9199b3" font-size="10">得到 Ŝ(H′)</text>
+
+      <line x1="533" y1="122" x2="533" y2="165" stroke="#666d87" stroke-width="2" marker-end="url(#mArr)"/>
+
+      <rect x="220" y="167" width="380" height="120" rx="10" fill="#12151f" stroke="#2dd4bf" stroke-dasharray="3 3"/>
+      <text x="410" y="190" text-anchor="middle" fill="#2dd4bf" font-size="12" font-weight="700">选择器(依次判定,不可互相补偿)</text>
+      <text x="410" y="212" text-anchor="middle" fill="#eef0f8" font-size="11">① 噪声地板:Ŝ(H′) ≥ S★ − δ ?</text>
+      <text x="410" y="232" text-anchor="middle" fill="#eef0f8" font-size="11">② 复杂度门槛:ΔC ≤ β₀ + β₁ΔS ?</text>
+      <text x="410" y="252" text-anchor="middle" fill="#eef0f8" font-size="11">③ 结构化剪枝:n_prune 轮内有正向收益?</text>
+      <text x="410" y="272" text-anchor="middle" fill="#9199b3" font-size="10">全部通过 → 取分数最高者;否则 Hₜ₊₁ = Hₜ</text>
+
+      <line x1="410" y1="287" x2="410" y2="312" stroke="#666d87" stroke-width="2" marker-end="url(#mArr)"/>
+      <rect x="300" y="314" width="220" height="26" rx="8" fill="#1a1e2c" stroke="#7c83fd"/>
+      <text x="410" y="332" text-anchor="middle" fill="#eef0f8" font-size="11">Hₜ₊₁(进入下一轮)</text>
+
+      <line x1="300" y1="327" x2="108" y2="327" stroke="#666d87" stroke-width="1.4" stroke-dasharray="2 3"/>
+      <line x1="108" y1="327" x2="108" y2="122" stroke="#666d87" stroke-width="1.4" stroke-dasharray="2 3" marker-end="url(#mArr)"/>
+      <text x="60" y="230" fill="#666d87" font-size="10" transform="rotate(-90 60 230)">反馈进历史记录</text>
+    </svg>
+    <svg viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" class="en">
+      <defs>
+        <marker id="mArr-e" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#666d87"/></marker>
+      </defs>
+      <text x="410" y="26" text-anchor="middle" fill="#9199b3" font-size="13" font-family="ui-monospace,monospace">One RRSI round (round t → round t+1)</text>
+
+      <rect x="24" y="52" width="168" height="70" rx="10" fill="#1a1e2c" stroke="#7c83fd"/>
+      <text x="108" y="80" text-anchor="middle" fill="#eef0f8" font-size="13" font-weight="700">Proposer</text>
+      <text x="108" y="98" text-anchor="middle" fill="#9199b3" font-size="10">Budget bₜ · Directive Eₜ</text>
+      <text x="108" y="112" text-anchor="middle" fill="#9199b3" font-size="10">Generates candidate H'</text>
+
+      <line x1="192" y1="87" x2="248" y2="87" stroke="#666d87" stroke-width="2" marker-end="url(#mArr-e)"/>
+
+      <rect x="250" y="52" width="150" height="70" rx="10" fill="#1a1e2c" stroke="#f5a524"/>
+      <text x="325" y="80" text-anchor="middle" fill="#eef0f8" font-size="13" font-weight="700">Leakage Critic</text>
+      <text x="325" y="98" text-anchor="middle" fill="#9199b3" font-size="10">Blocks benchmark-</text>
+      <text x="325" y="112" text-anchor="middle" fill="#9199b3" font-size="10">specific / inert edits</text>
+
+      <line x1="400" y1="87" x2="456" y2="87" stroke="#666d87" stroke-width="2" marker-end="url(#mArr-e)"/>
+
+      <rect x="458" y="52" width="150" height="70" rx="10" fill="#1a1e2c" stroke="#2dd4bf"/>
+      <text x="533" y="80" text-anchor="middle" fill="#eef0f8" font-size="13" font-weight="700">Score on D_evolve</text>
+      <text x="533" y="98" text-anchor="middle" fill="#9199b3" font-size="10">Fixed eval set</text>
+      <text x="533" y="112" text-anchor="middle" fill="#9199b3" font-size="10">yields Ŝ(H′)</text>
+
+      <line x1="533" y1="122" x2="533" y2="165" stroke="#666d87" stroke-width="2" marker-end="url(#mArr-e)"/>
+
+      <rect x="220" y="167" width="380" height="120" rx="10" fill="#12151f" stroke="#2dd4bf" stroke-dasharray="3 3"/>
+      <text x="410" y="190" text-anchor="middle" fill="#2dd4bf" font-size="12" font-weight="700">Selector (sequential, non-compensatory)</text>
+      <text x="410" y="212" text-anchor="middle" fill="#eef0f8" font-size="11">① Noise floor: Ŝ(H′) ≥ S★ − δ ?</text>
+      <text x="410" y="232" text-anchor="middle" fill="#eef0f8" font-size="11">② Complexity gate: ΔC ≤ β₀ + β₁ΔS ?</text>
+      <text x="410" y="252" text-anchor="middle" fill="#eef0f8" font-size="11">③ Structural pruning: gain within n_prune?</text>
+      <text x="410" y="272" text-anchor="middle" fill="#9199b3" font-size="10">All pass → keep top scorer; else Hₜ₊₁ = Hₜ</text>
+
+      <line x1="410" y1="287" x2="410" y2="312" stroke="#666d87" stroke-width="2" marker-end="url(#mArr-e)"/>
+      <rect x="300" y="314" width="220" height="26" rx="8" fill="#1a1e2c" stroke="#7c83fd"/>
+      <text x="410" y="332" text-anchor="middle" fill="#eef0f8" font-size="11">Hₜ₊₁ (next round)</text>
+
+      <line x1="300" y1="327" x2="108" y2="327" stroke="#666d87" stroke-width="1.4" stroke-dasharray="2 3"/>
+      <line x1="108" y1="327" x2="108" y2="122" stroke="#666d87" stroke-width="1.4" stroke-dasharray="2 3" marker-end="url(#mArr-e)"/>
+      <text x="60" y="230" fill="#666d87" font-size="10" transform="rotate(-90 60 230)">fed back into history</text>
+    </svg>
+    <div class="fig-cap zh">图 1:RRSI 单轮循环。提案器受退火预算约束生成候选,先过泄漏筛查再打分,选择器依次(不可互相补偿)通过噪声地板、复杂度门槛、结构化剪枝三道关卡,任何一步没过就沿用上一轮的 Harness。图源:根据论文 Section 3 方法描述整理绘制。</div>
+    <div class="fig-cap en">Fig. 1: One RRSI round. The proposer generates candidates under an annealed budget, which pass leakage screening before scoring; the selector then applies three non-compensatory gates in sequence — noise floor, complexity, structural pruning — falling back to the prior round's harness if any gate fails. Source: redrawn from the paper's Section 3 method description.</div>
+  </div>
+</section>
+
+<!-- ================= 04 GLOSSARY ================= -->
+<section id="glossary">
+  <p class="sec-eyebrow zh">04 · 先把词认全</p>
+  <p class="sec-eyebrow en">04 · Know the Terms</p>
+  <h2><span class="icon">📖</span><span class="zh">术语表</span><span class="en">Glossary</span></h2>
+  <div class="glossary">
+    <div class="gterm">
+      <b class="zh">Harness(智能体外壳)</b><b class="en">Harness</b>
+      <p class="zh">围绕模型搭建的整套脚手架:提示词、控制流、工具接口、上下文管理、记忆、子代理配置的集合,决定同一个模型能不能把活干好。</p>
+      <p class="en">The full scaffolding built around a model: prompts, control flow, tool interfaces, context management, memory, and subagent configuration — determines whether the same model can actually get work done.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">Evolve Set / D_evolve</b><b class="en">Evolve Set / D_evolve</b>
+      <p class="zh">进化循环里用来给候选 Harness 打分的固定评测集,被反复、适应性地重复使用。</p>
+      <p class="en">The fixed evaluation set used to score candidate harnesses in the evolution loop, reused repeatedly and adaptively.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">OOD(分布外)</b><b class="en">OOD (Out-of-Distribution)</b>
+      <p class="zh">没有出现在 evolve set 里、Harness 进化过程中从未见过的新任务/新基准,用来检验进化成果是否真实可迁移。</p>
+      <p class="en">Tasks or benchmarks never seen during harness evolution, absent from the evolve set — used to check whether evolution gains genuinely transfer.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">适应性过拟合</b><b class="en">Adaptive Overfitting</b>
+      <p class="zh">因为反复针对同一个有限评测集打分和调整,候选方案越来越"懂评测集的题型"而非"懂任务本身"的现象。</p>
+      <p class="en">The phenomenon where repeated scoring and tuning against the same finite eval set makes candidates increasingly attuned to that set's quirks rather than to the task itself.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">编辑预算(Edit Budget)</b><b class="en">Edit Budget</b>
+      <p class="zh">每一轮允许提案器同时改动的组件数量上限,RRSI 中随轮数从 b_max 余弦退火到 b_min = 1。</p>
+      <p class="en">The cap on how many components the proposer may change in a single round; in RRSI it cosine-anneals from b_max down to b_min = 1 as rounds progress.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">噪声地板(Noise Floor)</b><b class="en">Noise Floor</b>
+      <p class="zh">一个经验校准的容忍区间 δ,分数提升若落在这个区间内会被视为噪声而非真实进步,直接拒绝。</p>
+      <p class="en">An empirically calibrated tolerance band δ; a score gain that falls inside it is treated as noise rather than genuine progress and is rejected outright.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">策略 Token(Policy Tokens)</b><b class="en">Policy Tokens</b>
+      <p class="zh">Harness 在实际跑任务(而非进化过程本身)时,每次试验消耗的 token 数量,用来衡量进化出的 Harness 本身是否臃肿低效。</p>
+      <p class="en">The number of tokens the evolved harness consumes per trial when actually running tasks (not during evolution itself) — a measure of whether the resulting harness is bloated or efficient.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">结构化剪枝</b><b class="en">Structural Pruning</b>
+      <p class="zh">选择侧的 L1 式正则:在设定窗口内持续没有正向实测收益的 Harness 组件会被主动移除,防止复杂度只增不减。</p>
+      <p class="en">An L1-style selection-side regularizer: harness components with no positive measured gain within a set window are actively removed, preventing complexity from only ever growing.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 RESULTS ================= -->
+<section id="results">
+  <p class="sec-eyebrow zh">05 · 数字怎么说</p>
+  <p class="sec-eyebrow en">05 · What the Numbers Say</p>
+  <h2><span class="icon">📊</span><span class="zh">实验结果:数字说了什么</span><span class="en">Results: What the Numbers Say</span></h2>
+
+  <p class="zh">作者在三大领域共 8 个基准上评测:<strong>编码</strong>(evolve 用 Terminal-Bench 2.1 的 89 个容器化 shell 任务,OOD 用 SWE-bench Verified 的仓库级修 bug 任务)、<strong>办公 Agent</strong>(evolve 用 Harvey LAB 的 120 个法务任务,40 个同分布留出;OOD 用 JobBench、GDPval、APEX-Agents)、<strong>工程设计</strong>(evolve 用 EngDesign 的 61 个可确定性仿真评分的任务,OOD 用 Frontier-Eng 的 47 个真实优化问题)。</p>
+  <p class="en">The authors evaluate across 8 benchmarks in three domains: <strong>coding</strong> (evolve on Terminal-Bench 2.1's 89 containerized shell tasks, OOD on SWE-bench Verified's repository-level bug fixes), <strong>agentic workspace</strong> (evolve on Harvey LAB's 120 legal-work tasks with 40 in-distribution held out; OOD on JobBench, GDPval, APEX-Agents), and <strong>engineering design</strong> (evolve on EngDesign's 61 deterministic-simulation-graded tasks, OOD on Frontier-Eng's 47 real-world optimization problems).</p>
+
+  <div class="tbl-wrap">
+  <table class="zh">
+    <tr><th>领域</th><th>同分布(ID)提升</th><th>分布外(OOD)提升</th></tr>
+    <tr><td>编码</td><td class="num">+6.0 分(Terminal-Bench 2.1)</td><td class="num">+1.8 分(SWE-bench Verified)</td></tr>
+    <tr><td>办公 Agent</td><td class="num">+1.1 分(Harvey LAB evolve)</td><td class="num">+3.5 ~ +4.7 分(JobBench/GDPval/APEX)</td></tr>
+    <tr><td>工程设计</td><td class="num">+4.9 分(EngDesign)</td><td class="num">+4.3 分(Frontier-Eng 奖牌分)</td></tr>
+    <tr class="hl"><td>策略 Token 用量</td><td colspan="2" class="num">2.42M / 试验,较无正则版本(3.80M)减少 30%</td></tr>
+  </table>
+  <table class="en">
+    <tr><th>Domain</th><th>In-Distribution (ID) Gain</th><th>Out-of-Distribution (OOD) Gain</th></tr>
+    <tr><td>Coding</td><td class="num">+6.0 pts (Terminal-Bench 2.1)</td><td class="num">+1.8 pts (SWE-bench Verified)</td></tr>
+    <tr><td>Agentic Workspace</td><td class="num">+1.1 pts (Harvey LAB evolve)</td><td class="num">+3.5 to +4.7 pts (JobBench/GDPval/APEX)</td></tr>
+    <tr><td>Engineering Design</td><td class="num">+4.9 pts (EngDesign)</td><td class="num">+4.3 pts (Frontier-Eng Medal score)</td></tr>
+    <tr class="hl"><td>Policy tokens / trial</td><td colspan="2" class="num">2.42M, a 30% reduction from the unregularized version's 3.80M</td></tr>
+  </table>
+  </div>
+
+  <h3 class="zh">消融实验:每一道关卡都在起作用</h3>
+  <h3 class="en">Ablation: Every Gate Is Pulling Its Weight</h3>
+  <div class="tbl-wrap">
+  <table class="zh">
+    <tr><th>配置</th><th>OOD 平均分</th><th>Token / 试验</th></tr>
+    <tr><td>完整 RRSI</td><td class="num">43.6</td><td class="num">2.42M</td></tr>
+    <tr><td>去掉选择侧正则</td><td class="num">41.0</td><td class="num">3.59M</td></tr>
+    <tr><td>去掉提案侧正则</td><td class="num">41.9</td><td class="num">2.69M</td></tr>
+    <tr class="bad"><td>完全不加正则(evolve 分反而最高,92.8)</td><td class="num">40.3</td><td class="num">3.80M</td></tr>
+  </table>
+  <table class="en">
+    <tr><th>Configuration</th><th>OOD Average</th><th>Tokens / Trial</th></tr>
+    <tr><td>Full RRSI</td><td class="num">43.6</td><td class="num">2.42M</td></tr>
+    <tr><td>Without selection-side regularizers</td><td class="num">41.0</td><td class="num">3.59M</td></tr>
+    <tr><td>Without proposal-side regularizers</td><td class="num">41.9</td><td class="num">2.69M</td></tr>
+    <tr class="bad"><td>Fully unregularized (highest evolve score, 92.8)</td><td class="num">40.3</td><td class="num">3.80M</td></tr>
+  </table>
+  </div>
+  <p class="zh" style="font-size:13.5px;color:var(--muted2)">最扎眼的一行是最后一行:完全不加正则的版本在 evolve 集上分数最高(92.8),但换到 OOD 反而是四者里最低的——这正是本文开篇讲的"刷题刷崩"现象的实锤。</p>
+  <p class="en" style="font-size:13.5px;color:var(--muted2)">The most striking row is the last one: the fully unregularized version scores highest on the evolve set (92.8), yet lands lowest on OOD among all four configurations — hard evidence for exactly the "cramming for the test" failure this piece opened with.</p>
+
+  <div class="figure" id="fig-baselines">
+    <svg viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" class="zh">
+      <text x="410" y="24" text-anchor="middle" fill="#9199b3" font-size="13" font-family="ui-monospace,monospace">办公 Agent 领域 · OOD 平均收益对比(分)</text>
+      <line x1="90" y1="200" x2="770" y2="200" stroke="#262b3d" stroke-width="1"/>
+      <line x1="90" y1="40" x2="90" y2="200" stroke="#262b3d" stroke-width="1"/>
+      <line x1="90" y1="140" x2="770" y2="140" stroke="#666d87" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="80" y="144" text-anchor="end" fill="#666d87" font-size="10">0</text>
+      <!-- bars: baseline y=140 is zero line; positive up, negative down -->
+      <rect x="130" y="140" width="70" height="42" fill="#7c83fd" opacity=".85"/><text x="165" y="132" text-anchor="middle" fill="#eef0f8" font-size="12">+3.6</text><text x="165" y="222" text-anchor="middle" fill="#9199b3" font-size="11">Meta-Harness</text>
+      <rect x="250" y="140" width="70" height="16" fill="#ef4a6b" opacity=".85"/><text x="285" y="170" text-anchor="middle" fill="#eef0f8" font-size="12">−1.1</text><text x="285" y="222" text-anchor="middle" fill="#9199b3" font-size="11">AHE</text>
+      <rect x="370" y="140" width="70" height="76" fill="#ef4a6b" opacity=".85"/><text x="405" y="230" text-anchor="middle" fill="#eef0f8" font-size="12">−5.4</text><text x="405" y="246" text-anchor="middle" fill="#9199b3" font-size="11">TTHE</text>
+      <rect x="490" y="140" width="70" height="48" fill="#ef4a6b" opacity=".85"/><text x="525" y="202" text-anchor="middle" fill="#eef0f8" font-size="12">−3.4</text><text x="525" y="222" text-anchor="middle" fill="#9199b3" font-size="11">HarnessX</text>
+      <rect x="610" y="140" width="70" height="55" fill="#2dd4bf" opacity=".9"/><text x="645" y="128" text-anchor="middle" fill="#2dd4bf" font-size="13" font-weight="700">+3.9</text><text x="645" y="222" text-anchor="middle" fill="#eef0f8" font-size="11" font-weight="700">RRSI</text>
+    </svg>
+    <svg viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" class="en">
+      <text x="410" y="24" text-anchor="middle" fill="#9199b3" font-size="13" font-family="ui-monospace,monospace">Agentic Workspace · OOD Average Gain (pts)</text>
+      <line x1="90" y1="200" x2="770" y2="200" stroke="#262b3d" stroke-width="1"/>
+      <line x1="90" y1="40" x2="90" y2="200" stroke="#262b3d" stroke-width="1"/>
+      <line x1="90" y1="140" x2="770" y2="140" stroke="#666d87" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="80" y="144" text-anchor="end" fill="#666d87" font-size="10">0</text>
+      <rect x="130" y="140" width="70" height="42" fill="#7c83fd" opacity=".85"/><text x="165" y="132" text-anchor="middle" fill="#eef0f8" font-size="12">+3.6</text><text x="165" y="222" text-anchor="middle" fill="#9199b3" font-size="11">Meta-Harness</text>
+      <rect x="250" y="140" width="70" height="16" fill="#ef4a6b" opacity=".85"/><text x="285" y="170" text-anchor="middle" fill="#eef0f8" font-size="12">−1.1</text><text x="285" y="222" text-anchor="middle" fill="#9199b3" font-size="11">AHE</text>
+      <rect x="370" y="140" width="70" height="76" fill="#ef4a6b" opacity=".85"/><text x="405" y="230" text-anchor="middle" fill="#eef0f8" font-size="12">−5.4</text><text x="405" y="246" text-anchor="middle" fill="#9199b3" font-size="11">TTHE</text>
+      <rect x="490" y="140" width="70" height="48" fill="#ef4a6b" opacity=".85"/><text x="525" y="202" text-anchor="middle" fill="#eef0f8" font-size="12">−3.4</text><text x="525" y="222" text-anchor="middle" fill="#9199b3" font-size="11">HarnessX</text>
+      <rect x="610" y="140" width="70" height="55" fill="#2dd4bf" opacity=".9"/><text x="645" y="128" text-anchor="middle" fill="#2dd4bf" font-size="13" font-weight="700">+3.9</text><text x="645" y="222" text-anchor="middle" fill="#eef0f8" font-size="11" font-weight="700">RRSI</text>
+    </svg>
+    <div class="fig-cap zh">图 2:办公 Agent 领域(Table 1)四种方法的 OOD 平均收益。RRSI 是唯一收益为正、且优于最好基线(Meta-Harness +3.6)的方法;AHE / TTHE / HarnessX 三者 OOD 均为负收益,说明它们在 evolve 集上的进步没能迁移。图源:根据论文 Table 1 数据重绘。</div>
+    <div class="fig-cap en">Fig. 2: OOD average gain for four methods in the agentic-workspace domain (Table 1). RRSI is the only method with a positive gain, and it beats the best baseline (Meta-Harness, +3.6); AHE, TTHE and HarnessX all show negative OOD gains, meaning their evolve-set progress failed to transfer. Source: redrawn from the paper's Table 1.</div>
+  </div>
+
+  <h3 class="zh">跨模型鲁棒性</h3>
+  <h3 class="en">Cross-Model Robustness</h3>
+  <p class="zh">用 Gemini 3.5 Flash 进化出的 Harness,直接搬到从没见过的 Gemini 3.1 Flash Lite 上跑,尽管后者基线水平低得多,仍然带来 +3.4 分的提升——说明 RRSI 学到的不是"怎么讨好某个具体模型",而是相对通用的结构性改进。</p>
+  <p class="en">A harness evolved with Gemini 3.5 Flash, transplanted directly onto the never-seen Gemini 3.1 Flash Lite, still delivers a +3.4-point gain despite the latter's much lower baseline — suggesting RRSI learns relatively general structural improvements rather than how to flatter one specific model.</p>
+</section>
+
+<!-- ================= 06 COMPARISON ================= -->
+<section id="comparison">
+  <p class="sec-eyebrow zh">06 · 同类方法怎么选</p>
+  <p class="sec-eyebrow en">06 · Choosing Among Peers</p>
+  <h2><span class="icon">⚖️</span><span class="zh">对比选型:同类方法的位置</span><span class="en">Comparison: Where Peers Stand</span></h2>
+
+  <div class="tbl-wrap">
+  <table class="zh">
+    <tr><th>方法</th><th>核心思路</th><th>OOD 表现</th></tr>
+    <tr><td><strong>Meta-Harness</strong></td><td>对可执行代码做外层优化(Lee et al., 2026b)</td><td class="num">+3.6(次优,但 evolve 集表现好、迁移打折扣)</td></tr>
+    <tr><td><strong>AHE</strong></td><td>基于可观测性驱动进化,显式做失败诊断(Lin et al., 2026a)</td><td class="num">−1.1</td></tr>
+    <tr><td><strong>TTHE</strong></td><td>测试时自适应,维护多个候选 Harness(Nie et al., 2026)</td><td class="num">−5.4(四者最差)</td></tr>
+    <tr><td><strong>HarnessX</strong></td><td>模块化、带类型的原语,基于轨迹驱动适配(Chen et al., 2026)</td><td class="num">−3.4</td></tr>
+    <tr class="hl"><td><strong>RRSI(本文)</strong></td><td>提案侧 + 选择侧双重正则化,约束搜索轨迹而非编辑范围</td><td class="num">+3.9(唯一稳定为正)</td></tr>
+  </table>
+  <table class="en">
+    <tr><th>Method</th><th>Core Idea</th><th>OOD Performance</th></tr>
+    <tr><td><strong>Meta-Harness</strong></td><td>Outer-loop optimization over executable code (Lee et al., 2026b)</td><td class="num">+3.6 (second-best evolve performance, transfer discounted)</td></tr>
+    <tr><td><strong>AHE</strong></td><td>Observability-driven evolution with explicit failure diagnosis (Lin et al., 2026a)</td><td class="num">−1.1</td></tr>
+    <tr><td><strong>TTHE</strong></td><td>Test-time adaptation maintaining multiple candidate harnesses (Nie et al., 2026)</td><td class="num">−5.4 (worst of the four)</td></tr>
+    <tr><td><strong>HarnessX</strong></td><td>Modular, typed primitives with trace-driven adaptation (Chen et al., 2026)</td><td class="num">−3.4</td></tr>
+    <tr class="hl"><td><strong>RRSI (this paper)</strong></td><td>Dual proposal + selection regularization, constrains the search trajectory rather than edit scope</td><td class="num">+3.9 (only method stably positive)</td></tr>
+  </table>
+  </div>
+
+  <p class="zh">值得注意的是 Meta-Harness:它是四个基线里唯一 OOD 收益也为正的,说明"外层代码优化"这个方向本身不差,只是缺了 RRSI 这种系统性的正则约束——两者更像是互补而非对立,一个提供了强的搜索/优化框架,一个提供了让这个框架不跑偏的约束层。</p>
+  <p class="en">Meta-Harness is worth flagging: it's the only baseline with a positive OOD gain too, which suggests the "outer-loop code optimization" direction isn't itself flawed — it just lacks RRSI's systematic regularization constraints. The two feel more complementary than opposed: one supplies a strong search/optimization framework, the other supplies the constraint layer that keeps it from drifting.</p>
+</section>
+
+<!-- ================= 07 APPLY ================= -->
+<section id="apply">
+  <p class="sec-eyebrow zh">07 · 落地怎么做</p>
+  <p class="sec-eyebrow en">07 · Putting It Into Practice</p>
+  <h2><span class="icon">🛠️</span><span class="zh">怎么用:把思路搬进自己的流水线</span><span class="en">How To Apply This</span></h2>
+
+  <p class="zh">RRSI 不是一个能直接 <code>pip install</code> 接入生产的产品,而是一套设计模式。如果你在做类似"自动优化 Agent Harness / Prompt / Skill 库"的系统(哪怕规模比论文小得多),可以按这个顺序搬过来用:</p>
+  <p class="en">RRSI isn't a product you can <code>pip install</code> into production — it's a design pattern. If you're building something like an automated Agent-harness / prompt / skill-library optimization system (even at a much smaller scale than the paper), here's a rough order to port it in:</p>
+
+  <ul class="checklist">
+    <li><span class="ck zh">1</span><span class="ck en">1</span>
+      <span class="zh"><strong>先分清 evolve 集和 OOD 集。</strong>哪怕你现在只有一个评测集,也要人为切出一部分完全不参与进化的"留出集",否则你连自己有没有过拟合都判断不了。</span>
+      <span class="en"><strong>Split your evolve set from an OOD set first.</strong> Even if you only have one eval set right now, carve out a held-out slice that never participates in evolution — otherwise you can't even tell whether you're overfitting.</span>
+    </li>
+    <li><span class="ck zh">2</span><span class="ck en">2</span>
+      <span class="zh"><strong>给编辑预算做退火,不要一次性放开。</strong>早期允许多处改动(快速探索),后期收紧到单点改动(便于归因、便于回滚)——比"全程固定预算"效果更好也更省。</span>
+      <span class="en"><strong>Anneal your edit budget instead of leaving it wide open throughout.</strong> Allow multiple edits early (fast exploration), tighten to single edits late (easier to attribute and roll back) — this beats a fixed budget for the whole run and costs less.</span>
+    </li>
+    <li><span class="ck zh">3</span><span class="ck en">3</span>
+      <span class="zh"><strong>给"接受"设一个不可协商的噪声地板。</strong>先估一下你评测集本身重复跑的方差是多少,再据此定 δ——没有这一步,几乎必然会把噪声当成进步来追。</span>
+      <span class="en"><strong>Set a non-negotiable noise floor for acceptance.</strong> First estimate the run-to-run variance of your own eval set, then set δ based on that — skip this step and you will almost certainly end up chasing noise as if it were progress.</span>
+    </li>
+    <li><span class="ck zh">4</span><span class="ck en">4</span>
+      <span class="zh"><strong>涨分要配得上多花的成本,定期剪枝。</strong>给"分数提升"和"成本增加"之间加一个显式的权衡规则;同时定期审查每个组件,没有持续正向贡献的直接删——这两条对应的正是"只加不减"这个最常见的失控模式。</span>
+      <span class="en"><strong>Make score gains justify their cost, and prune on a schedule.</strong> Add an explicit trade-off rule between "score improvement" and "cost increase," and periodically audit every component, removing anything without a sustained positive contribution — these two directly counter the most common failure mode of only ever adding, never removing.</span>
+    </li>
+    <li><span class="ck zh">5</span><span class="ck en">5</span>
+      <span class="zh"><strong>把每次改动的"假设 + 证据"存下来。</strong>哪怕是最简陋的一张表(改了什么、为什么改、分数变化、是否采纳),也能防止系统绕圈子反复提出同一个已经被证伪的想法。</span>
+      <span class="en"><strong>Log the "hypothesis + evidence" behind every edit.</strong> Even the crudest table (what changed, why, the resulting score delta, whether it was accepted) prevents the system from looping back to re-propose an idea already falsified.</span>
+    </li>
+  </ul>
+
+  <div class="callout tip">
+    <span class="co-t zh">和 Claude Code 场景的对应关系</span><span class="co-t en">Mapping to a Claude Code Setting</span>
+    <p class="zh" style="margin:0">如果你在用 Claude Code 的 <code>skills</code>、<code>subagents</code> 或自定义斜杠命令搭建一套自动迭代的工作流(比如让 Claude 自己审查并改进自己的 CLAUDE.md 或某个 skill 的 prompt),RRSI 的框架直接适用:把你现有的一批真实任务切成 evolve/OOD 两份,每次改动只调一处并记录理由,再用"改动带来的效果提升是否配得上新增的复杂度"去判断要不要保留——这比"感觉这次改得不错"要扎实得多。</p>
+    <p class="en" style="margin:0">If you're using Claude Code's <code>skills</code>, <code>subagents</code>, or custom slash commands to build a self-iterating workflow (say, having Claude review and improve its own CLAUDE.md or a skill's prompt), RRSI's framework applies directly: split your existing pool of real tasks into evolve/OOD sets, change one thing at a time and log why, then decide whether to keep an edit by asking "does the improvement justify the added complexity" — far more solid footing than "this change feels better."</p>
+  </div>
+</section>
+
+<!-- ================= 08 PITFALLS ================= -->
+<section id="pitfalls">
+  <p class="sec-eyebrow zh">08 · 别急着下结论</p>
+  <p class="sec-eyebrow en">08 · Don't Jump to Conclusions</p>
+  <h2><span class="icon">⚠️</span><span class="zh">常见误读与审慎边界</span><span class="en">Misreadings &amp; Caveats</span></h2>
+
+  <div class="callout warn">
+    <span class="co-t zh">误读一:正则化 = 限制能改的范围</span><span class="co-t en">Misreading 1: Regularization = Restricting What Can Change</span>
+    <p class="zh" style="margin:0">不对。论文反复强调,可编辑的组件词表(prompt/control_flow/config/context_mgmt/client_tool/skill/memory/subagent)完全没有缩小,RRSI 约束的是<strong>搜索轨迹</strong>(一次改多少、改完凭什么留下),不是"哪些东西不能碰"。把两者混为一谈,会让你在自己的实现里错误地砍掉本该保留的自由度。</p>
+    <p class="en" style="margin:0">Not true. The paper repeatedly stresses that the editable component vocabulary (prompt/control_flow/config/context_mgmt/client_tool/skill/memory/subagent) is never narrowed — RRSI constrains the <strong>search trajectory</strong> (how much changes per step, what earns the right to survive), not "what's off-limits." Conflating the two risks stripping out degrees of freedom your own implementation should actually keep.</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="co-t zh">误读二:evolve 集分数越高越好</span><span class="co-t en">Misreading 2: A Higher Evolve-Set Score Is Always Better</span>
+    <p class="zh" style="margin:0">消融实验里最反直觉的一行恰恰相反:完全不加正则的版本 evolve 集分数最高(92.8),OOD 却最低。<strong>evolve 集分数本身不该被当作最终验收标准</strong>,只有配合 OOD 表现一起看才有意义。</p>
+    <p class="en" style="margin:0">The most counterintuitive row in the ablation says the opposite: the fully unregularized version has the highest evolve-set score (92.8) yet the lowest OOD score. <strong>An evolve-set score alone should never be treated as the final acceptance criterion</strong> — it's only meaningful read alongside OOD performance.</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="co-t zh">审慎点:评测规模仍偏小、成本没有公开对比</span><span class="co-t en">Caveat: Benchmark Scale Is Still Modest, Cost Comparison Isn't Public</span>
+    <p class="zh" style="margin:0">Evolve 集普遍是几十到一百多个任务的量级(Terminal-Bench 2.1 89 个、EngDesign 61 个、Harvey LAB 120 个),相比很多工业场景的真实任务池仍偏小;论文也没有给出"跑一次完整 RRSI 进化流程需要多少美元/多少小时"这类可直接用于预算决策的成本数字。把 RRSI 的收益规模直接线性外推到自己规模大得多、任务分布也不同的场景之前,建议先在小范围复现验证。</p>
+    <p class="en" style="margin:0">Evolve sets generally run in the tens to low hundreds of tasks (89 for Terminal-Bench 2.1, 61 for EngDesign, 120 for Harvey LAB) — still modest next to many industrial task pools; the paper also doesn't report dollar/hour cost figures usable directly for budgeting a full RRSI evolution run. Before linearly extrapolating RRSI's reported gains to a much larger, differently-distributed setting of your own, a small-scale reproduction first is the safer move.</p>
+  </div>
+</section>
+
+<!-- ================= 09 SCENARIOS ================= -->
+<section id="scenarios">
+  <p class="sec-eyebrow zh">09 · 对号入座</p>
+  <p class="sec-eyebrow en">09 · Who This Is For</p>
+  <h2><span class="icon">🎯</span><span class="zh">谁该关心这件事</span><span class="en">Who Should Care</span></h2>
+
+  <div class="glossary">
+    <div class="gterm">
+      <b class="zh">Agent 平台 / 基础设施团队</b><b class="en">Agent Platform / Infra Teams</b>
+      <p class="zh">已经在做或计划做"自动优化 Harness/Prompt"流水线的团队,RRSI 的双侧正则化清单几乎可以直接当设计检查表用。</p>
+      <p class="en">Teams already building, or planning to build, an automated harness/prompt optimization pipeline — RRSI's dual-side regularization list can serve almost directly as a design checklist.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">Agent 评测 / Eval 工程师</b><b class="en">Agent Evaluation / Eval Engineers</b>
+      <p class="zh">论文对"evolve 集分数上涨但 OOD 崩溃"给出了可量化的诊断方法(ID vs OOD 双轨对比),值得直接搬进自己团队的评测报告模板。</p>
+      <p class="en">The paper offers a quantifiable diagnostic for "evolve-set score climbs while OOD collapses" (the ID vs OOD dual-track comparison) — worth porting directly into your own team's eval report template.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">Claude Code / Agent SDK 深度用户</b><b class="en">Power Users of Claude Code / Agent SDKs</b>
+      <p class="zh">用 skills、subagents、hooks 搭自动化工作流的人,可以把"退火编辑预算""噪声地板""定期剪枝"这几个概念直接用在自己维护 CLAUDE.md/skill 库的习惯里。</p>
+      <p class="en">Anyone assembling automated workflows out of skills, subagents, and hooks can directly apply "annealed edit budget," "noise floor," and "scheduled pruning" to how they maintain their own CLAUDE.md or skill library.</p>
+    </div>
+    <div class="gterm">
+      <b class="zh">研究方向暂不相关</b><b class="en">Less Relevant For</b>
+      <p class="zh">如果你只是普通使用一个已经调好的 Agent 产品(不涉及自己搭建/优化 Harness),这篇论文更多是"了解行业在解决什么问题",不需要立刻动手实践。</p>
+      <p class="en">If you're simply using an already-tuned agent product without building or optimizing a harness yourself, this paper is more "understand what the field is working on" than something to act on immediately.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 10 RESOURCES ================= -->
+<section id="resources">
+  <p class="sec-eyebrow zh">10 · 继续深入</p>
+  <p class="sec-eyebrow en">10 · Go Deeper</p>
+  <h2><span class="icon">🔗</span><span class="zh">学习资源清单</span><span class="en">Further Reading</span></h2>
+  <ol class="zh">
+    <li>论文原文 —— arXiv:2609.24972,"RRSI: Regularized Recursive Self-Improvement of Agent Harnesses"(2026-09-21)</li>
+    <li>官方代码仓库 —— GitHub: google-research/rrsi</li>
+    <li>项目主页 —— regularized-rsi.com</li>
+    <li>Anthropic 工程博客《Effective harnesses for long-running agents》—— 人工设计 Harness 的最佳实践,可与 RRSI 的自动化视角对照阅读</li>
+    <li>Anthropic 工程博客《Effective context engineering for AI agents》—— 上下文管理是 RRSI 可编辑组件词表(context_mgmt)里的一项,可作为背景补充</li>
+    <li>本系列历史深度文档《Agent Harness Engineering:智能体运行时工程》(2026-09-07)—— 从人工设计视角理解 Harness 的基础概念</li>
+  </ol>
+  <ol class="en">
+    <li>Paper — arXiv:2609.24972, "RRSI: Regularized Recursive Self-Improvement of Agent Harnesses" (2026-09-21)</li>
+    <li>Official code — GitHub: google-research/rrsi</li>
+    <li>Project site — regularized-rsi.com</li>
+    <li>Anthropic engineering post, "Effective harnesses for long-running agents" — best practices for hand-designed harnesses, a useful contrast to RRSI's automated view</li>
+    <li>Anthropic engineering post, "Effective context engineering for AI agents" — context management is one item (context_mgmt) in RRSI's editable component vocabulary, useful background</li>
+    <li>This series' earlier deep dive, "Agent Harness Engineering" (2026-09-07) — foundational concepts of hand-designed harnesses</li>
+  </ol>
+</section>
+
+</div>
+
+<footer>
+  <div class="fin">
+    <p class="zh" style="margin:0"><strong>来源与方法说明:</strong>本文所有事实、数字与引用均来自真实检索到的公开来源(arXiv 论文原文及其 PDF 全文、论文摘要页),核心数据表格与图示均标注"根据……重绘/整理"。文中出现的 Meta-Harness、AHE、TTHE、HarnessX 为论文引用的同期基线方法,相关作者信息以论文原文为准。</p>
+    <p class="en" style="margin:0"><strong>Sources &amp; methodology:</strong> every fact, figure, and citation in this piece comes from a genuine, retrieved public source (the arXiv paper and its full PDF text, the abstract page). Core data tables and diagrams are labeled as "redrawn/compiled from" their source. Meta-Harness, AHE, TTHE, and HarnessX are contemporaneous baseline methods cited in the paper; refer to the paper itself for full author details.</p>
+    <p class="disclaimer zh">本文档为 AI 每日简报系列的深度学习专题,由自动化调研流程生成,内容力求准确但不构成任何工程决策的唯一依据;涉及具体系统设计,请结合自身场景与团队判断,并建议直接查阅论文原文核实细节。</p>
+    <p class="disclaimer en">This document is a deep-dive feature of the AI Daily Briefing series, produced by an automated research pipeline. Every effort has been made to ensure accuracy, but it should not be the sole basis for any engineering decision — apply any specific system design in consultation with your own context and team, and verify details against the original paper.</p>
+  </div>
+</footer>
+</main>
+
+<script>
+(function(){
+  try{
+    var body=document.body;
+    var saved=null;
+    try{ saved=localStorage.getItem('aidaily-lang'); }catch(e){}
+    if(!saved){
+      saved = (navigator.language||'').toLowerCase().indexOf('zh')===0 ? 'zh':'en';
+    }
+    setLang(saved, false);
+
+    var btns=document.querySelectorAll('.lang-toggle button');
+    btns.forEach(function(b){
+      b.addEventListener('click', function(){ setLang(b.getAttribute('data-lang'), true); });
+    });
+
+    function setLang(lang, userTriggered){
+      body.setAttribute('data-lang', lang);
+      document.documentElement.setAttribute('lang', lang==='zh' ? 'zh-CN':'en');
+      btns.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-lang')===lang); });
+      try{ localStorage.setItem('aidaily-lang', lang); }catch(e){}
+      if(userTriggered){
+        requestAnimationFrame(function(){
+          document.querySelectorAll('.figure').forEach(function(fig){
+            if(fig.classList.contains('in')) return;
+            var r=fig.getBoundingClientRect();
+            if(r.top < window.innerHeight && r.bottom > 0){
+              fig.classList.add('in');
+            }
+          });
+        });
+      }
+    }
+
+    var tocToggle=document.getElementById('tocToggle');
+    var sideToc=document.getElementById('sideToc');
+    if(tocToggle && sideToc){
+      tocToggle.addEventListener('click', function(){ sideToc.classList.toggle('open'); });
+      sideToc.querySelectorAll('a').forEach(function(a){
+        a.addEventListener('click', function(){ sideToc.classList.remove('open'); });
+      });
+    }
+
+    var topProgress=document.getElementById('topProgress');
+    var stProgressFill=document.getElementById('stProgressFill');
+    function updateProgress(){
+      var h=document.documentElement;
+      var scrollTop=h.scrollTop||document.body.scrollTop;
+      var scrollHeight=(h.scrollHeight||document.body.scrollHeight)-h.clientHeight;
+      var pct=scrollHeight>0 ? Math.min(100,(scrollTop/scrollHeight)*100) : 0;
+      if(topProgress) topProgress.style.width=pct+'%';
+      if(stProgressFill) stProgressFill.style.width=pct+'%';
+    }
+    document.addEventListener('scroll', updateProgress, {passive:true});
+    updateProgress();
+
+    var sections=Array.prototype.slice.call(document.querySelectorAll('section[id]'));
+    var links=Array.prototype.slice.call(document.querySelectorAll('.side-toc a'));
+    function updateActive(){
+      var pos=window.scrollY+120;
+      var current=null;
+      sections.forEach(function(s){ if(s.offsetTop<=pos) current=s; });
+      links.forEach(function(a){
+        a.classList.toggle('active', current && a.getAttribute('href')==='#'+current.id);
+      });
+    }
+    document.addEventListener('scroll', updateActive, {passive:true});
+    updateActive();
+
+    if('IntersectionObserver' in window){
+      var io=new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            entry.target.classList.add('in');
+            io.unobserve(entry.target);
+          }
+        });
+      }, {threshold:0.2});
+      document.querySelectorAll('.figure').forEach(function(f){ io.observe(f); });
+    } else {
+      document.querySelectorAll('.figure').forEach(function(f){ f.classList.add('in'); });
+    }
+  }catch(e){
+    try{ document.querySelectorAll('.figure').forEach(function(f){ f.classList.add('in'); }); }catch(e2){}
+  }
+})();
+</script>
+</body>
+</html>
