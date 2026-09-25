@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能体驱动的科学发现 | Agentic Scientific Discovery</title>
+<meta name="description" content="从 Anthropic 950 个 Claude 智能体发现新型类 CRISPR 酶系统出发,深入拆解智能体驱动科学发现的架构、治理与适用场景 / A deep dive into agentic scientific discovery workflows, starting from Anthropic's 950-agent enzyme discovery.">
+<style>
+  :root{
+    --bg:#faf7f2;
+    --bg-alt:#f1ece2;
+    --panel:#ffffff;
+    --ink:#1f2320;
+    --ink-soft:#4a5049;
+    --line:#e2dbcb;
+    --primary:#1f5b4f;
+    --primary-soft:#e4efe9;
+    --accent:#c9603c;
+    --accent-soft:#f7e3d8;
+    --amber:#b3872f;
+    --code-bg:#20241f;
+    --code-ink:#e9f2ec;
+    --shadow: 0 8px 24px rgba(31,42,32,0.08);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141712;
+      --bg-alt:#1b201a;
+      --panel:#1e2420;
+      --ink:#eef2ec;
+      --ink-soft:#b7c2b8;
+      --line:#333d34;
+      --primary:#6fbfa4;
+      --primary-soft:#20302a;
+      --accent:#e2895f;
+      --accent-soft:#3a2620;
+      --amber:#d9b46a;
+      --code-bg:#0d100d;
+      --code-ink:#dcecdf;
+      --shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141712;
+    --bg-alt:#1b201a;
+    --panel:#1e2420;
+    --ink:#eef2ec;
+    --ink-soft:#b7c2b8;
+    --line:#333d34;
+    --primary:#6fbfa4;
+    --primary-soft:#20302a;
+    --accent:#e2895f;
+    --accent-soft:#3a2620;
+    --amber:#d9b46a;
+    --code-bg:#0d100d;
+    --code-ink:#dcecdf;
+    --shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  body[data-lang="zh"] .en{display:none!important}
+  body[data-lang="en"] .zh{display:none!important}
+
+  a{color:var(--primary); text-decoration:underline; text-decoration-color:var(--line);}
+  a:hover{text-decoration-color:currentColor;}
+
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 18px;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{font-weight:700; font-size:14px; letter-spacing:.02em; color:var(--ink-soft);}
+  .lang-btn{
+    appearance:none; border:1px solid var(--line); background:var(--panel);
+    color:var(--ink); padding:6px 14px; border-radius:999px; font-size:13px;
+    cursor:pointer; font-weight:600;
+  }
+  .lang-btn:hover{border-color:var(--primary); color:var(--primary);}
+
+  .hero{
+    padding:52px 20px 36px; max-width:920px; margin:0 auto;
+  }
+  .kicker{
+    display:inline-block; font-size:12px; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--accent); background:var(--accent-soft);
+    padding:4px 10px; border-radius:999px; margin-bottom:14px;
+  }
+  h1{font-size:clamp(26px,5vw,40px); line-height:1.25; margin:0 0 14px; letter-spacing:-.01em;}
+  .lede{font-size:17px; color:var(--ink-soft); max-width:70ch;}
+  .meta-row{
+    display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; font-size:13px; color:var(--ink-soft);
+  }
+  .meta-row span{
+    border:1px solid var(--line); padding:4px 10px; border-radius:8px; background:var(--panel);
+  }
+
+  main{max-width:920px; margin:0 auto; padding:0 20px 80px;}
+
+  nav.toc{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px; margin:24px 0 40px; box-shadow:var(--shadow);
+  }
+  nav.toc h2{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin:0 0 10px;}
+  nav.toc ol{margin:0; padding-left:20px; columns: 2; column-gap:24px;}
+  nav.toc li{margin-bottom:6px; break-inside:avoid; font-size:14.5px;}
+  nav.toc a{text-decoration:none; color:var(--ink);}
+  nav.toc a:hover{color:var(--primary);}
+
+  section{margin:44px 0;}
+  section h2{
+    font-size:23px; margin:0 0 16px; padding-bottom:10px; border-bottom:2px solid var(--primary-soft);
+    display:flex; align-items:baseline; gap:10px;
+  }
+  section h2 .num{color:var(--primary); font-variant-numeric:tabular-nums; font-size:16px; font-weight:700;}
+  section h3{font-size:17px; margin:26px 0 10px; color:var(--ink);}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin-bottom:6px;}
+
+  .callout{
+    border-left:4px solid var(--primary); background:var(--primary-soft);
+    padding:14px 18px; border-radius:0 10px 10px 0; margin:18px 0; font-size:15px;
+  }
+  .callout.warn{border-left-color:var(--accent); background:var(--accent-soft);}
+  .callout strong{display:block; margin-bottom:4px;}
+
+  .card-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:18px 0;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .card .stat{font-size:26px; font-weight:800; color:var(--primary); line-height:1.1;}
+  .card .stat-label{font-size:13px; color:var(--ink-soft); margin-top:4px;}
+
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:14.5px;}
+  caption{caption-side:top; text-align:left; font-size:13px; color:var(--ink-soft); margin-bottom:6px;}
+  th,td{border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top;}
+  th{background:var(--bg-alt); font-weight:700;}
+  .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+
+  pre{
+    background:var(--code-bg); color:var(--code-ink); padding:14px 16px; border-radius:10px;
+    overflow-x:auto; font-size:13.5px; line-height:1.6; -webkit-overflow-scrolling:touch;
+  }
+  code{font-family:"SF Mono",SFMono-Regular,Consolas,Menlo,monospace;}
+  p code, li code{background:var(--bg-alt); padding:1px 6px; border-radius:5px; font-size:13.5px;}
+
+  figure{margin:22px 0; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; box-shadow:var(--shadow); opacity:0; transform:translateY(14px); transition:opacity .5s ease, transform .5s ease;}
+  figure.in{opacity:1; transform:translateY(0);}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:13px; color:var(--ink-soft); margin-top:10px; text-align:center;}
+
+  dl.glossary dt{font-weight:700; margin-top:14px; color:var(--primary);}
+  dl.glossary dd{margin:2px 0 0;}
+
+  .src-list{font-size:14px;}
+  .src-list li{margin-bottom:10px;}
+  .src-list .date{color:var(--ink-soft); font-size:12.5px;}
+
+  footer{
+    max-width:920px; margin:0 auto; padding:30px 20px 60px; color:var(--ink-soft); font-size:13px;
+    border-top:1px solid var(--line);
+  }
+
+  @media (max-width:640px){
+    nav.toc ol{columns:1;}
+    .hero{padding:36px 16px 28px;}
+    section h2{font-size:20px;}
+  }
+</style>
+
+<!-- ms-seo -->
+<meta property="og:title" content="智能体驱动的科学发现 | Agentic Scientific Discovery">
+<meta property="og:description" content="从 Anthropic 950 个 Claude 智能体发现新型类 CRISPR 酶系统出发,深入拆解智能体驱动科学发现的架构、治理与适用场景 / A deep dive into agentic scientific discovery workflows, starting from Anthropic&#x27;s 950-agent enzyme discovery.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-09-25-zhi-neng-ti-qu-dong-ke-xue-fa-xian.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-09-25-zhi-neng-ti-qu-dong-ke-xue-fa-xian.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "智能体驱动的科学发现 | Agentic Scientific Discovery", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-09-25-zhi-neng-ti-qu-dong-ke-xue-fa-xian.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-25", "dateModified": "2026-09-25"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+
+<div class="topbar">
+  <span class="brand"><span class="zh">AI 深度学习文档</span><span class="en">AI Deep-Dive</span></span>
+  <button class="lang-btn" id="langToggle" type="button" aria-label="Switch language">EN / 中</button>
+</div>
+
+<div class="hero">
+  <span class="kicker zh">今日精选主题深度学习</span>
+  <span class="kicker en">Today's Featured Deep Dive</span>
+  <h1 class="zh">智能体驱动的科学发现:当 950 个 Claude 智能体一起"看"DNA 数据</h1>
+  <h1 class="en">Agentic Scientific Discovery: When 950 Claude Agents Read DNA Data Together</h1>
+  <p class="lede zh">2026 年 9 月 23 日,Anthropic 宣布约 950 个 Claude 智能体协作 21 小时、消耗约 2.1 亿 tokens,在噬菌体基因组中发现一种此前未被系统描述的类 CRISPR 酶系统。这不是一次孤立的"AI 很聪明"新闻,而是"智能体驱动科学发现"这条工程路线第一次给出可量化的公开数据。本文从这个案例出发,拆解它的技术架构、底层平台、治理机制,以及这套模式什么时候该用、什么时候要警惕。</p>
+  <p class="lede en">On September 23, 2026, Anthropic announced that roughly 950 Claude agents worked together for 21 hours, burning through about 210 million tokens, to flag a previously undescribed CRISPR-like enzyme system in bacteriophage genomes. This isn't just another "AI is smart" headline — it's the first time the "agentic scientific discovery" engineering pattern has been backed by quantifiable public numbers. Starting from this case, this piece breaks down the architecture, the underlying platform, the governance model, and — just as importantly — when this pattern is appropriate and when it isn't.</p>
+  <div class="meta-row">
+    <span class="zh">发布日期:2026-09-25</span><span class="en">Published: 2026-09-25</span>
+    <span class="zh">阅读时长:约 16 分钟</span><span class="en">Reading time: ~16 min</span>
+    <span class="zh">领域:Agent 工程 · AI for Science</span><span class="en">Topics: Agent Engineering · AI for Science</span>
+  </div>
+</div>
+
+<main>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2><span class="zh">目录</span><span class="en">Contents</span></h2>
+  <ol>
+    <li><a href="#s-whatis"><span class="zh">1. 是什么:智能体驱动科学发现的定义</span><span class="en">1. What Is Agentic Scientific Discovery</span></a></li>
+    <li><a href="#s-case"><span class="zh">2. 案例拆解:950 个智能体如何发现新酶系统</span><span class="en">2. Case Study: How 950 Agents Found a New Enzyme System</span></a></li>
+    <li><a href="#s-platform"><span class="zh">3. 底层平台:Claude Science 工作台</span><span class="en">3. Underlying Platform: Claude Science</span></a></li>
+    <li><a href="#s-governance"><span class="zh">4. 治理机制:护栏怎么"因场景而变"</span><span class="en">4. Governance: Context-Dependent Guardrails</span></a></li>
+    <li><a href="#s-landscape"><span class="zh">5. 行业格局:三强 AI for Science 工作台</span><span class="en">5. Landscape: Three AI-for-Science Workbenches</span></a></li>
+    <li><a href="#s-howto"><span class="zh">6. 怎么搭:可复用的架构模式</span><span class="en">6. How To Build It: A Reusable Architecture</span></a></li>
+    <li><a href="#s-when"><span class="zh">7. 什么场景该用</span><span class="en">7. When To Use This Pattern</span></a></li>
+    <li><a href="#s-pitfalls"><span class="zh">8. 常见坑与局限</span><span class="en">8. Pitfalls and Limitations</span></a></li>
+    <li><a href="#s-compare"><span class="zh">9. 与其他 AI for Science 路线对比</span><span class="en">9. Comparison With Other AI-for-Science Approaches</span></a></li>
+    <li><a href="#s-glossary"><span class="zh">10. 术语表</span><span class="en">10. Glossary</span></a></li>
+    <li><a href="#s-sources"><span class="zh">11. 参考来源</span><span class="en">11. Sources</span></a></li>
+  </ol>
+</nav>
+
+<section id="s-whatis">
+  <h2><span class="num">01</span><span class="zh">是什么:智能体驱动科学发现的定义</span><span class="en">What Is Agentic Scientific Discovery</span></h2>
+
+  <p class="zh"><strong>智能体驱动科学发现(agentic scientific discovery)</strong>,指的是用大量并行运行的 LLM 智能体(而不是单个模型一次性推理,也不是单纯的传统机器学习模型如 AlphaFold)去搜索、筛选、比对海量科学数据,自动发现人类专家因为数据量太大而容易忽略的模式,再交给人类专家和湿实验做最终验证的工作方式。它和"用 AI 辅助写论文"或"用 AI 解释一篇论文"完全是两回事——核心动作是<strong>在原始数据里找出此前没人系统描述过的模式</strong>,而不是总结已知信息。</p>
+  <p class="zh">这套模式有三个缺一不可的组成部分:</p>
+  <ul class="zh">
+    <li><strong>规模化并行搜索</strong>:不是一个 Agent 顺序处理,而是成百上千个 Agent 同时对数据的不同切片做模式识别,靠数量把"大海捞针"的问题变得可行;</li>
+    <li><strong>假设生成与交叉验证的循环</strong>:某个 Agent 发现的"疑似模式"要经过其他 Agent 或流程重新核实,过滤掉噪声和巧合,才进入人类视野;</li>
+    <li><strong>人类专家 + 湿实验兜底</strong>:AI 只负责把"值得看"的候选缩小到可管理的数量,最终的科学结论(这个模式到底是什么、有什么功能)仍然必须由人类专家评审、并通过实体实验验证——AI 生成的是<strong>线索</strong>,不是<strong>结论</strong>。</li>
+  </ul>
+
+  <p class="en"><strong>Agentic scientific discovery</strong> refers to a workflow where a large number of LLM agents run in parallel — not a single model doing one-shot inference, and not a traditional narrow ML model like AlphaFold — to search, filter, and cross-reference massive scientific datasets, automatically surfacing patterns that human experts would likely miss simply because of data volume. It then hands the candidate findings to human experts and wet-lab work for final validation. This is fundamentally different from "using AI to help write a paper" or "using AI to summarize a paper" — the core action here is <strong>finding patterns in raw data that no one has systematically described before</strong>, not summarizing what's already known.</p>
+  <p class="en">The pattern has three components, all of which matter:</p>
+  <ul class="en">
+    <li><strong>Massively parallel search</strong>: instead of one agent processing sequentially, hundreds to thousands of agents run pattern recognition on different slices of data simultaneously, turning a "needle in a haystack" problem into something tractable through sheer parallelism;</li>
+    <li><strong>A hypothesis-generation-and-cross-verification loop</strong>: a "candidate pattern" flagged by one agent has to be re-checked by other agents or downstream processes to filter out noise and coincidence before it ever reaches a human;</li>
+    <li><strong>Human experts and wet-lab work as the final backstop</strong>: the AI's job is only to narrow "things worth looking at" down to a manageable shortlist. The actual scientific conclusion — what this pattern is, what it does — still has to be reviewed by human experts and validated through physical experiments. What the AI produces is a <strong>lead</strong>, not a <strong>conclusion</strong>.</li>
+  </ul>
+
+  <div class="callout">
+    <strong class="zh">一句话人话解释</strong>
+    <strong class="en">In plain terms</strong>
+    <span class="zh">把它想成"用几百个实习生同时翻一整个图书馆,每人翻一小片区域找可疑的书,发现可疑的马上喊组长来核实",而不是"一个博士生一个人从头到尾读完所有书"。数量换来的是覆盖率,交叉验证换来的是可信度。</span>
+    <span class="en">Think of it as "hundreds of interns simultaneously flipping through one giant library, each covering a small section and flagging anything suspicious for a team lead to verify," rather than "one PhD student reading the entire library cover to cover alone." Numbers buy you coverage; cross-verification buys you credibility.</span>
+  </div>
+</section>
+
+<section id="s-case">
+  <h2><span class="num">02</span><span class="zh">案例拆解:950 个智能体如何发现新酶系统</span><span class="en">Case Study: How 950 Agents Found a New Enzyme System</span></h2>
+
+  <p class="zh">2026 年 9 月 23 日,Anthropic 官方公告披露了这次发现的关键数字。约 <strong>950 个 Claude 智能体</strong>协同工作 <strong>21 小时</strong>,共消耗约 <strong>2.1 亿 tokens</strong>,分析了约 <strong>20 万条候选酶序列</strong>,最终在噬菌体(感染细菌的病毒)基因组数据中,识别出一种由"逆转录酶 + 伙伴基因 + 类似 CRISPR 重复阵列的 DNA 序列"组成的系统——Anthropic 将其命名为 <strong>阵列关联逆转录酶(array-associated reverse transcriptase,简称 ART)</strong>。这个逆转录酶本身此前已被记录过,但把它和重复序列阵列组合成一个"系统"来看待,是这次发现的新意所在。</p>
+
+  <p class="en">Anthropic's official announcement on September 23, 2026 disclosed the key numbers behind the discovery. Approximately <strong>950 Claude agents</strong> worked together for <strong>21 hours</strong>, burning through roughly <strong>210 million tokens</strong>, analyzing about <strong>200,000 candidate enzyme sequences</strong>, and ultimately identified a system — in the genomes of bacteriophages (viruses that infect bacteria) — made up of "a reverse transcriptase enzyme, a partner gene, and a CRISPR-like array of repeating DNA sequences." Anthropic named it <strong>array-associated reverse transcriptase (ART)</strong>. The reverse transcriptase enzyme itself had been documented before; what's new is recognizing it, together with the repeat array, as a distinct biological system.</p>
+
+  <figure id="fig1">
+    <div class="zh">
+    <svg viewBox="0 0 820 360" role="img" aria-labelledby="fig1-zh-title">
+      <title id="fig1-zh-title">智能体科学发现流水线示意图(中文版)</title>
+      <defs>
+        <marker id="fig1-zh-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#1f5b4f"></path>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="820" height="360" fill="none"></rect>
+      <!-- Stage 1 -->
+      <rect x="20" y="40" width="150" height="70" rx="10" fill="#e4efe9" stroke="#1f5b4f"></rect>
+      <text x="95" y="68" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2320">候选序列库</text>
+      <text x="95" y="86" text-anchor="middle" font-size="11" fill="#4a5049">约 20 万条酶序列</text>
+      <text x="95" y="101" text-anchor="middle" font-size="11" fill="#4a5049">噬菌体基因组数据</text>
+
+      <line x1="170" y1="75" x2="215" y2="75" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-zh-arrow)"></line>
+
+      <!-- Stage 2: fan out -->
+      <rect x="220" y="10" width="170" height="130" rx="10" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="305" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2320">并行扫描智能体</text>
+      <text x="305" y="46" text-anchor="middle" font-size="11" fill="#4a5049">≈950 个 Claude agent</text>
+      <circle cx="250" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="275" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="300" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="325" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="350" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="262" cy="85" r="6" fill="#c9603c"></circle>
+      <circle cx="287" cy="85" r="6" fill="#1f5b4f"></circle>
+      <circle cx="312" cy="85" r="6" fill="#1f5b4f"></circle>
+      <circle cx="337" cy="85" r="6" fill="#1f5b4f"></circle>
+      <text x="305" y="115" text-anchor="middle" font-size="11" fill="#4a5049">每个 agent 分析一小片</text>
+      <text x="305" y="129" text-anchor="middle" font-size="11" fill="#4a5049">数据 · 21 小时 · 2.1亿 tokens</text>
+
+      <line x1="390" y1="75" x2="435" y2="75" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-zh-arrow)"></line>
+
+      <!-- Stage 3: aggregation / cross verify -->
+      <rect x="440" y="40" width="170" height="70" rx="10" fill="#f7e3d8" stroke="#c9603c"></rect>
+      <text x="525" y="68" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2320">候选模式聚合</text>
+      <text x="525" y="86" text-anchor="middle" font-size="11" fill="#4a5049">交叉核验 · 去噪</text>
+      <text x="525" y="101" text-anchor="middle" font-size="11" fill="#4a5049">锁定 ART 候选系统</text>
+
+      <line x1="610" y1="75" x2="655" y2="75" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-zh-arrow)"></line>
+
+      <!-- Stage 4: human expert -->
+      <rect x="660" y="10" width="140" height="130" rx="10" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="730" y="32" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2320">人类专家评审</text>
+      <text x="730" y="50" text-anchor="middle" font-size="11" fill="#4a5049">CRISPR 领域学者</text>
+      <text x="730" y="68" text-anchor="middle" font-size="11" fill="#4a5049">(如 Feng Zhang)</text>
+      <text x="730" y="90" text-anchor="middle" font-size="11" fill="#4a5049">初步评价:</text>
+      <text x="730" y="106" text-anchor="middle" font-size="11" fill="#4a5049">"值得进一步研究"</text>
+      <text x="730" y="124" text-anchor="middle" font-size="11" fill="#4a5049">尚未定论功能</text>
+
+      <line x1="525" y1="110" x2="525" y2="150" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-zh-arrow)"></line>
+
+      <!-- Stage 5: wet lab -->
+      <rect x="360" y="155" width="330" height="80" rx="10" fill="#e4efe9" stroke="#1f5b4f"></rect>
+      <text x="525" y="182" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2320">人类科学家湿实验室验证</text>
+      <text x="525" y="200" text-anchor="middle" font-size="11" fill="#4a5049">仅 BSL-1 / BSL-2 生物安全等级,不涉及人类病原体</text>
+      <text x="525" y="216" text-anchor="middle" font-size="11" fill="#4a5049">所有实体实验由人类科学家完成,AI 不操作实验设备</text>
+
+      <line x1="525" y1="235" x2="525" y2="270" stroke="#4a5049" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#fig1-zh-arrow)"></line>
+      <rect x="330" y="275" width="390" height="60" rx="10" fill="#fff" stroke="#e2dbcb" stroke-dasharray="4 4"></rect>
+      <text x="525" y="298" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">当前状态:早期发现,等待外部同行验证</text>
+      <text x="525" y="316" text-anchor="middle" font-size="11" fill="#4a5049">ART 具体功能尚未确认 · 非最终科学结论</text>
+    </svg>
+    </div>
+    <div class="en">
+    <svg viewBox="0 0 820 360" role="img" aria-labelledby="fig1-en-title">
+      <title id="fig1-en-title">Agentic scientific discovery pipeline diagram (English version)</title>
+      <defs>
+        <marker id="fig1-en-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#1f5b4f"></path>
+        </marker>
+      </defs>
+      <rect x="20" y="40" width="150" height="70" rx="10" fill="#e4efe9" stroke="#1f5b4f"></rect>
+      <text x="95" y="65" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2320">Candidate Sequence DB</text>
+      <text x="95" y="84" text-anchor="middle" font-size="10.5" fill="#4a5049">~200,000 enzyme seqs</text>
+      <text x="95" y="99" text-anchor="middle" font-size="10.5" fill="#4a5049">Phage genome data</text>
+
+      <line x1="170" y1="75" x2="215" y2="75" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-en-arrow)"></line>
+
+      <rect x="220" y="10" width="170" height="130" rx="10" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="305" y="28" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2320">Parallel Scan Agents</text>
+      <text x="305" y="45" text-anchor="middle" font-size="10.5" fill="#4a5049">~950 Claude agents</text>
+      <circle cx="250" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="275" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="300" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="325" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="350" cy="65" r="6" fill="#1f5b4f"></circle>
+      <circle cx="262" cy="85" r="6" fill="#c9603c"></circle>
+      <circle cx="287" cy="85" r="6" fill="#1f5b4f"></circle>
+      <circle cx="312" cy="85" r="6" fill="#1f5b4f"></circle>
+      <circle cx="337" cy="85" r="6" fill="#1f5b4f"></circle>
+      <text x="305" y="113" text-anchor="middle" font-size="10.5" fill="#4a5049">Each agent scans a slice</text>
+      <text x="305" y="127" text-anchor="middle" font-size="10.5" fill="#4a5049">21 hrs · 210M tokens</text>
+
+      <line x1="390" y1="75" x2="435" y2="75" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-en-arrow)"></line>
+
+      <rect x="440" y="40" width="170" height="70" rx="10" fill="#f7e3d8" stroke="#c9603c"></rect>
+      <text x="525" y="65" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2320">Candidate Aggregation</text>
+      <text x="525" y="84" text-anchor="middle" font-size="10.5" fill="#4a5049">Cross-check · denoise</text>
+      <text x="525" y="99" text-anchor="middle" font-size="10.5" fill="#4a5049">Narrows to ART candidate</text>
+
+      <line x1="610" y1="75" x2="655" y2="75" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-en-arrow)"></line>
+
+      <rect x="660" y="10" width="140" height="130" rx="10" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="730" y="30" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2320">Human Expert Review</text>
+      <text x="730" y="47" text-anchor="middle" font-size="10.5" fill="#4a5049">CRISPR field scholars</text>
+      <text x="730" y="64" text-anchor="middle" font-size="10.5" fill="#4a5049">(e.g. Feng Zhang)</text>
+      <text x="730" y="86" text-anchor="middle" font-size="10.5" fill="#4a5049">Early verdict:</text>
+      <text x="730" y="102" text-anchor="middle" font-size="10.5" fill="#4a5049">"merits further study"</text>
+      <text x="730" y="120" text-anchor="middle" font-size="10.5" fill="#4a5049">Function not yet confirmed</text>
+
+      <line x1="525" y1="110" x2="525" y2="150" stroke="#1f5b4f" stroke-width="2" marker-end="url(#fig1-en-arrow)"></line>
+
+      <rect x="360" y="155" width="330" height="80" rx="10" fill="#e4efe9" stroke="#1f5b4f"></rect>
+      <text x="525" y="180" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2320">Human Wet-Lab Validation</text>
+      <text x="525" y="198" text-anchor="middle" font-size="10.5" fill="#4a5049">BSL-1 / BSL-2 only, no human pathogens</text>
+      <text x="525" y="214" text-anchor="middle" font-size="10.5" fill="#4a5049">All physical experiments run by humans, not AI</text>
+
+      <line x1="525" y1="235" x2="525" y2="270" stroke="#4a5049" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#fig1-en-arrow)"></line>
+      <rect x="330" y="275" width="390" height="60" rx="10" fill="#fff" stroke="#e2dbcb" stroke-dasharray="4 4"></rect>
+      <text x="525" y="296" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1f2320">Status: early finding, awaiting outside peer validation</text>
+      <text x="525" y="314" text-anchor="middle" font-size="10.5" fill="#4a5049">ART's function unconfirmed — not a final scientific conclusion</text>
+    </svg>
+    </div>
+    <figcaption class="zh">图 1:从候选序列库到湿实验验证的完整流水线——AI 负责缩小范围,人类负责下结论。</figcaption>
+    <figcaption class="en">Figure 1: The full pipeline from candidate sequence database to wet-lab validation — AI narrows the search, humans draw the conclusions.</figcaption>
+  </figure>
+
+  <div class="card-grid">
+    <div class="card zh"><div class="stat">~950</div><div class="stat-label">协作智能体数量</div></div>
+    <div class="card zh"><div class="stat">21 小时</div><div class="stat-label">端到端耗时</div></div>
+    <div class="card zh"><div class="stat">~2.1 亿</div><div class="stat-label">消耗 tokens 数</div></div>
+    <div class="card zh"><div class="stat">~20 万条</div><div class="stat-label">分析的候选酶序列</div></div>
+    <div class="card en"><div class="stat">~950</div><div class="stat-label">Collaborating agents</div></div>
+    <div class="card en"><div class="stat">21 hrs</div><div class="stat-label">End-to-end runtime</div></div>
+    <div class="card en"><div class="stat">~210M</div><div class="stat-label">Tokens consumed</div></div>
+    <div class="card en"><div class="stat">~200K</div><div class="stat-label">Candidate sequences analyzed</div></div>
+  </div>
+
+  <p class="zh">Anthropic CEO Dario Amodei 在公告中表示,"未来甚至有可能让 Claude 自主操控实验室设备安全地完成实验——但我们今天还没有这样做。" 这句话既是对能力的展望,也是对当前边界的明确划定:目前 AI 的角色严格止步于"找候选、给线索",不涉足实体实验操作。CRISPR 研究先驱、MIT 与 Broad 研究所的 Feng Zhang 对此评价:"这种与逆转录酶相关联的 RNA 重复阵列的鉴定确实令人感兴趣,值得进一步研究"——注意这是一句谨慎的"值得研究",不是"已经证实"。</p>
+  <p class="en">Anthropic CEO Dario Amodei said in the announcement, "it may even be possible for Claude itself to safely perform the experiments by autonomously controlling lab equipment... but we aren't doing that today." That line is both a glimpse of future capability and an explicit line drawn around today's boundary: AI's role currently stops strictly at "finding candidates, providing leads," not operating physical lab equipment. Feng Zhang, a CRISPR pioneer at MIT and the Broad Institute, commented: "the identification of RNA-repeat arrays associated with reverse transcriptases is genuinely intriguing and merits further investigation" — note this is a careful "worth studying," not "already confirmed."</p>
+
+  <div class="callout warn">
+    <strong class="zh">关键限定</strong><strong class="en">Key caveat</strong>
+    <span class="zh">截至发稿,ART 系统的具体生物学功能仍然未知,这项发现"尚待外部验证"(awaits outside validation)。所有实体湿实验均由人类科学家在 BSL-1/BSL-2(最低两级生物安全等级)条件下完成,不涉及任何人类致病原,AI 没有直接接触或操作任何实验室设备。</span>
+    <span class="en">As of publication, the specific biological function of the ART system remains unknown, and the finding "awaits outside validation." All physical wet-lab work was performed by human scientists under BSL-1/BSL-2 (the two lowest biosafety levels) conditions, involving no human pathogens, with the AI having no direct contact with or control over lab equipment.</span>
+  </div>
+</section>
+
+<section id="s-platform">
+  <h2><span class="num">03</span><span class="zh">底层平台:Claude Science 工作台</span><span class="en">Underlying Platform: Claude Science</span></h2>
+
+  <p class="zh">这次大规模筛查之所以能跑起来,离不开 Anthropic 在 2026 年 7 月 1 日公测上线的 <strong>Claude Science</strong>——一个面向科学家和制药研究人员的一体化工作台。它解决的核心痛点很朴素:科研人员大量时间花在"在数据库、代码笔记本、终端、可视化工具之间来回切换",而不是真正做研究。Claude Science 把这些环节整合进一个界面,具体包括:</p>
+  <ul class="zh">
+    <li>与 <strong>60 多个专业数据库和技能(skills)</strong>集成,覆盖基因组、蛋白质结构等常见科研数据源;</li>
+    <li>可调用 <strong>Evo 2、Boltz-2、OpenFold3</strong> 等专用生命科学模型(而不是只靠通用 LLM 的"直觉");</li>
+    <li>输出<strong>可审计</strong>——代码、运行环境都有可追溯记录,方便复现与同行评审;</li>
+    <li>支持 macOS/Linux 本地运行,或通过 SSH 远程接入已有的计算集群。</li>
+  </ul>
+  <p class="zh">Anthropic 透露已经在内部用 Claude Science 推进被忽视热带病(neglected tropical diseases)的临床前药物发现工作,并宣布最多支持 50 个"AI for Science"外部项目,每个项目提供至多 3 万美元的算力信用额度。本次的酶系统发现,可以理解为 Anthropic 给自家科研工作台做的一次高调的能力背书。</p>
+
+  <p class="en">This large-scale screen wouldn't have been runnable without <strong>Claude Science</strong>, the integrated workbench for scientists and pharma researchers that Anthropic launched in beta on July 1, 2026. The core pain point it addresses is simple: researchers spend a huge amount of time "switching between databases, coding notebooks, terminals, and viewers" instead of actually doing research. Claude Science folds all of that into a single interface, including:</p>
+  <ul class="en">
+    <li>Integration with <strong>60+ specialized databases and skills</strong> covering common research data sources like genomics and protein structure;</li>
+    <li>Access to purpose-built life-science models such as <strong>Evo 2, Boltz-2, and OpenFold3</strong> — not just general-purpose LLM "intuition";</li>
+    <li><strong>Auditable outputs</strong> — code and the environment it ran in are traceable, which matters for reproducibility and peer review;</li>
+    <li>Local operation on macOS/Linux, or remote access to existing compute clusters over SSH.</li>
+  </ul>
+  <p class="en">Anthropic has disclosed that it is already using Claude Science internally for pre-clinical drug discovery on neglected tropical diseases, and says it's backing up to 50 external "AI for Science" projects with as much as $30,000 in compute credits each. The enzyme discovery can be read as a high-visibility proof point for Anthropic's own research workbench.</p>
+</section>
+
+<section id="s-governance">
+  <h2><span class="num">04</span><span class="zh">治理机制:护栏怎么"因场景而变"</span><span class="en">Governance: Context-Dependent Guardrails</span></h2>
+
+  <p class="zh">和这次发现同期公布的,还有 <strong>Life Sciences Verification Program(LSVP,生命科学验证计划)</strong>——面向经过身份核实的生物学专业人士,提供带有针对性放宽的安全设置的 Claude 访问权限,专门服务于合规的生命科学研究场景。这背后是一个值得单独拎出来讲的治理思路:AI 安全护栏不该是"一刀切"的全局开关,而应该是<strong>可以按已验证身份、已验证场景做差异化配置</strong>的分层系统——普通用户遇到的默认护栏依然保守,但经过审核的专业研究者,在特定研究场景下可以获得更贴合真实科研需求的模型行为。</p>
+  <p class="zh">这种"场景化放宽"天然带来双重用途(dual-use)风险管理的挑战:同一套能维护生物安全的知识与工具,理论上也可能被滥用。Anthropic 目前公开的缓解方式包括身份核实的准入门槛、湿实验环节仍由人类主导、以及把研究严格限制在低生物安全等级(BSL-1/BSL-2)范围内——但这更多是"当前的产品策略",而非可验证的、机制层面的安全保证,读者应把它当作一个仍在演进中的治理实践来看待,而不是一个已经解决的问题。</p>
+
+  <p class="en">Announced alongside the discovery was the <strong>Life Sciences Verification Program (LSVP)</strong>, which grants identity-verified biology professionals access to Claude with selectively relaxed safety settings, specifically for legitimate life-science research use cases. This points to a governance idea worth calling out on its own: AI safety guardrails shouldn't be an all-or-nothing global switch — they should be a <strong>layered system that can be configured differently based on verified identity and verified use case</strong>. The default guardrails an ordinary user encounters stay conservative, while a vetted professional researcher, in a specific research context, can get model behavior that's better matched to real scientific needs.</p>
+  <p class="en">This kind of "context-dependent relaxation" inherently raises dual-use risk-management challenges: the same knowledge and tools that support legitimate biosecurity work could, in theory, also be misused. Anthropic's publicly disclosed mitigations so far include an identity-verification gate, keeping humans in charge of all wet-lab work, and strictly limiting the research to low biosafety levels (BSL-1/BSL-2) — but this is best understood as a <em>current product policy</em>, not a verifiable, mechanism-level safety guarantee. Readers should treat it as an evolving governance practice rather than a solved problem.</p>
+
+  <div class="callout">
+    <strong class="zh">为什么这对开发者也重要</strong><strong class="en">Why this matters even if you're not a biologist</strong>
+    <span class="zh">"按已验证身份/场景分层放宽护栏"这个思路,不只适用于生命科学。任何在企业内部部署 Agent、且不同角色需要不同权限边界的团队,都可以借鉴这个模式:与其在"完全保守"和"完全开放"之间二选一,不如设计一套身份核实 + 场景绑定的分层权限体系。</span>
+    <span class="en">The idea of "relaxing guardrails in layers, tied to verified identity and verified use case" isn't unique to life sciences. Any team deploying agents internally, where different roles need different permission boundaries, can borrow this pattern: instead of choosing between "fully locked down" and "fully open," design a tiered permission system anchored to identity verification and use-case binding.</span>
+  </div>
+</section>
+
+<section id="s-landscape">
+  <h2><span class="num">05</span><span class="zh">行业格局:三强 AI for Science 工作台</span><span class="en">Landscape: Three AI-for-Science Workbenches</span></h2>
+
+  <p class="zh">Claude Science 不是孤例。2026 年以来,三大实验室先后推出了几乎同形态的"科研工作台"产品,把它们放在一条时间线上看会很清楚:</p>
+  <p class="en">Claude Science isn't an isolated effort. Since early 2026, all three major labs have shipped near-identical "research workbench" products, and the pattern is obvious once you lay them out on a timeline:</p>
+
+  <figure id="fig2">
+    <div class="zh">
+    <svg viewBox="0 0 820 220" role="img" aria-labelledby="fig2-zh-title">
+      <title id="fig2-zh-title">2026 年 AI for Science 工作台发布时间线(中文版)</title>
+      <defs>
+        <marker id="fig2-zh-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#4a5049"></path>
+        </marker>
+      </defs>
+      <line x1="60" y1="110" x2="770" y2="110" stroke="#4a5049" stroke-width="2" marker-end="url(#fig2-zh-arrow)"></line>
+
+      <circle cx="120" cy="110" r="7" fill="#1f5b4f"></circle>
+      <text x="120" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">2026-04</text>
+      <rect x="55" y="130" width="130" height="58" rx="8" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="120" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">OpenAI</text>
+      <text x="120" y="167" text-anchor="middle" font-size="11" fill="#4a5049">GPT-Rosalind</text>
+      <text x="120" y="182" text-anchor="middle" font-size="10" fill="#4a5049">科研工作台首发</text>
+
+      <circle cx="340" cy="110" r="7" fill="#c9603c"></circle>
+      <text x="340" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">2026-05</text>
+      <rect x="275" y="130" width="130" height="58" rx="8" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="340" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Google</text>
+      <text x="340" y="167" text-anchor="middle" font-size="11" fill="#4a5049">Gemini for Science</text>
+      <text x="340" y="182" text-anchor="middle" font-size="10" fill="#4a5049">跟进推出</text>
+
+      <circle cx="560" cy="110" r="7" fill="#1f5b4f"></circle>
+      <text x="560" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">2026-07</text>
+      <rect x="495" y="130" width="130" height="58" rx="8" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="560" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Anthropic</text>
+      <text x="560" y="167" text-anchor="middle" font-size="11" fill="#4a5049">Claude Science(beta)</text>
+      <text x="560" y="182" text-anchor="middle" font-size="10" fill="#4a5049">60+ 数据库集成</text>
+
+      <circle cx="720" cy="110" r="9" fill="#b3872f"></circle>
+      <text x="720" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">2026-09</text>
+      <rect x="650" y="130" width="140" height="58" rx="8" fill="#f7e3d8" stroke="#c9603c"></rect>
+      <text x="720" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Anthropic</text>
+      <text x="720" y="167" text-anchor="middle" font-size="11" fill="#4a5049">ART 酶发现 + LSVP</text>
+      <text x="720" y="182" text-anchor="middle" font-size="10" fill="#4a5049">能力高调背书</text>
+    </svg>
+    </div>
+    <div class="en">
+    <svg viewBox="0 0 820 220" role="img" aria-labelledby="fig2-en-title">
+      <title id="fig2-en-title">Timeline of 2026 AI-for-Science workbench launches (English version)</title>
+      <defs>
+        <marker id="fig2-en-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#4a5049"></path>
+        </marker>
+      </defs>
+      <line x1="60" y1="110" x2="770" y2="110" stroke="#4a5049" stroke-width="2" marker-end="url(#fig2-en-arrow)"></line>
+
+      <circle cx="120" cy="110" r="7" fill="#1f5b4f"></circle>
+      <text x="120" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Apr 2026</text>
+      <rect x="55" y="130" width="130" height="58" rx="8" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="120" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">OpenAI</text>
+      <text x="120" y="167" text-anchor="middle" font-size="11" fill="#4a5049">GPT-Rosalind</text>
+      <text x="120" y="182" text-anchor="middle" font-size="10" fill="#4a5049">First workbench</text>
+
+      <circle cx="340" cy="110" r="7" fill="#c9603c"></circle>
+      <text x="340" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">May 2026</text>
+      <rect x="275" y="130" width="130" height="58" rx="8" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="340" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Google</text>
+      <text x="340" y="167" text-anchor="middle" font-size="11" fill="#4a5049">Gemini for Science</text>
+      <text x="340" y="182" text-anchor="middle" font-size="10" fill="#4a5049">Follows suit</text>
+
+      <circle cx="560" cy="110" r="7" fill="#1f5b4f"></circle>
+      <text x="560" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Jul 2026</text>
+      <rect x="495" y="130" width="130" height="58" rx="8" fill="#fff" stroke="#e2dbcb"></rect>
+      <text x="560" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Anthropic</text>
+      <text x="560" y="167" text-anchor="middle" font-size="11" fill="#4a5049">Claude Science (beta)</text>
+      <text x="560" y="182" text-anchor="middle" font-size="10" fill="#4a5049">60+ DB integrations</text>
+
+      <circle cx="720" cy="110" r="9" fill="#b3872f"></circle>
+      <text x="720" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Sep 2026</text>
+      <rect x="650" y="130" width="140" height="58" rx="8" fill="#f7e3d8" stroke="#c9603c"></rect>
+      <text x="720" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2320">Anthropic</text>
+      <text x="720" y="167" text-anchor="middle" font-size="11" fill="#4a5049">ART discovery + LSVP</text>
+      <text x="720" y="182" text-anchor="middle" font-size="10" fill="#4a5049">High-visibility proof point</text>
+    </svg>
+    </div>
+    <figcaption class="zh">图 2:四个月内三大实验室完成 AI for Science 工作台的"军备竞赛"式落地。</figcaption>
+    <figcaption class="en">Figure 2: In four months, all three major labs completed an "arms race"-style rollout of AI-for-science workbenches.</figcaption>
+  </figure>
+
+  <div class="table-wrap">
+  <table class="zh">
+    <caption>表 1:三大 AI for Science 工作台对比(截至 2026-09)</caption>
+    <thead><tr><th>产品</th><th>厂商</th><th>发布</th><th>核心卖点</th></tr></thead>
+    <tbody>
+      <tr><td>GPT-Rosalind</td><td>OpenAI</td><td>2026-04</td><td>科研数据库整合 + 生命科学工作流</td></tr>
+      <tr><td>Gemini for Science</td><td>Google</td><td>2026-05</td><td>与 Google 既有科研数据生态(如 AlphaFold 系)联动</td></tr>
+      <tr><td>Claude Science</td><td>Anthropic</td><td>2026-07(beta)</td><td>60+ 数据库/技能 + Evo2/Boltz-2/OpenFold3 + 可审计输出</td></tr>
+    </tbody>
+  </table>
+  <table class="en">
+    <caption>Table 1: Three AI-for-science workbenches compared (as of Sep 2026)</caption>
+    <thead><tr><th>Product</th><th>Vendor</th><th>Launched</th><th>Core pitch</th></tr></thead>
+    <tbody>
+      <tr><td>GPT-Rosalind</td><td>OpenAI</td><td>Apr 2026</td><td>Research database integration + life-science workflows</td></tr>
+      <tr><td>Gemini for Science</td><td>Google</td><td>May 2026</td><td>Tied into Google's existing research data ecosystem (e.g. the AlphaFold family)</td></tr>
+      <tr><td>Claude Science</td><td>Anthropic</td><td>Jul 2026 (beta)</td><td>60+ databases/skills + Evo2/Boltz-2/OpenFold3 + auditable outputs</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="zh" style="font-size:13px;color:var(--ink-soft);">注:三款产品的具体能力边界以各厂商官方文档为准,本文仅基于公开报道做横向梳理,未做逐项功能实测。</p>
+  <p class="en" style="font-size:13px;color:var(--ink-soft);">Note: exact capability boundaries for each product should be verified against each vendor's official docs; this table is a horizontal summary based on public reporting, not hands-on feature testing.</p>
+</section>
+
+<section id="s-howto">
+  <h2><span class="num">06</span><span class="zh">怎么搭:可复用的架构模式</span><span class="en">How To Build It: A Reusable Architecture</span></h2>
+
+  <p class="zh">即便你手上没有 950 个智能体的算力预算,这套模式背后的架构思路也是可以缩小复用的。把它拆成四层来看:</p>
+  <p class="en">Even if you don't have the compute budget for 950 agents, the architectural thinking behind this pattern scales down and is reusable. Broken into four layers:</p>
+
+  <h3 class="zh">1)数据分片(Fan-out)层</h3>
+  <h3 class="en">1) Data sharding (fan-out) layer</h3>
+  <p class="zh">把大数据集切成互不重叠(或有意重叠一部分作为交叉校验)的小片,每片交给一个独立的 Agent 实例。这和 Claude Code 里"给每个 subagent 分配独立子任务"是同一个思路,只是这里的规模从几个 subagent 扩大到几百上千个。关键设计点是<strong>切片粒度</strong>:切太粗,单个 Agent 上下文塞不下也扫不细;切太细,协调开销和重复劳动会抵消并行带来的收益。</p>
+  <p class="en">Split the large dataset into small, non-overlapping shards (or deliberately overlapping ones for cross-checking), and hand each shard to an independent agent instance. This is the same idea as assigning each subagent an independent sub-task in Claude Code — just scaled from a handful of subagents up to hundreds or thousands. The key design decision is <strong>shard granularity</strong>: too coarse and a single agent's context can't hold or scan it carefully; too fine and coordination overhead and duplicated work eat into the gains from parallelism.</p>
+
+  <h3 class="zh">2)候选聚合与交叉验证层</h3>
+  <h3 class="en">2) Candidate aggregation and cross-verification layer</h3>
+  <p class="zh">单个 Agent 报告的"疑似发现"噪声率天然很高——规模越大,假阳性的绝对数量也越大。这一层的作用是把所有候选收集起来,用另一批(或另一轮)Agent 做交叉核实:同一个模式是否在多个独立切片里都被发现?是否符合已知的生物学/领域先验?通过这一轮过滤,才把候选数量压缩到人类专家能消化的规模。</p>
+  <p class="en">A single agent's "suspected finding" has an inherently high noise rate — and the larger the scale, the larger the absolute number of false positives. This layer's job is to collect all candidates and cross-check them with another batch (or another round) of agents: does the same pattern show up across multiple independent shards? Does it fit known biological/domain priors? Only after this filtering pass does the candidate count shrink down to something a human expert can actually digest.</p>
+
+  <h3 class="zh">3)人类专家评审层</h3>
+  <h3 class="en">3) Human expert review layer</h3>
+  <p class="zh">这一层不是"可选的兜底",而是整个架构里唯一能给出"这是不是真的科学发现"这个判断的环节。设计这类系统时,要为专家评审预留明确的产出格式(候选清单 + 支撑证据 + 置信度标注),而不是让专家从头翻一遍原始 Agent 日志。</p>
+  <p class="en">This layer isn't an "optional safety net" — it's the only stage in the whole architecture that can actually judge "is this a real scientific finding." When designing systems like this, you need to reserve a clear output format for expert review (a candidate list + supporting evidence + confidence annotations), rather than making the expert dig through raw agent logs from scratch.</p>
+
+  <h3 class="zh">4)物理/权威验证层</h3>
+  <h3 class="en">4) Physical / authoritative validation layer</h3>
+  <p class="zh">对科学发现而言是湿实验;对其他领域(比如代码审计、金融合规)对应的可能是人工复核或生产环境灰度验证。这一层的存在提醒我们:智能体规模化发现的本质是<strong>把"搜索"这个昂贵的步骤自动化,而不是把"验证"这个昂贵的步骤自动化</strong>——后者目前仍然需要权威的、独立于 AI 系统之外的机制。</p>
+  <p class="en">For scientific discovery, this is wet-lab validation; in other domains — say, code auditing or financial compliance — the equivalent might be manual review or staged rollout in production. This layer is a reminder: agentic discovery at scale is fundamentally about <strong>automating the expensive "search" step, not the expensive "verification" step</strong> — the latter still requires an authoritative mechanism independent of the AI system itself.</p>
+
+  <pre><code class="zh"># 一个缩小版的架构思路(伪代码,非官方 SDK)
+shards = split_dataset(candidate_db, shard_size=200)   # 数据分片层
+
+candidates = []
+for shard in shards:                                    # fan-out:并行派发
+    result = run_agent(task="pattern_scan", data=shard)
+    if result.has_candidate:
+        candidates.append(result)
+
+verified = cross_verify(candidates, overlap_check=True)  # 聚合/交叉验证层
+
+report = format_for_expert_review(verified)               # 人类专家评审层
+# → 交给领域专家判断,再决定是否进入物理/权威验证</code></pre>
+  <pre><code class="en"># A scaled-down version of the architecture (pseudocode, not an official SDK)
+shards = split_dataset(candidate_db, shard_size=200)   # data sharding layer
+
+candidates = []
+for shard in shards:                                    # fan-out: dispatch in parallel
+    result = run_agent(task="pattern_scan", data=shard)
+    if result.has_candidate:
+        candidates.append(result)
+
+verified = cross_verify(candidates, overlap_check=True)  # aggregation / cross-verification layer
+
+report = format_for_expert_review(verified)               # human expert review layer
+# → hand off to a domain expert, then decide whether to proceed to physical/authoritative validation</code></pre>
+
+  <p class="zh">📖 相关架构参考:<a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/" target="_blank" rel="noopener">MCP 2026-07-28 规范博客</a>(多智能体协作场景下的工具调用协议演进)</p>
+  <p class="en">📖 Related architecture reference: <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/" target="_blank" rel="noopener">MCP 2026-07-28 Specification blog</a> (protocol evolution for tool-calling in multi-agent collaboration scenarios)</p>
+</section>
+
+<section id="s-when">
+  <h2><span class="num">07</span><span class="zh">什么场景该用</span><span class="en">When To Use This Pattern</span></h2>
+
+  <div class="card-grid">
+    <div class="card zh">
+      <strong>适合</strong>
+      <ul><li>搜索空间巨大、但"评估单个候选"相对便宜的问题(如基因组模式识别、材料筛选、化合物初筛)</li>
+      <li>已经有明确的、可自动化的初步过滤标准,能让 Agent 对候选打分/分类</li>
+      <li>团队本身就有能承接"候选清单"的领域专家资源,不是把 AI 输出直接当结论用</li></ul>
+    </div>
+    <div class="card zh">
+      <strong>不适合 / 要谨慎</strong>
+      <ul><li>需要单一、确定性因果解释的问题(规模化模式匹配容易把相关性当因果)</li>
+      <li>没有可靠的、独立于 AI 系统的验证手段(没有"湿实验"这一环,风险很大)</li>
+      <li>预算或时间不允许跑交叉验证这一轮——省略它,噪声会直接流向决策层</li></ul>
+    </div>
+    <div class="card en">
+      <strong>Good fit</strong>
+      <ul><li>Problems with a huge search space where evaluating a single candidate is relatively cheap (genomic pattern recognition, materials screening, initial compound triage)</li>
+      <li>Clear, automatable filtering criteria already exist so agents can score/classify candidates</li>
+      <li>The team already has domain experts who can absorb a "candidate list" — AI output isn't treated as the final answer</li></ul>
+    </div>
+    <div class="card en">
+      <strong>Poor fit / needs caution</strong>
+      <ul><li>Problems requiring a single, deterministic causal explanation (large-scale pattern matching easily mistakes correlation for causation)</li>
+      <li>No reliable validation mechanism independent of the AI system (skipping the "wet-lab" equivalent is high risk)</li>
+      <li>Budget or timeline doesn't allow for the cross-verification pass — skip it and noise flows straight to decision-makers</li></ul>
+    </div>
+  </div>
+</section>
+
+<section id="s-pitfalls">
+  <h2><span class="num">08</span><span class="zh">常见坑与局限</span><span class="en">Pitfalls and Limitations</span></h2>
+
+  <ul class="zh">
+    <li><strong>把"找到线索"当成"已经证实"</strong>:ART 系统的新闻标题很吸睛,但截至目前它的功能仍未知、结论尚待外部验证——媒体报道和官方公告本身也在反复强调这一点,读简报时要留意"发现""识别出"和"证实"这几个词的差别。</li>
+    <li><strong>规模放大了假阳性的绝对数量</strong>:950 个 Agent 同时找模式,哪怕单个 Agent 的误报率很低,叠加起来也会有相当数量的候选是噪声——这也是为什么交叉验证层不可省略。</li>
+    <li><strong>护栏放宽带来的双重用途风险管理是持续性工作,不是一次性配置</strong>:LSVP 这类"场景化放宽"机制,需要持续的身份核实、行为审计与边界收紧机制,不能理解成"验证一次、终身放行"。</li>
+    <li><strong>成本不透明</strong>:公开披露的是 tokens 和耗时,但没有给出美元成本或对比"传统人力做同等规模筛查需要多久/多少人",这让"性价比"很难做独立评估。</li>
+    <li><strong>可复现性依赖厂商自证</strong>:目前这类发现的过程细节(具体的 Agent 编排方式、prompt 设计、如何定义"候选阈值")并未完整公开,外部研究者难以复现同一套流水线,只能等待正式论文或同行评审结果。</li>
+  </ul>
+  <ul class="en">
+    <li><strong>Mistaking "a lead was found" for "it's confirmed"</strong>: the ART system headline is eye-catching, but as of now its function remains unknown and the finding awaits outside validation — both the press coverage and Anthropic's own announcement keep emphasizing this. When reading a summary, pay attention to the difference between "found," "identified," and "confirmed."</li>
+    <li><strong>Scale amplifies the absolute number of false positives</strong>: even if a single agent's false-positive rate is low, 950 agents searching in parallel will still surface a meaningful number of noisy candidates — which is exactly why the cross-verification layer can't be skipped.</li>
+    <li><strong>Dual-use risk management from relaxed guardrails is ongoing work, not a one-time setting</strong>: mechanisms like LSVP need continuous identity verification, behavior auditing, and the ability to tighten boundaries — it shouldn't be read as "verify once, unlimited access forever."</li>
+    <li><strong>Cost isn't fully transparent</strong>: what's disclosed publicly is tokens and runtime, but not a dollar cost, nor a comparison to how long/how many people a traditional human-led screen of the same scale would take — which makes an independent cost-benefit assessment hard.</li>
+    <li><strong>Reproducibility currently relies on the vendor's own account</strong>: the process details for this kind of discovery (exact agent orchestration, prompt design, how the "candidate threshold" is defined) haven't been fully disclosed, so outside researchers can't reproduce the same pipeline — we're waiting on a formal paper or peer review.</li>
+  </ul>
+</section>
+
+<section id="s-compare">
+  <h2><span class="num">09</span><span class="zh">与其他 AI for Science 路线对比</span><span class="en">Comparison With Other AI-for-Science Approaches</span></h2>
+  <div class="table-wrap">
+  <table class="zh">
+    <caption>表 2:三种 AI 助力科学发现的路线对比</caption>
+    <thead><tr><th>路线</th><th>代表案例</th><th>核心机制</th><th>典型产出</th></tr></thead>
+    <tbody>
+      <tr><td>专用预测模型</td><td>AlphaFold(2020 起)</td><td>单一大模型针对特定任务(蛋白质结构预测)端到端训练</td><td>结构化、可直接使用的预测结果</td></tr>
+      <tr><td>智能体规模化搜索</td><td>本文案例:Claude ART 发现</td><td>大量通用 LLM 智能体并行扫描 + 交叉验证</td><td>需人类专家复核的候选线索</td></tr>
+      <tr><td>假设生成型系统</td><td>行业内的"AI 协作科学家"类系统</td><td>模型生成可检验的科学假设,再由人或自动化流程设计实验验证</td><td>待验证的研究假设 / 实验方案建议</td></tr>
+    </tbody>
+  </table>
+  <table class="en">
+    <caption>Table 2: Three approaches to AI-assisted scientific discovery, compared</caption>
+    <thead><tr><th>Approach</th><th>Representative case</th><th>Core mechanism</th><th>Typical output</th></tr></thead>
+    <tbody>
+      <tr><td>Specialized predictive model</td><td>AlphaFold (since 2020)</td><td>A single large model trained end-to-end on a specific task (protein structure prediction)</td><td>Structured, directly usable predictions</td></tr>
+      <tr><td>Agentic large-scale search</td><td>This piece's case: Claude's ART discovery</td><td>Many general-purpose LLM agents scanning in parallel plus cross-verification</td><td>Candidate leads requiring human expert review</td></tr>
+      <tr><td>Hypothesis-generating systems</td><td>Industry "AI co-scientist"-style systems</td><td>The model generates testable scientific hypotheses, which humans or automated pipelines then design experiments to verify</td><td>Untested research hypotheses / suggested experimental protocols</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="zh">三条路线不是互斥关系,而是分别解决"精确预测已知任务""在海量未知数据里找候选""提出新猜想"这三个不同问题,实践中往往会组合使用——比如用智能体规模化搜索找到候选后,再用专用预测模型(如 Boltz-2)对候选结构做进一步计算验证。</p>
+  <p class="en">These three approaches aren't mutually exclusive — they solve three different problems: "precisely predicting a known task," "finding candidates in a mountain of unknown data," and "proposing new hypotheses." In practice they're often combined — for example, using agentic large-scale search to find candidates, then using a specialized predictive model (like Boltz-2) to run further computational validation on the candidate structures.</p>
+</section>
+
+<section id="s-glossary">
+  <h2><span class="num">10</span><span class="zh">术语表</span><span class="en">Glossary</span></h2>
+  <dl class="glossary zh">
+    <dt>ART(阵列关联逆转录酶)</dt><dd>array-associated reverse transcriptase,本文案例中发现的新型系统,由逆转录酶、伙伴基因与类 CRISPR 重复序列阵列组成,具体生物学功能尚未确认。</dd>
+    <dt>CRISPR</dt><dd>一种源自细菌免疫系统、被广泛应用于基因编辑的技术体系,因其"重复序列阵列"结构常被用作识别新型相关生物系统的参照。</dd>
+    <dt>BSL-1 / BSL-2</dt><dd>生物安全等级(Biosafety Level)分类中最低的两级,代表操作对象为低风险、通常不涉及人类致病原的实验环境。</dd>
+    <dt>Fan-out(扇出)</dt><dd>把一个大任务拆分成多个独立子任务、分发给多个并行执行单元(此处是 Agent)处理的架构模式。</dd>
+    <dt>湿实验(wet-lab)</dt><dd>区别于计算机模拟/计算分析("干实验"),需要在真实实验室环境中用试剂、样本等物理手段完成的实验。</dd>
+  </dl>
+  <dl class="glossary en">
+    <dt>ART (array-associated reverse transcriptase)</dt><dd>The novel system identified in this piece's case study, made up of a reverse transcriptase, a partner gene, and a CRISPR-like repeat array; its specific biological function has not yet been confirmed.</dd>
+    <dt>CRISPR</dt><dd>A technology system originating from bacterial immune defenses and widely used for gene editing; its "repeat array" structure is often used as a reference point for identifying related novel biological systems.</dd>
+    <dt>BSL-1 / BSL-2</dt><dd>The two lowest tiers in the Biosafety Level classification, denoting lab environments handling low-risk material, typically not involving human pathogens.</dd>
+    <dt>Fan-out</dt><dd>An architectural pattern where a large task is split into many independent sub-tasks and dispatched to multiple parallel execution units (here, agents).</dd>
+    <dt>Wet-lab</dt><dd>As opposed to computational simulation/analysis ("dry lab"), work that must be carried out in a physical lab environment using reagents, samples, and other physical means.</dd>
+  </dl>
+</section>
+
+<section id="s-sources">
+  <h2><span class="num">11</span><span class="zh">参考来源</span><span class="en">Sources</span></h2>
+  <ul class="src-list zh">
+    <li>Anthropic 官方公告《Claude discovers a novel enzyme system》<span class="date">(2026-09-23)</span> — <a href="https://www.anthropic.com/news/claude-discovers-novel-enzyme-system" target="_blank" rel="noopener">anthropic.com/news/claude-discovers-novel-enzyme-system</a></li>
+    <li>Anthropic 官方公告《Introducing the Life Sciences Verification Program》<span class="date">(2026-09)</span> — <a href="https://www.anthropic.com/news/life-sciences-verification-program" target="_blank" rel="noopener">anthropic.com/news/life-sciences-verification-program</a></li>
+    <li>TechCrunch《Anthropic says its biology lab has already found something big》<span class="date">(2026-09-23)</span> — <a href="https://techcrunch.com/2026/09/23/anthropic-says-its-biology-lab-has-already-found-something-big/" target="_blank" rel="noopener">techcrunch.com</a></li>
+    <li>Dataconomy《Anthropic Says Claude Found CRISPR-like Enzyme System In 21 Hours》<span class="date">(2026-09-24)</span> — <a href="https://dataconomy.com/2026/09/24/anthropic-claude-crispr-enzyme-system-21-hours/" target="_blank" rel="noopener">dataconomy.com</a></li>
+    <li>Interesting Engineering《Claude scans 200,000 enzymes to uncover new CRISPR-like system hidden in phages》<span class="date">(2026-09)</span> — <a href="https://interestingengineering.com/ai-robotics/claude-discovers-crispr-like-enzyme-system" target="_blank" rel="noopener">interestingengineering.com</a></li>
+    <li>TechFundingNews《Anthropic launches Claude Science, and Google and OpenAI are already racing to match it》<span class="date">(2026-09)</span> — <a href="https://techfundingnews.com/anthropic-launches-claude-science-and-google-and-openai-are-already-racing-to-match-it/" target="_blank" rel="noopener">techfundingnews.com</a></li>
+    <li>Model Context Protocol Blog《The 2026-07-28 Specification》<span class="date">(2026-07-28)</span> — <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/" target="_blank" rel="noopener">blog.modelcontextprotocol.io</a></li>
+  </ul>
+  <ul class="src-list en">
+    <li>Anthropic official announcement, "Claude discovers a novel enzyme system" <span class="date">(2026-09-23)</span> — <a href="https://www.anthropic.com/news/claude-discovers-novel-enzyme-system" target="_blank" rel="noopener">anthropic.com/news/claude-discovers-novel-enzyme-system</a></li>
+    <li>Anthropic official announcement, "Introducing the Life Sciences Verification Program" <span class="date">(Sep 2026)</span> — <a href="https://www.anthropic.com/news/life-sciences-verification-program" target="_blank" rel="noopener">anthropic.com/news/life-sciences-verification-program</a></li>
+    <li>TechCrunch, "Anthropic says its biology lab has already found something big" <span class="date">(2026-09-23)</span> — <a href="https://techcrunch.com/2026/09/23/anthropic-says-its-biology-lab-has-already-found-something-big/" target="_blank" rel="noopener">techcrunch.com</a></li>
+    <li>Dataconomy, "Anthropic Says Claude Found CRISPR-like Enzyme System In 21 Hours" <span class="date">(2026-09-24)</span> — <a href="https://dataconomy.com/2026/09/24/anthropic-claude-crispr-enzyme-system-21-hours/" target="_blank" rel="noopener">dataconomy.com</a></li>
+    <li>Interesting Engineering, "Claude scans 200,000 enzymes to uncover new CRISPR-like system hidden in phages" <span class="date">(Sep 2026)</span> — <a href="https://interestingengineering.com/ai-robotics/claude-discovers-crispr-like-enzyme-system" target="_blank" rel="noopener">interestingengineering.com</a></li>
+    <li>TechFundingNews, "Anthropic launches Claude Science, and Google and OpenAI are already racing to match it" <span class="date">(Sep 2026)</span> — <a href="https://techfundingnews.com/anthropic-launches-claude-science-and-google-and-openai-are-already-racing-to-match-it/" target="_blank" rel="noopener">techfundingnews.com</a></li>
+    <li>Model Context Protocol Blog, "The 2026-07-28 Specification" <span class="date">(2026-07-28)</span> — <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/" target="_blank" rel="noopener">blog.modelcontextprotocol.io</a></li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <p class="zh">本文由 mingyu 的每日 AI 技术情报自动化流水线生成,基于公开报道整理与分析,不构成科学结论或投资建议;具体信息以各来源官方发布为准。如内容有出入,欢迎对照上方来源链接核实。</p>
+  <p class="en">This document was generated by mingyu's daily AI intelligence pipeline, compiled and analyzed from public reporting. It does not constitute a scientific conclusion or investment advice; refer to each source's official publication for authoritative information. If anything here appears inconsistent, please verify against the source links above.</p>
+</footer>
+
+<script>
+(function(){
+  var body = document.body;
+  var html = document.documentElement;
+  var btn = document.getElementById('langToggle');
+
+  function getStored(){
+    try { return localStorage.getItem('lang-pref'); } catch(e){ return null; }
+  }
+  function setStored(v){
+    try { localStorage.setItem('lang-pref', v); } catch(e){}
+  }
+
+  function applyLang(lang){
+    body.setAttribute('data-lang', lang);
+    html.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+    revealVisibleFigures();
+  }
+
+  var initial = getStored();
+  if(!initial){
+    initial = (navigator.language || navigator.userLanguage || '').toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en';
+  }
+  applyLang(initial);
+
+  btn.addEventListener('click', function(){
+    var current = body.getAttribute('data-lang') === 'zh' ? 'en' : 'zh';
+    applyLang(current);
+    setStored(current);
+  });
+
+  // Figure entrance animation, re-triggerable on language switch
+  var figures = Array.prototype.slice.call(document.querySelectorAll('figure'));
+  var io;
+  try {
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, {threshold:0.15});
+    figures.forEach(function(f){ io.observe(f); });
+  } catch(e){
+    figures.forEach(function(f){ f.classList.add('in'); });
+  }
+
+  function revealVisibleFigures(){
+    figures.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      var rect = f.getBoundingClientRect();
+      var visible = rect.top < (window.innerHeight || document.documentElement.clientHeight) && rect.bottom > 0;
+      if(visible){
+        f.classList.add('in');
+        if(io){ try{ io.unobserve(f); }catch(e){} }
+      } else if(io){
+        try{ io.observe(f); }catch(e){}
+      }
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
