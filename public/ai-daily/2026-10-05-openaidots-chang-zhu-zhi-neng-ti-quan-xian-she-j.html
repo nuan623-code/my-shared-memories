@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenAI Dots:常驻智能体的架构与权限设计 | OpenAI Dots: Architecture and Permissions of Always-On Agents</title>
+<meta name="description" content="从 OpenAI DevDay 2026 发布的 Dots 常驻智能体出发,拆解其架构、三级权限、配套 API 与落地边界 / A deep dive into OpenAI Dots always-on agents from DevDay 2026: architecture, three-tier permissions, companion APIs and limits.">
+<style>
+  :root{
+    --bg:#faf7f2;
+    --bg-alt:#f1ece2;
+    --panel:#ffffff;
+    --ink:#1f2320;
+    --ink-soft:#4a5049;
+    --line:#e2dbcb;
+    --primary:#1f5b4f;
+    --primary-soft:#e4efe9;
+    --accent:#c9603c;
+    --accent-soft:#f7e3d8;
+    --amber:#b3872f;
+    --code-bg:#20241f;
+    --code-ink:#e9f2ec;
+    --shadow: 0 8px 24px rgba(31,42,32,0.08);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141712;
+      --bg-alt:#1b201a;
+      --panel:#1e2420;
+      --ink:#eef2ec;
+      --ink-soft:#b7c2b8;
+      --line:#333d34;
+      --primary:#6fbfa4;
+      --primary-soft:#20302a;
+      --accent:#e2895f;
+      --accent-soft:#3a2620;
+      --amber:#d9b46a;
+      --code-bg:#0d100d;
+      --code-ink:#dcecdf;
+      --shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141712;
+    --bg-alt:#1b201a;
+    --panel:#1e2420;
+    --ink:#eef2ec;
+    --ink-soft:#b7c2b8;
+    --line:#333d34;
+    --primary:#6fbfa4;
+    --primary-soft:#20302a;
+    --accent:#e2895f;
+    --accent-soft:#3a2620;
+    --amber:#d9b46a;
+    --code-bg:#0d100d;
+    --code-ink:#dcecdf;
+    --shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  body[data-lang="zh"] .en{display:none!important}
+  body[data-lang="en"] .zh{display:none!important}
+
+  a{color:var(--primary); text-decoration:underline; text-decoration-color:var(--line);}
+  a:hover{text-decoration-color:currentColor;}
+
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 18px;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{font-weight:700; font-size:14px; letter-spacing:.02em; color:var(--ink-soft);}
+  .lang-btn{
+    appearance:none; border:1px solid var(--line); background:var(--panel);
+    color:var(--ink); padding:6px 14px; border-radius:999px; font-size:13px;
+    cursor:pointer; font-weight:600;
+  }
+  .lang-btn:hover{border-color:var(--primary); color:var(--primary);}
+
+  .hero{
+    padding:52px 20px 36px; max-width:920px; margin:0 auto;
+  }
+  .kicker{
+    display:inline-block; font-size:12px; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--accent); background:var(--accent-soft);
+    padding:4px 10px; border-radius:999px; margin-bottom:14px;
+  }
+  h1{font-size:clamp(26px,5vw,40px); line-height:1.25; margin:0 0 14px; letter-spacing:-.01em;}
+  .lede{font-size:17px; color:var(--ink-soft); max-width:70ch;}
+  .meta-row{
+    display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; font-size:13px; color:var(--ink-soft);
+  }
+  .meta-row span{
+    border:1px solid var(--line); padding:4px 10px; border-radius:8px; background:var(--panel);
+  }
+
+  main{max-width:920px; margin:0 auto; padding:0 20px 80px;}
+
+  nav.toc{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px; margin:24px 0 40px; box-shadow:var(--shadow);
+  }
+  nav.toc h2{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin:0 0 10px;}
+  nav.toc ol{margin:0; padding-left:20px; columns: 2; column-gap:24px;}
+  nav.toc li{margin-bottom:6px; break-inside:avoid; font-size:14.5px;}
+  nav.toc a{text-decoration:none; color:var(--ink);}
+  nav.toc a:hover{color:var(--primary);}
+
+  section{margin:44px 0;}
+  section h2{
+    font-size:23px; margin:0 0 16px; padding-bottom:10px; border-bottom:2px solid var(--primary-soft);
+    display:flex; align-items:baseline; gap:10px;
+  }
+  section h2 .num{color:var(--primary); font-variant-numeric:tabular-nums; font-size:16px; font-weight:700;}
+  section h3{font-size:17px; margin:26px 0 10px; color:var(--ink);}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin-bottom:6px;}
+
+  .callout{
+    border-left:4px solid var(--primary); background:var(--primary-soft);
+    padding:14px 18px; border-radius:0 10px 10px 0; margin:18px 0; font-size:15px;
+  }
+  .callout.warn{border-left-color:var(--accent); background:var(--accent-soft);}
+  .callout strong{display:block; margin-bottom:4px;}
+
+  .card-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:18px 0;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .card .stat{font-size:26px; font-weight:800; color:var(--primary); line-height:1.1;}
+  .card .stat-label{font-size:13px; color:var(--ink-soft); margin-top:4px;}
+
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:14.5px;}
+  caption{caption-side:top; text-align:left; font-size:13px; color:var(--ink-soft); margin-bottom:6px;}
+  th,td{border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top;}
+  th{background:var(--bg-alt); font-weight:700;}
+  .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+
+  pre{
+    background:var(--code-bg); color:var(--code-ink); padding:14px 16px; border-radius:10px;
+    overflow-x:auto; font-size:13.5px; line-height:1.6; -webkit-overflow-scrolling:touch;
+  }
+  code{font-family:"SF Mono",SFMono-Regular,Consolas,Menlo,monospace;}
+  p code, li code{background:var(--bg-alt); padding:1px 6px; border-radius:5px; font-size:13.5px;}
+
+  figure{margin:22px 0; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; box-shadow:var(--shadow); opacity:0; transform:translateY(14px); transition:opacity .5s ease, transform .5s ease;}
+  figure.in{opacity:1; transform:translateY(0);}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:13px; color:var(--ink-soft); margin-top:10px; text-align:center;}
+
+  dl.glossary dt{font-weight:700; margin-top:14px; color:var(--primary);}
+  dl.glossary dd{margin:2px 0 0;}
+
+  .src-list{font-size:14px;}
+  .src-list li{margin-bottom:10px;}
+  .src-list .date{color:var(--ink-soft); font-size:12.5px;}
+
+  footer{
+    max-width:920px; margin:0 auto; padding:30px 20px 60px; color:var(--ink-soft); font-size:13px;
+    border-top:1px solid var(--line);
+  }
+
+  @media (max-width:640px){
+    nav.toc ol{columns:1;}
+    .hero{padding:36px 16px 28px;}
+    section h2{font-size:20px;}
+  }
+</style>
+
+<!-- ms-seo -->
+<meta property="og:title" content="OpenAI Dots:常驻智能体的架构与权限设计 | OpenAI Dots: Architecture and Permissions of Always-On Agents">
+<meta property="og:description" content="从 OpenAI DevDay 2026 发布的 Dots 常驻智能体出发,拆解其架构、三级权限、配套 API 与落地边界 / A deep dive into OpenAI Dots always-on agents from DevDay 2026: architecture, three-tier permissions, companion APIs and limits.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-05-openaidots-chang-zhu-zhi-neng-ti-quan-xian-she-j.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-05-openaidots-chang-zhu-zhi-neng-ti-quan-xian-she-j.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "OpenAI Dots:常驻智能体的架构与权限设计 | OpenAI Dots: Architecture and Permissions of Always-On Agents", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-05-openaidots-chang-zhu-zhi-neng-ti-quan-xian-she-j.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-05", "dateModified": "2026-10-05"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+
+<div class="topbar">
+  <span class="brand"><span class="zh">AI 深度学习文档</span><span class="en">AI Deep-Dive</span></span>
+  <button class="lang-btn" id="langToggle" type="button" aria-label="Switch language">EN / 中</button>
+</div>
+
+<div class="hero">
+  <span class="kicker zh">今日精选主题深度学习</span>
+  <span class="kicker en">Today's Featured Deep Dive</span>
+  <h1 class="zh">OpenAI Dots:当 agent 变成"常驻在线",权限怎么设计</h1>
+  <h1 class="en">OpenAI Dots: When Agents Go Always-On, How Do You Design Permissions?</h1>
+  <p class="lede zh">2026 年 9 月 29 日的 DevDay 上,OpenAI 发布了 Dots——运行在各自云端电脑里、无需逐条提示就能持续工作的 ChatGPT 智能体。这不只是一个新功能,而是 agent 产品形态从"被调用"走向"持续在线"的标志。本文拆解它的组成、三级权限与自动复核机制、配套 API 和成本结构,并给出适用场景与常见坑(发布仅数日,信息主要来自官方回顾与媒体报道)。</p>
+  <p class="lede en">At DevDay on September 29, 2026, OpenAI announced Dots — ChatGPT agents that run in their own cloud computers and keep working without per-step prompts. This is more than a feature: it marks agents moving from "invoked" to "continuously on". This piece breaks down their components, the three-tier permission and auto-review mechanisms, the companion APIs and cost structure, then gives fit scenarios and pitfalls (it shipped only days ago; information comes mainly from OpenAI's recap and press coverage).</p>
+  <div class="meta-row">
+    <span class="zh">发布日期:2026-10-05</span><span class="en">Published: 2026-10-05</span>
+    <span class="zh">阅读时长:约 12 分钟</span><span class="en">Reading time: ~12 min</span>
+    <span class="zh">领域:Agent 工程 · 产品形态</span><span class="en">Topics: Agent Engineering · Product Shape</span>
+  </div>
+</div>
+
+<main>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2><span class="zh">目录</span><span class="en">Contents</span></h2>
+  <ol><li><a href="#s-whatis"><span class="zh">1. 是什么:常驻智能体与 Dots</span><span class="en">1. What Are Always-On Agents and Dots</span></a></li><li><a href="#s-devday"><span class="zh">2. DevDay 2026 全景</span><span class="en">2. DevDay 2026 in Context</span></a></li><li><a href="#s-arch"><span class="zh">3. 架构拆解</span><span class="en">3. Architecture</span></a></li><li><a href="#s-perm"><span class="zh">4. 权限与安全</span><span class="en">4. Permissions and Safety</span></a></li><li><a href="#s-companion"><span class="zh">5. 配套件与成本曲线</span><span class="en">5. Companion Pieces and Cost Curve</span></a></li><li><a href="#s-build"><span class="zh">6. 怎么用</span><span class="en">6. How To Use It</span></a></li><li><a href="#s-when"><span class="zh">7. 什么场景该用</span><span class="en">7. When To Use It</span></a></li><li><a href="#s-pitfalls"><span class="zh">8. 常见坑与局限</span><span class="en">8. Pitfalls and Limitations</span></a></li><li><a href="#s-compare"><span class="zh">9. 与相邻形态对比</span><span class="en">9. Comparison With Adjacent Forms</span></a></li><li><a href="#s-glossary"><span class="zh">10. 术语表</span><span class="en">10. Glossary</span></a></li><li><a href="#s-sources"><span class="zh">11. 参考来源</span><span class="en">11. Sources</span></a></li></ol>
+</nav>
+
+<section id="s-whatis">
+  <h2><span class="num">01</span><span class="zh">是什么:常驻智能体与 Dots</span><span class="en">What Are Always-On Agents and Dots</span></h2>
+  <p class="zh"><strong>Dots</strong> 是 OpenAI 在 2026-09-29 的 DevDay 上发布的 ChatGPT 常驻智能体(always-on agents)。官方描述是:用户给一个 dot 设定目标、连接需要的应用、定义它的自主程度,它就在<strong>自己的云端电脑和浏览器</strong>里持续工作,在两次对话之间也不停,并把结果交回给你审阅。据报道,每个 dot 由 GPT-6 Astra 驱动,可连接 4000+ 应用及 Slack/Teams。</p>
+  <p class="en"><strong>Dots</strong> are ChatGPT's always-on agents, announced by OpenAI at DevDay on 2026-09-29. As OpenAI describes it, you give a dot a goal, connect the apps it needs and define how autonomous it may be; it then keeps working in <strong>its own cloud computer and browser</strong>, including between conversations, and returns results for your review. According to reports, each dot is powered by GPT-6 Astra and connects to 4,000+ apps plus Slack/Teams.</p>
+<p class="zh">和传统的"你问一句、它答一句"的聊天助手相比,关键差别是<strong>触发方式</strong>:dot 可以在没有用户提示的情况下继续任务。报道中给出的例子包括:监控客户反馈、实现修复并提交 pull request、在产品范围变化时更新材料、用新数据重跑分析、修订提案、搭建概念验证集成,以及把访谈转录稿转成短视频片段和社交帖子。早期测试者的一个例子是一个 dot "与客服谈判,每年省下约 500 美元费用"(Latent Space 转述)。</p>
+  <p class="en">Compared with a classic "you ask, it answers" assistant, the key difference is the <strong>trigger</strong>: a dot can continue a task without a user prompt. Examples in the coverage include monitoring customer feedback, implementing fixes and submitting pull requests, updating materials when product scope changes, rerunning analyses with new data, revising proposals, building proof-of-concept integrations, and turning interview transcripts into clips and social posts. One early tester reported a dot "negotiating with customer service to cut ~$500/yr in charges" (as relayed by Latent Space).</p>
+<div class="callout zh"><strong>一句话定义</strong>Dots = 目标 + 连接的应用 + 一套预先写好的权限规则 + 一台属于它自己的云端电脑,让 agent 从"被调用"变成"持续在线"。</div>
+  <div class="callout en"><strong>In one sentence</strong>Dots = a goal + connected apps + pre-written permission rules + a cloud computer of their own — turning an agent from "invoked" into "continuously on".</div>
+</section>
+<section id="s-devday">
+  <h2><span class="num">02</span><span class="zh">DevDay 2026 全景:Dots 不是孤立发布</span><span class="en">DevDay 2026 in Context: Dots Did Not Ship Alone</span></h2>
+  <p class="zh">Dots 是一整套发布的一部分。下表按 OpenAI 官方回顾与 Latent Space 的整理,列出与"常驻智能体"最相关的部分(价格与基准为发布时厂商/媒体口径,未经独立复现)。</p>
+  <p class="en">Dots shipped as part of a larger bundle. The table below, based on OpenAI's recap and Latent Space's write-up, lists the pieces most relevant to always-on agents (prices and benchmarks are vendor/press figures at launch and have not been independently reproduced).</p>
+<div class="table-wrap zh"><table><caption>表 1:DevDay 2026 与常驻智能体相关的发布</caption><thead><tr><th>发布</th><th>要点</th></tr></thead><tbody><tr><td>Dots</td><td>自己的云端电脑;4000+ 应用;三级权限规则;Pro / Business Premium / Enterprise(beta)</td></tr><tr><td>GPT-6.1 Sol</td><td>$2 / $10 每百万 token;缓存输入 $0.10;上下文 1,050,000;DeepSWE v1.1 75.2%、OSWorld 2.0 71.4%(Vellum 整理)</td></tr><tr><td>Ultrafast 速度档</td><td>Codex 中最高 8× 生成速度(300 tok/s)、API 中 6×;价格约为标准价 6 倍</td></tr><tr><td>Decisions API</td><td>基于 GPT-6 Luna 的近即时多选分类与路由,支持文本与图像</td></tr><tr><td>Agents API(含 computer use)</td><td>多 agent 与软件交互能力;另有与 AWS 合作的 Bedrock Managed Agents</td></tr><tr><td>Codex Cloud / CLI</td><td>云端环境在合上笔记本后仍可运行;CLI 增加 worktrees 与 /agents 视图</td></tr><tr><td>套餐与生态</td><td>新增 Pro 500 档;Sign in with ChatGPT;OpenAI Marketplace;ChatGPT 周活 12 亿</td></tr></tbody></table></div>
+  <div class="table-wrap en"><table><caption>Table 1: DevDay 2026 releases relevant to always-on agents</caption><thead><tr><th>Release</th><th>Key points</th></tr></thead><tbody><tr><td>Dots</td><td>Own cloud computer; 4,000+ apps; three-tier permission rules; Pro / Business Premium / Enterprise (beta)</td></tr><tr><td>GPT-6.1 Sol</td><td>$2 / $10 per million tokens; cached input $0.10; 1,050,000 context; DeepSWE v1.1 75.2%, OSWorld 2.0 71.4% (per Vellum)</td></tr><tr><td>Ultrafast tier</td><td>Up to 8× generation speed (300 tok/s) in Codex, 6× in the API; priced ~6× standard</td></tr><tr><td>Decisions API</td><td>Near-instant multiple-choice classification and routing on GPT-6 Luna, text and image input</td></tr><tr><td>Agents API (with computer use)</td><td>Multi-agent and software-interaction capabilities; plus Bedrock Managed Agents with AWS</td></tr><tr><td>Codex Cloud / CLI</td><td>Cloud environments keep running with the laptop closed; CLI adds worktrees and an /agents view</td></tr><tr><td>Plans & ecosystem</td><td>New Pro 500 tier; Sign in with ChatGPT; OpenAI Marketplace; 1.2 billion weekly ChatGPT users</td></tr></tbody></table></div>
+<div class="callout warn zh"><strong>注意口径</strong>表中数字来自 OpenAI 官方回顾、Latent Space 与 Vellum 等二手整理,发布初期可能随文档更新而变化;做采购或架构决策前请回到官方文档核对。</div>
+  <div class="callout warn en"><strong>Caveat about figures</strong>Numbers in the table come from OpenAI's recap and secondary sources such as Latent Space and Vellum, and may change as documentation is updated; verify against official docs before purchasing or architecture decisions.</div>
+</section>
+<section id="s-arch">
+  <h2><span class="num">03</span><span class="zh">架构拆解:一个 dot 里有什么</span><span class="en">Architecture: What Is Inside a Dot</span></h2>
+  <p class="zh">把公开信息拼起来,一个 dot 可以看成五个部件:<strong>模型</strong>(GPT-6 Astra)、<strong>云端电脑与浏览器</strong>(执行环境)、<strong>应用连接层</strong>(4000+ 应用,经 OpenAI 的插件生态接入,另可从桌面/网页/移动端 ChatGPT、Slack、Teams 交互,SMS 即将支持)、<strong>它写给自己的笔记</strong>(并据反馈随时间改进),以及<strong>规则闸门</strong>。连接用户自己的机器是可选项。</p>
+  <p class="en">Piecing together the public information, a dot has five parts: the <strong>model</strong> (GPT-6 Astra), a <strong>cloud computer and browser</strong> (the execution environment), an <strong>app connection layer</strong> (4,000+ apps through OpenAI's plugin ecosystem; users can also interact from desktop/web/mobile ChatGPT, Slack and Teams, with SMS coming), <strong>notes the dot writes to itself</strong> (it also "learns from feedback over time"), and a <strong>rules gate</strong>. Connecting your own machine is optional.</p>
+<figure class="zh"><svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ar-z" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4a5049"/></marker></defs><rect x="10" y="110" width="120" height="70" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="70.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">目标 / 触发</text><text x="70.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">用户设定·无需逐条提示</text><rect x="170" y="40" width="200" height="220" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="150.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320"></text><text x="270" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#1f5b4f">一个 dot</text><rect x="185" y="78" width="170" height="38" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="97.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">GPT-6 Astra</text><rect x="185" y="126" width="170" height="38" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="145.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">自己的云端电脑 + 浏览器</text><rect x="185" y="174" width="170" height="38" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="193.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">自己的笔记 / 反馈学习</text><rect x="185" y="222" width="170" height="30" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="237.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">4000+ 应用 · Slack / Teams</text><rect x="410" y="110" width="130" height="70" rx="10" fill="#f7e3d8" stroke="#c9603c" stroke-width="1.6"/><text x="475.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">规则闸门</text><text x="475.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">自主/审批/禁止</text><rect x="580" y="30" width="170" height="50" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="665.0" y="48.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">外部应用动作</text><text x="665.0" y="68.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">邮件·工单·客服等</text><rect x="580" y="125" width="170" height="50" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="665.0" y="143.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">派生 Codex 任务</text><text x="665.0" y="163.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">这部分才计入套餐用量</text><rect x="580" y="220" width="170" height="50" rx="10" fill="#f3ead3" stroke="#b3872f" stroke-width="1.6"/><text x="665.0" y="238.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">用户审批</text><text x="665.0" y="258.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">并可随时暂停</text><line x1="130" y1="145" x2="168" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-z)"/><line x1="370" y1="145" x2="408" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-z)"/><line x1="540" y1="130" x2="578" y2="60" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-z)"/><line x1="540" y1="150" x2="578" y2="150" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-z)"/><line x1="540" y1="170" x2="578" y2="240" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-z)"/></svg><figcaption>图 1:一个 dot 的组成与动作流向(依据公开资料整理的示意图)</figcaption></figure>
+  <figure class="en"><svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ar-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4a5049"/></marker></defs><rect x="10" y="110" width="120" height="70" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="70.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Goal / trigger</text><text x="70.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">set once, no per-step prompt</text><rect x="170" y="40" width="200" height="220" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="150.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320"></text><text x="270" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#1f5b4f">One dot</text><rect x="185" y="78" width="170" height="38" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="97.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">GPT-6 Astra</text><rect x="185" y="126" width="170" height="38" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="145.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Own cloud computer + browser</text><rect x="185" y="174" width="170" height="38" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="193.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Own notes / feedback learning</text><rect x="185" y="222" width="170" height="30" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="270.0" y="237.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">4,000+ apps · Slack / Teams</text><rect x="410" y="110" width="130" height="70" rx="10" fill="#f7e3d8" stroke="#c9603c" stroke-width="1.6"/><text x="475.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Rules gate</text><text x="475.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">auto / approve / never</text><rect x="580" y="30" width="170" height="50" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="665.0" y="48.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Actions in apps</text><text x="665.0" y="68.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">email, tickets, support…</text><rect x="580" y="125" width="170" height="50" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="665.0" y="143.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Spawned Codex tasks</text><text x="665.0" y="163.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">these count against plan usage</text><rect x="580" y="220" width="170" height="50" rx="10" fill="#f3ead3" stroke="#b3872f" stroke-width="1.6"/><text x="665.0" y="238.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">User approval</text><text x="665.0" y="258.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">can pause any time</text><line x1="130" y1="145" x2="168" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-e)"/><line x1="370" y1="145" x2="408" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-e)"/><line x1="540" y1="130" x2="578" y2="60" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-e)"/><line x1="540" y1="150" x2="578" y2="150" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-e)"/><line x1="540" y1="170" x2="578" y2="240" stroke="#4a5049" stroke-width="1.8" marker-end="url(#ar-e)"/></svg><figcaption>Figure 1: Components of a dot and how actions flow (schematic compiled from public information)</figcaption></figure>
+<div class="callout zh"><strong>关于用量计量</strong>据 Latent Space,主 dot 自己的直接工作不消耗套餐用量,只有它派生的 Codex 任务才计入。这意味着"一直在线"的成本结构和按调用计费的 API 很不一样。</div>
+  <div class="callout en"><strong>On usage metering</strong>According to Latent Space, the primary dot's direct work does not consume plan usage; only the Codex tasks it spawns do. That makes the cost structure of "always on" quite different from per-call API billing.</div>
+</section>
+<section id="s-perm">
+  <h2><span class="num">04</span><span class="zh">权限与安全:三级规则 + 自动复核</span><span class="en">Permissions and Safety: Three-Tier Rules Plus Auto-Review</span></h2>
+  <p class="zh">常驻意味着没人盯着,所以权限设计是 Dots 最值得学的部分。官方说明是:用户设置<strong>自定义规则(Custom Rules)</strong>,把动作分成三类——可以自行执行的、需要先审批的、禁止执行的。此外:<strong>改密码这类操作始终由用户自己完成</strong>;系统内置<strong>自动复核(auto-review)</strong>,对照用户指令与安全要求检查动作;内置安全监控用于防御恶意指令,并可以暂停运行。OpenAI 也明确写道 dots "可能犯错"。</p>
+  <p class="en">Always-on means nobody is watching, so permission design is the most instructive part of Dots. OpenAI's description: users set <strong>Custom Rules</strong> that sort actions into three buckets — what the dot may do on its own, what needs approval first, and what is prohibited. In addition, <strong>sensitive actions such as password changes always stay with the user</strong>; a built-in <strong>auto-review</strong> checks actions against the user's instructions and safety requirements; and built-in security monitoring defends against malicious instructions and can pause operation. OpenAI also states plainly that dots "can still make mistakes."</p>
+<figure class="zh"><svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="rl-z" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4a5049"/></marker></defs><rect x="10" y="110" width="150" height="70" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="85.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">dot 拟执行的动作</text><text x="85.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">发邮件/改代码/付款…</text><rect x="210" y="110" width="130" height="70" rx="10" fill="#f7e3d8" stroke="#c9603c" stroke-width="1.6"/><text x="275.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Custom Rules</text><text x="275.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">用户事先定义</text><rect x="400" y="20" width="170" height="60" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="485.0" y="43.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">自主执行</text><text x="485.0" y="63.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">低风险·可回滚</text><rect x="400" y="115" width="170" height="60" rx="10" fill="#f3ead3" stroke="#b3872f" stroke-width="1.6"/><text x="485.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">需审批</text><text x="485.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">推送给用户确认</text><rect x="400" y="210" width="170" height="60" rx="10" fill="#f7e3d8" stroke="#c9603c" stroke-width="1.6"/><text x="485.0" y="233.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">禁止</text><text x="485.0" y="253.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">如改密码:始终用户亲自做</text><rect x="610" y="115" width="140" height="60" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="680.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">自动复核</text><text x="680.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">对照指令与安全要求</text><line x1="160" y1="145" x2="208" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-z)"/><line x1="340" y1="130" x2="398" y2="60" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-z)"/><line x1="340" y1="145" x2="398" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-z)"/><line x1="340" y1="160" x2="398" y2="240" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-z)"/><line x1="570" y1="145" x2="608" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-z)"/></svg><figcaption>图 2:动作经过规则闸门后的三种去向(示意)</figcaption></figure>
+  <figure class="en"><svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="rl-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4a5049"/></marker></defs><rect x="10" y="110" width="150" height="70" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="85.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Action a dot plans</text><text x="85.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">send email / edit code / pay…</text><rect x="210" y="110" width="130" height="70" rx="10" fill="#f7e3d8" stroke="#c9603c" stroke-width="1.6"/><text x="275.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Custom Rules</text><text x="275.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">defined by the user up front</text><rect x="400" y="20" width="170" height="60" rx="10" fill="#e4efe9" stroke="#1f5b4f" stroke-width="1.6"/><text x="485.0" y="43.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Autonomous</text><text x="485.0" y="63.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">low risk · reversible</text><rect x="400" y="115" width="170" height="60" rx="10" fill="#f3ead3" stroke="#b3872f" stroke-width="1.6"/><text x="485.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Needs approval</text><text x="485.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">pushed to the user</text><rect x="400" y="210" width="170" height="60" rx="10" fill="#f7e3d8" stroke="#c9603c" stroke-width="1.6"/><text x="485.0" y="233.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Prohibited</text><text x="485.0" y="253.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">e.g. password change: user only</text><rect x="610" y="115" width="140" height="60" rx="10" fill="#eef0f4" stroke="#5b6470" stroke-width="1.6"/><text x="680.0" y="138.0" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="700" fill="#1f2320">Auto-review</text><text x="680.0" y="158.0" text-anchor="middle" dominant-baseline="middle" font-size="11.5" fill="#4a5049">checks vs. instructions & safety</text><line x1="160" y1="145" x2="208" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-e)"/><line x1="340" y1="130" x2="398" y2="60" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-e)"/><line x1="340" y1="145" x2="398" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-e)"/><line x1="340" y1="160" x2="398" y2="240" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-e)"/><line x1="570" y1="145" x2="608" y2="145" stroke="#4a5049" stroke-width="1.8" marker-end="url(#rl-e)"/></svg><figcaption>Figure 2: The three destinations of an action after the rules gate (schematic)</figcaption></figure>
+<h3 class="zh">隐私与训练数据</h3>
+  <h3 class="en">Privacy and Training Data</h3>
+<ul class="zh"><li>Business、Enterprise、Education 工作区的内容默认不用于训练;</li><li>个人套餐的用户可以控制 dot 对话是否用于训练;</li><li>OpenAI 称:"不会直接用主动研究或 dot 写给自己的笔记来训练",但相关信息可能按用户设置影响符合条件的任务。</li></ul>
+  <ul class="en"><li>Content from Business, Enterprise and Education workspaces is not used for training by default;</li><li>On personal plans, users control whether dot conversations are used for training;</li><li>OpenAI states it "doesn't train directly on proactive research or a dot's notes to itself", though information may inform eligible tasks depending on user settings.</li></ul>
+<div class="callout zh"><strong>值得对照自己的 agent</strong>三级规则本质是把"动作风险"显式化:低风险自动做、中风险问人、高风险不碰。如果你自己的 agent 只有"全部允许/全部询问"两档,Dots 的分级是一个可直接借鉴的最小模型。(这是分析性结论,非 OpenAI 原话。)</div>
+  <div class="callout en"><strong>Worth comparing with your own agent</strong>The three tiers make action risk explicit: low-risk auto, medium-risk ask, high-risk never. If your agent only has "allow all / ask all", Dots' tiers are a minimal model to borrow. (This is analysis, not OpenAI's wording.)</div>
+</section>
+<section id="s-companion">
+  <h2><span class="num">05</span><span class="zh">配套件:Decisions API、Codex Cloud 与 Sol 的成本曲线</span><span class="en">Companion Pieces: Decisions API, Codex Cloud and Sol's Cost Curve</span></h2>
+  <p class="zh">常驻智能体的经济性取决于"每一步用多贵的脑子"。DevDay 同时给出了分层的积木:<strong>Decisions API</strong>(GPT-6 Luna,近即时的多选分类与路由,不做深度推理)适合做"这封邮件要不要升级、该派给谁"这类分流;<strong>GPT-6.1 Sol</strong>($2/$10,缓存输入 $0.10)被官方描述为"近 Astra 智能、五分之一价格";<strong>Codex Cloud</strong> 让代码类任务在你合上笔记本后继续跑。</p>
+  <p class="en">The economics of an always-on agent depend on how expensive a "brain" each step uses. DevDay shipped layered building blocks: the <strong>Decisions API</strong> (GPT-6 Luna; near-instant multiple-choice classification and routing without deep reasoning) suits triage such as "escalate this email, and to whom"; <strong>GPT-6.1 Sol</strong> ($2/$10, cached input $0.10) is described as "near-Astra intelligence for a fifth of the price"; <strong>Codex Cloud</strong> lets coding tasks keep running after you close your laptop.</p>
+<p class="zh">按 Vellum 的整理,Sol 在 DeepSWE v1.1 达 75.2%(与 GPT-6 Astra 持平,单任务成本约低 80%),OSWorld 2.0 为 71.4%(Astra 73.5%,成本约七分之一);同一来源中 Claude Sonnet 5.5 为 71.0%。Google 官方称 Gemini 4 Argon 为 77.9%。三者口径来自各自发布方,不宜直接当作同台对比。</p>
+  <p class="en">Per Vellum, Sol reaches 75.2% on DeepSWE v1.1 (matching GPT-6 Astra at roughly 80% lower per-task cost) and 71.4% on OSWorld 2.0 (Astra: 73.5%, at about one-seventh the cost); in the same source Claude Sonnet 5.5 scores 71.0%. Google says Gemini 4 Argon scores 77.9%. These figures come from different publishers and should not be treated as a like-for-like comparison.</p>
+</section>
+<section id="s-build">
+  <h2><span class="num">06</span><span class="zh">怎么用:把 Dots 的思路搬到自己的 agent 工程</span><span class="en">How To Use It: Carrying the Dots Ideas Into Your Own Agent Engineering</span></h2>
+  <p class="zh">如果你手头有 Pro、Business Premium 或已开启 beta 的 Enterprise 工作区,第一个 dot 是包含在套餐里的(Pro 先在符合条件的市场推出,不含 EEA、瑞士、英国)。无论是否使用 Dots,下面这套做法都适用于任何"无人值守 agent"(以下为基于公开信息的分析建议):</p>
+  <p class="en">If you have Pro, Business Premium or an Enterprise workspace with the beta enabled, your first dot is included in the plan (Pro is rolling out first in eligible markets, excluding the EEA, Switzerland and the UK). With or without Dots, the following applies to any unattended agent (the points below are analysis based on public information):</p>
+<ol class="zh"><li><strong>先写规则,再给目标</strong>:列出这个 agent 会碰到的 10 个最常见动作,分到"自主 / 审批 / 禁止"三栏,再开始使用。</li><li><strong>从只读任务起步</strong>:先让它监控、汇总、起草;把"发送、付款、合并"留在审批栏。</li><li><strong>给高风险动作设人工专属区</strong>:参考"改密码始终由用户完成"的做法,明确哪些动作永远不交给 agent。</li><li><strong>分层选模型</strong>:路由/分类走轻量接口,难推理才上大模型;并留意缓存价对长上下文的影响。</li><li><strong>留暂停键与审计记录</strong>:任何时候都能一键暂停,并能回看它做过什么、为何这样做。</li></ol>
+  <ol class="en"><li><strong>Write the rules before the goal</strong>: list the ten most common actions the agent will meet and sort them into auto / approve / prohibited before you start.</li><li><strong>Start with read-only work</strong>: let it monitor, summarize and draft first; keep send, pay and merge in the approval bucket.</li><li><strong>Reserve a human-only zone</strong>: following "password changes always stay with the user", decide which actions are never delegated.</li><li><strong>Tier your models</strong>: use a lightweight interface for routing/classification and a large model only for hard reasoning; mind how cached-input pricing affects long contexts.</li><li><strong>Keep a pause button and an audit trail</strong>: be able to pause any time and review what it did and why.</li></ol>
+  </section>
+<section id="s-when">
+  <h2><span class="num">07</span><span class="zh">什么场景该用</span><span class="en">When To Use It</span></h2>
+  <div class="table-wrap zh"><table><caption>表 2:场景适配(分析性建议)</caption><thead><tr><th>场景</th><th>适配度</th><th>原因</th></tr></thead><tbody><tr><td>持续监控 + 定期汇总(客户反馈、竞品、指标)</td><td>高</td><td>触发靠"持续在线",产出可审阅,出错代价低</td></tr><tr><td>起草并提交可回滚的变更(PR、文档更新)</td><td>中高</td><td>结果落在可审查的载体上,配合审批规则可控</td></tr><tr><td>对外沟通、谈判、付款</td><td>中低</td><td>不可逆或影响真实关系,应放审批栏或禁止栏</td></tr><tr><td>涉及账户安全(改密码等)</td><td>不适用</td><td>官方设定始终由用户亲自完成</td></tr></tbody></table></div>
+  <div class="table-wrap en"><table><caption>Table 2: Scenario fit (analytical guidance)</caption><thead><tr><th>Scenario</th><th>Fit</th><th>Why</th></tr></thead><tbody><tr><td>Continuous monitoring + periodic summaries (feedback, competitors, metrics)</td><td>High</td><td>Value comes from being always on; outputs are reviewable and errors are cheap</td></tr><tr><td>Drafting and submitting reversible changes (PRs, doc updates)</td><td>Medium–high</td><td>Results land in reviewable artifacts; approval rules keep it controlled</td></tr><tr><td>Outbound communication, negotiation, payments</td><td>Medium–low</td><td>Irreversible or touches real relationships; belongs in approve or prohibited</td></tr><tr><td>Account security (password changes etc.)</td><td>N/A</td><td>By design always done by the user</td></tr></tbody></table></div>
+</section>
+<section id="s-pitfalls">
+  <h2><span class="num">08</span><span class="zh">常见坑与局限</span><span class="en">Pitfalls and Limitations</span></h2>
+  <ul class="zh"><li><strong>官方承认会犯错</strong>:"dots can still make mistakes",所以审批栏不能为了省事而清空。</li><li><strong>地区与套餐限制</strong>:Pro 的发布暂不含 EEA、瑞士、英国;Enterprise/Edu/Healthcare 默认关闭,需管理员启用。</li><li><strong>计量口径容易误解</strong>:主 dot 的直接工作不计套餐用量,但派生的 Codex 任务会计入(Latent Space),预算时要分开看。</li><li><strong>套餐调整有争议</strong>:Latent Space 称 Pro 500 的新倍率体系使原 Pro 200 的价值约减半并引发用户不满;具体以官方定价页为准。</li><li><strong>提示注入仍是长期风险</strong>:同期 arXiv 论文《Securing Computer-Use Agents Against Branch Steering Attacks》(2610.03089)专门讨论 GUI 智能体被诱导转向的问题——能操作浏览器的 agent 尤其需要这类防御。</li></ul>
+  <ul class="en"><li><strong>OpenAI admits mistakes happen</strong>: "dots can still make mistakes", so don't empty the approval bucket for convenience.</li><li><strong>Regional and plan limits</strong>: Pro rollout excludes the EEA, Switzerland and the UK; Enterprise/Edu/Healthcare is off by default and needs an admin to enable it.</li><li><strong>Metering is easy to misread</strong>: the primary dot's direct work does not count against plan usage, but spawned Codex tasks do (Latent Space) — budget them separately.</li><li><strong>The plan changes are contested</strong>: Latent Space says the new Pro 500 multiplier scheme roughly halved the value of the former Pro 200 and caused backlash; check the official pricing page.</li><li><strong>Prompt injection remains a long-term risk</strong>: a concurrent arXiv paper, "Securing Computer-Use Agents Against Branch Steering Attacks" (2610.03089), addresses GUI agents being steered off course — browser-operating agents especially need such defenses.</li></ul>
+<div class="callout warn zh"><strong>本文的边界</strong>Dots 发布仅数日,公开信息主要来自官方回顾与媒体报道,尚缺乏独立实测与长期运行数据;表中"分析性建议"为作者推断。</div>
+  <div class="callout warn en"><strong>Scope of this document</strong>Dots shipped only days ago; public information comes mainly from OpenAI's recap and press coverage, with no independent testing or long-run data yet. "Analytical guidance" items are the author's inference.</div>
+</section>
+<section id="s-compare">
+  <h2><span class="num">09</span><span class="zh">对比:Dots 与相邻形态</span><span class="en">Comparison With Adjacent Forms</span></h2>
+  <div class="table-wrap zh"><table><caption>表 3:常驻智能体与相邻形态(分析性对比)</caption><thead><tr><th>形态</th><th>触发方式</th><th>执行环境</th><th>典型风险控制</th></tr></thead><tbody><tr><td>聊天助手</td><td>用户每次提问</td><td>对话内,通常无独立电脑</td><td>用户逐条看到结果</td></tr><tr><td>Dots(常驻智能体)</td><td>目标 + 持续运行,可无提示继续</td><td>自己的云端电脑与浏览器</td><td>三级规则 + 自动复核 + 可暂停</td></tr><tr><td>Codex Cloud</td><td>用户发起任务,可在合上笔记本后继续</td><td>云端环境</td><td>环境隔离 + 代码评审</td></tr><tr><td>定时任务 / cron 式 agent</td><td>时间表</td><td>视实现而定</td><td>通常需自行设计权限与告警</td></tr></tbody></table></div>
+  <div class="table-wrap en"><table><caption>Table 3: Always-on agents vs. adjacent forms (analytical comparison)</caption><thead><tr><th>Form</th><th>Trigger</th><th>Execution environment</th><th>Typical risk control</th></tr></thead><tbody><tr><td>Chat assistant</td><td>User asks each time</td><td>In-conversation, usually no own computer</td><td>User sees each result</td></tr><tr><td>Dots (always-on agents)</td><td>Goal + continuous operation, may proceed without prompts</td><td>Own cloud computer and browser</td><td>Three-tier rules + auto-review + pausable</td></tr><tr><td>Codex Cloud</td><td>User starts a task; can continue with laptop closed</td><td>Cloud environment</td><td>Environment isolation + code review</td></tr><tr><td>Scheduled / cron-style agents</td><td>A schedule</td><td>Depends on implementation</td><td>Permissions and alerts usually self-designed</td></tr></tbody></table></div>
+</section>
+<section id="s-glossary">
+  <h2><span class="num">10</span><span class="zh">术语表</span><span class="en">Glossary</span></h2>
+  <dl class="glossary zh"><dt>Always-on agent(常驻智能体)</dt><dd>不依赖用户逐条提示、可持续运行的 agent。</dd><dt>Dot</dt><dd>OpenAI 对 ChatGPT 常驻智能体的称呼,拥有自己的云端电脑与浏览器。</dd><dt>Custom Rules(自定义规则)</dt><dd>用户定义的权限规则:自主执行 / 需审批 / 禁止。</dd><dt>Auto-review(自动复核)</dt><dd>对照用户指令与安全要求检查 agent 动作的机制。</dd><dt>Decisions API</dt><dd>基于 GPT-6 Luna 的近即时多选分类与路由接口。</dd><dt>Prompt injection(提示注入)</dt><dd>通过网页或文档里的恶意文字诱导 agent 偏离用户意图的攻击。</dd></dl>
+  <dl class="glossary en"><dt>Always-on agent</dt><dd>An agent that runs continuously without per-step user prompts.</dd><dt>Dot</dt><dd>OpenAI's name for a ChatGPT always-on agent that has its own cloud computer and browser.</dd><dt>Custom Rules</dt><dd>User-defined permission rules: autonomous / needs approval / prohibited.</dd><dt>Auto-review</dt><dd>A mechanism that checks agent actions against the user's instructions and safety requirements.</dd><dt>Decisions API</dt><dd>Near-instant multiple-choice classification and routing interface built on GPT-6 Luna.</dd><dt>Prompt injection</dt><dd>An attack in which malicious text in a web page or document steers an agent away from the user's intent.</dd></dl>
+  </section>
+<section id="s-sources">
+  <h2><span class="num">11</span><span class="zh">参考来源</span><span class="en">Sources</span></h2>
+  <ol class="src-list zh"><li><a href="https://openai.com/index/devday-2026-recap/" target="_blank" rel="noopener">OpenAI DevDay 2026 Recap</a> <span class="date">· 2026-09-29</span></li><li><a href="https://www.latent.space/p/ainews-openai-devday-2026-dots-61" target="_blank" rel="noopener">[AINews] OpenAI DevDay 2026 — Latent Space</a> <span class="date">· 2026-09</span></li><li><a href="https://www.medianama.com/2026/10/223-openai-launches-dots-devday-2026/" target="_blank" rel="noopener">OpenAI launches dots… — MediaNama</a> <span class="date">· 2026-10</span></li><li><a href="https://betanews.com/article/openai-dots-agents-chatgpt/" target="_blank" rel="noopener">OpenAI launches dots, always-on ChatGPT agents with their own computers — BetaNews</a> <span class="date">· 2026-09</span></li><li><a href="https://www.vellum.ai/blog/gpt-6-1-sol-benchmarks-explained" target="_blank" rel="noopener">GPT-6.1 Sol Benchmarks Explained — Vellum</a> <span class="date">· 2026-09/10</span></li><li><a href="https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/" target="_blank" rel="noopener">Gemini 4 Argon — Google blog</a> <span class="date">· 2026-09-30</span></li><li><a href="https://github.com/kakapez/agents-radar/issues/1626" target="_blank" rel="noopener">ArXiv AI Research Weekly Digest 2026-10-05 (agents-radar)</a> <span class="date">· 2026-10-05</span></li></ol>
+  <ol class="src-list en"><li><a href="https://openai.com/index/devday-2026-recap/" target="_blank" rel="noopener">OpenAI DevDay 2026 Recap</a> <span class="date">· 2026-09-29</span></li><li><a href="https://www.latent.space/p/ainews-openai-devday-2026-dots-61" target="_blank" rel="noopener">[AINews] OpenAI DevDay 2026 — Latent Space</a> <span class="date">· 2026-09</span></li><li><a href="https://www.medianama.com/2026/10/223-openai-launches-dots-devday-2026/" target="_blank" rel="noopener">OpenAI launches dots… — MediaNama</a> <span class="date">· 2026-10</span></li><li><a href="https://betanews.com/article/openai-dots-agents-chatgpt/" target="_blank" rel="noopener">OpenAI launches dots, always-on ChatGPT agents with their own computers — BetaNews</a> <span class="date">· 2026-09</span></li><li><a href="https://www.vellum.ai/blog/gpt-6-1-sol-benchmarks-explained" target="_blank" rel="noopener">GPT-6.1 Sol Benchmarks Explained — Vellum</a> <span class="date">· 2026-09/10</span></li><li><a href="https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/" target="_blank" rel="noopener">Gemini 4 Argon — Google blog</a> <span class="date">· 2026-09-30</span></li><li><a href="https://github.com/kakapez/agents-radar/issues/1626" target="_blank" rel="noopener">ArXiv AI Research Weekly Digest 2026-10-05 (agents-radar)</a> <span class="date">· 2026-10-05</span></li></ol>
+</section>
+
+</main>
+
+<footer>
+  <p class="zh">本文由 mingyu 的每日 AI 技术情报自动化流水线生成,基于公开报道整理与分析,不构成投资或采购建议;具体信息以各来源官方发布为准。如内容有出入,欢迎对照上方来源链接核实。</p>
+  <p class="en">This document was generated by mingyu's daily AI intelligence pipeline, compiled and analyzed from public reporting. It does not constitute investment or purchasing advice; refer to each source's official publication for authoritative information. If anything here appears inconsistent, please verify against the source links above.</p>
+</footer>
+
+<script>
+(function(){
+  var body = document.body;
+  var html = document.documentElement;
+  var btn = document.getElementById('langToggle');
+
+  function getStored(){
+    try { return localStorage.getItem('lang-pref'); } catch(e){ return null; }
+  }
+  function setStored(v){
+    try { localStorage.setItem('lang-pref', v); } catch(e){}
+  }
+
+  function applyLang(lang){
+    body.setAttribute('data-lang', lang);
+    html.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+    revealVisibleFigures();
+  }
+
+  var initial = getStored();
+  if(!initial){
+    initial = (navigator.language || navigator.userLanguage || '').toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en';
+  }
+  applyLang(initial);
+
+  btn.addEventListener('click', function(){
+    var current = body.getAttribute('data-lang') === 'zh' ? 'en' : 'zh';
+    applyLang(current);
+    setStored(current);
+  });
+
+  // Figure entrance animation, re-triggerable on language switch
+  var figures = Array.prototype.slice.call(document.querySelectorAll('figure'));
+  var io;
+  try {
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, {threshold:0.15});
+    figures.forEach(function(f){ io.observe(f); });
+  } catch(e){
+    figures.forEach(function(f){ f.classList.add('in'); });
+  }
+
+  function revealVisibleFigures(){
+    figures.forEach(function(f){
+      if(f.classList.contains('in')) return;
+      var rect = f.getBoundingClientRect();
+      var visible = rect.top < (window.innerHeight || document.documentElement.clientHeight) && rect.bottom > 0;
+      if(visible){
+        f.classList.add('in');
+        if(io){ try{ io.unobserve(f); }catch(e){} }
+      } else if(io){
+        try{ io.observe(f); }catch(e){}
+      }
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
