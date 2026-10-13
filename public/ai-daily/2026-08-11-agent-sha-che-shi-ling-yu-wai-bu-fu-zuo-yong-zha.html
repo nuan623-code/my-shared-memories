@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 刹车失灵与外部副作用闸门 | When Agent Brakes Fail: External Side-Effect Gates</title>
+<style>
+:root{--bg:#f9f5f4;--card:#fff;--ink:#261614;--ink2:#4e3532;--muted:#7b6764;--line:#e8d9d6;--ac:#b3362b;--ac2:#8a241c;--acs:#fbe9e6;--warm:#9a6200;--warms:#fbf2db;--code:#f5eeec}
+@media(prefers-color-scheme:dark){:root{--bg:#170f0e;--card:#221614;--ink:#f3e7e5;--ink2:#d2bcb9;--muted:#a28e8b;--line:#3e2c29;--ac:#e8695b;--ac2:#f5a196;--acs:#3a1d1a;--warm:#e6b54a;--warms:#33290f;--code:#2a1c1a}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--ac);z-index:50}
+#lang{position:fixed;top:12px;right:14px;z-index:60;border:1.5px solid var(--ac);background:var(--card);color:var(--ac2);font-weight:800;font-size:14px;padding:6px 14px;border-radius:99px;cursor:pointer}
+#tocbtn{display:none;position:fixed;top:12px;left:14px;z-index:60;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;padding:3px 11px;border-radius:10px;cursor:pointer}
+nav#toc{position:fixed;left:0;top:0;bottom:0;width:210px;padding:70px 14px 20px;background:var(--card);border-right:1px solid var(--line);overflow:auto;z-index:40}
+nav#toc a{display:block;color:var(--ink2);text-decoration:none;font-size:14px;padding:6px 10px;border-radius:8px;line-height:1.4}
+nav#toc a.on{background:var(--acs);color:var(--ac2);font-weight:700}
+main{margin-left:210px}
+.hero{padding:70px 30px 40px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--acs),transparent)}
+.hero .in,.sec-wrap{max-width:780px;margin:0 auto}
+.hero h1{font-size:clamp(26px,5vw,40px);line-height:1.25;margin:0 0 10px;letter-spacing:-.02em}
+.hero .sub{color:var(--ink2);margin:0 0 6px;font-size:16px}
+.hero .tag{display:inline-block;font-size:12.5px;font-weight:800;color:var(--ac2);background:var(--card);border:1px solid var(--line);padding:3px 11px;border-radius:99px;margin-bottom:12px}
+.sec-wrap{padding:10px 24px 60px}
+section{padding-top:30px}
+h2{font-size:24px;line-height:1.3;margin:0 0 12px;display:flex;gap:10px;align-items:baseline}
+h2 .n{font-size:14px;font-weight:800;color:#fff;background:var(--ac);border-radius:8px;padding:1px 9px}
+p{margin:0 0 14px}p.note{font-size:14px;color:var(--muted)}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font-size:.9em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:14px;line-height:1.6}
+.callout{border-left:4px solid var(--ac);background:var(--acs);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:16px}
+.callout.warn{border-color:var(--warm);background:var(--warms)}
+.figure{margin:18px 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;opacity:0;transform:translateY(10px);transition:.6s}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:8px;text-align:center}
+.bx{fill:var(--card);stroke:var(--line);stroke-width:1.5}.bx.a{fill:var(--acs);stroke:var(--ac)}.bx.b{fill:var(--card);stroke:var(--ink2)}.bx.c{fill:var(--acs);stroke:var(--ac2);stroke-width:2}.bx.d{fill:var(--warms);stroke:var(--warm);stroke-width:2}
+.tx{fill:var(--ink);font-size:13px;font-weight:600}.hd{fill:var(--ac2);font-size:15px;font-weight:800}.sm{fill:var(--ink2);font-size:12.5px}.sm.w{fill:var(--warm);font-weight:700}.ar{stroke:var(--ink2);stroke-width:1.6;fill:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0}
+.stats div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.stats b{display:block;font-size:19px;color:var(--ac2)}.stats span{font-size:12.5px;color:var(--muted);line-height:1.4;display:block}
+.glossary dl{margin:0}.glossary dt{font-weight:800;color:var(--ac2);margin-top:12px}.glossary dd{margin:2px 0 0;color:var(--ink2)}
+ol.steps{counter-reset:s;list-style:none;padding:0}ol.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 50px;margin-bottom:10px;position:relative}
+ol.steps li:before{content:counter(s);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--ac);color:#fff;text-align:center;font-weight:800;line-height:26px;font-size:14px}
+table.cmp{width:100%;border-collapse:collapse;font-size:14.5px;line-height:1.6;display:block;overflow-x:auto;margin:14px 0}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+table.cmp th{background:var(--acs);color:var(--ac2)}
+.src a{color:var(--ac2)}
+footer{max-width:780px;margin:0 auto;padding:10px 24px 50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+@media(max-width:900px){nav#toc{transform:translateX(-100%);transition:.25s}nav#toc.open{transform:none;box-shadow:0 0 30px rgba(0,0,0,.25)}main{margin-left:0}#tocbtn{display:block}.hero{padding-top:64px}}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="☰ EN AI Daily · 2026-08-11 · 深度学习 AI Daily · 2026-08-11 · Deep dive Agent 刹车失灵与外部副作用闸门:审批、取消、超时为什么拦不住副作用 When …">
+<meta property="og:title" content="Agent 刹车失灵与外部副作用闸门 | When Agent Brakes Fail: External Side-Effect Gates">
+<meta property="og:description" content="☰ EN AI Daily · 2026-08-11 · 深度学习 AI Daily · 2026-08-11 · Deep dive Agent 刹车失灵与外部副作用闸门:审批、取消、超时为什么拦不住副作用 When …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-11-agent-sha-che-shi-ling-yu-wai-bu-fu-zuo-yong-zha.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-11-agent-sha-che-shi-ling-yu-wai-bu-fu-zuo-yong-zha.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent 刹车失灵与外部副作用闸门 | When Agent Brakes Fail: External Side-Effect Gates", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-11-agent-sha-che-shi-ling-yu-wai-bu-fu-zuo-yong-zha.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-11", "dateModified": "2026-10-13"}</script>
+</head>
+<body data-lang="zh" data-tzh="Agent 刹车失灵与外部副作用闸门 | When Agent Brakes Fail: External Side-Effect Gates" data-ten="When Agent Brakes Fail: External Side-Effect Gates | Agent 刹车失灵与外部副作用闸门">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button id="tocbtn" aria-label="TOC">☰</button>
+<button id="lang" aria-label="language">EN</button>
+<nav id="toc"><a href="#s1"><span class="zh">30 秒速览</span><span class="en">30-second version</span></a><a href="#s2"><span class="zh">背景</span><span class="en">Background</span></a><a href="#s3"><span class="zh">四种失灵方式</span><span class="en">Four failures</span></a><a href="#s4"><span class="zh">实验发现</span><span class="en">Findings</span></a><a href="#s5"><span class="zh">SoundGate 闸门</span><span class="en">SoundGate</span></a><a href="#s6"><span class="zh">怎么用</span><span class="en">How to use it</span></a><a href="#s7"><span class="zh">坑与局限</span><span class="en">Pitfalls</span></a><a href="#s8"><span class="zh">资源与来源</span><span class="en">Sources</span></a></nav>
+<main>
+<div class="hero"><div class="in">
+<span class="tag zh">AI Daily · 2026-08-11 · 深度学习</span><span class="tag en">AI Daily · 2026-08-11 · Deep dive</span>
+<h1 class="zh">Agent 刹车失灵与外部副作用闸门:审批、取消、超时为什么拦不住副作用</h1><h1 class="en">When Agent Brakes Fail: External Side-Effect Gates: why approvals, cancellation and timeouts leak</h1>
+<p class="sub zh">基于论文《Stop Means Stop》(arXiv 2607.14166,v3 2026-08-08)与框架官方文档整理。读完你会知道:Agent 框架的三种“刹车”在哪里漏、为什么漏、今天怎么在自己的代码里补上。</p>
+<p class="sub en">Based on the paper <i>Stop Means Stop</i> (arXiv 2607.14166, v3 2026-08-08) and official framework docs. You will learn where agent frameworks’ three “brakes” leak, why, and how to close the gap in your own code today.</p>
+</div></div>
+<div class="sec-wrap">
+<section id="s1"><h2 class="zh"><span class="n">1</span>30 秒速览</h2><h2 class="en"><span class="n">1</span>The 30-second version</h2>
+<p class="zh"><b>一句话</b>:主流 Agent 框架都提供“人工审批 / 取消运行 / 超时”这三个“刹车”,文档暗示一旦暂停、取消或超时,被管控的副作用(发请求、写库、退款)就不会发生。2026-08-08 更新的论文《Stop Means Stop》实测 6 个开源框架,发现<b>这一承诺在运行时没有一个被完整兑现</b>,并给出一个放在 Agent 环境之外的闸门 SoundGate 作为修复。</p>
+<p class="en"><b>In one sentence</b>: mainstream agent frameworks ship three “brakes”: human approval, run cancellation and timeouts. Their docs imply that once a run is paused, cancelled or timed out, no gated side effect (an HTTP call, a DB write, a refund) will happen. The paper <i>Stop Means Stop</i> (v3 updated 2026-08-08) tested six open-source frameworks and found <b>that promise is not fully enforced at runtime in any of them</b>, then proposes SoundGate, a gate placed outside the agent environment, as the fix.</p>
+<p class="zh">先说名词:<b>副作用</b>是指会改变外部世界的动作(调用付款接口、发邮件、删文件),做了就收不回;<b>审批门</b>是“这一步要人点同意才执行”的机制;<b>兄弟分支</b>是同一步里被并行执行的另一个动作。</p>
+<p class="en">Quick vocabulary: a <b>side effect</b> is an action that changes the outside world (calling a payment API, sending an email, deleting a file) and cannot be taken back; an <b>approval gate</b> is “this step runs only after a human approves”; a <b>sibling branch</b> is another action executed in parallel within the same step.</p>
+<div class="zh stats"><div><b>6 / 6</b><span>被测框架<br>刹车语义都有缺口</span></div><div><b>5 / 5</b><span>带执行前审批门的框架<br>全部出现兄弟泄漏</span></div><div><b>215 / 1200</b><span>真实模型运行<br>发生泄漏(加闸门后 0)</span></div><div><b>≈1 ms</b><span>闸门每次写入开销<br>约 1.2 万次/秒准入</span></div></div>
+<div class="en stats"><div><b>6 / 6</b><span>frameworks tested<br>all have brake gaps</span></div><div><b>5 / 5</b><span>frameworks with pre-execution gates<br>all show the sibling leak</span></div><div><b>215 / 1200</b><span>live model runs<br>leaked (0 with the gate)</span></div><div><b>≈1 ms</b><span>gate overhead per write<br>~12k admissions/s</span></div></div>
+<p class="zh note">数字来源:arXiv 2607.14166 摘要与正文;均为论文作者自测,尚无独立复现。</p>
+<p class="en note">Numbers: arXiv 2607.14166 abstract and body; all reported by the author, not yet independently reproduced.</p>
+</section>
+<section id="s2"><h2 class="zh"><span class="n">2</span>背景:为什么“刹车”会失灵</h2><h2 class="en"><span class="n">2</span>Background: why the brakes slip</h2>
+<p class="zh">人在环(human-in-the-loop)是 Agent 安全的标准答案:危险动作前停下来问人。各框架也都给了接口——LangGraph 的 <code>interrupt()</code>、OpenAI Agents SDK 的 <code>needs_approval</code>、LlamaIndex Workflows 的等待事件等。问题在于这些接口大多<b>实现在 Agent 自己的执行循环里</b>:它能暂停“当前这条分支”,却未必能拦住同一时刻其他正在跑的东西。</p>
+<p class="en">Human-in-the-loop is the standard answer for agent safety: stop and ask a person before a dangerous action. Frameworks all expose it: LangGraph’s <code>interrupt()</code>, the OpenAI Agents SDK’s <code>needs_approval</code>, wait-for-event in LlamaIndex Workflows, and so on. The catch is that these hooks are mostly <b>implemented inside the agent’s own execution loop</b>: they can pause “this branch”, but not necessarily everything else running at the same moment.</p>
+<p class="zh">模型越来越喜欢<b>并行工具调用</b>(一步里同时发出多个动作),框架也普遍支持并行节点或并发任务。只要“需要审批的动作”和“另一个有副作用的动作”被排进同一步,暂停就只是半个暂停。</p>
+<p class="en">Models increasingly emit <b>parallel tool calls</b> (several actions in one step), and frameworks generally support parallel nodes or concurrent tasks. As soon as “the action needing approval” and “another side-effecting action” land in the same step, the pause is only half a pause.</p>
+<p class="zh">论文测试的 6 个框架(固定版本):LangGraph 1.2.7(Python)、LlamaIndex Workflows(llama-index-core 0.14.23)、Microsoft Agent Framework(agent-framework-core 1.10.0)、OpenAI Agents SDK 0.17.7、CrewAI 1.15.1(只有事后人工复核,不计入泄漏统计)、LangGraph.js 1.4.7。覆盖四种执行模型、两种语言运行时。</p>
+<p class="en">The six frameworks tested (pinned versions): LangGraph 1.2.7 (Python), LlamaIndex Workflows (llama-index-core 0.14.23), Microsoft Agent Framework (agent-framework-core 1.10.0), OpenAI Agents SDK 0.17.7, CrewAI 1.15.1 (post-hoc human review only, excluded from leak counts), and LangGraph.js 1.4.7. They span four execution models and two language runtimes.</p>
+</section>
+<section id="s3"><h2 class="zh"><span class="n">3</span>核心概念:四种失灵方式</h2><h2 class="en"><span class="n">3</span>Core concepts: four ways the brakes fail</h2>
+<div class="zh glossary"><dl><dt>兄弟泄漏(sibling leak)</dt><dd>审批门只挂起自己那条分支;同一步里并行的兄弟副作用照常执行。人还在犹豫,兄弟动作已经发出,拒绝因此失效。论文例子:运营要求退款前审批,但与退款同步的另一个动作在暂停期间已经触发。</dd><dt>重放重复执行(replay double-execution)</dt><dd>暂停后恢复(resume)或重放时,同一个受控副作用又执行一次。LangGraph 官方文档也写明:恢复时节点从头重跑,所以 interrupt 之前的副作用“应当(最好)是幂等的”。</dd><dt>取消孤儿(cancellation orphan)</dt><dd>取消了运行,但已被派发到别处(线程、worker、异步任务)的工作没停下,继续产生副作用。</dd><dt>超时僵尸(timeout zombie)</dt><dd>超时已经触发、调用方以为结束了,底下的工作却还在跑。</dd><dt>完全中介(complete mediation)</dt><dd>安全工程里的老原则:<b>每一次</b>访问都必须经过检查点,没有旁路。SoundGate 的所有保证都以此为前提。</dd><dt>幂等键(idempotency key)</dt><dd>给每个副作用一个唯一标识;同一个键第二次到达时直接拒绝或返回第一次结果,防止重复执行。</dd></dl></div>
+<div class="en glossary"><dl><dt>Sibling leak</dt><dd>An approval gate suspends only its own branch; a sibling side effect running in parallel in the same step executes anyway. While the human is still deciding, the sibling has fired, so a rejection is meaningless. The paper’s example: an operator requires approval before a refund, but an action in the same step as the refund fires during the pause.</dd><dt>Replay double-execution</dt><dd>On resume or replay after a pause, the same gated side effect runs again. LangGraph’s own docs state that a node restarts from the top on resume, so side effects before an interrupt “should (ideally) be idempotent”.</dd><dt>Cancellation orphan</dt><dd>The run is cancelled, but work already dispatched elsewhere (threads, workers, async tasks) keeps going and keeps producing side effects.</dd><dt>Timeout zombie</dt><dd>The timeout has fired and the caller thinks it is over, but the underlying work is still running.</dd><dt>Complete mediation</dt><dd>An old security-engineering principle: <b>every</b> access goes through the checkpoint, with no bypass. All of SoundGate’s guarantees assume it.</dd><dt>Idempotency key</dt><dd>A unique identifier attached to each side effect; when the same key arrives a second time it is refused (or returns the first result), preventing duplicate execution.</dd></dl></div>
+<figure class="zh figure" data-anim><svg viewBox="0 0 760 300" role="img" aria-label="兄弟分支泄漏时间线"><defs><marker id="m1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="20" y="24" class="hd">同一步里的两个分支:审批只停住了自己</text><path d="M40 260 L740 260" class="ar" marker-end="url(#m1)"/><text x="735" y="282" text-anchor="end" class="sm">时间</text><rect class="bx a" x="40" y="50" width="120" height="40" rx="9"/><text x="100" y="75" text-anchor="middle" class="tx">模型规划出并行两步</text><path d="M160 70 L210 70 L210 110 L240 110" class="ar" marker-end="url(#m1)"/><path d="M210 70 L210 190 L240 190" class="ar" marker-end="url(#m1)"/><text x="250" y="100" class="sm">分支 A:退款 → 需要人工审批</text><rect class="bx c" x="245" y="108" width="300" height="34" rx="9"/><text x="395" y="130" text-anchor="middle" class="tx">⏸ 暂停,等待人工决定</text><rect class="bx d" x="560" y="108" width="180" height="34" rx="9"/><text x="650" y="130" text-anchor="middle" class="tx">✗ 人工拒绝(为时已晚)</text><text x="250" y="180" class="sm">分支 B:同步骤的兄弟副作用</text><rect class="bx d" x="245" y="188" width="150" height="34" rx="9"/><text x="320" y="210" text-anchor="middle" class="tx">POST 已发出 ✓</text><line x1="320" y1="230" x2="320" y2="260" stroke="var(--warm)" stroke-dasharray="3 3"/><line x1="650" y1="146" x2="650" y2="260" stroke="var(--warm)" stroke-dasharray="3 3"/><path d="M330 245 L640 245" class="ar" marker-end="url(#m1)"/><text x="485" y="238" text-anchor="middle" class="sm w">论文实测:POST 比拒绝早 512 ms 到达</text><text x="380" y="292" text-anchor="middle" class="sm">据论文 FW-A(LangGraph)实验描述绘制的示意图</text></svg><figcaption>图 1 · 兄弟泄漏:审批暂停了分支 A,分支 B 的 POST 照常发出(示意图)</figcaption></figure>
+<figure class="en figure" data-anim><svg viewBox="0 0 760 300" role="img" aria-label="Sibling leak timeline"><defs><marker id="m1-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="20" y="24" class="hd">Two branches in one step: the approval only pauses itself</text><path d="M40 260 L740 260" class="ar" marker-end="url(#m1-e)"/><text x="735" y="282" text-anchor="end" class="sm">time</text><rect class="bx a" x="40" y="50" width="120" height="40" rx="9"/><text x="100" y="75" text-anchor="middle" class="tx">Model plans two parallel steps</text><path d="M160 70 L210 70 L210 110 L240 110" class="ar" marker-end="url(#m1-e)"/><path d="M210 70 L210 190 L240 190" class="ar" marker-end="url(#m1-e)"/><text x="250" y="100" class="sm">Branch A: refund → needs human approval</text><rect class="bx c" x="245" y="108" width="300" height="34" rx="9"/><text x="395" y="130" text-anchor="middle" class="tx">⏸ Paused, waiting for a human</text><rect class="bx d" x="560" y="108" width="180" height="34" rx="9"/><text x="650" y="130" text-anchor="middle" class="tx">✗ Human rejects (too late)</text><text x="250" y="180" class="sm">Branch B: sibling side effect, same step</text><rect class="bx d" x="245" y="188" width="150" height="34" rx="9"/><text x="320" y="210" text-anchor="middle" class="tx">POST already sent ✓</text><line x1="320" y1="230" x2="320" y2="260" stroke="var(--warm)" stroke-dasharray="3 3"/><line x1="650" y1="146" x2="650" y2="260" stroke="var(--warm)" stroke-dasharray="3 3"/><path d="M330 245 L640 245" class="ar" marker-end="url(#m1-e)"/><text x="485" y="238" text-anchor="middle" class="sm w">Measured in the paper: POST arrived 512 ms before the rejection</text><text x="380" y="292" text-anchor="middle" class="sm">Sketch based on the paper’s FW-A (LangGraph) experiment</text></svg><figcaption>Figure 1 · Sibling leak: the approval pauses branch A while branch B’s POST goes out anyway (sketch)</figcaption></figure>
+</section>
+<section id="s4"><h2 class="zh"><span class="n">4</span>实验发现</h2><h2 class="en"><span class="n">4</span>What the experiments found</h2>
+<p class="zh">论文用三类证据:<b>不依赖模型的差分探针</b>(对比文档承诺与运行时行为)、<b>真实模型驱动未修改的框架</b>、以及<b>13 起公开事故语料</b>做佐证。各框架结果(论文表 2 压缩版,✓ 表示复现出该问题):</p>
+<p class="en">The paper uses three kinds of evidence: <b>model-free differential probes</b> (docs vs. runtime behaviour), <b>live models driving unmodified frameworks</b>, and a <b>13-incident public corpus</b> for corroboration. Per-framework results (condensed from Table 2; ✓ means the failure was reproduced):</p>
+<table class="zh cmp"><tr><th>问题</th><th>LangGraph</th><th>LlamaIndex</th><th>MS Agent FW</th><th>OpenAI SDK</th><th>CrewAI</th><th>LangGraph.js</th></tr><tr><td>兄弟审批泄漏</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>不适用</td><td>✓</td></tr><tr><td>重放重复执行</td><td>✓</td><td>正常</td><td>正常</td><td>正常</td><td>–</td><td>✓</td></tr><tr><td>取消:worker/异步</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>–</td></tr><tr><td>取消:纯异步</td><td>正常</td><td>–</td><td>正常</td><td>正常</td><td>–</td><td>✓</td></tr><tr><td>超时僵尸</td><td>✓</td><td>正常</td><td>✓</td><td>正常/拒绝</td><td>正常</td><td>✓</td></tr></table>
+<table class="en cmp"><tr><th>Failure</th><th>LangGraph</th><th>LlamaIndex</th><th>MS Agent FW</th><th>OpenAI SDK</th><th>CrewAI</th><th>LangGraph.js</th></tr><tr><td>Sibling approval leak</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>n/a</td><td>✓</td></tr><tr><td>Replay double-execution</td><td>✓</td><td>clean</td><td>clean</td><td>clean</td><td>–</td><td>✓</td></tr><tr><td>Cancel: worker/async</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>–</td></tr><tr><td>Cancel: pure async</td><td>clean</td><td>–</td><td>clean</td><td>clean</td><td>–</td><td>✓</td></tr><tr><td>Timeout zombie</td><td>✓</td><td>clean</td><td>✓</td><td>clean/refused</td><td>clean</td><td>✓</td></tr></table>
+<div class="zh"><ul><li><b>结构决定一切</b>:在 LangGraph 上随机生成 1000 个工作流,与审批门同一超步(superstep)的副作用<b>全部泄漏(577/577)</b>,位于审批门下游的<b>一个都没泄漏(0/363)</b>。</li><li><b>模型会不会写出这种结构</b>:GPT-4o 产生“触发形状”的比例约 0.14,Claude Sonnet 4.6 约 0.04;一旦产生,泄漏概率 P(leak | emitted) = 1.00。</li><li><b>端到端</b>:四个模型共 1200 次运行中 215 次泄漏;GPT-4o 单独 133/300。接入 SoundGate 后 0/1200。</li><li><b>潜伏性</b>:在较自然的 τ-bench 任务里模型常把写操作串行化,所以问题平时看不见——这正是危险所在。</li><li><b>真实事故</b>:13 起第三方报告(LangGraph、LangGraph.js、LlamaIndex),如“resume 从头重跑导致已完成工作重复”“subgraph 收到 CancelledError 不停止”。</li></ul></div>
+<div class="en"><ul><li><b>Structure decides everything</b>: across 1,000 random workflows on LangGraph, every effect in the same superstep as the gate leaked (<b>577/577</b>) and none downstream of the gate did (<b>0/363</b>).</li><li><b>Do models write that shape?</b> GPT-4o emits the trigger shape about 0.14 of the time, Claude Sonnet 4.6 about 0.04; once emitted, P(leak | emitted) = 1.00.</li><li><b>End to end</b>: 215 of 1,200 runs across four models leaked; GPT-4o alone 133/300. With SoundGate, 0/1,200.</li><li><b>Latent</b>: on more natural τ-bench tasks models often serialize writes, so the problem usually stays hidden, which is exactly what makes it dangerous.</li><li><b>Real incidents</b>: 13 third-party reports (LangGraph, LangGraph.js, LlamaIndex), e.g. “resume restarts from the beginning, duplicating completed work” and “a subgraph does not stop on CancelledError”.</li></ul></div>
+<div class="zh callout warn"><b>读数注意</b>:暴露率实验使用作者编写的任务与预设工具返回值,论文自己说明<b>不能代表生产环境频率</b>;经 OpenRouter 测的其他模型接近 0,作者归因于路由混杂因素。事故语料偏向最大的 issue 追踪器,只是下限,不是发生率。</div>
+<div class="en callout warn"><b>Reading the numbers</b>: the exposure experiments use author-written tasks with canned tool results, and the paper itself says they <b>do not establish production frequency</b>; other models tested via OpenRouter were near zero, which the author attributes to a routing confound. The incident corpus is biased toward the largest issue tracker and is a lower bound, not a rate.</div>
+</section>
+<section id="s5"><h2 class="zh"><span class="n">5</span>修复思路:SoundGate 外部闸门</h2><h2 class="en"><span class="n">5</span>The fix: SoundGate, an external gate</h2>
+<p class="zh">核心洞见:<b>在 Agent 循环内部实现的闸门,会被并行分支绕过</b>。所以把闸门搬到 Agent 执行环境之外,让每个副作用在执行前都必须向它“申请准入”。SoundGate 用 Rust 编写,通过按行分隔的协议通信;每个副作用携带 run ID 和幂等键,状态按 (run, key) 隔离。</p>
+<p class="en">The key insight: <b>a gate implemented inside the agent loop can be bypassed by a parallel branch</b>. So move the gate outside the agent’s execution environment and require every side effect to request admission before it executes. SoundGate is written in Rust and spoken to over a line-delimited protocol; each effect carries a run ID and an idempotency key, with state scoped to (run, key).</p>
+<div class="zh"><ol class="steps"><li><b>P1 未决定前一律扣住(hold-until-decided)</b>:需审批的副作用在人做出决定前不放行——不管它来自哪条分支。</li><li><b>P2 拒绝即取消(reject-cancels)</b>:被拒绝的副作用永不放行,并保持拒绝状态。</li><li><b>P3 重放去重(dedup-on-replay)</b>:已放行过的身份(run, key)再来一次直接拒绝。</li><li><b>P4 取消围栏(fence-on-cancel)</b>:运行被取消后,所有迟到的提交一律拒收——这同时解决了取消孤儿与超时僵尸。</li></ol></div>
+<div class="en"><ol class="steps"><li><b>P1 hold-until-decided</b>: a gated effect is not released until a human decides, whichever branch it came from.</li><li><b>P2 reject-cancels</b>: a rejected effect is never released and stays refused.</li><li><b>P3 dedup-on-replay</b>: an identity (run, key) that was already released is refused if it comes again.</li><li><b>P4 fence-on-cancel</b>: after a run is cancelled, every late submission is refused, which handles both cancellation orphans and timeout zombies.</li></ol></div>
+<figure class="zh figure" data-anim><svg viewBox="0 0 760 320" role="img" aria-label="SoundGate 外部闸门架构"><defs><marker id="m2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><rect x="14" y="30" width="230" height="230" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="5 4"/><text x="129" y="22" text-anchor="middle" class="hd">Agent 执行环境(不可信)</text><rect class="bx b" x="34" y="50" width="190" height="36" rx="9"/><text x="129.0" y="73.0" text-anchor="middle" class="tx">Agent 框架 / 并行分支</text><rect class="bx a" x="34" y="110" width="190" height="30" rx="9"/><text x="129.0" y="130.0" text-anchor="middle" class="tx">副作用 ①(run_id, key)</text><rect class="bx a" x="34" y="150" width="190" height="30" rx="9"/><text x="129.0" y="170.0" text-anchor="middle" class="tx">副作用 ②(run_id, key)</text><rect class="bx a" x="34" y="190" width="190" height="30" rx="9"/><text x="129.0" y="210.0" text-anchor="middle" class="tx">副作用 ③(run_id, key)</text><path d="M226 125 L300 125" class="ar" marker-end="url(#m2)"/><path d="M226 165 L300 165" class="ar" marker-end="url(#m2)"/><path d="M226 205 L300 205" class="ar" marker-end="url(#m2)"/><rect class="bx c" x="304" y="70" width="210" height="170" rx="12"/><text x="409" y="96" text-anchor="middle" class="hd">SoundGate(环境外)</text><text x="409" y="124" text-anchor="middle" class="tx">P1 未决定前一律扣住</text><text x="409" y="152" text-anchor="middle" class="tx">P2 拒绝即永不放行</text><text x="409" y="180" text-anchor="middle" class="tx">P3 重放按 key 去重</text><text x="409" y="208" text-anchor="middle" class="tx">P4 取消后围栏拒收</text><path d="M516 155 L590 155" class="ar" marker-end="url(#m2)"/><rect class="bx b" x="594" y="126" width="150" height="58" rx="9"/><text x="669" y="150" text-anchor="middle" class="tx">外部世界<tspan x="669" dy="16">(API / 数据库)</tspan></text><rect class="bx d" x="304" y="10" width="210" height="34" rx="9"/><text x="409.0" y="32.0" text-anchor="middle" class="tx">人工审批 / 取消信号</text><path d="M409 44 L409 68" class="ar" marker-end="url(#m2)"/><path d="M129 262 C129 300 669 300 669 184" fill="none" stroke="var(--warm)" stroke-width="1.8" stroke-dasharray="6 4"/><text x="400" y="296" text-anchor="middle" class="sm w">直连外网被内核拦截:回环网络命名空间(ENETUNREACH)或 cgroup eBPF(EPERM)</text></svg><figcaption>图 2 · SoundGate:所有副作用先经环境外闸门准入,直连外网被内核拦截(据论文描述绘制的示意图)</figcaption></figure>
+<figure class="en figure" data-anim><svg viewBox="0 0 760 320" role="img" aria-label="SoundGate external gate architecture"><defs><marker id="m2-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><rect x="14" y="30" width="230" height="230" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="5 4"/><text x="129" y="22" text-anchor="middle" class="hd">Agent environment (untrusted)</text><rect class="bx b" x="34" y="50" width="190" height="36" rx="9"/><text x="129.0" y="73.0" text-anchor="middle" class="tx">Agent framework / parallel branches</text><rect class="bx a" x="34" y="110" width="190" height="30" rx="9"/><text x="129.0" y="130.0" text-anchor="middle" class="tx">Effect ① (run_id, key)</text><rect class="bx a" x="34" y="150" width="190" height="30" rx="9"/><text x="129.0" y="170.0" text-anchor="middle" class="tx">Effect ② (run_id, key)</text><rect class="bx a" x="34" y="190" width="190" height="30" rx="9"/><text x="129.0" y="210.0" text-anchor="middle" class="tx">Effect ③ (run_id, key)</text><path d="M226 125 L300 125" class="ar" marker-end="url(#m2-e)"/><path d="M226 165 L300 165" class="ar" marker-end="url(#m2-e)"/><path d="M226 205 L300 205" class="ar" marker-end="url(#m2-e)"/><rect class="bx c" x="304" y="70" width="210" height="170" rx="12"/><text x="409" y="96" text-anchor="middle" class="hd">SoundGate (outside)</text><text x="409" y="124" text-anchor="middle" class="tx">P1 hold until decided</text><text x="409" y="152" text-anchor="middle" class="tx">P2 rejected = never released</text><text x="409" y="180" text-anchor="middle" class="tx">P3 dedup on replay by key</text><text x="409" y="208" text-anchor="middle" class="tx">P4 fence after cancel</text><path d="M516 155 L590 155" class="ar" marker-end="url(#m2-e)"/><rect class="bx b" x="594" y="126" width="150" height="58" rx="9"/><text x="669" y="150" text-anchor="middle" class="tx">Outside world<tspan x="669" dy="16">(APIs / databases)</tspan></text><rect class="bx d" x="304" y="10" width="210" height="34" rx="9"/><text x="409.0" y="32.0" text-anchor="middle" class="tx">Human approval / cancel signal</text><path d="M409 44 L409 68" class="ar" marker-end="url(#m2-e)"/><path d="M129 262 C129 300 669 300 669 184" fill="none" stroke="var(--warm)" stroke-width="1.8" stroke-dasharray="6 4"/><text x="400" y="296" text-anchor="middle" class="sm w">Direct egress blocked by the kernel: loopback-only netns (ENETUNREACH) or cgroup eBPF (EPERM)</text></svg><figcaption>Figure 2 · SoundGate: every effect is admitted by a gate outside the environment; direct egress is blocked by the kernel (sketch from the paper’s description)</figcaption></figure>
+<p class="zh"><b>怎么保证“没有旁路”</b>:对网络出口,论文给出两条内核强制路线——只有回环的网络命名空间(直连外网返回 ENETUNREACH),或在 cgroup 上挂 eBPF 钩子(connect4/6、sendmsg4/6 对非闸门地址返回 EPERM)。较弱的手段包括包装器约定、静态 linter、seccomp,以及用 Landlock 管文件路径。</p>
+<p class="en"><b>How “no bypass” is enforced</b>: for network egress the paper offers two kernel-enforced routes: a loopback-only network namespace (direct egress fails with ENETUNREACH), or cgroup eBPF hooks (connect4/6 and sendmsg4/6 return EPERM for any non-gate address). Weaker rungs include wrapper discipline, a static linter, seccomp, and Landlock for filesystem paths.</p>
+<p class="zh"><b>形式化验证与性能</b>:准入核心用 Verus、TLA+/TLC(最多约 7.5×10⁷ 个状态)、TLAPS 和 Loom 建模验证,并用 1.2×10⁷ 次操作的差分一致性测试比对模型与实际 Rust 代码,零偏差。τ-bench 中每次写入约 1 ms 开销、零误拒;持久化准入约 1.2 万次/秒。据 Developers Digest 报道可 <code>pip install soundgate</code> 安装(本文未核验该包)。</p>
+<p class="en"><b>Verification and performance</b>: the admission core is modeled and checked with Verus, TLA+/TLC (up to ~7.5×10⁷ states), TLAPS and Loom, and compared with the deployed Rust code by differential conformance testing over 1.2×10⁷ operations, with zero divergences. In τ-bench it adds about 1 ms per write with zero false refusals, and sustains about 12k durable admissions per second. Developers Digest reports it installs via <code>pip install soundgate</code> (this article did not verify the package).</p>
+</section>
+<section id="s6"><h2 class="zh"><span class="n">6</span>怎么用:今天就能做的四件事</h2><h2 class="en"><span class="n">6</span>How to use it: four things you can do today</h2>
+<p class="zh">即使不引入 SoundGate,论文的结论也能直接指导代码结构。以下第 1、2 条有框架官方文档支撑,第 3、4 条为作者据论文推导的做法(代码为示意,不是任何库的 API)。</p>
+<p class="en">Even without adopting SoundGate, the findings translate directly into code structure. Items 1 and 2 are backed by official framework docs; items 3 and 4 are the author’s practices derived from the paper (code is illustrative, not any library’s API).</p>
+<p class="zh"><b>① 把副作用放在审批门“下游”,别放在同一步</b>。论文 0/363 的结果说明:位于闸门之后的节点不会泄漏。LangGraph 文档也建议“把副作用放在 interrupt 之后或单独的节点里”。</p>
+<p class="en"><b>① Put side effects downstream of the gate, never in the same step.</b> The paper’s 0/363 result shows nodes after the gate do not leak. LangGraph’s docs likewise recommend placing side effects after the interrupt or in a separate node.</p>
+<pre class="zh"><code>from langgraph.types import interrupt
+
+def approve(state):                      # 节点 1:只负责问人,没有副作用
+    ok = interrupt({&quot;action&quot;: &quot;refund&quot;, &quot;amount&quot;: state[&quot;amount&quot;]})
+    return {&quot;approved&quot;: ok}
+
+def do_refund(state):                    # 节点 2:在审批之后串行执行
+    if state[&quot;approved&quot;]:
+        refund(state[&quot;order_id&quot;],
+               idempotency_key=f&#x27;{state[&quot;run_id&quot;]}:refund:{state[&quot;order_id&quot;]}&#x27;)
+    return {}
+
+# 图结构:approve -&gt; do_refund(串行),不要让 do_refund 与 approve 并行
+</code></pre>
+<pre class="en"><code>from langgraph.types import interrupt
+
+def approve(state):                      # node 1: only asks the human, no side effects
+    ok = interrupt({&quot;action&quot;: &quot;refund&quot;, &quot;amount&quot;: state[&quot;amount&quot;]})
+    return {&quot;approved&quot;: ok}
+
+def do_refund(state):                    # node 2: runs serially after approval
+    if state[&quot;approved&quot;]:
+        refund(state[&quot;order_id&quot;],
+               idempotency_key=f&#x27;{state[&quot;run_id&quot;]}:refund:{state[&quot;order_id&quot;]}&#x27;)
+    return {}
+
+# graph: approve -&gt; do_refund (serial); never run do_refund in parallel with approve
+</code></pre>
+<p class="zh"><b>② 恢复会重跑,所以副作用必须幂等</b>。LangGraph 文档明确:恢复时节点从头执行,“不要在 interrupt 之前做非幂等操作”。OpenAI Agents SDK 的审批按 call ID 记录,可部分批准后再 <code>Runner.run(agent, state)</code> 继续——已决定的调用会继续跑,未决定的再次暂停;这意味着你要清楚哪些调用会在你还没全部处理完时就执行。</p>
+<p class="en"><b>② Resume re-runs code, so side effects must be idempotent.</b> LangGraph’s docs are explicit: on resume the node restarts from the top; “do not perform non-idempotent operations before interrupt”. The OpenAI Agents SDK records approvals per call ID and lets you approve some items and then <code>Runner.run(agent, state)</code> again: resolved calls continue while unresolved ones pause the run again, so you need to know which calls will execute before you have handled them all.</p>
+<p class="zh"><b>③ 在副作用层做“准入”,而不是在 Agent 循环里</b>:哪怕只是一个所有工具共用的包装函数,也能补上 P1–P4 的大部分。</p>
+<p class="en"><b>③ Do admission at the side-effect layer, not inside the agent loop</b>: even a single wrapper shared by every tool covers most of P1–P4.</p>
+<pre class="zh"><code># 示意:所有有副作用的工具都必须经过 admit()
+class Gate:
+    def __init__(self, store):            # store:持久化 KV(如 Redis/数据库)
+        self.s = store
+    def admit(self, run_id, key, needs_approval):
+        if self.s.get(f&quot;cancel:{run_id}&quot;):            # P4 取消围栏
+            raise Refused(&quot;run cancelled&quot;)
+        if self.s.get(f&quot;done:{run_id}:{key}&quot;):        # P3 重放去重
+            raise Refused(&quot;already executed&quot;)
+        if needs_approval:
+            d = self.s.get(f&quot;decision:{run_id}:{key}&quot;)
+            if d is None: raise Pending()             # P1 未决定就扣住
+            if d == &quot;reject&quot;: raise Refused(&quot;rejected&quot;)  # P2 拒绝即永不放行
+        self.s.set(f&quot;done:{run_id}:{key}&quot;, 1)         # 注意:真实实现需原子 CAS
+</code></pre>
+<pre class="en"><code># Illustration: every side-effecting tool must call admit()
+class Gate:
+    def __init__(self, store):            # store: durable KV (e.g. Redis / a database)
+        self.s = store
+    def admit(self, run_id, key, needs_approval):
+        if self.s.get(f&quot;cancel:{run_id}&quot;):            # P4 fence on cancel
+            raise Refused(&quot;run cancelled&quot;)
+        if self.s.get(f&quot;done:{run_id}:{key}&quot;):        # P3 dedup on replay
+            raise Refused(&quot;already executed&quot;)
+        if needs_approval:
+            d = self.s.get(f&quot;decision:{run_id}:{key}&quot;)
+            if d is None: raise Pending()             # P1 hold until decided
+            if d == &quot;reject&quot;: raise Refused(&quot;rejected&quot;)  # P2 rejected stays refused
+        self.s.set(f&quot;done:{run_id}:{key}&quot;, 1)         # note: a real one needs atomic CAS
+</code></pre>
+<p class="zh"><b>④ 让旁路在物理上不可能</b>:包装函数只是“约定”,模型生成的代码或第三方工具仍可能直连外网。生产环境里把 Agent 放进只能访问闸门/代理地址的网络(容器网络策略、命名空间或出口代理),才接近论文说的“完全中介”。</p>
+<p class="en"><b>④ Make bypass physically impossible</b>: a wrapper is only a convention; model-written code or third-party tools can still reach the network directly. In production, put the agent on a network that can reach only the gate/proxy (container network policy, a namespace, or an egress proxy) to approach the paper’s “complete mediation”.</p>
+<div class="zh callout key"><b>自测清单</b>:写一个最小图——审批节点 + 同一步的并行 HTTP POST 到本地端点,脚本化“拒绝”;看端点是否收到请求。再测一次“取消后 5 秒内端点是否还有请求”和“resume 两次是否重复写入”。三个测试都过,才算你的刹车真的能刹住。</div>
+<div class="en callout key"><b>Self-test checklist</b>: build a minimal graph with an approval node plus a parallel HTTP POST to a local endpoint in the same step, and script a rejection; check whether the endpoint received a request. Then test “does the endpoint still get requests within 5 s after cancel” and “does resuming twice write twice”. Only when all three pass do your brakes actually stop.</div>
+</section>
+<section id="s7"><h2 class="zh"><span class="n">7</span>坑与局限</h2><h2 class="en"><span class="n">7</span>Pitfalls and limits</h2>
+<div class="zh callout warn"><b>SoundGate 只保证“安全性”,不保证“活性”</b>:它保证坏事不发生,不保证该做的事一定做完;并且<b>无法撤回</b>已经放行到外部服务的副作用。</div>
+<div class="en callout warn"><b>SoundGate guarantees safety, not liveness</b>: it ensures bad things do not happen, not that good things finish; and it <b>cannot roll back</b> an effect already released to an external service.</div>
+<div class="zh callout warn"><b>中介缺口</b>:两条内核路线只覆盖网络出口。文件系统、进程间通信、共享内存仍要靠部署约定或额外的 seccomp/Landlock 策略;如果你的关键动作走这些通道,必须自己补上。提示注入检测、审批人身份真实性、被攻破的工具都不在其范围内。</div>
+<div class="en callout warn"><b>Mediation gaps</b>: the two kernel routes cover network egress only. Filesystem, IPC and shared memory still rely on placement discipline or extra seccomp/Landlock policy; if your consequential actions use those channels you must add them yourself. Injection detection, approver authenticity and compromised tools are out of scope.</div>
+<div class="zh callout key"><b>常见误解</b>:“框架有审批功能 = 安全”。论文的结论恰恰相反:审批是否生效取决于<b>图的结构</b>和<b>闸门放在哪里</b>。另外,这不是某一家框架的 bug——5 个带审批门的框架全中,说明是“把刹车做在引擎里”这一设计模式的问题。</div>
+<div class="en callout key"><b>A common misreading</b>: “the framework has approvals, so we are safe”. The paper says the opposite: whether approvals work depends on <b>the graph’s structure</b> and <b>where the gate lives</b>. And this is not one vendor’s bug: all five frameworks with approval gates were affected, pointing at the design pattern of “brakes built into the engine”.</div>
+<p class="zh note">论文为单作者预印本(2026-07-15 首次提交,08-08 更新到 v3),尚未见同行评审或框架维护者的公开回应;以上框架版本为论文固定版本,新版本可能已修复部分问题。</p>
+<p class="en note">The paper is a single-author preprint (first submitted 2026-07-15, v3 on 08-08); no peer review or public response from framework maintainers was found. Framework versions are those pinned by the paper; newer releases may have fixed some issues.</p>
+</section>
+<section id="s8"><h2 class="zh"><span class="n">8</span>资源与来源</h2><h2 class="en"><span class="n">8</span>Resources and sources</h2>
+<div class="zh src"><ul><li><a href="https://arxiv.org/abs/2607.14166">Stop Means Stop: Measuring and Repairing the Enforcement Gap in Agent-Framework Control Primitives</a> — Sajjad Khan,arXiv 2607.14166 v3(2026-08-08)· 一手来源</li><li><a href="https://arxiv.org/html/2607.14166v3">论文 HTML 全文</a> — 框架版本、表 2、SoundGate 设计与局限</li><li><a href="https://www.developersdigest.tech/blog/stop-means-stop-enforcement-gap-2026">Developers Digest 解读</a> — 2026-08-11,二手转述</li><li><a href="https://docs.langchain.com/oss/python/langgraph/interrupts">LangGraph 文档:Interrupts</a> — 恢复重跑与幂等要求 · 官方</li><li><a href="https://openai.github.io/openai-agents-python/human_in_the_loop/">OpenAI Agents SDK:Human-in-the-loop</a> — needs_approval 与 RunState · 官方</li></ul></div>
+<div class="en src"><ul><li><a href="https://arxiv.org/abs/2607.14166">Stop Means Stop: Measuring and Repairing the Enforcement Gap in Agent-Framework Control Primitives</a> — Sajjad Khan, arXiv 2607.14166 v3 (2026-08-08) · primary source</li><li><a href="https://arxiv.org/html/2607.14166v3">Full paper (HTML)</a> — framework versions, Table 2, SoundGate design and limits</li><li><a href="https://www.developersdigest.tech/blog/stop-means-stop-enforcement-gap-2026">Developers Digest write-up</a> — 2026-08-11, secondary</li><li><a href="https://docs.langchain.com/oss/python/langgraph/interrupts">LangGraph docs: Interrupts</a> — re-run on resume and idempotency · official</li><li><a href="https://openai.github.io/openai-agents-python/human_in_the_loop/">OpenAI Agents SDK: Human-in-the-loop</a> — needs_approval and RunState · official</li></ul></div>
+</section>
+</div>
+<footer><p class="zh">说明:本文为 2026-10-13 回溯补生成,内容基于当时(2026-08-11 前后)的公开资料检索。事实均来自上文所列来源;论文数字为作者自报、尚无独立复现;图 1、图 2 为据文字描述绘制的示意图;第 6 节代码为示意,不是任何库的 API。</p><p class="en">Note: this article was generated retroactively on 2026-10-13 from public sources available around 2026-08-11. All facts come from the sources listed above; the paper’s numbers are self-reported and not yet independently reproduced; Figures 1 and 2 are sketches drawn from textual descriptions; code in section 6 is illustrative, not any library’s API.</p></footer>
+</main>
+<script>
+(function(){
+var body=document.body,figs=[].slice.call(document.querySelectorAll('.figure'));
+var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.15}):null;
+function visible(el){return el.offsetParent!==null}
+function refig(){figs.forEach(function(f){if(f.classList.contains('in'))return;if(!visible(f))return;var r=f.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0){f.classList.add('in')}else if(io){io.observe(f)}else f.classList.add('in')})}
+function setLang(l,save){body.setAttribute('data-lang',l);document.documentElement.lang=(l==='zh'?'zh-CN':'en');document.getElementById('lang').textContent=(l==='zh'?'EN':'中');
+document.title=(l==='zh'?document.body.getAttribute('data-tzh'):document.body.getAttribute('data-ten'));
+if(save){try{localStorage.setItem('aidaily-lang',l)}catch(e){}}setTimeout(refig,30)}
+var l=null;try{l=localStorage.getItem('aidaily-lang')}catch(e){}
+if(l!=='zh'&&l!=='en'){l=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en'}
+document.getElementById('lang').addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh',true)});
+setLang(l,false);
+var toc=document.getElementById('toc');document.getElementById('tocbtn').addEventListener('click',function(){toc.classList.toggle('open')});
+toc.addEventListener('click',function(e){if(e.target.closest('a'))toc.classList.remove('open')});
+var links=[].slice.call(toc.querySelectorAll('a')),secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function onscroll(){var h=document.documentElement,p=h.scrollTop/(h.scrollHeight-h.clientHeight||1);document.getElementById('bar').style.width=(p*100)+'%';var cur=0;secs.forEach(function(s,i){if(s.getBoundingClientRect().top<120)cur=i});links.forEach(function(a,i){a.classList.toggle('on',i===cur)})}
+addEventListener('scroll',onscroll,{passive:true});onscroll();
+})();
+</script>
+</body>
+</html>
