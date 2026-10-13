@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LlamaIndex Workflows 事件驱动编排 | Event-Driven Orchestration with LlamaIndex Workflows</title>
+<style>
+:root{--bg:#f6f5fc;--card:#fff;--ink:#1b1a2e;--ink2:#3b3a5c;--muted:#6d6c8a;--line:#dddcee;--ac:#5a46d4;--ac2:#4231ad;--acs:#edebfd;--warm:#b4540a;--warms:#fdf0e3;--code:#f1f0f9}
+@media(prefers-color-scheme:dark){:root{--bg:#11101c;--card:#1a1929;--ink:#e9e8f6;--ink2:#bdbbd9;--muted:#908fac;--line:#2e2c46;--ac:#8f7fff;--ac2:#b9afff;--acs:#262250;--warm:#f0a35e;--warms:#33261a;--code:#201f3a}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--ac);z-index:50}
+#lang{position:fixed;top:12px;right:14px;z-index:60;border:1.5px solid var(--ac);background:var(--card);color:var(--ac2);font-weight:800;font-size:14px;padding:6px 14px;border-radius:99px;cursor:pointer}
+#tocbtn{display:none;position:fixed;top:12px;left:14px;z-index:60;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;padding:3px 11px;border-radius:10px;cursor:pointer}
+nav#toc{position:fixed;left:0;top:0;bottom:0;width:210px;padding:70px 14px 20px;background:var(--card);border-right:1px solid var(--line);overflow:auto;z-index:40}
+nav#toc a{display:block;color:var(--ink2);text-decoration:none;font-size:14px;padding:6px 10px;border-radius:8px;line-height:1.4}
+nav#toc a.on{background:var(--acs);color:var(--ac2);font-weight:700}
+main{margin-left:210px}
+.hero{padding:70px 30px 40px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--acs),transparent)}
+.hero .in,.sec-wrap{max-width:780px;margin:0 auto}
+.hero h1{font-size:clamp(26px,5vw,40px);line-height:1.25;margin:0 0 10px;letter-spacing:-.02em}
+.hero .sub{color:var(--ink2);margin:0 0 6px;font-size:16px}
+.hero .tag{display:inline-block;font-size:12.5px;font-weight:800;color:var(--ac2);background:var(--card);border:1px solid var(--line);padding:3px 11px;border-radius:99px;margin-bottom:12px}
+.sec-wrap{padding:10px 24px 60px}
+section{padding-top:30px}
+h2{font-size:24px;line-height:1.3;margin:0 0 12px;display:flex;gap:10px;align-items:baseline}
+h2 .n{font-size:14px;font-weight:800;color:#fff;background:var(--ac);border-radius:8px;padding:1px 9px}
+p{margin:0 0 14px}p.note{font-size:14px;color:var(--muted)}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font-size:.9em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:14px;line-height:1.6}
+.callout{border-left:4px solid var(--ac);background:var(--acs);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:16px}
+.callout.warn{border-color:var(--warm);background:var(--warms)}
+.figure{margin:18px 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;opacity:0;transform:translateY(10px);transition:.6s}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:8px;text-align:center}
+.bx{fill:var(--card);stroke:var(--line);stroke-width:1.5}.bx.a{fill:var(--acs);stroke:var(--ac)}.bx.b{fill:var(--card);stroke:var(--ink2)}.bx.c{fill:var(--acs);stroke:var(--ac2);stroke-width:2}.bx.d{fill:var(--warms);stroke:var(--warm);stroke-width:2}
+.tx{fill:var(--ink);font-size:13px;font-weight:600}.hd{fill:var(--ac2);font-size:15px;font-weight:800}.sm{fill:var(--ink2);font-size:12.5px}.sm.w{fill:var(--warm);font-weight:700}.ar{stroke:var(--ink2);stroke-width:1.6;fill:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0}
+.stats div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.stats b{display:block;font-size:19px;color:var(--ac2)}.stats span{font-size:12.5px;color:var(--muted);line-height:1.4;display:block}
+.glossary dl{margin:0}.glossary dt{font-weight:800;color:var(--ac2);margin-top:12px}.glossary dd{margin:2px 0 0;color:var(--ink2)}
+ol.steps{counter-reset:s;list-style:none;padding:0}ol.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 50px;margin-bottom:10px;position:relative}
+ol.steps li:before{content:counter(s);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--ac);color:#fff;text-align:center;font-weight:800;line-height:26px;font-size:14px}
+table.cmp{width:100%;border-collapse:collapse;font-size:14.5px;line-height:1.6;display:block;overflow-x:auto;margin:14px 0}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+table.cmp th{background:var(--acs);color:var(--ac2)}
+.src a{color:var(--ac2)}
+footer{max-width:780px;margin:0 auto;padding:10px 24px 50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+@media(max-width:900px){nav#toc{transform:translateX(-100%);transition:.25s}nav#toc.open{transform:none;box-shadow:0 0 30px rgba(0,0,0,.25)}main{margin-left:0}#tocbtn{display:block}.hero{padding-top:64px}}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="☰ EN AI Daily · 2026-07-07 · 深度学习 AI Daily · 2026-07-07 · Deep dive LlamaIndex Workflows 事件驱动编排:用类型化事件把 Agent …">
+<meta property="og:title" content="LlamaIndex Workflows 事件驱动编排 | Event-Driven Orchestration with LlamaIndex Workflows">
+<meta property="og:description" content="☰ EN AI Daily · 2026-07-07 · 深度学习 AI Daily · 2026-07-07 · Deep dive LlamaIndex Workflows 事件驱动编排:用类型化事件把 Agent …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-07-07-llamaindexworkflows-shi-jian-qu-dong-bian-pai.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-07-07-llamaindexworkflows-shi-jian-qu-dong-bian-pai.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "LlamaIndex Workflows 事件驱动编排 | Event-Driven Orchestration with LlamaIndex Workflows", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-07-07-llamaindexworkflows-shi-jian-qu-dong-bian-pai.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-07-07", "dateModified": "2026-10-13"}</script>
+</head>
+<body data-lang="zh" data-tzh="LlamaIndex Workflows 事件驱动编排 | Event-Driven Orchestration with LlamaIndex Workflows" data-ten="Event-Driven Orchestration with LlamaIndex Workflows | LlamaIndex Workflows 事件驱动编排">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button id="tocbtn" aria-label="TOC">☰</button>
+<button id="lang" aria-label="language">EN</button>
+<nav id="toc"><a href="#s1"><span class="zh">30 秒速览</span><span class="en">30-second version</span></a><a href="#s2"><span class="zh">核心概念</span><span class="en">Core concepts</span></a><a href="#s3"><span class="zh">怎么用</span><span class="en">How to use</span></a><a href="#s4"><span class="zh">人在回路与持久化</span><span class="en">HITL & durability</span></a><a href="#s5"><span class="zh">多智能体与部署</span><span class="en">Multi-agent & deploy</span></a><a href="#s6"><span class="zh">对比 LangGraph</span><span class="en">vs LangGraph</span></a><a href="#s7"><span class="zh">坑</span><span class="en">Pitfalls</span></a><a href="#s8"><span class="zh">资源与来源</span><span class="en">Sources</span></a></nav>
+<main>
+<div class="hero"><div class="in">
+<span class="tag zh">AI Daily · 2026-07-07 · 深度学习</span><span class="tag en">AI Daily · 2026-07-07 · Deep dive</span>
+<h1 class="zh">LlamaIndex Workflows 事件驱动编排:用类型化事件把 Agent 步骤串起来</h1><h1 class="en">Event-Driven Orchestration with LlamaIndex Workflows: wiring agent steps together with typed events</h1>
+<p class="sub zh">基于 LlamaIndex 官方博客、官方文档与社区评测整理。读完你会知道:事件驱动编排怎么写、如何做人在回路与断点恢复、与 LangGraph 怎么选。</p>
+<p class="sub en">Based on LlamaIndex’s official blog and docs plus community reviews. You will learn how to write event-driven orchestration, how to do human-in-the-loop and resume after a crash, and how to choose versus LangGraph.</p>
+</div></div>
+<div class="sec-wrap">
+<section id="s1"><h2 class="zh"><span class="n">1</span>30 秒速览</h2><h2 class="en"><span class="n">1</span>The 30-second version</h2>
+<p class="zh"><b>一句话</b>:LlamaIndex Workflows 是一个<b>事件驱动、async 优先</b>的 Agent 编排库——你写一个个 <code>@step</code> 异步函数,每个函数“接收某种事件、返回另一种事件”,运行时根据<b>函数参数的类型注解</b>自动把事件送到下一个步骤。分支就是 <code>if</code>,循环就是“返回一个更早的事件”,并发就是“返回一个事件列表”。</p>
+<p class="en"><b>In one sentence</b>: LlamaIndex Workflows is an <b>event-driven, async-first</b> library for orchestrating agents. You write <code>@step</code> async functions, each of which “takes one kind of event and returns another”, and the runtime routes events to the next step using <b>the type annotation on the function’s parameter</b>. A branch is an <code>if</code>, a loop is “return an earlier event”, and concurrency is “return a list of events”.</p>
+<p class="zh">为什么今天讲它:7/7 简报的 Agent 技术精选提到 Workflows 1.0“近期讨论升温”,同时 LangGraph 也在推节点级超时与 Saga 补偿。两者代表了 2026 年 Agent 编排的两种主流思路:<b>显式图(LangGraph)</b>与<b>隐式事件路由(Workflows)</b>。弄懂后者,你就能在“我要一张状态机”与“我要几段可组合的 async 代码”之间做出有根据的选择。</p>
+<p class="en">Why today: the 7/7 brief’s agent-tech section noted that discussion of Workflows 1.0 was heating up, while LangGraph was shipping node-level timeouts and saga-style compensation. They represent the two mainstream approaches to agent orchestration in 2026: <b>an explicit graph (LangGraph)</b> and <b>implicit event routing (Workflows)</b>. Understanding the latter helps you choose, with reasons, between “I need a state machine” and “I need a few composable async functions”.</p>
+<div class="zh callout warn"><b>日期澄清</b>:简报沿用了 Alice Labs 框架对比页“Workflows 1.0 于 2026-06-22 发布、同日 LlamaCloud 更名 LlamaParse”的说法。但一手来源显示:<b>Workflows 1.0 官方公告发布于 2025-06-30</b>(LlamaIndex 博客,作者 Massimiliano Pippi、Logan Markewich);<b>LlamaCloud → LlamaParse 更名</b>见于 2026-02-24 的官方 newsletter。Alice Labs 自己的 Workflows 指南页也写的是 2025-06-30。因此本文把 2026 年 6-7 月的情况理解为“1.0 API 稳定一年后的再讨论”,而非新发布。</div>
+<div class="en callout warn"><b>Date clarification</b>: the brief repeated the Alice Labs framework comparison’s claim that Workflows 1.0 shipped on 2026-06-22, alongside a LlamaCloud → LlamaParse rename on the same day. Primary sources say otherwise: <b>the official Workflows 1.0 announcement was published on 2025-06-30</b> (LlamaIndex blog, by Massimiliano Pippi and Logan Markewich), and <b>the LlamaCloud → LlamaParse rename</b> appears in the official newsletter of 2026-02-24. Alice Labs’ own Workflows guide also says 2025-06-30. This article therefore treats June-July 2026 as renewed discussion a year after the 1.0 API stabilized, not a new release.</div>
+<figure class="zh figure" data-anim><svg viewBox="0 0 760 310" role="img" aria-label="事件驱动工作流:分支、扇出、汇合、循环"><defs><marker id="m1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="380" y="22" text-anchor="middle" class="hd">步骤之间不连线,靠“事件类型”自动路由</text><rect class="bx a" x="15" y="125" width="110" height="40" rx="9"/><text x="70.0" y="150.0" text-anchor="middle" class="tx">StartEvent</text><path d="M125 145 L153 145" class="ar" marker-end="url(#m1)"/><rect class="bx b" x="155" y="125" width="130" height="40" rx="9"/><text x="220.0" y="150.0" text-anchor="middle" class="tx">plan 步骤</text><rect class="bx b" x="330" y="45" width="150" height="40" rx="9"/><text x="405.0" y="70.0" text-anchor="middle" class="tx">search 步骤 #1</text><path d="M285 145 L328 65" class="ar" marker-end="url(#m1)"/><path d="M480 65 L518 145" class="ar" marker-end="url(#m1)"/><rect class="bx b" x="330" y="125" width="150" height="40" rx="9"/><text x="405.0" y="150.0" text-anchor="middle" class="tx">search 步骤 #2</text><path d="M285 145 L328 145" class="ar" marker-end="url(#m1)"/><path d="M480 145 L518 145" class="ar" marker-end="url(#m1)"/><rect class="bx b" x="330" y="205" width="150" height="40" rx="9"/><text x="405.0" y="230.0" text-anchor="middle" class="tx">search 步骤 #3</text><path d="M285 145 L328 225" class="ar" marker-end="url(#m1)"/><path d="M480 225 L518 145" class="ar" marker-end="url(#m1)"/><text x="405" y="268" text-anchor="middle" class="sm">num_workers=4:同一步骤最多 4 个副本并发</text><rect class="bx c" x="520" y="125" width="120" height="40" rx="9"/><text x="580.0" y="150.0" text-anchor="middle" class="tx">汇合 list[Event]</text><path d="M640 145 L658 145" class="ar" marker-end="url(#m1)"/><rect class="bx d" x="660" y="125" width="90" height="40" rx="9"/><text x="705.0" y="150.0" text-anchor="middle" class="tx">StopEvent</text><path d="M580 165 C580 300, 220 300, 220 168" class="ar" stroke-dasharray="5 4" marker-end="url(#m1)"/><text x="400" y="296" text-anchor="middle" class="sm w">循环:返回一个更早的事件类型即可(如结果不够好 → 重新 plan)</text><text x="220" y="112" text-anchor="middle" class="sm">返回 list[Event] = 扇出</text></svg><figcaption>图 1 · 事件如何在步骤间流动(作者据官方文档绘制的示意)</figcaption></figure>
+<figure class="en figure" data-anim><svg viewBox="0 0 760 310" role="img" aria-label="Event-driven workflow: branch, fan-out, join, loop"><defs><marker id="m1-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="380" y="22" text-anchor="middle" class="hd">Steps are not wired together; event types route them</text><rect class="bx a" x="15" y="125" width="110" height="40" rx="9"/><text x="70.0" y="150.0" text-anchor="middle" class="tx">StartEvent</text><path d="M125 145 L153 145" class="ar" marker-end="url(#m1-e)"/><rect class="bx b" x="155" y="125" width="130" height="40" rx="9"/><text x="220.0" y="150.0" text-anchor="middle" class="tx">plan step</text><rect class="bx b" x="330" y="45" width="150" height="40" rx="9"/><text x="405.0" y="70.0" text-anchor="middle" class="tx">search step #1</text><path d="M285 145 L328 65" class="ar" marker-end="url(#m1-e)"/><path d="M480 65 L518 145" class="ar" marker-end="url(#m1-e)"/><rect class="bx b" x="330" y="125" width="150" height="40" rx="9"/><text x="405.0" y="150.0" text-anchor="middle" class="tx">search step #2</text><path d="M285 145 L328 145" class="ar" marker-end="url(#m1-e)"/><path d="M480 145 L518 145" class="ar" marker-end="url(#m1-e)"/><rect class="bx b" x="330" y="205" width="150" height="40" rx="9"/><text x="405.0" y="230.0" text-anchor="middle" class="tx">search step #3</text><path d="M285 145 L328 225" class="ar" marker-end="url(#m1-e)"/><path d="M480 225 L518 145" class="ar" marker-end="url(#m1-e)"/><text x="405" y="268" text-anchor="middle" class="sm">num_workers=4: up to 4 copies of a step run at once</text><rect class="bx c" x="520" y="125" width="120" height="40" rx="9"/><text x="580.0" y="150.0" text-anchor="middle" class="tx">join list[Event]</text><path d="M640 145 L658 145" class="ar" marker-end="url(#m1-e)"/><rect class="bx d" x="660" y="125" width="90" height="40" rx="9"/><text x="705.0" y="150.0" text-anchor="middle" class="tx">StopEvent</text><path d="M580 165 C580 300, 220 300, 220 168" class="ar" stroke-dasharray="5 4" marker-end="url(#m1-e)"/><text x="400" y="296" text-anchor="middle" class="sm w">Loop: return an earlier event type (weak result → plan again)</text><text x="220" y="112" text-anchor="middle" class="sm">return list[Event] = fan-out</text></svg><figcaption>Figure 1 · How events flow between steps (author’s sketch based on the official docs)</figcaption></figure>
+</section>
+<section id="s2"><h2 class="zh"><span class="n">2</span>核心概念</h2><h2 class="en"><span class="n">2</span>Core concepts</h2>
+<div class="zh glossary"><dl><dt>Event(事件)</dt><dd>一个 Pydantic 模型,继承 <code>Event</code>,字段就是要传递的数据。事件类型就是工作流里的“边”。</dd><dt>StartEvent / StopEvent</dt><dd>每次 <code>run(...)</code> 自动生成 StartEvent,其字段来自 run 的关键字参数;某步骤返回 StopEvent 时运行结束,<code>result</code> 就是 <code>await handler</code> 的返回值。</dd><dt>@step</dt><dd>标记一个 async 方法为处理器;运行时读取参数 <code>ev</code> 的类型注解来决定把哪类事件送给它,读取返回类型来校验流向。</dd><dt>Context(ctx)</dt><dd>一次运行的上下文:发事件(<code>send_event</code>)、写流(<code>write_event_to_stream</code>)、汇合(<code>collect_events</code>)、状态存储(<code>ctx.store</code>)、序列化(<code>to_dict / from_dict</code>)。</dd><dt>类型化状态(typed state)</dt><dd>用 Pydantic 模型声明状态,通过 <code>Context[MyState]</code> 获得类型提示;<code>edit_state()</code> 提供加锁的原子读改写。</dd><dt>Resource(资源注入)</dt><dd>把数据库客户端、LLM、索引等不可序列化对象声明为资源,由运行时创建和注入,不进入快照(1.0 起 Python 支持)。</dd><dt>Handler</dt><dd><code>run()</code> 返回的句柄:可 <code>stream_events()</code> 看过程、<code>send_event()</code> 往里送事件、<code>await</code> 拿结果。</dd></dl></div>
+<div class="en glossary"><dl><dt>Event</dt><dd>A Pydantic model subclassing <code>Event</code>; its fields are the data being passed. Event types are the “edges” of a workflow.</dd><dt>StartEvent / StopEvent</dt><dd>Each <code>run(...)</code> creates a StartEvent whose fields come from run’s keyword arguments; when a step returns a StopEvent the run ends and its <code>result</code> is what <code>await handler</code> returns.</dd><dt>@step</dt><dd>Marks an async method as a handler; the runtime reads the type annotation on the <code>ev</code> parameter to decide which events it receives, and the return type to validate the flow.</dd><dt>Context (ctx)</dt><dd>The context of one run: send events (<code>send_event</code>), write to the stream (<code>write_event_to_stream</code>), join (<code>collect_events</code>), the state store (<code>ctx.store</code>), and serialization (<code>to_dict / from_dict</code>).</dd><dt>Typed state</dt><dd>Declare state as a Pydantic model and get type hints through <code>Context[MyState]</code>; <code>edit_state()</code> gives a locked, atomic read-modify-write.</dd><dt>Resource (injection)</dt><dd>Declare non-serializable objects such as database clients, LLMs and indexes as resources; the runtime creates and injects them and keeps them out of snapshots (Python, since 1.0).</dd><dt>Handler</dt><dd>What <code>run()</code> returns: <code>stream_events()</code> to watch progress, <code>send_event()</code> to push events in, and <code>await</code> to get the result.</dd></dl></div>
+<div class="zh stats"><div><b>2025-06-30</b><span>Workflows 1.0 官方公告<br>独立仓库与包</span></div><div><b>Py + TS</b><span>llama-index-workflows<br>@llamaindex/workflow-core</span></div><div><b>2.22.x</b><span>2026 年中 Python 包版本<br>(据 Alice Labs)</span></div><div><b>≈50k</b><span>llama_index 主仓库星数<br>2026-06(据 rywalker.com)</span></div></div>
+<div class="en stats"><div><b>2025-06-30</b><span>Workflows 1.0 announced<br>standalone repo & package</span></div><div><b>Py + TS</b><span>llama-index-workflows<br>@llamaindex/workflow-core</span></div><div><b>2.22.x</b><span>Python package, mid-2026<br>(per Alice Labs)</span></div><div><b>≈50k</b><span>stars on llama_index main repo<br>June 2026 (per rywalker.com)</span></div></div>
+<p class="zh">1.0 的三个官方新增点(LlamaIndex 博客):<b>类型化状态</b>(Python 与 TS)、<b>资源注入</b>(Python)、<b>可观测性</b>(安装 <code>llama-index-instrumentation</code> 后接 OpenTelemetry、Arize Phoenix 等)。博客强调架构相对 beta 没有大改,主要变化是<b>独立成项目</b>:不装 llama_index 也能用,老的 import 路径通过再导出继续可用。</p>
+<p class="en">The three official additions in 1.0 (LlamaIndex blog): <b>typed state</b> (Python and TS), <b>resource injection</b> (Python), and <b>observability</b> (install <code>llama-index-instrumentation</code> to plug into OpenTelemetry, Arize Phoenix and others). The post stresses that the architecture did not change much from the beta; the main change is that it <b>became a standalone project</b>, usable without llama_index, with the old import paths still working through re-exports.</p>
+</section>
+<section id="s3"><h2 class="zh"><span class="n">3</span>怎么用:从 Hello World 到并发扇出</h2><h2 class="en"><span class="n">3</span>How to use it: from Hello World to concurrent fan-out</h2>
+<p class="zh"><b>安装与最小示例</b>(来自官方仓库 README):</p>
+<p class="en"><b>Install and minimal example</b> (from the official repository README):</p>
+<pre class="zh"><code>pip install llama-index-workflows      # Python 3.10+
+npm i @llamaindex/workflow-core       # TypeScript
+
+from workflows import Workflow, step
+from workflows.events import StartEvent, StopEvent
+
+class HelloWorkflow(Workflow):
+    @step
+    async def greet(self, ev: StartEvent) -&gt; StopEvent:
+        return StopEvent(result=f&quot;Hello, {ev.name}&quot;)
+
+# result = await HelloWorkflow(timeout=60).run(name=&quot;Ada&quot;)</code></pre>
+<pre class="en"><code>pip install llama-index-workflows      # Python 3.10+
+npm i @llamaindex/workflow-core       # TypeScript
+
+from workflows import Workflow, step
+from workflows.events import StartEvent, StopEvent
+
+class HelloWorkflow(Workflow):
+    @step
+    async def greet(self, ev: StartEvent) -&gt; StopEvent:
+        return StopEvent(result=f&quot;Hello, {ev.name}&quot;)
+
+# result = await HelloWorkflow(timeout=60).run(name=&quot;Ada&quot;)</code></pre>
+<p class="zh">注意 <code>ev.name</code>:StartEvent 的字段直接来自 <code>run(name=...)</code> 的关键字参数。<code>timeout=60</code> 是官方入门示例里的写法,用来避免运行无限挂起。</p>
+<p class="en">Note <code>ev.name</code>: StartEvent’s fields come straight from <code>run(name=...)</code> keyword arguments. <code>timeout=60</code> is how the official getting-started example keeps a run from hanging forever.</p>
+<p class="zh"><b>并发扇出 + 汇合</b>(官方 concurrent execution 文档的写法):一个步骤用 <code>ctx.send_event</code> 发出多个事件,接收步骤用 <code>num_workers</code> 控制并发,下游用 <code>ctx.collect_events</code> 等齐再处理。</p>
+<p class="en"><b>Concurrent fan-out + join</b> (as in the official concurrent-execution docs): one step emits several events with <code>ctx.send_event</code>, the receiving step limits concurrency with <code>num_workers</code>, and a downstream step waits with <code>ctx.collect_events</code> until all have arrived.</p>
+<pre class="zh"><code>class ConcurrentFlow(Workflow):
+    @step
+    async def start(self, ctx: Context, ev: StartEvent) -&gt; StepTwoEvent | None:
+        ctx.send_event(StepTwoEvent(query=&quot;Query 1&quot;))
+        ctx.send_event(StepTwoEvent(query=&quot;Query 2&quot;))
+        ctx.send_event(StepTwoEvent(query=&quot;Query 3&quot;))
+
+    @step(num_workers=4)
+    async def step_two(self, ctx: Context, ev: StepTwoEvent) -&gt; StepThreeEvent:
+        return StepThreeEvent(result=await search(ev.query))
+
+    @step
+    async def step_three(self, ctx: Context, ev: StepThreeEvent) -&gt; StopEvent | None:
+        result = ctx.collect_events(ev, [StepThreeEvent] * 3)   # wait for all 3
+        if result is None:
+            return None
+        return StopEvent(result=result)</code></pre>
+<pre class="en"><code>class ConcurrentFlow(Workflow):
+    @step
+    async def start(self, ctx: Context, ev: StartEvent) -&gt; StepTwoEvent | None:
+        ctx.send_event(StepTwoEvent(query=&quot;Query 1&quot;))
+        ctx.send_event(StepTwoEvent(query=&quot;Query 2&quot;))
+        ctx.send_event(StepTwoEvent(query=&quot;Query 3&quot;))
+
+    @step(num_workers=4)
+    async def step_two(self, ctx: Context, ev: StepTwoEvent) -&gt; StepThreeEvent:
+        return StepThreeEvent(result=await search(ev.query))
+
+    @step
+    async def step_three(self, ctx: Context, ev: StepThreeEvent) -&gt; StopEvent | None:
+        result = ctx.collect_events(ev, [StepThreeEvent] * 3)   # wait for all 3
+        if result is None:
+            return None
+        return StopEvent(result=result)</code></pre>
+<p class="zh">更简洁的写法:步骤直接<b>返回 <code>list[Event]</code></b> 即为一个批次的扇出;下游参数写成 <code>list[XxxEvent]</code> 时,会在整批到齐后<b>只触发一次</b>。官方文档还写明了几条细节:批次元素按<b>完成顺序</b>到达(要固定顺序得自己排序);某个 worker 返回 <code>None</code> 会被剔除,汇合照常触发;用 <code>Collect(Take(n))</code> 包住列表参数可以“先到 n 个就放行”,但不会取消其余任务。<code>num_workers</code> 只限制该步骤的并发副本数,不限制同时有多少次运行。</p>
+<p class="en">A shorter form: a step that <b>returns <code>list[Event]</code></b> fans out one batch; a downstream parameter typed <code>list[XxxEvent]</code> fires <b>once</b>, after the whole batch has arrived. The official docs add a few details: batch elements arrive in <b>completion order</b> (sort them yourself if order matters); a worker that returns <code>None</code> is dropped and the join still fires; wrapping the list parameter in <code>Collect(Take(n))</code> releases the join after the first n results but does not cancel the rest. <code>num_workers</code> caps concurrent copies of that step, not how many runs execute at once.</p>
+<p class="zh"><b>类型化状态</b>(官方 state 文档):多个步骤可能同时改状态时,用 <code>edit_state()</code> 做原子更新,并且<b>把慢的 LLM/网络调用移出加锁块</b>。</p>
+<p class="en"><b>Typed state</b> (official state docs): when several steps may change state at once, use <code>edit_state()</code> for atomic updates, and <b>keep slow LLM or network calls out of the locked block</b>.</p>
+<pre class="zh"><code>class CounterState(BaseModel):
+    count: int = Field(default=0)
+
+class MyWorkflow(Workflow):
+    @step
+    async def start(self, ctx: Context[CounterState], ev: StartEvent) -&gt; StopEvent:
+        async with ctx.store.edit_state() as state:   # locked read-modify-write
+            state.count += 1
+        return StopEvent(result=&quot;Done!&quot;)</code></pre>
+<pre class="en"><code>class CounterState(BaseModel):
+    count: int = Field(default=0)
+
+class MyWorkflow(Workflow):
+    @step
+    async def start(self, ctx: Context[CounterState], ev: StartEvent) -&gt; StopEvent:
+        async with ctx.store.edit_state() as state:   # locked read-modify-write
+            state.count += 1
+        return StopEvent(result=&quot;Done!&quot;)</code></pre>
+</section>
+<section id="s4"><h2 class="zh"><span class="n">4</span>人在回路与持久化</h2><h2 class="en"><span class="n">4</span>Human in the loop and durability</h2>
+<p class="zh"><b>人在回路(HITL)</b>:官方推荐“两步式”——一个步骤返回 <code>InputRequiredEvent</code>,另一个步骤接收 <code>HumanResponseEvent</code>;调用方在事件流里看到“需要输入”时,把回复送回同一次运行。</p>
+<p class="en"><b>Human in the loop (HITL)</b>: the docs recommend a two-step pattern. One step returns <code>InputRequiredEvent</code> and another accepts <code>HumanResponseEvent</code>; when the caller sees “input required” in the event stream, it sends the reply back into the same run.</p>
+<pre class="zh"><code>class NumberWorkflow(Workflow):
+    @step
+    async def ask(self, ev: StartEvent) -&gt; InputRequiredEvent:
+        return InputRequiredEvent(prefix=&quot;Enter a number: &quot;)
+
+    @step
+    async def answer(self, ev: HumanResponseEvent) -&gt; StopEvent:
+        return StopEvent(result=ev.response)
+
+handler = workflow.run()
+async for event in handler.stream_events():
+    if isinstance(event, InputRequiredEvent):
+        await handler.send_event(HumanResponseEvent(response=input(event.prefix)))
+final_result = await handler</code></pre>
+<pre class="en"><code>class NumberWorkflow(Workflow):
+    @step
+    async def ask(self, ev: StartEvent) -&gt; InputRequiredEvent:
+        return InputRequiredEvent(prefix=&quot;Enter a number: &quot;)
+
+    @step
+    async def answer(self, ev: HumanResponseEvent) -&gt; StopEvent:
+        return StopEvent(result=ev.response)
+
+handler = workflow.run()
+async for event in handler.stream_events():
+    if isinstance(event, InputRequiredEvent):
+        await handler.send_event(HumanResponseEvent(response=input(event.prefix)))
+final_result = await handler</code></pre>
+<p class="zh">如果提问和回答发生在<b>不同的请求或进程</b>里(现实中的审批流程大多如此),就要把上下文快照下来:提问后保存 <code>handler.ctx.to_dict()</code>(JSON),再 <code>handler.cancel_run()</code>,避免内存里留一个永远等不到答案的运行;答案到了以后用 <code>Context.from_dict(workflow, d)</code> 恢复、<code>workflow.run(ctx=ctx)</code> 继续,再送入 HumanResponseEvent。</p>
+<p class="en">If the question and the answer happen in <b>different requests or processes</b> (as most real approval flows do), snapshot the context: after asking, save <code>handler.ctx.to_dict()</code> (JSON) and call <code>handler.cancel_run()</code> so no in-memory run is left waiting for an answer that will never reach it; when the answer arrives, restore with <code>Context.from_dict(workflow, d)</code>, continue with <code>workflow.run(ctx=ctx)</code>, and send the HumanResponseEvent.</p>
+<figure class="zh figure" data-anim><svg viewBox="0 0 760 280" role="img" aria-label="人在回路:暂停、快照、恢复"><defs><marker id="m2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="10" y="22" class="hd">进程 A(请求 1)</text><rect class="bx a" x="20" y="36" width="220" height="52" rx="9"/><text x="130" y="58" text-anchor="middle" class="tx">workflow.run()</text><text x="130" y="77" text-anchor="middle" class="sm">开始执行</text><rect class="bx b" x="270" y="36" width="220" height="52" rx="9"/><text x="380" y="58" text-anchor="middle" class="tx">返回 InputRequiredEvent</text><text x="380" y="77" text-anchor="middle" class="sm">流里出现“需要输入”</text><rect class="bx d" x="520" y="36" width="220" height="52" rx="9"/><text x="630" y="58" text-anchor="middle" class="tx">ctx.to_dict() 存库</text><text x="630" y="77" text-anchor="middle" class="sm">然后 handler.cancel_run()</text><path d="M240 62 L268 62" class="ar" marker-end="url(#m2)"/><path d="M490 62 L518 62" class="ar" marker-end="url(#m2)"/><path d="M630 88 L630 158" class="ar" stroke-dasharray="5 4" marker-end="url(#m2)"/><text x="640" y="128" class="sm w">等人类回复</text><text x="10" y="150" class="hd">进程 B(请求 2,可能数小时后)</text><rect class="bx c" x="520" y="160" width="220" height="52" rx="9"/><text x="630" y="182" text-anchor="middle" class="tx">Context.from_dict()</text><text x="630" y="201" text-anchor="middle" class="sm">从库里读回快照</text><rect class="bx b" x="270" y="160" width="220" height="52" rx="9"/><text x="380" y="182" text-anchor="middle" class="tx">workflow.run(ctx=ctx)</text><text x="380" y="201" text-anchor="middle" class="sm">send HumanResponseEvent</text><rect class="bx a" x="20" y="160" width="220" height="52" rx="9"/><text x="130" y="182" text-anchor="middle" class="tx">StopEvent</text><text x="130" y="201" text-anchor="middle" class="sm">返回最终结果</text><path d="M520 186 L492 186" class="ar" marker-end="url(#m2)"/><path d="M270 186 L242 186" class="ar" marker-end="url(#m2)"/><text x="380" y="262" text-anchor="middle" class="sm w">恢复是“至少一次”语义:中断时在跑的步骤会重跑,副作用须可重复(据官方文档)</text></svg><figcaption>图 2 · 跨进程的暂停—快照—恢复(作者据官方 HITL 与 durable 文档绘制的示意)</figcaption></figure>
+<figure class="en figure" data-anim><svg viewBox="0 0 760 280" role="img" aria-label="Human in the loop: pause, snapshot, resume"><defs><marker id="m2-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="10" y="22" class="hd">Process A (request 1)</text><rect class="bx a" x="20" y="36" width="220" height="52" rx="9"/><text x="130" y="58" text-anchor="middle" class="tx">workflow.run()</text><text x="130" y="77" text-anchor="middle" class="sm">run starts</text><rect class="bx b" x="270" y="36" width="220" height="52" rx="9"/><text x="380" y="58" text-anchor="middle" class="tx">returns InputRequiredEvent</text><text x="380" y="77" text-anchor="middle" class="sm">stream shows “input needed”</text><rect class="bx d" x="520" y="36" width="220" height="52" rx="9"/><text x="630" y="58" text-anchor="middle" class="tx">ctx.to_dict() → database</text><text x="630" y="77" text-anchor="middle" class="sm">then handler.cancel_run()</text><path d="M240 62 L268 62" class="ar" marker-end="url(#m2-e)"/><path d="M490 62 L518 62" class="ar" marker-end="url(#m2-e)"/><path d="M630 88 L630 158" class="ar" stroke-dasharray="5 4" marker-end="url(#m2-e)"/><text x="640" y="128" class="sm w">human replies</text><text x="10" y="150" class="hd">Process B (request 2, maybe hours later)</text><rect class="bx c" x="520" y="160" width="220" height="52" rx="9"/><text x="630" y="182" text-anchor="middle" class="tx">Context.from_dict()</text><text x="630" y="201" text-anchor="middle" class="sm">load snapshot back</text><rect class="bx b" x="270" y="160" width="220" height="52" rx="9"/><text x="380" y="182" text-anchor="middle" class="tx">workflow.run(ctx=ctx)</text><text x="380" y="201" text-anchor="middle" class="sm">send HumanResponseEvent</text><rect class="bx a" x="20" y="160" width="220" height="52" rx="9"/><text x="130" y="182" text-anchor="middle" class="tx">StopEvent</text><text x="130" y="201" text-anchor="middle" class="sm">final result</text><path d="M520 186 L492 186" class="ar" marker-end="url(#m2-e)"/><path d="M270 186 L242 186" class="ar" marker-end="url(#m2-e)"/><text x="380" y="262" text-anchor="middle" class="sm w">Resume is at-least-once: in-flight steps re-run, so side effects must be repeatable (official docs)</text></svg><figcaption>Figure 2 · Pause, snapshot and resume across processes (author’s sketch from the official HITL and durability docs)</figcaption></figure>
+<p class="zh"><b>持久化(durability)</b>:官方文档明说工作流“默认是易失的”,<code>run()</code> 返回后状态就没了,而且<b>没有需要打开的内置 checkpointer</b>。做法是在运行中订阅内部事件,每当某步骤结束(<code>StepStateChanged</code> 且 <code>StepState.NOT_RUNNING</code>)就存一次快照。恢复时:已完成的步骤不重跑,挂起的事件会重新派发、汇合缓冲会重建,<b>中断时正在执行的步骤会被回滚重跑</b>——即“至少一次”语义。</p>
+<p class="en"><b>Durability</b>: the docs say plainly that workflows are “ephemeral by default”: state is gone once <code>run()</code> returns, and <b>there is no built-in checkpointer to switch on</b>. Instead you subscribe to internal events during the run and save a snapshot whenever a step finishes (<code>StepStateChanged</code> with <code>StepState.NOT_RUNNING</code>). On restore, finished steps do not re-run, pending events are re-dispatched and join buffers rebuilt, and <b>steps that were mid-execution are rewound and run again</b>: at-least-once semantics.</p>
+<pre class="zh"><code>db.save(&quot;my-run&quot;, json.dumps(handler.ctx.to_dict()))
+ctx = Context.from_dict(w, json.loads(db.load(&quot;my-run&quot;)))
+result = await w.run(ctx=ctx)</code></pre>
+<pre class="en"><code>db.save(&quot;my-run&quot;, json.dumps(handler.ctx.to_dict()))
+ctx = Context.from_dict(w, json.loads(db.load(&quot;my-run&quot;)))
+result = await w.run(ctx=ctx)</code></pre>
+<p class="zh">不想手写检查点循环?官方提供 <b>DBOS 运行时插件</b>:替换默认的进程内运行时,把步骤状态变化记入数据库,崩溃后自动恢复,工作流代码不用改;<code>WorkflowServer</code> 也能挂同一个插件。</p>
+<p class="en">Don’t want to hand-write the checkpoint loop? The docs offer a <b>DBOS runtime plugin</b> that replaces the default in-process runtime, journals step transitions to a database and recovers after a crash without changes to workflow code; <code>WorkflowServer</code> can use the same plugin.</p>
+</section>
+<section id="s5"><h2 class="zh"><span class="n">5</span>多智能体、观测与部署</h2><h2 class="en"><span class="n">5</span>Multi-agent, observability and deployment</h2>
+<div class="zh"><ol class="steps"><li><b>AgentWorkflow(多智能体)</b>:把多个 <code>FunctionAgent</code>(各有 name、description、system_prompt、tools、<code>can_handoff_to</code>)组合起来,指定 <code>root_agent</code>,运行时自动注入“交接(handoff)”工具,共享状态放在 <code>ctx.store</code>(据官方 multi-agent 文档与 Alice Labs 指南)。</li><li><b>观测</b>:<code>pip install llama-index-instrumentation</code> 后,步骤、事件、LLM 调用都会产生 OpenTelemetry span;本地可用 Arize Phoenix 看,生产可通过 OTLP 导出到 Langfuse、Datadog 等(导出目标列表来自 Alice Labs)。</li><li><b>服务化</b>:server 包把工作流暴露为带流式、持久化、人工审核的 REST API,可挂进现有 Starlette/FastAPI;另有异步 client 供其他服务调用(官方 README)。</li><li><b>部署</b>:<code>llamactl</code> CLI 从模板脚手架、本地热重载,并可部署到 LlamaParse(原 LlamaCloud)、AWS Bedrock AgentCore 或自有基础设施;可部署成无头服务、MCP server 或带 UI 的全栈应用(官方 README)。</li></ol></div>
+<div class="en"><ol class="steps"><li><b>AgentWorkflow (multi-agent)</b>: combine several <code>FunctionAgent</code>s (each with name, description, system_prompt, tools and <code>can_handoff_to</code>), set a <code>root_agent</code>, and the runtime injects a handoff tool automatically; shared state lives in <code>ctx.store</code> (per the official multi-agent docs and the Alice Labs guide).</li><li><b>Observability</b>: after <code>pip install llama-index-instrumentation</code>, steps, events and LLM calls emit OpenTelemetry spans; view them locally in Arize Phoenix, or export over OTLP to Langfuse, Datadog and others in production (the exporter list comes from Alice Labs).</li><li><b>Serving</b>: the server package exposes a workflow as a REST API with streaming, persistence and human review, and can mount inside an existing Starlette/FastAPI app; an async client lets other services call it (official README).</li><li><b>Deployment</b>: the <code>llamactl</code> CLI scaffolds from templates, hot-reloads locally, and deploys to LlamaParse (formerly LlamaCloud), AWS Bedrock AgentCore or your own infrastructure, as a headless service, an MCP server or a full-stack app with a UI (official README).</li></ol></div>
+</section>
+<section id="s6"><h2 class="zh"><span class="n">6</span>对比:Workflows vs LangGraph</h2><h2 class="en"><span class="n">6</span>Comparison: Workflows vs LangGraph</h2>
+<p class="zh">下表综合 Alice Labs 指南(社区/咨询公司观点)与官方文档;“最适合”一行是评论性判断,不是事实。</p>
+<p class="en">The table combines the Alice Labs guide (a consultancy’s view) with the official docs; the “best fit” row is opinion, not fact.</p>
+<table class="zh cmp"><tr><th></th><th>LlamaIndex Workflows</th><th>LangGraph</th></tr><tr><td>编排模型</td><td>类型化事件的发布-订阅,隐式路由</td><td>编译的状态机,显式节点和边</td></tr><tr><td>持久化</td><td><code>Context.to_dict()</code> 自带存储;或 DBOS 插件</td><td>内置 checkpointer(Postgres、SQLite、Redis)</td></tr><tr><td>调试</td><td>OpenTelemetry 追踪(Phoenix 等)</td><td>LangGraph Studio、时间旅行</td></tr><tr><td>TypeScript</td><td><code>@llamaindex/workflow-core</code>,与 Python 大体对齐(TS 1.0 无资源注入)</td><td>LangGraph.js(据 Alice Labs 比 Python 落后约一个版本)</td></tr><tr><td>多智能体</td><td>AgentWorkflow 交接;社区评价“较薄”</td><td>支持完善(JetBrains 评价)</td></tr><tr><td>最适合</td><td>重 RAG/文档处理的流水线</td><td>需审计的状态机、HITL 检查点</td></tr></table>
+<table class="en cmp"><tr><th></th><th>LlamaIndex Workflows</th><th>LangGraph</th></tr><tr><td>Orchestration model</td><td>Pub-sub over typed events, implicit routing</td><td>Compiled state machine, explicit nodes and edges</td></tr><tr><td>Persistence</td><td><code>Context.to_dict()</code> with your own store, or the DBOS plugin</td><td>Built-in checkpointers (Postgres, SQLite, Redis)</td></tr><tr><td>Debugging</td><td>OpenTelemetry traces (Phoenix etc.)</td><td>LangGraph Studio, time travel</td></tr><tr><td>TypeScript</td><td><code>@llamaindex/workflow-core</code>, broadly on par with Python (no resource injection in TS 1.0)</td><td>LangGraph.js (about one release behind Python, per Alice Labs)</td></tr><tr><td>Multi-agent</td><td>AgentWorkflow handoffs; community calls it “thinner”</td><td>Well supported (per JetBrains)</td></tr><tr><td>Best fit</td><td>RAG- and document-heavy pipelines</td><td>Audited state machines, HITL checkpoints</td></tr></table>
+<p class="zh">JetBrains PyCharm 博客(2026-06)的框架盘点把 LlamaIndex 定位为“以数据/检索为中心”:索引和长期记忆强,复杂的重动作编排与多智能体支持有限;LangGraph 控制力、HITL 与多智能体更强。Alice Labs 则建议两者可以<b>组合使用</b>:外层循环用 LangGraph,RAG 子任务交给一个 Workflow。</p>
+<p class="en">JetBrains’ PyCharm blog roundup (June 2026) positions LlamaIndex as “data/retrieval-centric”: strong indexing and long-term memory, limited for complex action-heavy orchestration and multi-agent setups, while LangGraph offers more control, HITL and multi-agent support. Alice Labs suggests <b>combining them</b>: LangGraph for the outer loop, a Workflow for a RAG sub-task.</p>
+<div class="zh callout key"><b>怎么选(作者推断)</b>:你的流程本质是“几个异步步骤 + 少量分支/扇出”、核心价值在检索与文档处理 → Workflows 代码量更少;你需要可视化、可审计、带内置检查点和时间旅行的状态机 → LangGraph 更省心。两者不是互斥。</div>
+<div class="en callout key"><b>How to choose (author’s inference)</b>: if your flow is essentially “a few async steps with some branching or fan-out” and the value lies in retrieval and document processing, Workflows needs less code; if you need a visual, auditable state machine with built-in checkpoints and time travel, LangGraph saves effort. They are not mutually exclusive.</div>
+</section>
+<section id="s7"><h2 class="zh"><span class="n">7</span>坑与注意事项</h2><h2 class="en"><span class="n">7</span>Pitfalls</h2>
+<p class="zh"><b>官方文档明确写到的</b>:</p>
+<p class="en"><b>Stated in the official docs</b>:</p>
+<div class="zh"><ul><li><b>至少一次语义</b>:恢复时中断中的步骤会重跑,发邮件、扣款这类副作用要做成幂等。</li><li><b>实例属性不进快照</b>:写在 <code>self.xxx</code> 上的东西恢复后就没了;持久数据放事件或 <code>ctx.store</code>。</li><li><b>全部可序列化</b>:事件与状态里任何一个值不能序列化,<code>to_dict()</code> 就整体失败;客户端、索引、文件句柄放进 Resource。</li><li><b><code>wait_for_event</code> 会重放</b>:单步式等待在恢复时会重跑等待点之前的代码,所以那段代码必须可重复执行;官方因此更推荐两步式 HITL。</li><li><b>批次乱序</b>:<code>list[Event]</code> 汇合按完成顺序到达。</li><li><b>锁内别做慢操作</b>:<code>edit_state()</code> 块要短,LLM 调用移到外面。</li></ul></div>
+<div class="en"><ul><li><b>At-least-once semantics</b>: steps in flight are re-run on resume, so side effects such as sending email or charging money must be idempotent.</li><li><b>Instance attributes are not snapshotted</b>: anything stored on <code>self.xxx</code> is gone after restore; keep durable data in events or <code>ctx.store</code>.</li><li><b>Everything must serialize</b>: if any value in events or state cannot be serialized, the whole <code>to_dict()</code> fails; put clients, indexes and file handles in a Resource.</li><li><b><code>wait_for_event</code> replays</b>: single-step waiting re-runs the code before the wait point on resume, so that code must be safe to repeat; this is why the docs prefer the two-step HITL pattern.</li><li><b>Batches arrive out of order</b>: a <code>list[Event]</code> join receives results in completion order.</li><li><b>No slow work under the lock</b>: keep <code>edit_state()</code> blocks short and move LLM calls outside.</li></ul></div>
+<div class="zh callout warn"><b>社区经验(Alice Labs,未独立核实)</b>:① 某分支没有通向 StopEvent 会导致挂起,建议在 CI 里跑 <code>Workflow.validate()</code>;② 缓存的 LLM 客户端遇到令牌轮换会中途失败,可用 <code>Resource(factory, cache=False)</code>;③ 给状态模型新增必填字段会让旧快照无法恢复,新字段要有默认值并给模型加版本;④ 智能体互相交接可能死循环直到 token 耗尽,应在共享状态里限制轮数;⑤ 只用 <code>ctx.send_event()</code> 的自定义事件可能缺 OTel span,需配合 <code>write_event_to_stream()</code>。</div>
+<div class="en callout warn"><b>Community experience (Alice Labs, not independently verified)</b>: (1) a branch with no path to a StopEvent hangs, so run <code>Workflow.validate()</code> in CI; (2) cached LLM clients can fail mid-run when tokens rotate, so use <code>Resource(factory, cache=False)</code>; (3) adding a required field to the state model breaks resuming old snapshots, so give new fields defaults and version the model; (4) agents handing off to each other can loop until tokens run out, so cap turns in shared state; (5) custom events sent only with <code>ctx.send_event()</code> may lack OTel spans, so pair them with <code>write_event_to_stream()</code>.</div>
+<div class="zh callout key"><b>常见误解</b>:“事件驱动 = 没有结构”。恰恰相反,事件类型就是结构:每个步骤的输入/输出类型共同定义了一张图,只是这张图写在类型注解里而不是单独的边定义里。好处是改代码就是改图;代价是要看清全貌得靠绘图工具或追踪。</div>
+<div class="en callout key"><b>A common misreading</b>: “event-driven means unstructured”. The opposite is true: the event types are the structure. Each step’s input and output types together define a graph; it lives in type annotations rather than in separate edge definitions. The upside is that editing code edits the graph; the cost is that seeing the whole picture takes a drawing tool or traces.</div>
+</section>
+<section id="s8"><h2 class="zh"><span class="n">8</span>资源与来源</h2><h2 class="en"><span class="n">8</span>Resources and sources</h2>
+<div class="zh src"><ul><li><a href="https://www.llamaindex.ai/blog/announcing-workflows-1-0-a-lightweight-framework-for-agentic-systems">Announcing Workflows 1.0</a> — LlamaIndex 官方博客,2025-06-30 · 一手</li><li><a href="https://developers.llamaindex.ai/python/llamaagents/workflows/">Agent Workflows 官方文档</a> — 含 <a href="https://developers.llamaindex.ai/python/llamaagents/workflows/concurrent_execution/">并发</a>、<a href="https://developers.llamaindex.ai/python/framework/understanding/workflows/state/">状态</a>、<a href="https://developers.llamaindex.ai/python/llamaagents/workflows/human_in_the_loop/">人在回路</a>、<a href="https://developers.llamaindex.ai/python/llamaagents/workflows/durable_workflows/">持久化</a> · 一手</li><li><a href="https://github.com/run-llama/workflows-py">run-llama/workflows-py</a> — 官方仓库 README · 一手</li><li><a href="https://www.llamaindex.ai/blog/llamaindex-newsletter-2026-02-24">LlamaIndex Newsletter 2026-02-24</a> — LlamaCloud 转向 LlamaParse 品牌 · 一手</li><li><a href="https://alicelabs.ai/en/insights/llamaindex-workflows-guide-2026">Alice Labs:Workflows 指南</a>(2026-08 发布,09-16 更新)与 <a href="https://alicelabs.ai/en/insights/best-ai-agent-frameworks-2026">框架对比</a> — 社区/咨询,含未核实内容</li><li><a href="https://blog.jetbrains.com/pycharm/2026/06/top-agentic-frameworks-for-building-applications-2026/">JetBrains PyCharm 博客:2026 Agent 框架</a> — 2026-06 · 社区</li><li><a href="https://rywalker.com/research/llamaindex">rywalker.com:LlamaIndex 研究</a> — 公司与生态数据 · 社区</li></ul></div>
+<div class="en src"><ul><li><a href="https://www.llamaindex.ai/blog/announcing-workflows-1-0-a-lightweight-framework-for-agentic-systems">Announcing Workflows 1.0</a> — official LlamaIndex blog, 2025-06-30 · primary</li><li><a href="https://developers.llamaindex.ai/python/llamaagents/workflows/">Agent Workflows docs</a> — including <a href="https://developers.llamaindex.ai/python/llamaagents/workflows/concurrent_execution/">concurrency</a>, <a href="https://developers.llamaindex.ai/python/framework/understanding/workflows/state/">state</a>, <a href="https://developers.llamaindex.ai/python/llamaagents/workflows/human_in_the_loop/">human in the loop</a>, <a href="https://developers.llamaindex.ai/python/llamaagents/workflows/durable_workflows/">durability</a> · primary</li><li><a href="https://github.com/run-llama/workflows-py">run-llama/workflows-py</a> — official repository README · primary</li><li><a href="https://www.llamaindex.ai/blog/llamaindex-newsletter-2026-02-24">LlamaIndex Newsletter 2026-02-24</a> — LlamaCloud moving to the LlamaParse brand · primary</li><li><a href="https://alicelabs.ai/en/insights/llamaindex-workflows-guide-2026">Alice Labs: Workflows guide</a> (published 2026-08, updated 09-16) and <a href="https://alicelabs.ai/en/insights/best-ai-agent-frameworks-2026">framework comparison</a> — consultancy, includes unverified claims</li><li><a href="https://blog.jetbrains.com/pycharm/2026/06/top-agentic-frameworks-for-building-applications-2026/">JetBrains PyCharm blog: agentic frameworks 2026</a> — June 2026 · community</li><li><a href="https://rywalker.com/research/llamaindex">rywalker.com: LlamaIndex research</a> — company and ecosystem data · community</li></ul></div>
+</section>
+</div>
+<footer><p class="zh">说明:本文为 2026-10-13 回溯补生成,内容基于当时(2026-07-07 前后)的公开报道与官方文档检索。代码片段摘自或改写自官方文档,API 以官方最新文档为准;图 1、图 2 为作者据文档绘制的示意图;标注“社区”“作者推断”的内容未经官方确认。</p><p class="en">Note: this article was generated retroactively on 2026-10-13, based on public reporting and official documentation around 2026-07-07. Code snippets are taken or adapted from the official docs; defer to the latest official API docs. Figures 1 and 2 are the author’s sketches from the docs; items marked “community” or “author’s inference” are not officially confirmed.</p></footer>
+</main>
+<script>
+(function(){
+var body=document.body,figs=[].slice.call(document.querySelectorAll('.figure'));
+var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.15}):null;
+function visible(el){return el.offsetParent!==null}
+function refig(){figs.forEach(function(f){if(f.classList.contains('in'))return;if(!visible(f))return;var r=f.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0){f.classList.add('in')}else if(io){io.observe(f)}else f.classList.add('in')})}
+function setLang(l,save){body.setAttribute('data-lang',l);document.documentElement.lang=(l==='zh'?'zh-CN':'en');document.getElementById('lang').textContent=(l==='zh'?'EN':'中');
+document.title=(l==='zh'?document.body.getAttribute('data-tzh'):document.body.getAttribute('data-ten'));
+if(save){try{localStorage.setItem('aidaily-lang',l)}catch(e){}}setTimeout(refig,30)}
+var l=null;try{l=localStorage.getItem('aidaily-lang')}catch(e){}
+if(l!=='zh'&&l!=='en'){l=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en'}
+document.getElementById('lang').addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh',true)});
+setLang(l,false);
+var toc=document.getElementById('toc');document.getElementById('tocbtn').addEventListener('click',function(){toc.classList.toggle('open')});
+toc.addEventListener('click',function(e){if(e.target.closest('a'))toc.classList.remove('open')});
+var links=[].slice.call(toc.querySelectorAll('a')),secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function onscroll(){var h=document.documentElement,p=h.scrollTop/(h.scrollHeight-h.clientHeight||1);document.getElementById('bar').style.width=(p*100)+'%';var cur=0;secs.forEach(function(s,i){if(s.getBoundingClientRect().top<120)cur=i});links.forEach(function(a,i){a.classList.toggle('on',i===cur)})}
+addEventListener('scroll',onscroll,{passive:true});onscroll();
+})();
+</script>
+</body>
+</html>
