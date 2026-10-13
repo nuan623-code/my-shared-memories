@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent专用浏览器Kitesurf | Kitesurf, an Agent-First Browser</title>
+<style>
+:root{--bg:#fbf5f7;--card:#fff;--ink:#2a1820;--ink2:#53404a;--muted:#86717b;--line:#ead8df;--ac:#c2410c;--ac2:#9a3412;--acs:#fdebe0;--warm:#a16207;--warms:#fbf3d9;--code:#f6edf1}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1015;--card:#24161d;--ink:#f4e6ec;--ink2:#d7bfca;--muted:#a88f9a;--line:#3d2832;--ac:#fb923c;--ac2:#fdba74;--acs:#3a2216;--warm:#f0a35e;--warms:#33261a;--code:#2c1c24}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--ac);z-index:50}
+#lang{position:fixed;top:12px;right:14px;z-index:60;border:1.5px solid var(--ac);background:var(--card);color:var(--ac2);font-weight:800;font-size:14px;padding:6px 14px;border-radius:99px;cursor:pointer}
+#tocbtn{display:none;position:fixed;top:12px;left:14px;z-index:60;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;padding:3px 11px;border-radius:10px;cursor:pointer}
+nav#toc{position:fixed;left:0;top:0;bottom:0;width:210px;padding:70px 14px 20px;background:var(--card);border-right:1px solid var(--line);overflow:auto;z-index:40}
+nav#toc a{display:block;color:var(--ink2);text-decoration:none;font-size:14px;padding:6px 10px;border-radius:8px;line-height:1.4}
+nav#toc a.on{background:var(--acs);color:var(--ac2);font-weight:700}
+main{margin-left:210px}
+.hero{padding:70px 30px 40px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--acs),transparent)}
+.hero .in,.sec-wrap{max-width:780px;margin:0 auto}
+.hero h1{font-size:clamp(26px,5vw,40px);line-height:1.25;margin:0 0 10px;letter-spacing:-.02em}
+.hero .sub{color:var(--ink2);margin:0 0 6px;font-size:16px}
+.hero .tag{display:inline-block;font-size:12.5px;font-weight:800;color:var(--ac2);background:var(--card);border:1px solid var(--line);padding:3px 11px;border-radius:99px;margin-bottom:12px}
+.sec-wrap{padding:10px 24px 60px}
+section{padding-top:30px}
+h2{font-size:24px;line-height:1.3;margin:0 0 12px;display:flex;gap:10px;align-items:baseline}
+h2 .n{font-size:14px;font-weight:800;color:#fff;background:var(--ac);border-radius:8px;padding:1px 9px}
+p{margin:0 0 14px}p.note{font-size:14px;color:var(--muted)}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font-size:.9em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:14px;line-height:1.6}
+.callout{border-left:4px solid var(--ac);background:var(--acs);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:16px}
+.callout.warn{border-color:var(--warm);background:var(--warms)}
+.figure{margin:18px 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;opacity:0;transform:translateY(10px);transition:.6s}
+.figure.in{opacity:1;transform:none}
+.figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:8px;text-align:center}
+.bx{fill:var(--card);stroke:var(--line);stroke-width:1.5}.bx.a{fill:var(--acs);stroke:var(--ac)}.bx.b{fill:var(--card);stroke:var(--ink2)}.bx.c{fill:var(--acs);stroke:var(--ac2);stroke-width:2}.bx.d{fill:var(--warms);stroke:var(--warm);stroke-width:2}
+.tx{fill:var(--ink);font-size:13px;font-weight:600}.hd{fill:var(--ac2);font-size:15px;font-weight:800}.sm{fill:var(--ink2);font-size:12.5px}.sm.w{fill:var(--warm);font-weight:700}.ar{stroke:var(--ink2);stroke-width:1.6;fill:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0}
+.stats div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.stats b{display:block;font-size:19px;color:var(--ac2)}.stats span{font-size:12.5px;color:var(--muted);line-height:1.4;display:block}
+.glossary dl{margin:0}.glossary dt{font-weight:800;color:var(--ac2);margin-top:12px}.glossary dd{margin:2px 0 0;color:var(--ink2)}
+ol.steps{counter-reset:s;list-style:none;padding:0}ol.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 50px;margin-bottom:10px;position:relative}
+ol.steps li:before{content:counter(s);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--ac);color:#fff;text-align:center;font-weight:800;line-height:26px;font-size:14px}
+table.cmp{width:100%;border-collapse:collapse;font-size:14.5px;line-height:1.6;display:block;overflow-x:auto;margin:14px 0}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+table.cmp th{background:var(--acs);color:var(--ac2)}
+.src a{color:var(--ac2)}
+footer{max-width:780px;margin:0 auto;padding:10px 24px 50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+@media(max-width:900px){nav#toc{transform:translateX(-100%);transition:.25s}nav#toc.open{transform:none;box-shadow:0 0 30px rgba(0,0,0,.25)}main{margin-left:0}#tocbtn{display:block}.hero{padding-top:64px}}
+@media(prefers-reduced-motion:reduce){.figure{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="☰ EN AI Daily · 2026-08-09 · 深度学习 AI Daily · 2026-08-09 · Deep dive Agent 专用浏览器 Kitesurf:为什么给 AI 用的浏览器要从零重写 Ki…">
+<meta property="og:title" content="Agent专用浏览器Kitesurf | Kitesurf, an Agent-First Browser">
+<meta property="og:description" content="☰ EN AI Daily · 2026-08-09 · 深度学习 AI Daily · 2026-08-09 · Deep dive Agent 专用浏览器 Kitesurf:为什么给 AI 用的浏览器要从零重写 Ki…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-08-09-agent-zhuan-yong-liu-lan-qi-kitesurf.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-08-09-agent-zhuan-yong-liu-lan-qi-kitesurf.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent专用浏览器Kitesurf | Kitesurf, an Agent-First Browser", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-08-09-agent-zhuan-yong-liu-lan-qi-kitesurf.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-08-09", "dateModified": "2026-10-13"}</script>
+</head>
+<body data-lang="zh" data-tzh="Agent专用浏览器Kitesurf | Kitesurf, an Agent-First Browser" data-ten="Kitesurf, an Agent-First Browser | Agent专用浏览器Kitesurf">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button id="tocbtn" aria-label="TOC">☰</button>
+<button id="lang" aria-label="language">EN</button>
+<nav id="toc"><a href="#s1"><span class="zh">30 秒速览</span><span class="en">30-second version</span></a><a href="#s2"><span class="zh">背景</span><span class="en">Background</span></a><a href="#s3"><span class="zh">架构</span><span class="en">Architecture</span></a><a href="#s4"><span class="zh">数字</span><span class="en">The numbers</span></a><a href="#s5"><span class="zh">怎么用</span><span class="en">How to use</span></a><a href="#s6"><span class="zh">横向对比</span><span class="en">Comparison</span></a><a href="#s7"><span class="zh">坑与误解</span><span class="en">Pitfalls</span></a><a href="#s8"><span class="zh">资源与来源</span><span class="en">Sources</span></a></nav>
+<main>
+<div class="hero"><div class="in">
+<span class="tag zh">AI Daily · 2026-08-09 · 深度学习</span><span class="tag en">AI Daily · 2026-08-09 · Deep dive</span>
+<h1 class="zh">Agent 专用浏览器 Kitesurf:为什么给 AI 用的浏览器要从零重写</h1><h1 class="en">Kitesurf, an Agent-First Browser: why a browser for AI gets rewritten from scratch</h1>
+<p class="sub zh">基于 Cloudflare 官方博客(2026-08-06)与 Browser Run 文档,并参考第三方分析与 Lightpanda、Playwright MCP 的公开资料整理。读完你会知道:Agent 为什么需要不同的浏览器、Kitesurf 怎么搭、数字该怎么读、怎么接进你的 Agent,以及它不适合什么。</p>
+<p class="sub en">Based on Cloudflare’s blog post (2026-08-06) and Browser Run docs, with a third-party analysis and public material on Lightpanda and Playwright MCP. You will learn why agents need a different browser, how Kitesurf is built, how to read its numbers, how to plug it into your agent, and what it is not for.</p>
+</div></div>
+<div class="sec-wrap">
+<section id="s1"><h2 class="zh"><span class="n">1</span>30 秒速览</h2><h2 class="en"><span class="n">1</span>The 30-second version</h2>
+<p class="zh"><b>一句话</b>:Cloudflare 在 2026-08-06 发布了 <b>Kitesurf</b>——一个专门给 AI Agent 用、不基于 Chromium、整个跑在 Cloudflare Workers 上的浏览器。每个页面运行在一个隔离的 V8 isolate 里,兼容 Chrome DevTools Protocol(CDP),所以 Puppeteer、Playwright 代码只需在连接地址后加 <code>browser=kitesurf</code>。它的取舍很清楚:<b>CPU 省 3 倍多、内存省 5–7 倍,但单次耗时慢约 1.7–1.8 倍</b>,并且不支持视频、WebGL、长时间登录态。</p>
+<p class="en"><b>In one sentence</b>: on 2026-08-06 Cloudflare released <b>Kitesurf</b>, a browser built for AI agents, not based on Chromium, running entirely on Cloudflare Workers. Each page runs in its own V8 isolate, and it speaks the Chrome DevTools Protocol (CDP), so Puppeteer or Playwright code only needs <code>browser=kitesurf</code> added to the endpoint. The trade-off is explicit: <b>over 3× less CPU and 5–7× less memory, but about 1.7–1.8× slower per task</b>, with no video, WebGL or long logged-in sessions.</p>
+<p class="zh">先说名词:<b>无头浏览器</b>是没有界面、由程序控制的浏览器;<b>CDP</b> 是 Chrome 的调试/控制协议,Puppeteer、Playwright 都靠它驱动浏览器;<b>V8 isolate</b> 是同一进程里彼此隔离的轻量 JavaScript 运行环境,Workers 就建立在它之上;<b>MCP</b> 是让 Agent 调用外部工具的协议。</p>
+<p class="en">Vocabulary first: a <b>headless browser</b> has no UI and is driven by a program; <b>CDP</b> is Chrome’s debugging/control protocol that Puppeteer and Playwright use; a <b>V8 isolate</b> is a lightweight, isolated JavaScript environment within a process, the foundation of Workers; <b>MCP</b> is the protocol agents use to call external tools.</p>
+<div class="zh callout key"><b>为什么值得读</b>:Agent 上网(读文档、抓页面、截图、填表)越来越多,而人用的浏览器为画面和交互优化,Agent 关心的却是 token、并发、成本和隔离。Kitesurf 是第一个由大型云厂商推出、从零写起的「Agent 优先」浏览器引擎,它把这些取舍摆在了台面上——理解它,就能判断你的 Agent 什么时候该用轻量引擎、什么时候必须用完整 Chromium。</div>
+<div class="en callout key"><b>Why read this</b>: agents browse more and more (reading docs, scraping, screenshots, forms), yet human browsers optimize for pixels and interaction while agents care about tokens, concurrency, cost and isolation. Kitesurf is the first from-scratch, agent-first browser engine from a major cloud vendor, and it puts these trade-offs on the table. Understanding it tells you when your agent can use a lightweight engine and when it needs full Chromium.</div>
+</section>
+<section id="s2"><h2 class="zh"><span class="n">2</span>背景:Agent 为什么需要另一种浏览器</h2><h2 class="en"><span class="n">2</span>Background: why agents need a different browser</h2>
+<p class="zh">Cloudflare 的论点是:人需要标签页、主题、扩展和像素级精确的渲染;Agent 需要的是<b>为模型关心的东西优化</b>——token 数、可扩展性、性能和成本,画面完美反而不那么重要。Agent 的上网负载也和人不同:大量<b>一次性、突发</b>的任务(打开一个页面、提取正文、截一张图、关掉),而不是一个人开着几十个标签页用一整天。</p>
+<p class="en">Cloudflare’s argument: humans want tabs, themes, extensions and pixel-perfect rendering; agents want a browser <b>optimized for what models care about</b>, namely token count, scalability, performance and cost, with visual perfection mattering less. Agent browsing load also differs: lots of <b>one-shot, bursty</b> tasks (open a page, extract text, take a screenshot, close) rather than one person keeping dozens of tabs open all day.</p>
+<p class="zh">「让 Agent 少看像素」并不是 Kitesurf 首创。微软的 <b>Playwright MCP</b> 给模型的是结构化的可访问性快照(accessibility snapshot),README 说它「不需要视觉模型,纯靠结构化数据」;开源的 <b>Lightpanda</b> 用 Zig 从零写了一个不做图形渲染的无头浏览器,自称在 933 个真实页面的爬取测试中比 Chrome 快约 9 倍、峰值内存约 123MB 对 2GB(厂商自测)。Kitesurf 的不同点在于:它<b>保留了渲染能力</b>(能截图、生成 PDF),并且作为托管服务直接跑在 Cloudflare 网络上。</p>
+<p class="en">“Let agents look at fewer pixels” didn’t start with Kitesurf. Microsoft’s <b>Playwright MCP</b> gives models structured accessibility snapshots; its README says “No vision models needed, operates purely on structured data.” The open-source <b>Lightpanda</b> is a from-scratch headless browser in Zig with no graphical rendering, claiming about 9× faster than Chrome and ~123MB vs 2GB peak memory on a 933-page crawl (vendor-reported). Kitesurf differs by <b>keeping rendering</b> (screenshots, PDFs) and running as a managed service on Cloudflare’s network.</p>
+</section>
+<section id="s3"><h2 class="zh"><span class="n">3</span>架构:四个部件,只有一个能出网</h2><h2 class="en"><span class="n">3</span>Architecture: four parts, only one touches the network</h2>
+<figure class="zh figure" data-anim><svg viewBox="0 0 760 360" role="img" aria-label="Kitesurf 组件示意"><defs><marker id="mk1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="10" y="22" class="hd">Kitesurf 的四个部件(全部跑在 Cloudflare Workers 上)</text><rect class="bx a" x="10" y="50" width="160" height="80" rx="9"/><text x="90.0" y="70" text-anchor="middle" class="tx">你的 Agent</text><text x="90.0" y="89" text-anchor="middle" class="sm">Puppeteer / Playwright</text><text x="90.0" y="107" text-anchor="middle" class="sm">或 chrome-devtools-mcp</text><rect class="bx c" x="200" y="50" width="230" height="80" rx="9"/><text x="315.0" y="70" text-anchor="middle" class="tx">Engine</text><text x="315.0" y="89" text-anchor="middle" class="sm">唯一对外:CDP WebSocket + REST</text><text x="315.0" y="107" text-anchor="middle" class="sm">保存会话状态</text><path d="M172 90 L198 90" class="ar" marker-end="url(#mk1)"/><rect class="bx b" x="460" y="40" width="290" height="70" rx="9"/><text x="605.0" y="60" text-anchor="middle" class="tx">PageScript(每页一个 isolate)</text><text x="605.0" y="79" text-anchor="middle" class="sm">Blitz/Stylo 解析 HTML/CSS</text><text x="605.0" y="97" text-anchor="middle" class="sm">跑 script 与 wasm;eval 用 Boa</text><rect class="bx b" x="460" y="130" width="290" height="70" rx="9"/><text x="605.0" y="150" text-anchor="middle" class="tx">PageRenderer(无状态)</text><text x="605.0" y="169" text-anchor="middle" class="sm">renderFrame() → PNG</text><text x="605.0" y="187" text-anchor="middle" class="sm">卡住就杀掉重启</text><rect class="bx d" x="460" y="220" width="290" height="70" rx="9"/><text x="605.0" y="240" text-anchor="middle" class="tx">SandboxOutbound</text><text x="605.0" y="259" text-anchor="middle" class="sm">唯一能出网:CORS、浏览器式请求头</text><text x="605.0" y="277" text-anchor="middle" class="sm">每页独立 cookie;违规返回 403</text><path d="M432 80 L458 72" class="ar" marker-end="url(#mk1)"/><path d="M432 100 L458 162" class="ar" marker-end="url(#mk1)"/><path d="M605 112 L605 128" class="ar" marker-end="url(#mk1)"/><rect class="bx a" x="200" y="220" width="230" height="70" rx="9"/><text x="315.0" y="240" text-anchor="middle" class="tx">互联网</text><text x="315.0" y="259" text-anchor="middle" class="sm">每次加载都当作不可信输入</text><path d="M458 255 L432 255" class="ar" marker-end="url(#mk1)"/><text x="380" y="322" text-anchor="middle" class="sm w">失败规则:任何错误只退化为空白帧或缺失元素,绝不让会话崩掉</text><text x="380" y="344" text-anchor="middle" class="sm">作者据 Cloudflare 官方博客(2026-08-06)绘制,非官方架构图</text></svg><figcaption>图 1 · Kitesurf 的组件与数据流(作者据官方博客绘制)</figcaption></figure>
+<figure class="en figure" data-anim><svg viewBox="0 0 760 360" role="img" aria-label="Kitesurf components"><defs><marker id="mk1-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink2)"/></marker></defs><text x="10" y="22" class="hd">Kitesurf’s four parts (all running on Cloudflare Workers)</text><rect class="bx a" x="10" y="50" width="160" height="80" rx="9"/><text x="90.0" y="70" text-anchor="middle" class="tx">Your agent</text><text x="90.0" y="89" text-anchor="middle" class="sm">Puppeteer / Playwright</text><text x="90.0" y="107" text-anchor="middle" class="sm">or chrome-devtools-mcp</text><rect class="bx c" x="200" y="50" width="230" height="80" rx="9"/><text x="315.0" y="70" text-anchor="middle" class="tx">Engine</text><text x="315.0" y="89" text-anchor="middle" class="sm">Only public part: CDP WS + REST</text><text x="315.0" y="107" text-anchor="middle" class="sm">holds session state</text><path d="M172 90 L198 90" class="ar" marker-end="url(#mk1-e)"/><rect class="bx b" x="460" y="40" width="290" height="70" rx="9"/><text x="605.0" y="60" text-anchor="middle" class="tx">PageScript (one isolate/page)</text><text x="605.0" y="79" text-anchor="middle" class="sm">Blitz/Stylo parse HTML/CSS</text><text x="605.0" y="97" text-anchor="middle" class="sm">runs scripts & wasm; eval via Boa</text><rect class="bx b" x="460" y="130" width="290" height="70" rx="9"/><text x="605.0" y="150" text-anchor="middle" class="tx">PageRenderer (stateless)</text><text x="605.0" y="169" text-anchor="middle" class="sm">renderFrame() → PNG</text><text x="605.0" y="187" text-anchor="middle" class="sm">killed and relaunched if stuck</text><rect class="bx d" x="460" y="220" width="290" height="70" rx="9"/><text x="605.0" y="240" text-anchor="middle" class="tx">SandboxOutbound</text><text x="605.0" y="259" text-anchor="middle" class="sm">Only network access: CORS, browser headers</text><text x="605.0" y="277" text-anchor="middle" class="sm">cookie jar per page; 403 on policy fail</text><path d="M432 80 L458 72" class="ar" marker-end="url(#mk1-e)"/><path d="M432 100 L458 162" class="ar" marker-end="url(#mk1-e)"/><path d="M605 112 L605 128" class="ar" marker-end="url(#mk1-e)"/><rect class="bx a" x="200" y="220" width="230" height="70" rx="9"/><text x="315.0" y="240" text-anchor="middle" class="tx">Internet</text><text x="315.0" y="259" text-anchor="middle" class="sm">every load treated as untrusted</text><path d="M458 255 L432 255" class="ar" marker-end="url(#mk1-e)"/><text x="380" y="322" text-anchor="middle" class="sm w">Failure rule: any error degrades to a blank frame or missing element, never a dead session</text><text x="380" y="344" text-anchor="middle" class="sm">Drawn by the author from Cloudflare’s blog post (2026-08-06); not an official diagram</text></svg><figcaption>Figure 1 · Kitesurf’s components and data flow (author’s sketch from the official blog)</figcaption></figure>
+<div class="zh"><ol class="steps"><li><b>Engine</b>:唯一对外的部件,处理 CDP WebSocket 和 HTTP REST API,并保存会话状态;其余部件都是无状态的。</li><li><b>PageScript</b>:每个页面(或跨进程 iframe)一个长期存活的 isolate,用 Dynamic Workers 创建;借用 Rust 写的 Blitz 与 Stylo 解析 HTML 和 CSS,页面里的 <code>&lt;script&gt;</code> 与 <code>.wasm</code> 在同一个 isolate 里运行。Workers 原生不支持 <code>eval</code>,所以暂用 Rust 写的 JS 引擎 Boa 兜底,原生支持到来后会去掉。</li><li><b>PageRenderer</b>:拿到 PageScript 产出的页面「场景」,从静态资源取字体和图片,用 blitz-paint(文字排版用 Parley)光栅化;Engine 通过一次 <code>renderFrame()</code> RPC 拿回 PNG。它不持有页面状态,所以卡住或失败时可以直接杀掉重启。</li><li><b>SandboxOutbound</b>:唯一能访问网络的部件,由 Dynamic Workers 强制保证;负责 CORS、注入「像浏览器」的请求头、过滤响应,并给每个页面单独的 cookie 罐;不符合策略的请求直接返回 403。</li></ol></div>
+<div class="en"><ol class="steps"><li><b>Engine</b>: the only public-facing part. It handles the CDP WebSocket and HTTP REST APIs and stores session state; everything else is stateless.</li><li><b>PageScript</b>: one long-lived isolate per page (or out-of-process iframe), created with Dynamic Workers. It parses HTML and CSS with parts of the Rust projects Blitz and Stylo, and runs the page’s <code>&lt;script&gt;</code> and <code>.wasm</code> in the same isolate. Workers lacks native <code>eval</code>, so Boa, a Rust JS engine, fills in until native support arrives.</li><li><b>PageRenderer</b>: takes the page “scene” from PageScript, fetches fonts and images from static assets and rasterizes with blitz-paint (Parley for text shaping). The Engine gets a PNG back from a single <code>renderFrame()</code> RPC. It holds no page state, so it can be killed and relaunched when stuck or failing.</li><li><b>SandboxOutbound</b>: the only part that touches the network, enforced by Dynamic Workers. It handles CORS, injects browser-shaped headers, filters responses and keeps a separate cookie jar per page; requests that fail policy get a 403.</li></ol></div>
+<p class="zh">安全模型的出发点是<b>「每次页面加载都是不可信输入,每个会话都从零开始」</b>:每个部件只拿到它严格需要的权限,isolate 之间的隔离由平台提供,应用层再按同样原则切分。配套的失败规则是「任何失败只退化为空白帧或缺失元素,绝不让会话死掉」——对 Agent 来说,拿到一个不完美的结果往往好过整个任务中断。</p>
+<p class="en">The security model starts from <b>“every page load is untrusted input, every session starts fresh”</b>: each part gets only the access it strictly needs, the platform isolates the isolates, and the application layer is split on the same principle. The matching failure rule: “any failure degrades to a blank frame or a missing element, never a dead session.” For an agent, an imperfect result usually beats an aborted task.</p>
+<p class="zh">兼容性怎么量?团队用 Web Platform Tests(WPT,浏览器厂商共用的标准符合性测试)跟踪:发布时通过约 21.5 万项,每周新增数百项;对 Agent 重要的 CSS、DOM、HTML、选区、SVG、XHR 覆盖较好,Streams 也基本可用。</p>
+<p class="en">How is compatibility measured? With Web Platform Tests (WPT, the shared conformance suite browser vendors use): about 215,000+ passing at launch, with hundreds more each week. Areas agents rely on (CSS, DOM, HTML, selection, SVG, XHR) are well covered, and Streams are decently supported.</p>
+</section>
+<section id="s4"><h2 class="zh"><span class="n">4</span>数字:省资源,但更慢</h2><h2 class="en"><span class="n">4</span>The numbers: cheaper on resources, slower on the clock</h2>
+<figure class="zh figure" data-anim><svg viewBox="0 0 760 330" role="img" aria-label="Kitesurf 相对 Chromium 的资源与耗时"><text x="10" y="22" class="hd">Kitesurf ÷ Chromium(热池),虚线 = Chromium 水平(100)</text><line x1="444.4" y1="34" x2="444.4" y2="282" class="ar" stroke-dasharray="4 4"/><text x="444.4" y="300" text-anchor="middle" class="sm">Chromium = 100</text><text x="190" y="59" text-anchor="end" class="tx">CPU · 截图</text><rect class="bx c" x="200" y="44" width="78.2" height="22" rx="5"/><text x="286.2" y="60" class="sm">380 vs 1,173 ms</text><text x="190" y="99" text-anchor="end" class="tx">CPU · 提取 HTML</text><rect class="bx c" x="200" y="84" width="63.6" height="22" rx="5"/><text x="271.6" y="100" class="sm">229 vs 877 ms</text><text x="190" y="139" text-anchor="end" class="tx">内存 · 截图</text><rect class="bx c" x="200" y="124" width="51.3" height="22" rx="5"/><text x="259.3" y="140" class="sm">57.8 vs 271.0 MiB</text><text x="190" y="179" text-anchor="end" class="tx">内存 · 提取 HTML</text><rect class="bx c" x="200" y="164" width="34.2" height="22" rx="5"/><text x="242.2" y="180" class="sm">39.4 vs 273.7 MiB</text><text x="190" y="219" text-anchor="end" class="tx">耗时 · 截图</text><rect class="bx d" x="200" y="204" width="440.0" height="22" rx="5"/><text x="648.0" y="220" class="sm">1,148 vs 637 ms</text><text x="190" y="259" text-anchor="end" class="tx">耗时 · 提取 HTML</text><rect class="bx d" x="200" y="244" width="425.3" height="22" rx="5"/><text x="633.3" y="260" class="sm">820 vs 472 ms</text><text x="380" y="322" text-anchor="middle" class="sm w">数据:Cloudflare 自测,14 个 URL、5 次运行中位数;越短越省,超过虚线表示更慢</text></svg><figcaption>图 2 · Kitesurf 与热池 Chromium 的相对资源与耗时(数据来自 Cloudflare 博客,作者换算为百分比绘图)</figcaption></figure>
+<figure class="en figure" data-anim><svg viewBox="0 0 760 330" role="img" aria-label="Kitesurf resources and time relative to Chromium"><text x="10" y="22" class="hd">Kitesurf ÷ Chromium (warm pool); dashed line = Chromium (100)</text><line x1="444.4" y1="34" x2="444.4" y2="282" class="ar" stroke-dasharray="4 4"/><text x="444.4" y="300" text-anchor="middle" class="sm">Chromium = 100</text><text x="190" y="59" text-anchor="end" class="tx">CPU · screenshot</text><rect class="bx c" x="200" y="44" width="78.2" height="22" rx="5"/><text x="286.2" y="60" class="sm">380 vs 1,173 ms</text><text x="190" y="99" text-anchor="end" class="tx">CPU · HTML extract</text><rect class="bx c" x="200" y="84" width="63.6" height="22" rx="5"/><text x="271.6" y="100" class="sm">229 vs 877 ms</text><text x="190" y="139" text-anchor="end" class="tx">Memory · screenshot</text><rect class="bx c" x="200" y="124" width="51.3" height="22" rx="5"/><text x="259.3" y="140" class="sm">57.8 vs 271.0 MiB</text><text x="190" y="179" text-anchor="end" class="tx">Memory · HTML extract</text><rect class="bx c" x="200" y="164" width="34.2" height="22" rx="5"/><text x="242.2" y="180" class="sm">39.4 vs 273.7 MiB</text><text x="190" y="219" text-anchor="end" class="tx">Wall time · screenshot</text><rect class="bx d" x="200" y="204" width="440.0" height="22" rx="5"/><text x="648.0" y="220" class="sm">1,148 vs 637 ms</text><text x="190" y="259" text-anchor="end" class="tx">Wall time · HTML extract</text><rect class="bx d" x="200" y="244" width="425.3" height="22" rx="5"/><text x="633.3" y="260" class="sm">820 vs 472 ms</text><text x="380" y="322" text-anchor="middle" class="sm w">Cloudflare’s own test: 14 URLs, median of 5 runs. Shorter = cheaper; past the line = slower</text></svg><figcaption>Figure 2 · Kitesurf vs warm-pool Chromium, relative resources and time (Cloudflare’s data, converted to percentages by the author)</figcaption></figure>
+<div class="zh stats"><div><b>3.1–3.8×</b><span>CPU 更省<br>(截图 / 提取 HTML)</span></div><div><b>4.7–7.0×</b><span>内存更省</span></div><div><b>1.7–1.8×</b><span>单次耗时更慢</span></div><div><b>14 × 5</b><span>测试规模:14 个 URL,<br>每项 5 次取中位数</span></div></div>
+<div class="en stats"><div><b>3.1–3.8×</b><span>less CPU<br>(screenshot / HTML extract)</span></div><div><b>4.7–7.0×</b><span>less memory</span></div><div><b>1.7–1.8×</b><span>slower wall time</span></div><div><b>14 × 5</b><span>test size: 14 URLs,<br>median of 5 runs each</span></div></div>
+<p class="zh">Cloudflare 把耗时差距主要归因于光栅化和 JPEG/PNG 编码(软件渲染,而不是 Chromium 的高度优化引擎)。它的论证是:<b>CPU 和内存决定成本与容量</b>,省下来就能在同样资源上跑更多并发会话,用一些画面保真度和单次速度去换。</p>
+<p class="en">Cloudflare attributes most of the wall-time gap to rasterization and JPEG/PNG encoding (software rendering instead of Chromium’s heavily optimized engine). Its argument: <b>CPU and memory drive cost and capacity</b>, so savings mean more concurrent sessions on the same resources, traded against some visual fidelity and per-task speed.</p>
+<div class="zh callout warn"><b>读数注意</b>(第三方 eesel 08-24 的分析):① 对比的是「热池」Chromium 与每次冷启动的 Kitesurf,且 14 个 URL 多为文字为主的页面,不代表结账流程这类复杂负载;② Browser Run 按<b>浏览器时长和并发浏览器数</b>计费(付费档每月含 10 小时,超出 $0.09/小时),而不是按 CPU 或内存,所以在 Kitesurf 有单独价格之前,省下的资源主要落在 Cloudflare 一侧,而更长的耗时反而按时长计费;③ Kitesurf 目前 beta 免费,有每账号额度,正式价格未公布。</div>
+<div class="en callout warn"><b>Caveats</b> (from a third-party analysis by eesel, 08-24): (1) the comparison pits a <b>warm</b> Chromium pool against a cold Kitesurf render each time, and the 14 URLs are mostly text-heavy, unlike checkout flows; (2) Browser Run bills <b>browser hours and concurrent browsers</b> (paid plan: 10 hours included per month, then $0.09/hour), not CPU or memory, so until Kitesurf gets its own rate the savings mostly land on Cloudflare’s side, while the longer wall time is what you are billed for; (3) Kitesurf is free in beta behind per-account limits, with GA pricing unpublished.</div>
+</section>
+<section id="s5"><h2 class="zh"><span class="n">5</span>怎么用:三种接法</h2><h2 class="en"><span class="n">5</span>How to use it: three ways in</h2>
+<p class="zh"><b>① 现有 Puppeteer / Playwright 代码</b>:官方文档只给出端点格式——在 Browser Run 的 CDP 地址后加 <code>browser=kitesurf</code>。下面的连接代码是作者按这个端点改写的示例(Puppeteer 的 <code>connect</code> 与 Playwright 的 <code>connectOverCDP</code> 都支持自定义请求头),请以官方文档为准。</p>
+<p class="en"><b>(1) Existing Puppeteer / Playwright code</b>: the official docs give only the endpoint format: add <code>browser=kitesurf</code> to the Browser Run CDP URL. The connection code below is the author’s adaptation for that endpoint (both Puppeteer’s <code>connect</code> and Playwright’s <code>connectOverCDP</code> accept custom headers); defer to the official docs.</p>
+<pre class="zh"><code>// 官方端点格式
+wss://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID&gt;/browser-run/devtools/browser?browser=kitesurf
+
+// Puppeteer(作者示例)
+import puppeteer from &quot;puppeteer-core&quot;;
+const browser = await puppeteer.connect({
+  browserWSEndpoint: WS_URL,                       // 上面的地址
+  headers: { Authorization: `Bearer ${process.env.CF_API_TOKEN}` },
+});
+const page = await browser.newPage();
+await page.goto(&quot;https://example.com&quot;);
+console.log(await page.$eval(&quot;h1&quot;, el =&gt; el.textContent));
+await browser.close();</code></pre>
+<pre class="en"><code>// Official endpoint format
+wss://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID&gt;/browser-run/devtools/browser?browser=kitesurf
+
+// Puppeteer (author’s example)
+import puppeteer from &quot;puppeteer-core&quot;;
+const browser = await puppeteer.connect({
+  browserWSEndpoint: WS_URL,                       // the URL above
+  headers: { Authorization: `Bearer ${process.env.CF_API_TOKEN}` },
+});
+const page = await browser.newPage();
+await page.goto(&quot;https://example.com&quot;);
+console.log(await page.$eval(&quot;h1&quot;, el =&gt; el.textContent));
+await browser.close();</code></pre>
+<p class="zh"><b>② 一次性 Quick Actions(REST)</b>:截图、提取内容、生成 PDF 这类单次任务最适合 Kitesurf,官方示例:</p>
+<p class="en"><b>(2) One-shot Quick Actions (REST)</b>: single tasks like screenshots, content extraction and PDFs suit Kitesurf best. The official example:</p>
+<pre class="zh"><code>curl -X POST &#x27;https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID&gt;/browser-run/screenshot?browser=kitesurf&#x27; \
+  -H &#x27;Authorization: Bearer &lt;API_TOKEN&gt;&#x27; \
+  -H &#x27;Content-Type: application/json&#x27; \
+  -d &#x27;{ &quot;url&quot;: &quot;https://example.com&quot; }&#x27; \
+  --output &quot;screenshot.png&quot;</code></pre>
+<pre class="en"><code>curl -X POST &#x27;https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID&gt;/browser-run/screenshot?browser=kitesurf&#x27; \
+  -H &#x27;Authorization: Bearer &lt;API_TOKEN&gt;&#x27; \
+  -H &#x27;Content-Type: application/json&#x27; \
+  -d &#x27;{ &quot;url&quot;: &quot;https://example.com&quot; }&#x27; \
+  --output &quot;screenshot.png&quot;</code></pre>
+<p class="zh"><b>③ 给编码 Agent 当 MCP 工具</b>:Kitesurf 本身不是 MCP server;官方示例是用 Google 的 <code>chrome-devtools-mcp</code> 连到它的 CDP 端点(示例配置写给 Opencode)。在 Claude Code 里可以用同样的参数注册(作者改写):</p>
+<p class="en"><b>(3) As an MCP tool for a coding agent</b>: Kitesurf isn’t an MCP server itself; the official example points Google’s <code>chrome-devtools-mcp</code> at its CDP endpoint (the sample config targets Opencode). In Claude Code you can register the same arguments (author’s adaptation):</p>
+<pre class="zh"><code># Claude Code(作者据官方 Opencode 配置改写)
+claude mcp add kitesurf -- npx -y chrome-devtools-mcp@latest \
+  --wsEndpoint=&quot;wss://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID&gt;/browser-run/devtools/browser?browser=kitesurf&quot; \
+  --wsHeaders=&#x27;{&quot;Authorization&quot;:&quot;Bearer &lt;API_TOKEN&gt;&quot;}&#x27;
+
+# 对照:本地 Chromium + 可访问性快照(Playwright MCP 官方命令)
+claude mcp add playwright npx @playwright/mcp@latest</code></pre>
+<pre class="en"><code># Claude Code (author’s adaptation of the official Opencode config)
+claude mcp add kitesurf -- npx -y chrome-devtools-mcp@latest \
+  --wsEndpoint=&quot;wss://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID&gt;/browser-run/devtools/browser?browser=kitesurf&quot; \
+  --wsHeaders=&#x27;{&quot;Authorization&quot;:&quot;Bearer &lt;API_TOKEN&gt;&quot;}&#x27;
+
+# For comparison: local Chromium + accessibility snapshots (official Playwright MCP command)
+claude mcp add playwright npx @playwright/mcp@latest</code></pre>
+<div class="zh callout key"><b>上手顺序建议</b>(作者观点):先把你最常访问的 10 个页面丢进官方 playground(kitesurf.cloudflare.app)或 Quick Actions 看能否正常渲染;能的走 Kitesurf 跑批量读取,不能的(登录态、强反爬、WebGL)留在 Chromium。同一套 CDP 代码只差一个查询参数,很适合按站点路由。</div>
+<div class="en callout key"><b>Suggested order</b> (author’s view): first run your 10 most-visited pages through the official playground (kitesurf.cloudflare.app) or Quick Actions to see if they render; route the ones that work to Kitesurf for bulk reading and keep the rest (logins, strict bot checks, WebGL) on Chromium. The same CDP code differs by one query parameter, which makes per-site routing easy.</div>
+</section>
+<section id="s6"><h2 class="zh"><span class="n">6</span>横向对比:四种给 Agent 的浏览方式</h2><h2 class="en"><span class="n">6</span>Comparison: four ways to give agents a browser</h2>
+<table class="zh cmp"><tr><th></th><th>Kitesurf</th><th>Browser Run 默认(Chromium)</th><th>Lightpanda</th><th>Playwright MCP(本地)</th></tr><tr><td>引擎</td><td>从零写起,Rust 编译为 wasm,跑在 V8 isolate</td><td>完整 Chromium</td><td>从零写起,Zig</td><td>本地 Chromium / Firefox / WebKit</td></tr><tr><td>能否截图/渲染</td><td>能(软件渲染,保真度较低)</td><td>能,保真度最高</td><td>不做图形渲染</td><td>能;但推荐用可访问性快照驱动操作</td></tr><tr><td>接口</td><td>CDP、REST Quick Actions</td><td>CDP、REST</td><td>CDP(Puppeteer / Playwright)</td><td>MCP 工具</td></tr><tr><td>公开数据</td><td>CPU 省 3.1–3.8×、内存省 4.7–7×、慢 1.7–1.8×(厂商自测)</td><td>基准线</td><td>约 9× 快、内存约 16× 少(厂商自测,爬取场景)</td><td>未给性能数字</td></tr><tr><td>适合</td><td>大量一次性公开页面读取、截图、PDF</td><td>登录态、视频/WebGL、复杂交互</td><td>不需要画面的大规模爬取</td><td>开发时让编码 Agent 操作本地页面</td></tr><tr><td>部署</td><td>托管(beta 免费),计划开源</td><td>托管,按时长与并发计费</td><td>开源自部署或其云服务</td><td>本地运行</td></tr></table>
+<table class="en cmp"><tr><th></th><th>Kitesurf</th><th>Browser Run default (Chromium)</th><th>Lightpanda</th><th>Playwright MCP (local)</th></tr><tr><td>Engine</td><td>From scratch, Rust compiled to wasm, in V8 isolates</td><td>Full Chromium</td><td>From scratch, Zig</td><td>Local Chromium / Firefox / WebKit</td></tr><tr><td>Screenshots / rendering</td><td>Yes (software, lower fidelity)</td><td>Yes, highest fidelity</td><td>No graphical rendering</td><td>Yes, but actions are driven by accessibility snapshots</td></tr><tr><td>Interface</td><td>CDP, REST Quick Actions</td><td>CDP, REST</td><td>CDP (Puppeteer / Playwright)</td><td>MCP tools</td></tr><tr><td>Published data</td><td>3.1–3.8× less CPU, 4.7–7× less memory, 1.7–1.8× slower (vendor test)</td><td>Baseline</td><td>~9× faster, ~16× less memory (vendor test, crawling)</td><td>No performance figures</td></tr><tr><td>Best for</td><td>Bulk one-shot public-page reads, screenshots, PDFs</td><td>Logins, video/WebGL, complex interaction</td><td>Large crawls that need no pixels</td><td>Letting a coding agent drive local pages during development</td></tr><tr><td>Deployment</td><td>Managed (free in beta), open source planned</td><td>Managed, billed by hours and concurrency</td><td>Open source self-host or its cloud</td><td>Runs locally</td></tr></table>
+<p class="zh note">注意:表中三组性能数字来自各自厂商、各自场景,不能直接相互比较;Lightpanda 一列只基于其官网信息。</p>
+<p class="en note">Note: the three sets of performance numbers come from different vendors and scenarios and can’t be compared directly; the Lightpanda column is based only on its website.</p>
+</section>
+<section id="s7"><h2 class="zh"><span class="n">7</span>坑与常见误解</h2><h2 class="en"><span class="n">7</span>Pitfalls and misconceptions</h2>
+<div class="zh callout warn"><b>坑 1:它不是万能浏览器</b>。官方明确列出暂不适合:播放视频、渲染 WebGL、需要真实 TLS 指纹的反爬挑战、需要持久状态的长时间登录会话——这些请用 Browser Run 默认的 Chromium。WPT 通过率高也不等于你要的网站都能正常工作,先测再切。</div>
+<div class="en callout warn"><b>Pitfall 1: it isn’t a universal browser</b>. Cloudflare lists what it isn’t ready for: video, WebGL, bot challenges that check real TLS fingerprints, and long authenticated sessions that need persistent state. Use Browser Run’s default Chromium for those. A high WPT pass count doesn’t mean your target sites work; test before switching.</div>
+<div class="zh callout warn"><b>坑 2:隔离 ≠ 防提示注入</b>。isolate 和出网沙箱限制的是<b>页面代码</b>能做什么,不限制<b>页面内容</b>能说服你的 Agent 做什么(eesel 的分析也指出了这一点)。Agent 读回的文本仍要当作不可信输入处理,写操作仍要有权限把关。</div>
+<div class="en callout warn"><b>Pitfall 2: isolation ≠ prompt-injection defense</b>. Isolates and the outbound sandbox limit what <b>page code</b> can do, not what <b>page content</b> can persuade your agent to do (eesel’s analysis makes the same point). Text the agent reads back is still untrusted input, and write actions still need permission gating.</div>
+<div class="zh callout warn"><b>坑 3:别指望「像真人」</b>。据 eesel 引述,Cloudflare 的 Celso Martinho 在 Hacker News 上表示 Browser Run 的流量始终被标识为机器人流量;需要伪装成人的场景不是它的目标。<b>坑 4:省资源 ≠ 省钱(暂时)</b>——计费按时长,更慢反而可能更贵,见第 4 节。<b>坑 5:「开源」还只是计划</b>——博客说「准备好后」开源,未给时间和许可证。</div>
+<div class="en callout warn"><b>Pitfall 3: don’t expect to look human</b>. Per eesel, Cloudflare’s Celso Martinho said on Hacker News that Browser Run traffic is always identified as bot traffic; looking human isn’t the goal. <b>Pitfall 4: fewer resources ≠ lower bill (for now)</b>: billing is by time, so slower can cost more; see section 4. <b>Pitfall 5: “open source” is still a plan</b>: the blog says “once we’re ready,” with no date or license.</div>
+</section>
+<section id="s8"><h2 class="zh"><span class="n">8</span>资源与来源</h2><h2 class="en"><span class="n">8</span>Resources and sources</h2>
+<div class="zh src"><ul><li><a href="https://blog.cloudflare.com/kitesurf/">Kitesurf 发布博客</a> — Cloudflare,2026-08-06 · 一手(性能数字为厂商自测)</li><li><a href="https://developers.cloudflare.com/browser-run/kitesurf/">Browser Run · Kitesurf 文档</a> — 官方文档(端点、Quick Actions、MCP 配置)</li><li><a href="https://developers.cloudflare.com/browser-run/pricing/">Browser Run 定价</a> — 官方文档</li><li><a href="https://www.eesel.ai/blog/cloudflare-kitesurf">eesel:Kitesurf 用速度换规模</a> — 2026-08-24 · 第三方分析(作者所在公司有自身产品立场)</li><li><a href="https://lightpanda.io/">Lightpanda</a> — 官网 · 厂商自述</li><li><a href="https://github.com/microsoft/playwright-mcp">Playwright MCP</a> — 微软 · 官方 README</li><li><a href="https://www.developersdigest.tech/daily/2026-08-08">Developers Digest 08-08 日报</a> — 聚合 · 二手</li></ul></div>
+<div class="en src"><ul><li><a href="https://blog.cloudflare.com/kitesurf/">Kitesurf launch post</a> — Cloudflare, 2026-08-06 · primary (vendor-run benchmarks)</li><li><a href="https://developers.cloudflare.com/browser-run/kitesurf/">Browser Run · Kitesurf docs</a> — official docs (endpoint, Quick Actions, MCP config)</li><li><a href="https://developers.cloudflare.com/browser-run/pricing/">Browser Run pricing</a> — official docs</li><li><a href="https://www.eesel.ai/blog/cloudflare-kitesurf">eesel: Kitesurf trades speed for scale</a> — 2026-08-24 · third-party analysis (author’s company has its own product stance)</li><li><a href="https://lightpanda.io/">Lightpanda</a> — website · vendor claims</li><li><a href="https://github.com/microsoft/playwright-mcp">Playwright MCP</a> — Microsoft · official README</li><li><a href="https://www.developersdigest.tech/daily/2026-08-08">Developers Digest, 08-08 brief</a> — aggregator · secondary</li></ul></div>
+</section>
+</div>
+<footer><p class="zh">说明:本文为 2026-10-13 回溯补生成,内容基于当时(2026-08-09 前后)的公开报道与官方文档检索;第三方分析(eesel,08-24)与文档页为稍后读取,已注明。性能数字均为厂商自测;第 5 节标注「作者示例/改写」的代码与第 6 节对比、上手建议为作者观点;图 1、图 2 为作者绘制,非官方图。</p><p class="en">Note: this article was generated retroactively on 2026-10-13 from public reports and official documentation available around 2026-08-09; the third-party analysis (eesel, 08-24) and docs pages were read later and are marked as such. All performance numbers are vendor-run; code marked as the author’s example or adaptation in section 5, the section 6 comparison and the getting-started advice are the author’s opinion; Figures 1 and 2 are the author’s drawings, not official diagrams.</p></footer>
+</main>
+<script>
+(function(){
+var body=document.body,figs=[].slice.call(document.querySelectorAll('.figure'));
+var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.15}):null;
+function visible(el){return el.offsetParent!==null}
+function refig(){figs.forEach(function(f){if(f.classList.contains('in'))return;if(!visible(f))return;var r=f.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0){f.classList.add('in')}else if(io){io.observe(f)}else f.classList.add('in')})}
+function setLang(l,save){body.setAttribute('data-lang',l);document.documentElement.lang=(l==='zh'?'zh-CN':'en');document.getElementById('lang').textContent=(l==='zh'?'EN':'中');
+document.title=(l==='zh'?document.body.getAttribute('data-tzh'):document.body.getAttribute('data-ten'));
+if(save){try{localStorage.setItem('aidaily-lang',l)}catch(e){}}setTimeout(refig,30)}
+var l=null;try{l=localStorage.getItem('aidaily-lang')}catch(e){}
+if(l!=='zh'&&l!=='en'){l=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en'}
+document.getElementById('lang').addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh',true)});
+setLang(l,false);
+var toc=document.getElementById('toc');document.getElementById('tocbtn').addEventListener('click',function(){toc.classList.toggle('open')});
+toc.addEventListener('click',function(e){if(e.target.closest('a'))toc.classList.remove('open')});
+var links=[].slice.call(toc.querySelectorAll('a')),secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function onscroll(){var h=document.documentElement,p=h.scrollTop/(h.scrollHeight-h.clientHeight||1);document.getElementById('bar').style.width=(p*100)+'%';var cur=0;secs.forEach(function(s,i){if(s.getBoundingClientRect().top<120)cur=i});links.forEach(function(a,i){a.classList.toggle('on',i===cur)})}
+addEventListener('scroll',onscroll,{passive:true});onscroll();
+})();
+</script>
+</body>
+</html>
