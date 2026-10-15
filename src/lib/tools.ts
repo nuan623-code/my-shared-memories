@@ -45,9 +45,11 @@ export const TOOLS: ToolItem[] = [
     titleEn: "Claude Code learning hub",
     href: "/claude-code/",
     hrefEn: "/en/claude-code/",
-    desc: "既是每日栏目也是作品:自建的静态学习站,14 课系统课程 + 实战 Tip 库,每日增量更新。",
-    descEn: "Both a daily column and a build: a static learning hub with a 14-day course and searchable tips, updated daily.",
-    tags: ["Claude Code", "教程", "每日更新"],
+    // 2026-10-15:学习站已完结存档(14 课 + 25 条 Tip,2026-08-05 停更),
+    // 每日更新由「Claude Code 小课」栏目(/cc-lessons/)接手,入口在首页栏目导览。
+    desc: "自建的静态学习站:14 课系统课程 + 可检索的实战 Tip 库,内容已成册存档。每日新课请看「Claude Code 小课」栏目。",
+    descEn: "A static learning hub I built: a 14-day course plus a searchable tips library, now a finished archive. Daily lessons continue in the Claude Code Lessons column.",
+    tags: ["Claude Code", "教程", "存档"],
     homeFeatured: true,
   },
 ];

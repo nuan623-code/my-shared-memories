@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 小课 · 2026年9月7日</title>
+<meta name="description" content="Claude Code 实战小课:每天一课,依据官方文档与 changelog,讲清一个当天就能用上的技巧。">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Figtree:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+:root{--bg:#f4f8fd;--card:#fff;--ink:#16233d;--ink-soft:#46536e;--line:#dce6f2;--accent:#1a63ff;--accent-soft:#e8f0ff;--hero1:#0b1f3f;--hero2:#123a7a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;font-size:16.5px;line-height:1.85}
+h1,h2,h3,h4{font-family:'Outfit', 'Figtree', -apple-system, 'PingFang SC', sans-serif;line-height:1.35}
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;padding:46px 0 38px}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px}
+.hero h1{margin:0 0 8px;font-size:26px;font-weight:800;line-height:1.35}
+.hero .date{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:3px 12px;border-radius:999px;font-size:13px;color:#c9dbf5}
+main{padding:30px 0 60px}
+.content{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 32px;box-shadow:0 2px 14px rgba(20,50,110,.06)}
+.content h2{font-size:21px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--accent-soft);font-weight:800}
+.content h2:first-child{margin-top:0}
+.content h3{font-size:17.5px;margin:24px 0 8px;font-weight:700}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:24px}
+.content li{margin:8px 0}
+.content a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(26,99,255,.25)}
+.content a:hover{border-bottom-color:var(--accent)}
+.content blockquote{margin:14px 0;padding:10px 18px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 10px 10px 0;color:var(--ink-soft);font-size:15px}
+.content blockquote p{margin:4px 0}
+.content hr{border:none;border-top:1px solid var(--line);margin:26px 0}
+.content code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:14px}
+.content pre{background:#0b1f3f;color:#dbe8fb;padding:16px;border-radius:10px;overflow-x:auto;font-size:14px}
+.content pre code{background:none;padding:0;color:inherit}
+.content table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14.5px}
+.content th,.content td{padding:9px 12px;border:1px solid var(--line);text-align:left;vertical-align:top}
+.content thead th{background:#eef4fd}
+.content img{max-width:100%}
+footer{color:var(--ink-soft);font-size:13px;text-align:center;padding:26px 0 44px}
+footer a{color:var(--accent);text-decoration:none}
+@media(max-width:640px){.hero h1{font-size:21px}.content{padding:20px 18px}body{font-size:16px}}
+</style>
+
+<!-- ms-seo -->
+<meta property="og:title" content="Claude Code 小课 · 2026年9月7日">
+<meta property="og:description" content="Claude Code 实战小课:每天一课,依据官方文档与 changelog,讲清一个当天就能用上的技巧。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/cc-lessons/2026-09-07.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/cc-lessons/2026-09-07.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Claude Code 小课 · 2026年9月7日", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/cc-lessons/2026-09-07.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-07", "dateModified": "2026-10-15"}</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<header class="hero"><div class="wrap">
+  <span class="date">2026年9月7日</span>
+  <h1>第 27 课:可观测性 —— 把 Claude Code 的用量、成本与失败接进你的看板</h1>
+</div></header>
+<main class="wrap">
+  <div class="content">
+<blockquote>
+<p>2026-09-07 · 主题:OpenTelemetry 遥测(metrics / events / traces beta)
+前置:第 8 课(上下文管理)、第 15 课(成本控制)、第 19 课(Skills)、第 25 课(<code>/cost</code> 的缓存命中原因)。
+与前面课程的分界:第 15 课教的是<strong>在会话里</strong>看成本(<code>/cost</code>、状态栏),这一课教的是<strong>把数据吐到会话外面</strong>——落到 Prometheus / Grafana / Datadog / 任意 OTLP 后端,变成能跨天、跨项目、跨人查询的时间序列。</p>
+</blockquote>
+<hr />
+<h2>为什么值得学这一课</h2>
+<p><code>/cost</code> 和状态栏只回答「这一次会话花了多少」。但真正想知道的那些问题都是跨会话的:</p>
+<ul>
+<li>我这个月在哪个项目上烧的 token 最多?</li>
+<li>那个 skill 我到底用没用上,它每次进来占多少 context?</li>
+<li>权限提示我拒绝了多少次、拒的都是哪类工具?</li>
+<li>上周三下午那次 agent 空转两小时,是卡在 API 重试还是卡在某个工具?</li>
+</ul>
+<p>这些数据 Claude Code <strong>本来就在产</strong>,只是默认不往外送。打开遥测,是一次性成本大概二十分钟的事。</p>
+<p>Claude Code 的遥测走标准 OpenTelemetry:<strong>metrics</strong>(时间序列)、<strong>events/logs</strong>(离散事件)、可选的 <strong>traces</strong>(分布式追踪,beta)。任何接受 OTLP 的后端都能收。</p>
+<blockquote>
+<p>官方文档:<a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/monitoring-usage">Monitoring — Claude Code Docs</a></p>
+</blockquote>
+<hr />
+<h2>技巧一(入门):四个环境变量,先在终端里看见数据</h2>
+<p>不要一上来就接后端。先用 <code>console</code> exporter 把指标打到自己终端,确认数据真的在产出。</p>
+<pre><code class="language-bash">export CLAUDE_CODE_ENABLE_TELEMETRY=1      # 必须,总开关
+export OTEL_METRICS_EXPORTER=console       # 先打到终端
+export OTEL_METRIC_EXPORT_INTERVAL=1000    # 1 秒一次(默认 60000ms,调试时太慢)
+claude
+</code></pre>
+<p>看见输出后,再切到真正的后端。最常见的两种:</p>
+<pre><code class="language-bash"># A. OTLP over gRPC(发给本地 collector)
+export CLAUDE_CODE_ENABLE_TELEMETRY=1
+export OTEL_METRICS_EXPORTER=otlp
+export OTEL_LOGS_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+export OTEL_EXPORTER_OTLP_HEADERS=&quot;Authorization=Bearer your-token&quot;   # 后端要鉴权时
+
+# B. Prometheus(自己起 exporter,让 Prometheus 来抓 http://localhost:9464/metrics)
+export CLAUDE_CODE_ENABLE_TELEMETRY=1
+export OTEL_METRICS_EXPORTER=prometheus
+</code></pre>
+<p><strong>三个必须知道的坑:</strong></p>
+<ol>
+<li><strong><code>OTEL_EXPORTER_OTLP_PROTOCOL</code> 没有默认值。</strong> 只要你启用了 <code>otlp</code> exporter,就必须显式设 <code>grpc</code> / <code>http/json</code> / <code>http/protobuf</code> 之一,否则什么都不会发出去。</li>
+<li><strong>验证方式是找一个具体指标</strong>:配好后去后端查 <code>claude_code.session.count</code>——它在会话启动时就会发。只开了 logs 的话,提交一次 prompt 然后查 <code>claude_code.user_prompt</code> 事件。</li>
+<li><strong>什么都没到怎么办</strong>:跑 <code>claude --debug</code>。exporter 的失败会以 <code>[3P telemetry]</code> 前缀报出来(3P = third-party)。看到 <code>[Anthropic telemetry]</code> 前缀的行<strong>不用管</strong>,那是 Anthropic 自己的运营遥测,和你的配置无关。</li>
+</ol>
+<p>生产环境记得把 <code>OTEL_METRIC_EXPORT_INTERVAL</code> 调回默认的 60000ms,1 秒一次纯属浪费。</p>
+<hr />
+<h2>技巧二:八个指标怎么读,以及怎么按 skill / plugin / agent 拆开看</h2>
+<p>Claude Code 一共导出 8 个指标:</p>
+<table>
+<thead>
+<tr>
+<th>指标名</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>claude_code.session.count</code></td>
+<td>启动的会话数</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>claude_code.lines_of_code.count</code></td>
+<td>改动的代码行数</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>claude_code.pull_request.count</code></td>
+<td>创建的 PR 数</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>claude_code.commit.count</code></td>
+<td>创建的 git commit 数</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>claude_code.cost.usage</code></td>
+<td>会话成本</td>
+<td>USD</td>
+</tr>
+<tr>
+<td><code>claude_code.token.usage</code></td>
+<td>token 用量</td>
+<td>tokens</td>
+</tr>
+<tr>
+<td><code>claude_code.code_edit_tool.decision</code></td>
+<td>代码编辑类工具的权限决策次数</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>claude_code.active_time.total</code></td>
+<td>活跃时长(<strong>不含空闲</strong>)</td>
+<td>s</td>
+</tr>
+</tbody>
+</table>
+<p>真正有用的是<strong>拆维度</strong>。官方文档明确说明 <code>claude_code.token.usage</code> 可以按 <code>type</code>(input/output)、user、team、model、<code>skill.name</code>、<code>plugin.name</code>、<code>agent.name</code> 拆开。这直接回答了第 19 课留下的问题——<strong>哪个 skill 在真的干活,哪个只是在占 context</strong>:</p>
+<pre><code class="language-promql"># 各 skill 的 token 消耗排行(Prometheus 语法示意)
+topk(10, sum by (skill_name) (rate(claude_code_token_usage[24h])))
+
+# subagent 分工的实际成本占比
+sum by (agent_name) (claude_code_cost_usage)
+</code></pre>
+<p><code>claude_code.active_time.total</code> 值得单独说:它只在<strong>用户交互中</strong>(打字、读回复)和 <strong>CLI 处理中</strong>(工具执行、模型生成)累加,<strong>空闲不计</strong>。所以「今天用了 8 小时 Claude Code」和「今天有 2.3 小时是真的在推进」是两个数,后者才是你排期时该用的那个。</p>
+<p><strong>两个默认值需要主动改:</strong></p>
+<pre><code class="language-bash">export OTEL_METRICS_INCLUDE_VERSION=true      # 默认 false,但排查「某版本引入的回归」时必开
+export OTEL_METRICS_INCLUDE_ENTRYPOINT=true   # 默认 false,区分 cli / sdk-cli / sdk-ts / sdk-py / claude-vscode
+</code></pre>
+<p>反过来,<code>OTEL_METRICS_INCLUDE_SESSION_ID</code> 默认是 <code>true</code>——如果你的会话数很多,这条会把指标基数(cardinality)拉爆,存储成本上升。团队级看板可以关掉它:<code>OTEL_METRICS_INCLUDE_SESSION_ID=false</code>。</p>
+<hr />
+<h2>技巧三:多项目 / 多团队归因,用 <code>OTEL_RESOURCE_ATTRIBUTES</code> 打标</h2>
+<p>自己一个人也有意义——把游戏项目、日报流水线、实验仓库分开算账:</p>
+<pre><code class="language-bash"># 在每个项目的 .envrc / direnv 里设,或写进项目启动脚本
+export OTEL_RESOURCE_ATTRIBUTES=&quot;project=ios_game_a,workstream=gamedev,cost_center=personal&quot;
+</code></pre>
+<p>这些自定义 key 会<strong>同时</strong>出现在 OTLP resource block 和<strong>每一个 metric datapoint 的属性上</strong>,所以多数后端能直接把它们当 label 来 group by / filter。</p>
+<p><strong>格式规则很严,踩过就知道(官方文档的 Warning 原文列举):</strong></p>
+<ul>
+<li><strong>不能有空格</strong>。<code>org.name=My Company</code> 是非法的。</li>
+<li>必须是逗号分隔的 <code>key=value</code>。</li>
+<li>只允许 US-ASCII,且排除控制字符、空白、双引号、逗号、分号、反斜杠。</li>
+<li><strong>加引号不能转义空格</strong>——<code>org.name="My Company"</code> 得到的字面值是 <code>"My Company"</code>(带引号),不是 <code>My Company</code>。</li>
+</ul>
+<p>要空格只能这么写:</p>
+<pre><code class="language-bash">export OTEL_RESOURCE_ATTRIBUTES=&quot;org.name=Johns_Organization&quot;        # 下划线
+export OTEL_RESOURCE_ATTRIBUTES=&quot;org.name=JohnsOrganization&quot;         # camelCase
+export OTEL_RESOURCE_ATTRIBUTES=&quot;org.name=John%27s%20Organization&quot;   # 百分号编码
+</code></pre>
+<p><strong>基数警告</strong>:每个自定义 key 会变成每条指标序列上的一个 label。如果你打的是高基数的值(比如分支名、时间戳),存储成本会直线上升。想只放进 resource block、不进 datapoint label:</p>
+<pre><code class="language-bash">export OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES=false
+</code></pre>
+<p>另外:自定义 key <strong>永远不会覆盖</strong>内建标准属性(<code>user.id</code>、<code>session.id</code> 等),撞名时 Claude Code 保留内建值。</p>
+<hr />
+<h2>技巧四(进阶):打开 beta 分布式追踪,把一次提问还原成一条 trace</h2>
+<p>指标告诉你「花了多少」,<strong>trace 告诉你「时间去哪了」</strong>。这是排查「agent 空转」「某次任务慢得离谱」唯一靠谱的手段。</p>
+<pre><code class="language-bash">export CLAUDE_CODE_ENABLE_TELEMETRY=1
+export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1      # 追踪总开关,必须
+export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+</code></pre>
+<p><strong>span 层级结构</strong>(每次用户 prompt 起一个根 span):</p>
+<pre><code class="language-text">claude_code.interaction                       ← 一次提问 = 一条 trace
+├── claude_code.llm_request                   ← 每次 API 调用
+├── claude_code.hook                          ← 需要 detailed beta tracing
+└── claude_code.tool
+    ├── claude_code.tool.blocked_on_user      ← 等你点「同意/拒绝」的时间
+    ├── claude_code.tool.execution            ← 工具真正跑的时间
+    └── (Agent 工具)subagent 的 llm_request / tool span 嵌在这里
+</code></pre>
+<p>这个结构本身就解答了一个常见困惑:<strong>「慢」到底是慢在模型、慢在工具、还是慢在等我批权限</strong>——<code>blocked_on_user</code> 和 <code>execution</code> 是分开的两个 span,一眼就能分辨。</p>
+<p>值得关注的 span 属性:</p>
+<ul>
+<li><code>claude_code.llm_request</code> 上有 <code>ttft_ms</code>(首 token 时间)、<code>input_tokens</code> / <code>output_tokens</code> / <code>cache_read_tokens</code> / <code>cache_creation_tokens</code>、<code>attempt</code>(总尝试次数,含重试)、<code>stop_reason</code>、<code>request_id</code>。<strong><code>cache_read_tokens</code> 配合第 25 课的缓存命中原因一起看,能定位到具体是哪一轮把缓存打掉的。</strong></li>
+<li><code>claude_code.tool</code> 上有 <code>result_tokens</code>(工具结果的近似 token 大小)——这是找出「哪个工具在往 context 里灌垃圾」的直接证据。</li>
+<li><code>agent_id</code> / <code>parent_agent_id</code> / <code>workflow.run_id</code>:多 agent 场景下,把 subagent 的开销归因到具体是谁派的活。</li>
+</ul>
+<p><strong>两个跨进程的实用细节:</strong></p>
+<ol>
+<li><strong>追踪开启时,Bash 和 PowerShell 子进程会自动继承 <code>TRACEPARENT</code> 环境变量</strong>(W3C trace context)。任何读 <code>TRACEPARENT</code> 的脚本都能把自己的 span 挂到同一条 trace 下——你的构建脚本、测试脚本可以和 Claude 的动作出现在同一张时间线上。</li>
+<li><strong>在 Agent SDK 和 <code>claude -p</code> 无头会话里,Claude Code 会反过来读环境里的 <code>TRACEPARENT</code> / <code>TRACESTATE</code></strong>,把 <code>claude_code.interaction</code> 挂成调用方 span 的子节点。这意味着第 12 课的 CI 流水线可以做到:<strong>一条 trace 从 CI job 开始,穿过 Claude Code,一直到它跑的每个工具</strong>。交互式会话则<strong>故意忽略</strong>入站 <code>TRACEPARENT</code>,避免误继承 CI / 容器环境里的游离值。</li>
+</ol>
+<p><strong>隐私默认值(重要,别乱开)</strong>:span 默认<strong>脱敏</strong> prompt 文本、工具入参和工具内容。要放开需要显式开关:</p>
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>放开的内容</th>
+<th>默认</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OTEL_LOG_USER_PROMPTS</code></td>
+<td>prompt 原文</td>
+<td>关</td>
+</tr>
+<tr>
+<td><code>OTEL_LOG_ASSISTANT_RESPONSES</code></td>
+<td>助手回复原文</td>
+<td>关(未设时跟随上一条)</td>
+</tr>
+<tr>
+<td><code>OTEL_LOG_TOOL_DETAILS</code></td>
+<td>Bash 命令、MCP server/tool 名、skill 名、文件路径、工具入参</td>
+<td>关</td>
+</tr>
+<tr>
+<td><code>OTEL_LOG_TOOL_CONTENT</code></td>
+<td>工具输入输出正文(需追踪开启,60KB 截断)</td>
+<td>关</td>
+</tr>
+<tr>
+<td><code>OTEL_LOG_RAW_API_BODIES</code></td>
+<td>完整 Messages API 请求/响应 JSON(<strong>含整段对话历史</strong>)</td>
+<td>关</td>
+</tr>
+</tbody>
+</table>
+<p>个人排查时,<code>OTEL_LOG_TOOL_DETAILS=1</code> 通常是性价比最高的一个——它能让 <code>skill_name</code>、<code>full_command</code>、<code>file_path</code> 出现在 span 上,而不至于像 <code>OTEL_LOG_RAW_API_BODIES</code> 那样把整段对话灌进日志后端。<strong>注意 <code>OTEL_LOG_RAW_API_BODIES=1</code> 在文档里被明确写为「等同于同时同意 <code>OTEL_LOG_USER_PROMPTS</code> / <code>TOOL_DETAILS</code> / <code>TOOL_CONTENT</code> 会暴露的一切」,共享的机器上不要开。</strong></p>
+<hr />
+<h2>一个坑:<code>OTEL_*</code> 不会传给子进程</h2>
+<p>Claude Code <strong>不会</strong>把 <code>OTEL_*</code> 环境变量传给它 spawn 的子进程——包括 Bash 工具、hooks、MCP server、language server。</p>
+<p>所以:如果你通过 Bash 工具跑的某个应用自己也想上报 OTel,得在那条命令里<strong>直接设</strong>这些变量,它不会从 Claude Code 继承 endpoint 和 headers。</p>
+<p>(唯一例外是上面说的 <code>TRACEPARENT</code>:追踪开启时它<strong>会</strong>注入子进程,但那只是 trace context,不是 exporter 配置。)</p>
+<hr />
+<h2>本课要点</h2>
+<ol>
+<li><strong>先用 <code>console</code> exporter 验证数据在产</strong>,再接后端;<code>OTEL_EXPORTER_OTLP_PROTOCOL</code> 必须显式设。</li>
+<li><strong>8 个指标里最有信息量的是 <code>token.usage</code> 按 <code>skill.name</code> / <code>agent.name</code> 拆开</strong>,以及 <code>active_time.total</code>(不含空闲的真实工作时长)。</li>
+<li><strong><code>OTEL_RESOURCE_ATTRIBUTES</code> 做多项目归因</strong>,格式极严(无空格、无引号转义),高基数值记得用 <code>OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES=false</code> 挡在 label 外。</li>
+<li><strong>beta trace 把 <code>blocked_on_user</code> 和 <code>execution</code> 分成两个 span</strong>,这是分辨「模型慢 / 工具慢 / 我批权限慢」的唯一直接证据;CI 里通过 <code>TRACEPARENT</code> 可以做到端到端一条 trace。</li>
+</ol>
+<hr />
+<h2>参考来源</h2>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/monitoring-usage">Monitoring — Claude Code Docs</a>(本课全部配置、指标、span 属性的一手来源)</li>
+<li><a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/agent-sdk/observability">Observability with OpenTelemetry — Agent SDK</a></li>
+<li><a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/analytics">Track team usage with analytics — Claude Code Docs</a></li>
+<li><a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/costs">Manage costs effectively — Claude Code Docs</a></li>
+<li><a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/changelog">Claude Code changelog</a>(各变量的最低版本要求,如 <code>OTEL_LOG_ASSISTANT_RESPONSES</code> 需 v2.1.193+、<code>CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH</code> 需 v2.1.214+)</li>
+</ul>
+  </div>
+</main>
+<footer class="wrap"><a href="/cc-lessons/">← 往期小课归档</a> · <a href="/">返回 Mingyu's Library</a></footer>
+</body>
+</html>

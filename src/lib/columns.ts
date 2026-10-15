@@ -14,5 +14,8 @@ export interface DailyColumn {
 export const DAILY_COLUMNS: DailyColumn[] = [
   { sub: "briefing", titleKey: "col.briefing.title", descKey: "col.briefing.desc", archive: "/ai-briefing/" },
   { sub: "daily", titleKey: "col.daily.title", descKey: "col.daily.desc", archive: "/ai-daily/" },
-  { sub: "claude-code", titleKey: "col.cc.title", descKey: "col.cc.desc", archive: "/claude-code/", archiveEn: "/en/claude-code/" },
+  // 2026-10-15:本栏目的每日内容改由「Claude Code 小课」承接(Cowork 每天写一篇,部署脚本自动上线),
+  // 归档指向 /cc-lessons/。旧的 /claude-code/ 学习站(14 课 + Tip 库)已停更,作为完结存档继续在线,
+  // 入口留在 /tools 的作品卡上。小课暂无英文版,故不设 archiveEn。
+  { sub: "claude-code", titleKey: "col.cc.title", descKey: "col.cc.desc", archive: "/cc-lessons/" },
 ];

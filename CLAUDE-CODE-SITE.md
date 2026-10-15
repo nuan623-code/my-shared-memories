@@ -1,5 +1,11 @@
 # Claude Code 学习站 · 运维说明
 
+> **2026-10-15 停更存档(用户拍板)**:本板块的每日更新已结束,内容(14 课 + 25 条 Tip,中英双语)作为**完结存档**继续在线,不再逐日推进。
+> 每日 Claude Code 内容改由新栏目「**Claude Code 小课**」承接:Cowork 每天写一篇 md 到 `~/Documents/AIDaily/<日期>/Claude Code小课-*.md`,
+> 本机 launchd 的部署脚本自动渲染成 `public/cc-lessons/<日期>.html` 并上线,**零人工介入**(详见 `AGENTS.md` 里 `public/cc-lessons/` 那一行)。
+> `.claude/commands/daily.md` 已改名为 `daily.md.retired-2026-10-15`:**不要再跑它**,也不要用它去更新本板块;`state.json` 停在 `last_run: 2026-08-05`,
+> 它现在只是存档的清单,不再是接力棒。要修订存档内容(比如官方文档变了、链接失效),当作普通文档改,改完照常 commit + `./publish.sh --deploy-only`。
+
 > 板块位置:`public/claude-code/`(中文)+ `public/en/claude-code/`(英文镜像)→ 线上 https://mingyuyang.com/claude-code/ 与 https://mingyuyang.com/en/claude-code/
 > 初始化:2026-08-05(PROMPT-0)。**同日应用户要求全量首发**:14 课 + 25 条 Tip 一次性发布(并行子代理写成,均基于当日抓取的官方文档),未走每日渐进;**同日补齐英文版全量镜像**。此文件相当于该板块的 README:怎么部署、每日任务怎么跑、state.json 怎么接力。
 
@@ -54,7 +60,7 @@ public/claude-code/
 
 ## 每日任务怎么跑
 
-每天在本仓库开一个 Claude Code 会话,输入 `/daily` 即可(prompt 全文在 `.claude/commands/daily.md`)。流程:读 state → 抓官方文档增量(docs map / What's new / changelog)→ 写一课 + 2 条 tip → 复核到期 tip → 更新索引与 changelog → 自检(链接、三主题、移动端、state 与文件一一对应)→ **全部通过才** commit + `./publish.sh --deploy-only`;验证不过就不 push,摘要里明确报错。
+**(已停更,2026-10-15;下面这段只作历史记录)** 当时每天在本仓库开一个 Claude Code 会话,输入 `/daily`(prompt 全文在 `.claude/commands/daily.md.retired-2026-10-15`)。流程:读 state → 抓官方文档增量(docs map / What's new / changelog)→ 写一课 + 2 条 tip → 复核到期 tip → 更新索引与 changelog → 自检(链接、三主题、移动端、state 与文件一一对应)→ **全部通过才** commit + `./publish.sh --deploy-only`;验证不过就不 push,摘要里明确报错。
 
 ## 部署
 

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 小课 · 2026年9月6日</title>
+<meta name="description" content="Claude Code 实战小课:每天一课,依据官方文档与 changelog,讲清一个当天就能用上的技巧。">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Figtree:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+:root{--bg:#f4f8fd;--card:#fff;--ink:#16233d;--ink-soft:#46536e;--line:#dce6f2;--accent:#1a63ff;--accent-soft:#e8f0ff;--hero1:#0b1f3f;--hero2:#123a7a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;font-size:16.5px;line-height:1.85}
+h1,h2,h3,h4{font-family:'Outfit', 'Figtree', -apple-system, 'PingFang SC', sans-serif;line-height:1.35}
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;padding:46px 0 38px}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px}
+.hero h1{margin:0 0 8px;font-size:26px;font-weight:800;line-height:1.35}
+.hero .date{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:3px 12px;border-radius:999px;font-size:13px;color:#c9dbf5}
+main{padding:30px 0 60px}
+.content{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 32px;box-shadow:0 2px 14px rgba(20,50,110,.06)}
+.content h2{font-size:21px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--accent-soft);font-weight:800}
+.content h2:first-child{margin-top:0}
+.content h3{font-size:17.5px;margin:24px 0 8px;font-weight:700}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:24px}
+.content li{margin:8px 0}
+.content a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(26,99,255,.25)}
+.content a:hover{border-bottom-color:var(--accent)}
+.content blockquote{margin:14px 0;padding:10px 18px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 10px 10px 0;color:var(--ink-soft);font-size:15px}
+.content blockquote p{margin:4px 0}
+.content hr{border:none;border-top:1px solid var(--line);margin:26px 0}
+.content code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:14px}
+.content pre{background:#0b1f3f;color:#dbe8fb;padding:16px;border-radius:10px;overflow-x:auto;font-size:14px}
+.content pre code{background:none;padding:0;color:inherit}
+.content table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14.5px}
+.content th,.content td{padding:9px 12px;border:1px solid var(--line);text-align:left;vertical-align:top}
+.content thead th{background:#eef4fd}
+.content img{max-width:100%}
+footer{color:var(--ink-soft);font-size:13px;text-align:center;padding:26px 0 44px}
+footer a{color:var(--accent);text-decoration:none}
+@media(max-width:640px){.hero h1{font-size:21px}.content{padding:20px 18px}body{font-size:16px}}
+</style>
+
+<!-- ms-seo -->
+<meta property="og:title" content="Claude Code 小课 · 2026年9月6日">
+<meta property="og:description" content="Claude Code 实战小课:每天一课,依据官方文档与 changelog,讲清一个当天就能用上的技巧。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/cc-lessons/2026-09-06.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/cc-lessons/2026-09-06.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Claude Code 小课 · 2026年9月6日", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/cc-lessons/2026-09-06.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-09-06", "dateModified": "2026-10-15"}</script>
+</head>
+<body>
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<header class="hero"><div class="wrap">
+  <span class="date">2026年9月6日</span>
+  <h1>第 26 课:评测驱动开发 —— 让「改了会不会变差」有个答案</h1>
+</div></header>
+<main class="wrap">
+  <div class="content">
+<blockquote>
+<p>日期:2026-09-06 · 主题:evals / <code>claude plugin eval</code> / 无头模式跑评测 / CI 门禁
+前置:第 12 课(无头模式与 CI)、第 19 课(Skills)、第 24 课(代码审查与安全审查工作流)。本课是它们的汇合点。</p>
+</blockquote>
+<p><strong>为什么今天讲这个</strong>:今日的深度主题(Anthropic commerce-agents 工程文)里,分量最重的一节其实是评测——它给出的判断很硬:<em>「从一个小小的 prompt 改动到加一个新 tool,任何东西都可能以难以预测的方式改变 agent 行为,而出问题的往往不是你正在改的那一块。」</em> 同一篇文章还提到,官方参考仓库里附带了一个<strong>带 eval-authoring skill 的 Claude Code 插件</strong>。这说明「用 Claude Code 写评测」已经从个人技巧变成官方推荐的工作方式。这一课把它拆成四步,从今天就能跑的第一条命令开始。</p>
+<p>来源:<a target="_blank" rel="noopener" href="https://claude.com/blog/the-anatomy-of-effective-commerce-agents">A guide to the anatomy of effective commerce agents</a> · <a target="_blank" rel="noopener" href="https://github.com/anthropics/commerce-agents">anthropics/commerce-agents</a> · <a target="_blank" rel="noopener" href="https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents">Demystifying evals for AI agents</a></p>
+<hr />
+<h2>技巧 1(入门):先把「快照用例」这件事做对 —— 别去评测对话,评测状态</h2>
+<p><strong>要点</strong>:模型 API 是无状态的,agent 的输出是 <code>system prompt + tools + messages 数组</code> 的函数。所以<strong>任何一个会话能到达的状态,你都可以直接构造出来</strong>。一条 eval 用例 = 构造测试状态 + 追加一条测试用户消息 + 让 agent 从这里跑 + 判定最终状态和渲染结果。</p>
+<p>反过来,「让另一个模型扮演用户、再让第三个模型当裁判打分整段对话」这种模拟用户评测,官方明确不推荐用来做测量:两个非确定性系统交互,需要更大样本、每次试验更贵、更难判定,失败也更难归因。它只适合用来<strong>发现</strong>用例——发现之后再落成快照用例。</p>
+<p><strong>怎么做</strong>:在项目里建一个 eval 目录,然后让 Claude Code 按这个形状生成用例。</p>
+<pre><code class="language-bash">mkdir -p evals/cases
+</code></pre>
+<p>会话里(把 <code>&lt;你的 agent 入口文件&gt;</code> 换成实际路径):</p>
+<pre><code>读一下 src/agent/prompt.ts 和 src/agent/tools.ts。
+然后按下面的形状,给「购物车已有 2 件商品、用户上一轮问过退货政策」这个前置状态写一条快照用例:
+
+- setup: 预置的 messages 数组(含已发生的 tool_use / tool_result)
+- input: 本轮用户消息
+- expect: 只判定「最终状态」和「最后一次写操作的参数」,不要判定它走了哪条路径
+
+写成 evals/cases/cart-return-policy.json,不要改任何源码。
+</code></pre>
+<p><strong>这里最容易做错的一点</strong>:不要去 grade「它是怎么走到那儿的」。官方的说法是,判定路径的用例既脆又限制人——模型换一代、prompt 改一行就红一片,而它们并没有告诉你质量变差了。只判定终态和渲染结果。</p>
+<p>📎 <a target="_blank" rel="noopener" href="https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents">Demystifying evals for AI agents</a></p>
+<hr />
+<h2>技巧 2(进阶):把「怎么写用例」封装成 skill,让脏状态和负例不再靠自觉</h2>
+<p><strong>要点</strong>:上一步你会很快遇到两个问题——(a) 你写的用例几乎全是<strong>干净起点</strong>;(b) 你只写了「应该做到 X」,没写它的负例。官方对这两点的诊断很直白:大多数评测套件都偏重干净起点用例,而<strong>缺负例是最常见的缺口</strong>。</p>
+<p>规则:每写一条正例,就写它的对偶——有「应该拒绝」就有「应该照办」,有「应该反问」就有「应该直接做」。并且保证有相当一部分用例从<strong>长的、乱的、自相矛盾的历史</strong>开始:如果一个行为只在「第一轮就调了好几个 tool 之后」或者「会话早些时候出现过矛盾」时才浮现,那么从干净状态出发的用例在任何配置下都会通过,提供不了任何信息。</p>
+<p><strong>怎么做</strong>:把这套规则写进一个 skill,以后每次生成用例都自动带上。</p>
+<pre><code class="language-bash">mkdir -p .claude/skills/eval-authoring
+</code></pre>
+<p><code>.claude/skills/eval-authoring/SKILL.md</code>:</p>
+<pre><code class="language-markdown">---
+name: eval-authoring
+description: 为本项目的 agent 编写快照式 eval 用例。当用户说「写评测 / 加 eval / 补用例 / 这个 bug 落成用例」时使用。
+---
+
+# 写 eval 用例的规则
+
+## 用例形状
+快照式:构造 messages 数组(含已发生的 tool_use/tool_result)→ 追加测试用户消息 → 判定终态与最后一次写操作的参数。
+不判定路径。
+
+## 每次生成必须覆盖的类别
+1. 核心请求:简单查询、多约束查询、多意图消息。检查每个数值都能追溯到 tool 返回的数据,查不到时是否如实说「没有」而不是编。
+2. 上下文依赖:指代屏幕上的东西、沿用前面轮次的约束、对已有状态做写操作。记忆相关的用例归到这一类。
+3. 安全与合规:注入(分成两种——用户自己消息里的注入 vs 从 tool 结果里带进来的数据面注入)、越权读他人数据、受监管文案(逐字节比对)。
+4. 界面:渲染了正确的组件、上限被遵守、用户可见文本里没有内部 ID、超时与空结果。
+5. 跨能力请求:一句话同时属于两个能力域,两半都要判定。按单一能力写的用例抓不到这类问题。
+
+## 硬性要求
+- 每条正例必须配一条负例。
+- 至少 1/3 的用例从「长的 / 乱的 / 自相矛盾的」历史开始,不要都从干净状态出发。
+- 每条用例注明它来自哪次真实故障或哪条生产 transcript;凭空想的用例价值最低。
+</code></pre>
+<p>之后会话里只要说:</p>
+<pre><code>用 eval-authoring 给 customer-care 这个能力补 20 条用例,
+其中至少 6 条从脏状态起,正负例配对。
+先列出用例清单让我看,确认后再写文件。
+</code></pre>
+<p><strong>规模参考</strong>:官方给的起点是<strong>每条用户流程 50–100 条用例</strong>。别一次写完——先把线上真实出过的故障落成用例,那批的信噪比最高。</p>
+<p>📎 <a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/skills">第 19 课:Skills</a> · <a target="_blank" rel="noopener" href="https://github.com/anthropics/commerce-agents">commerce-agents 仓库内附 eval-authoring 插件</a></p>
+<hr />
+<h2>技巧 3(进阶):用 <code>claude plugin eval</code> / 无头模式把套件跑成机器可读的报告</h2>
+<p><strong>要点</strong>:用例写好了,得能一键跑、能出 JSON、能在沙箱里跑。Claude Code 自带的 <code>claude plugin eval</code> 就是干这个的——写和跑 plugin 的 eval 套件,产出 JSON 报告,支持沙箱与 CI。如果你的评测对象不是 plugin 而是自己的 agent 服务,那就用无头模式 <code>claude -p</code> 自己驱动。</p>
+<p><strong>怎么做</strong>:</p>
+<p>先看你这版有没有这个子命令(它可能需要 early-access 开关):</p>
+<pre><code class="language-bash">claude plugin eval --help
+</code></pre>
+<p>自己的 agent 用无头模式跑,一条用例一次调用,输出 JSON 便于聚合:</p>
+<pre><code class="language-bash"># 单条:跑一条用例,拿结构化输出
+claude -p &quot;$(cat evals/cases/cart-return-policy.json)&quot; \
+  --append-system-prompt-file evals/judge-prompt.md \
+  --output-format json \
+  --permission-prompts none \
+  &gt; evals/out/cart-return-policy.json
+</code></pre>
+<p>批量跑并汇总(注意:<strong>同一条用例要跑多次</strong>,非确定性系统看单次结果没有意义):</p>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# evals/run.sh —— 每条用例跑 N 次,聚合成一份报告
+set -euo pipefail
+N=&quot;${N:-3}&quot;
+mkdir -p evals/out
+for f in evals/cases/*.json; do
+  base=$(basename &quot;$f&quot; .json)
+  for i in $(seq 1 &quot;$N&quot;); do
+    claude -p &quot;$(cat &quot;$f&quot;)&quot; \
+      --append-system-prompt-file evals/judge-prompt.md \
+      --output-format json \
+      --permission-prompts none \
+      &gt; &quot;evals/out/${base}.run${i}.json&quot;
+  done
+done
+python3 evals/aggregate.py evals/out &gt; evals/report.json
+cat evals/report.json
+</code></pre>
+<p>几个参数的意思:</p>
+<ul>
+<li><code>--permission-prompts none</code>:无人值守跑的时候不弹权限确认(第 12 课讲过,只在你信任这个套件的前提下用)。</li>
+<li><code>--append-system-prompt-file</code>:把判定标准作为追加的 system prompt 传进去,而不是塞进用户消息里——这样它落在缓存前缀里,重复跑几百次时命中缓存。</li>
+<li><code>--output-format json</code>:别让脚本去 grep 自然语言输出。</li>
+</ul>
+<p>📎 <a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/cli-reference">Claude Code CLI 参考</a> · <a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/headless">无头模式</a></p>
+<hr />
+<h2>技巧 4(实战):CI 门禁不要跑全量 —— 按改动挑用例,并且卡三个指标</h2>
+<p><strong>要点</strong>:每个 PR 都跑全量套件,「太慢也太贵,活不下来」。官方给的做法是从全量里<strong>构建一个 CI 子集</strong>:一个核心集(最高流量请求 + <strong>全部</strong>安全用例)恒定跑,再加上「这次改动碰到的东西」对应的用例。</p>
+<p>映射规则很清楚:</p>
+<table>
+<thead>
+<tr>
+<th>改了什么</th>
+<th>跑哪些用例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一个 skill</td>
+<td>它自己的用例 + <strong>相邻 skill 的边界用例</strong></td>
+</tr>
+<tr>
+<td>一个 tool</td>
+<td>所有会调到它的用例</td>
+</tr>
+<tr>
+<td>共享 system prompt</td>
+<td><strong>全量套件</strong>(所有东西都读 system prompt)</td>
+</tr>
+</tbody>
+</table>
+<p>而门禁不只看通过率——还要卡<strong>缓存命中率</strong>和<strong>每轮成本</strong>。这两条防的是另一类回归:功能没坏,但你把一个时间戳塞到了 system prompt 顶部,缓存全线击穿,账单翻几倍。</p>
+<p><strong>怎么做</strong>:</p>
+<p><code>.github/workflows/agent-evals.yml</code>:</p>
+<pre><code class="language-yaml">name: agent-evals
+on: [pull_request]
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: 按改动挑用例
+        id: pick
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          # 共享 prompt 变了 → 全量
+          if echo &quot;$CHANGED&quot; | grep -q 'src/agent/prompt'; then
+            echo &quot;set=all&quot; &gt;&gt; &quot;$GITHUB_OUTPUT&quot;
+          else
+            echo &quot;set=core+touched&quot; &gt;&gt; &quot;$GITHUB_OUTPUT&quot;
+          fi
+
+      - name: 跑评测(每条 3 次)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: N=3 EVAL_SET=${{ steps.pick.outputs.set }} bash evals/run.sh
+
+      - name: 三道门禁
+        run: |
+          python3 - &lt;&lt;'PY'
+          import json, sys
+          r = json.load(open(&quot;evals/report.json&quot;))
+          fails = []
+          if r[&quot;pass_rate&quot;]        &lt; 0.95: fails.append(f'pass_rate {r[&quot;pass_rate&quot;]:.3f} &lt; 0.95')
+          if r[&quot;safety_pass_rate&quot;] &lt; 1.00: fails.append(f'safety {r[&quot;safety_pass_rate&quot;]:.3f} &lt; 1.00')
+          if r[&quot;cache_hit_rate&quot;]   &lt; 0.90: fails.append(f'cache_hit {r[&quot;cache_hit_rate&quot;]:.3f} &lt; 0.90')
+          if r[&quot;cost_per_turn&quot;]    &gt; 0.02: fails.append(f'cost/turn ${r[&quot;cost_per_turn&quot;]:.4f} &gt; $0.02')
+          if fails:
+              print(&quot;EVAL GATE FAILED:&quot;); [print(&quot;  -&quot;, f) for f in fails]; sys.exit(1)
+          print(&quot;EVAL GATE PASSED&quot;)
+          PY
+</code></pre>
+<p><strong>三个阈值怎么定</strong>:</p>
+<ul>
+<li><strong>通过率</strong>:先跑几轮拿到当前基线,把门槛设在基线略下方(比如基线 96%、门槛 95%),而不是拍一个 100%。安全类用例单独一档,必须 100%。</li>
+<li><strong>缓存命中率</strong>:官方给消费级 agent 的设计目标是 <strong>90–99%</strong>,而且明确说「这是从一开始就该照着设计的区间」。低于 90% 说明有东西在破坏前缀——最常见的元凶是把时间戳或当前页面放在了 system prompt 顶部。会话里排查可以直接用 <code>/cost</code> 看 <code>prompt_cache</code> 字段的未命中归因(第 25 课)。</li>
+<li><strong>每轮成本</strong>:算的是<strong>每完成一个任务的成本</strong>,不是每次模型调用的成本。一个更便宜但要多跑几轮、或者失败率更高的模型,并不便宜。</li>
+</ul>
+<p><strong>最后两条纪律</strong>:全量套件<strong>每晚跑一次、每次发版前跑一次</strong>——跨团队的回归只会在这两个时机被抓到;以及,agent 是一个部署单元,一次坏改动会同时影响所有用户,所以 prompt 和 skill 的改动要先灰度到 canary 队列,并且留一个<strong>不用发版就能关掉某个 skill 的开关</strong>。</p>
+<p>📎 <a target="_blank" rel="noopener" href="https://claude.com/blog/the-anatomy-of-effective-commerce-agents">Anatomy of effective commerce agents · Evals 一节</a> · <a target="_blank" rel="noopener" href="https://code.claude.com/docs/en/github-actions">GitHub Actions 与 Claude Code</a></p>
+<hr />
+<h2>一句话总结</h2>
+<p>先把用例做成<strong>快照而不是对话</strong>(技巧 1),再用一个 skill 强制覆盖<strong>脏状态与负例</strong>(技巧 2),然后用 <code>claude plugin eval</code> 或 <code>claude -p --output-format json</code> 跑成<strong>机器可读报告</strong>(技巧 3),最后在 CI 里<strong>按改动挑用例 + 卡通过率/缓存命中率/每任务成本三道门</strong>(技巧 4)。这四步走完,「改了会不会变差」才第一次有了答案。</p>
+  </div>
+</main>
+<footer class="wrap"><a href="/cc-lessons/">← 往期小课归档</a> · <a href="/">返回 Mingyu's Library</a></footer>
+</body>
+</html>

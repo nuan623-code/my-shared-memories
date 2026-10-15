@@ -1,11 +1,33 @@
 #!/usr/bin/env python3
-# 把 AI 每日简报的 Markdown 渲染成站内风格的自包含 HTML。
-# 用法: render-briefing.py <src.md> <dest.html> <YYYY-MM-DD>
-# stdout 输出当天头条标题(供归档列表用);无头条时输出「AI 技术情报简报」。
+# 把每日 Markdown 内容渲染成站内风格的自包含 HTML。两个栏目共用这一套样式:
+#   briefing(默认) = AI 每日简报,stdout 输出当天头条标题
+#   lesson          = Claude Code 小课,stdout 输出去掉栏目前缀的课程标题
+# 用法: render-briefing.py <src.md> <dest.html> <YYYY-MM-DD> [briefing|lesson]
+# stdout 那一行供归档列表当条目文字用;取不到时退化成栏目名。
 import re
 import sys
 
 import markdown
+
+# 栏目差异都收在这里,模板与正文渲染两边共用。
+COLUMNS = {
+    "briefing": {
+        "page_title": "AI 每日简报 · {cn_date}",
+        "fallback_title": "AI 每日技术情报简报 · {day}",
+        "description": "每日 AI 技术情报简报:主流厂商官方发布、Agent 工程、学术与行业动态。",
+        "archive_href": "/ai-briefing/",
+        "archive_text": "往期简报归档",
+        "fallback_item": "AI 技术情报简报",
+    },
+    "lesson": {
+        "page_title": "Claude Code 小课 · {cn_date}",
+        "fallback_title": "Claude Code 小课 · {day}",
+        "description": "Claude Code 实战小课:每天一课,依据官方文档与 changelog,讲清一个当天就能用上的技巧。",
+        "archive_href": "/cc-lessons/",
+        "archive_text": "往期小课归档",
+        "fallback_item": "Claude Code 小课",
+    },
+}
 
 TEMPLATE = """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -13,7 +35,7 @@ TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{page_title}</title>
-<meta name="description" content="每日 AI 技术情报简报:主流厂商官方发布、Agent 工程、学术与行业动态。">
+<meta name="description" content="{description}">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
 <script>
@@ -68,7 +90,7 @@ footer a{{color:var(--accent);text-decoration:none}}
 {body}
   </div>
 </main>
-<footer class="wrap"><a href="/ai-briefing/">← 往期简报归档</a> · <a href="/">返回 Mingyu's Library</a></footer>
+<footer class="wrap"><a href="{archive_href}">← {archive_text}</a> · <a href="/">返回 Mingyu's Library</a></footer>
 </body>
 </html>
 """
@@ -76,20 +98,29 @@ footer a{{color:var(--accent);text-decoration:none}}
 
 def main() -> None:
     src, dest, day = sys.argv[1], sys.argv[2], sys.argv[3]
+    kind = sys.argv[4] if len(sys.argv) > 4 else "briefing"
+    if kind not in COLUMNS:
+        sys.exit(f"render-briefing: 未知栏目 {kind}(可选 {'/'.join(COLUMNS)})")
+    col = COLUMNS[kind]
     md = open(src, encoding="utf-8").read()
 
     m = re.match(r"\s*#\s+(.+)\n", md)
-    title = m.group(1).strip() if m else f"AI 每日技术情报简报 · {day}"
+    title = m.group(1).strip() if m else col["fallback_title"].format(day=day)
     if m:
         md = md[m.end():]
 
-    # 头条两种历史格式:新版「**1. 标题**」/ 旧版「1. **标题**」
-    headline_m = re.search(r"\*\*\s*1\.\s*(.+?)\s*\*\*", md) or re.search(
-        r"^\s*1\.\s+\*\*(.+?)\*\*", md, re.M
-    )
-    headline = headline_m.group(1).strip() if headline_m else "AI 技术情报简报"
-    if len(headline) > 48:
-        headline = headline[:47] + "…"
+    if kind == "lesson":
+        # 小课标题形如「Claude Code 小课 · 第 59 课:…」,页面与归档都用去前缀的后半段
+        item = re.sub(r"^\s*Claude Code\s*小课\s*[·|–—-]\s*", "", title).strip() or col["fallback_item"]
+        title = item
+    else:
+        # 头条两种历史格式:新版「**1. 标题**」/ 旧版「1. **标题**」
+        headline_m = re.search(r"\*\*\s*1\.\s*(.+?)\s*\*\*", md) or re.search(
+            r"^\s*1\.\s+\*\*(.+?)\*\*", md, re.M
+        )
+        item = headline_m.group(1).strip() if headline_m else col["fallback_item"]
+    if len(item) > 48:
+        item = item[:47] + "…"
 
     body = markdown.markdown(md, extensions=["extra", "sane_lists"])
     body = body.replace('<a href="http', '<a target="_blank" rel="noopener" href="http')
@@ -97,13 +128,16 @@ def main() -> None:
     y, mo, d = day.split("-")
     cn_date = f"{y}年{int(mo)}月{int(d)}日"
     html = TEMPLATE.format(
-        page_title=f"AI 每日简报 · {cn_date}",
+        page_title=col["page_title"].format(cn_date=cn_date, day=day),
+        description=col["description"],
+        archive_href=col["archive_href"],
+        archive_text=col["archive_text"],
         title=title,
         cn_date=cn_date,
         body=body,
     )
     open(dest, "w", encoding="utf-8").write(html)
-    print(headline)
+    print(item)
 
 
 main()

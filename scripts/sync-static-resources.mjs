@@ -35,6 +35,9 @@ const SCAN = [
   // 英文版每日内容:与中文版共享 i18n_key(= 目录+日期),供 hreflang 互指与语言切换
   { dir: "en/ai-daily", prefix: "en-ai-daily-", category: "ai", subcategory: "daily", tags: ["AI deep dive"], preferTitleTag: true, lang: "en", keyPrefix: "ai-daily" },
   { dir: "en/ai-briefing", prefix: "en-ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI briefing"], preferTitleTag: true, lang: "en", keyPrefix: "ai-briefing" },
+  // Claude Code 小课(2026-10-15):Cowork 每天写一篇 md,部署脚本渲染进 public/cc-lessons/。
+  // 标题取 <h1>(= 「第 N 课:…」,<title> 是「小课 · 日期」,区分不开),入库时补回栏目前缀。
+  { dir: "cc-lessons", prefix: "cc-lessons-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], titlePrefix: "Claude Code 小课 · ", keyPrefix: "cc-lessons" },
   // Claude Code 学习站(2026-08-05):课程与 tip 单页入库;index/template 由通用规则+manifest skip 排除。
   // keyFromBase:slug 不含日期,i18n_key 直接取 keyPrefix-文件名,中英两版共享同一 key(供 hreflang 与语言切换)。
   { dir: "claude-code/course", prefix: "claude-code-course-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true, keyPrefix: "claude-code-course", keyFromBase: true },
@@ -124,22 +127,26 @@ for (const s of SCAN) {
     const rawTitle = s.preferTitleTag
       ? pick(html, "title") || pick(html, "h1")
       : pick(html, "h1") || pick(html, "title");
+    const baseDate = (base.match(/(\d{4}-\d{2}-\d{2})/) || [])[1] || null;
+    const autoTitle = cleanTitle(rawTitle) || base;
     rows.push({
       slug,
       type: "article",
-      title: o.title || cleanTitle(rawTitle) || base,
+      title: o.title || (s.titlePrefix ? s.titlePrefix + autoTitle : autoTitle),
       summary: o.summary ?? null,
       category: o.category || s.category,
       subcategory: o.subcategory ?? s.subcategory,
       tags: o.tags || s.tags,
       url: urlPath,
       lang: o.lang ?? s.lang ?? "zh",
+      // 日期型栏目按文件名里的真实日期入库,避免补发/回填的往期全部排到「今天」。
+      ...(baseDate ? { published_at: `${baseDate}T08:00:00+08:00` } : {}),
       // 中英版本共享 key,前端据此做 hreflang 与语言切换:
       // 日期型栏目(ai-daily 等)= 栏目+日期;keyFromBase 型(claude-code)= 栏目+文件名。
       i18n_key: o.i18n_key ?? (s.keyFromBase && s.keyPrefix
         ? `${s.keyPrefix}-${base}`
-        : s.keyPrefix && /(\d{4}-\d{2}-\d{2})/.test(base)
-          ? `${s.keyPrefix}-${base.match(/(\d{4}-\d{2}-\d{2})/)[1]}`
+        : s.keyPrefix && baseDate
+          ? `${s.keyPrefix}-${baseDate}`
           : null),
     });
   }
