@@ -8,3 +8,12 @@ export const SHARE_IMAGE = `${SITE_URL}/share-card.png`;
 export function absUrl(path: string): string {
   return path.startsWith("http") ? path : `${SITE_URL}${path}`;
 }
+
+/**
+ * 某篇文章的分享图地址。文件由 scripts/generate-og.mjs 在发布时生成到 public/og/,
+ * 万一某篇还没生成,/og/$slug 这个兜底路由会把请求转到通用分享图上,不会 404。
+ * slug 里可能有中文,必须编码 —— og:image 要求是合法 URL。
+ */
+export function ogImageFor(slug: string): string {
+  return `${SITE_URL}/og/${encodeURIComponent(slug)}.jpg`;
+}

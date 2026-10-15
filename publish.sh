@@ -97,6 +97,11 @@ grep -q "mrkcesmmlmuhycdisgsy" .env || warn ".env 里不含预期的 project ref
 say "安装依赖(npm install)"
 npm install --no-audit --no-fund
 
+# 分享图要在构建之前生成:构建会把 public/ 整个搬进 .output/public,
+# 晚一步生成就赶不上这趟部署。只补缺的,已有的跳过,所以日常只会新增当天那几篇。
+say "生成文章分享图(public/og)"
+node scripts/generate-og.mjs || warn "分享图生成出错(不影响部署),看上面的报错。"
+
 say "构建(npm run build)"
 npm run build
 

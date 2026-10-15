@@ -26,6 +26,7 @@ import { Route as EnIndexRouteImport } from './routes/en/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as ResourcesSlugRouteImport } from './routes/resources.$slug'
+import { Route as OgSlugRouteImport } from './routes/og.$slug'
 import { Route as EnToolsRouteImport } from './routes/en/tools'
 import { Route as EnSearchRouteImport } from './routes/en/search'
 import { Route as EnResourcesRouteImport } from './routes/en/resources'
@@ -122,6 +123,11 @@ const ResourcesSlugRoute = ResourcesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ResourcesRoute,
 } as any)
+const OgSlugRoute = OgSlugRouteImport.update({
+  id: '/og/$slug',
+  path: '/og/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EnToolsRoute = EnToolsRouteImport.update({
   id: '/en/tools',
   path: '/en/tools',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/en/resources': typeof EnResourcesRoute
   '/en/search': typeof EnSearchRoute
   '/en/tools': typeof EnToolsRoute
+  '/og/$slug': typeof OgSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/en/resources': typeof EnResourcesRoute
   '/en/search': typeof EnSearchRoute
   '/en/tools': typeof EnToolsRoute
+  '/og/$slug': typeof OgSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles': typeof ArticlesIndexRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/en/resources': typeof EnResourcesRoute
   '/en/search': typeof EnSearchRoute
   '/en/tools': typeof EnToolsRoute
+  '/og/$slug': typeof OgSlugRoute
   '/resources/$slug': typeof ResourcesSlugRoute
   '/u/$username': typeof UUsernameRoute
   '/articles/': typeof ArticlesIndexRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/en/resources'
     | '/en/search'
     | '/en/tools'
+    | '/og/$slug'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles/'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/en/resources'
     | '/en/search'
     | '/en/tools'
+    | '/og/$slug'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/en/resources'
     | '/en/search'
     | '/en/tools'
+    | '/og/$slug'
     | '/resources/$slug'
     | '/u/$username'
     | '/articles/'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   EnResourcesRoute: typeof EnResourcesRoute
   EnSearchRoute: typeof EnSearchRoute
   EnToolsRoute: typeof EnToolsRoute
+  OgSlugRoute: typeof OgSlugRoute
   UUsernameRoute: typeof UUsernameRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
   EnIndexRoute: typeof EnIndexRoute
@@ -507,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResourcesSlugRouteImport
       parentRoute: typeof ResourcesRoute
     }
+    '/og/$slug': {
+      id: '/og/$slug'
+      path: '/og/$slug'
+      fullPath: '/og/$slug'
+      preLoaderRoute: typeof OgSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/en/tools': {
       id: '/en/tools'
       path: '/en/tools'
@@ -633,6 +653,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnResourcesRoute: EnResourcesRoute,
   EnSearchRoute: EnSearchRoute,
   EnToolsRoute: EnToolsRoute,
+  OgSlugRoute: OgSlugRoute,
   UUsernameRoute: UUsernameRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
   EnIndexRoute: EnIndexRoute,

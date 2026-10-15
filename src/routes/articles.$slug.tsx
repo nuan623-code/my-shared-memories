@@ -12,7 +12,8 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { ReadingStatusButtons } from "@/components/ReadingStatusButtons";
-import { absUrl, SHARE_IMAGE } from "@/lib/site";
+import { absUrl, ogImageFor } from "@/lib/site";
+import { articleJsonLd, breadcrumbJsonLd, ldMeta } from "@/lib/jsonld";
 import { ShareButton } from "@/components/ShareButton";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { LikeButton } from "@/components/LikeButton";
@@ -54,9 +55,10 @@ export const Route = createFileRoute("/articles/$slug")({
     const alts = loaderData?.alts ?? [];
     const title = `${a?.title ?? "文章"} — Mingyu's Library`;
     const description = (a?.summary || a?.title || "Mingyu 的文章与笔记").slice(0, 200);
-    // OG/canonical 必须绝对 URL;og:image 用静态 PNG(SVG 会被所有社交爬虫忽略)
+    // OG/canonical 必须绝对 URL;og:image 用发布时栅格化出来的每篇专属分享图
+    // (SVG 会被所有社交爬虫忽略,所以 /api/og 那个 SVG 路由只用于预览)
     const url = absUrl(`/articles/${params.slug}`);
-    const ogImage = SHARE_IMAGE;
+    const ogImage = ogImageFor(params.slug);
     // 站内静态 HTML 文档以直链为规范地址(正文在 iframe 里,爬虫按直链索引全文)
     const canonical =
       a?.url && a.url.startsWith("/") && a.url.endsWith(".html") ? absUrl(a.url) : url;
@@ -71,8 +73,8 @@ export const Route = createFileRoute("/articles/$slug")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
         { property: "og:image", content: ogImage },
-        { property: "og:image:width", content: "1024" },
-        { property: "og:image:height", content: "1024" },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
         { property: "og:image:alt", content: a?.title ?? "Mingyu's Library" },
         { property: "og:site_name", content: "Mingyu's Library" },
         ...(a?.published_at
@@ -92,6 +94,20 @@ export const Route = createFileRoute("/articles/$slug")({
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: ogImage },
+        // 结构化数据。实体地址一律用 canonical:站内静态文档的规范地址是 .html 直链,
+        // 而那些 .html 是管线生成的裸文件,带不了 JSON-LD —— 这里是唯一能描述它们的地方。
+        ...(a
+          ? [
+              ...ldMeta(articleJsonLd({ article: a, canonical, image: ogImage })),
+              ...ldMeta(
+                breadcrumbJsonLd([
+                  { name: "首页", path: "/" },
+                  { name: "资料库", path: "/resources" },
+                  { name: a.title ?? "文章", path: canonical },
+                ]),
+              ),
+            ]
+          : []),
       ],
       links: [
         { rel: "canonical", href: canonical },

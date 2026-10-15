@@ -2,6 +2,7 @@
 // 否则 hreflang 失效),并输出 hreflang 自引用 + 双向互指 + x-default。
 import { HREFLANG, LOCALES, localizedPath, type Locale } from "./index";
 import { SITE_URL, SHARE_IMAGE } from "@/lib/site";
+import { ldMeta } from "@/lib/jsonld";
 
 const OG_LOCALE: Record<Locale, string> = { zh: "zh_CN", en: "en_US" };
 
@@ -16,6 +17,8 @@ export function i18nHead(opts: {
   alternates?: Locale[];
   /** 语言版本落在不同路径时的映射(如中英文章 slug 不同) */
   pathFor?: Partial<Record<Locale, string>>;
+  /** 本页的结构化数据,每个对象渲染成一个 <script type="application/ld+json"> */
+  jsonLd?: Array<Record<string, unknown> | null | undefined>;
 }) {
   const { path, locale, title, description, ogType = "website" } = opts;
   const alternates = opts.alternates ?? LOCALES;
@@ -51,6 +54,7 @@ export function i18nHead(opts: {
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: description },
       { name: "twitter:image", content: SHARE_IMAGE },
+      ...(opts.jsonLd ?? []).flatMap((x) => ldMeta(x)),
     ],
     links,
   };

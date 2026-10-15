@@ -1,7 +1,8 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ArticleDetailPage } from "../articles.$slug";
 import { fetchResourceBySlug, fetchTranslations } from "@/lib/resources";
-import { absUrl, SHARE_IMAGE } from "@/lib/site";
+import { absUrl, ogImageFor } from "@/lib/site";
+import { articleJsonLd, breadcrumbJsonLd, ldMeta } from "@/lib/jsonld";
 
 export const Route = createFileRoute("/en/articles/$slug")({
   loader: async ({ params }) => {
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/en/articles/$slug")({
     const title = `${a?.title ?? "Article"} — Mingyu's Library`;
     const description = (a?.summary || a?.title || "Notes and articles by Mingyu").slice(0, 200);
     const url = absUrl(`/en/articles/${params.slug}`);
+    const ogImage = ogImageFor(params.slug);
     // 关键:这篇内容本身是不是英文?
     // 中文文章的 /en/ 版本只是「英文外壳 + 中文正文」,与中文版几乎重复,
     // 所以 canonical 指回中文版——用户仍可在英文界面浏览,但搜索引擎只索引一份。
@@ -37,7 +39,9 @@ export const Route = createFileRoute("/en/articles/$slug")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
         { property: "og:locale", content: "en_US" },
-        { property: "og:image", content: SHARE_IMAGE },
+        { property: "og:image", content: ogImage },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
         { property: "og:site_name", content: "Mingyu's Library" },
         ...(a?.published_at
           ? [{ property: "article:published_time", content: new Date(a.published_at).toISOString() }]
@@ -48,7 +52,21 @@ export const Route = createFileRoute("/en/articles/$slug")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
-        { name: "twitter:image", content: SHARE_IMAGE },
+        { name: "twitter:image", content: ogImage },
+        // 只有原生英文内容才在这里出结构化数据:中文文章的 /en/ 外壳 canonical 指回中文版,
+        // 那一篇的实体由中文路由负责,这里再出一份就是同一个 @id 写两遍。
+        ...(a && isEnglishContent
+          ? [
+              ...ldMeta(articleJsonLd({ article: a, canonical, image: ogImage })),
+              ...ldMeta(
+                breadcrumbJsonLd([
+                  { name: "Home", path: "/en" },
+                  { name: "Library", path: "/en/resources" },
+                  { name: a.title ?? "Article", path: canonical },
+                ]),
+              ),
+            ]
+          : []),
       ],
       links: [
         { rel: "canonical", href: canonical },

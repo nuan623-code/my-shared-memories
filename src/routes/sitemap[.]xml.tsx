@@ -19,15 +19,22 @@ async function buildSitemap(): Promise<string> {
   const staticPaths = [
     "/",
     "/resources",
+    "/daily",
     "/notes",
+    "/tools",
     "/about",
+    // 三条日更内容线的静态归档站(每天新增的内容都挂在这几个目录下)
     "/ai-daily/",
     "/ai-briefing/",
+    "/claude-code/",
     // 英文界面页(内容是原生英文的界面文案,不是中文页的翻版)
     "/en",
     "/en/resources",
+    "/en/daily",
     "/en/notes",
+    "/en/tools",
     "/en/about",
+    "/en/claude-code/",
   ];
   const urls: string[] = staticPaths.map((p) => `<url><loc>${SITE_URL}${p}</loc></url>`);
 

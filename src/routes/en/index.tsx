@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { HomePage, resourcesQO, topViewedQO } from "../index";
 import { i18nHead } from "@/lib/i18n/head";
+import { websiteJsonLd } from "@/lib/jsonld";
 
 export const Route = createFileRoute("/en/")({
   head: () =>
@@ -10,6 +11,12 @@ export const Route = createFileRoute("/en/")({
       title: "Mingyu's Library — One AI topic, explained every day",
       description:
         "A daily AI briefing, a daily deep dive and a Claude Code course — three threads updated every day, plus long-form notes and tools.",
+      jsonLd: [
+        websiteJsonLd(
+          "en",
+          "A daily AI briefing, a daily deep dive and a Claude Code course — three threads updated every day, plus long-form notes and tools.",
+        ),
+      ],
     }),
   loader: ({ context }) =>
     Promise.all([

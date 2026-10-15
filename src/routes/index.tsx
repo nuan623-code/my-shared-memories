@@ -29,6 +29,7 @@ import { DAILY_COLUMNS } from "@/lib/columns";
 import { useT, useLocale } from "@/lib/i18n/use-t";
 import { localizedPath, type Locale } from "@/lib/i18n";
 import { i18nHead } from "@/lib/i18n/head";
+import { websiteJsonLd } from "@/lib/jsonld";
 
 // 取全量:曾经的 limit:60 会按时间倒序截断,把最老的公众号文章从首页挤掉
 // (每日简报每天 +1,挤一篇老文)。Supabase 单请求上限 1000,足够用很久;
@@ -62,6 +63,12 @@ export const Route = createFileRoute("/")({
       title: "Mingyu's Library — 每天讲透一个 AI 主题",
       description:
         "AI 简报、深度解读、Claude Code 实战课,三条内容线每日更新;外加手写长文与开发工具。",
+      jsonLd: [
+        websiteJsonLd(
+          "zh",
+          "AI 简报、深度解读、Claude Code 实战课,三条内容线每日更新;外加手写长文与开发工具。",
+        ),
+      ],
     }),
   loader: ({ context }) =>
     Promise.all([

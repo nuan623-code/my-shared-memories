@@ -1,10 +1,16 @@
 import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { fetchResources, type Resource, RESOURCE_TYPE_LABELS, type ResourceType } from "@/lib/resources";
+import {
+  fetchResources,
+  fetchContentMatchIds,
+  type Resource,
+  RESOURCE_TYPE_LABELS,
+  type ResourceType,
+} from "@/lib/resources";
 import { ResourceCard } from "@/components/ResourceCard";
 
 const schema = z.object({
@@ -32,15 +38,24 @@ export function SearchPage() {
   const { data: all } = useSuspenseQuery(qo);
   const [q, setQ] = useState(params.q);
 
+  // 列表数据不含正文(见 resources.ts 的 LIST_COLUMNS),正文命中改为问数据库要 id。
+  // 只在真有关键词时才发,拿不到就退化成只搜标题/摘要/标签。
+  const { data: contentHits } = useQuery({
+    queryKey: ["resources", "content-match", params.q],
+    queryFn: () => fetchContentMatchIds(params.q),
+    enabled: params.q.trim().length > 0,
+    staleTime: 5 * 60_000,
+  });
+
   const results = useMemo(() => {
     const needle = params.q.trim().toLowerCase();
     return all.filter((r: Resource) => {
       if (params.type !== "all" && r.type !== params.type) return false;
       if (!needle) return true;
-      const hay = [r.title, r.summary, r.content, ...r.tags].filter(Boolean).join(" ").toLowerCase();
-      return hay.includes(needle);
+      const hay = [r.title, r.summary, ...r.tags].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(needle) || Boolean(contentHits?.has(r.id));
     });
-  }, [all, params]);
+  }, [all, params, contentHits]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Mail, Github, Linkedin, Rss, ArrowUpRight, Wrench, PenLine } from "lucide-react";
 import { i18nHead } from "@/lib/i18n/head";
+import { personJsonLd } from "@/lib/jsonld";
 import { resourcesQO } from "./index";
 import { contentDate, isDailyColumn } from "@/lib/resources";
 import { computeSiteStats } from "@/lib/site-stats";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/about")({
       locale: "zh",
       title: "关于 — Mingyu Yang",
       description: "我是谁、我每天在产出什么、怎么找到我。",
+      jsonLd: [personJsonLd()],
     }),
   loader: ({ context }) => context.queryClient.ensureQueryData(resourcesQO),
   component: AboutPage,

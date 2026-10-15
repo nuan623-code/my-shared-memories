@@ -8,7 +8,8 @@ export interface Resource {
   type: ResourceType;
   title: string | null;
   summary: string | null;
-  content: string | null;
+  /** 文章正文。列表查询不取这一列,只有 fetchResourceBySlug 会带上 */
+  content?: string | null;
   url: string | null;
   file_url: string | null;
   file_size: number | null;
@@ -28,6 +29,34 @@ export interface Resource {
   i18n_key: string | null;
 }
 
+// 列表查询不取 content。
+// 实测:全库 271 行里只有 19 行有 content,合计 95 万字符,但 fetchResources 原来用
+// select("*"),于是这 95 万字符会被 SSR 序列化进首页 HTML —— 线上首页 1.6MB 里
+// 1.36MB 是这段谁也没在列表里渲染的正文。文章正文只有文章页需要,那里走
+// fetchResourceBySlug 单条取。
+const LIST_COLUMNS = [
+  "id",
+  "slug",
+  "type",
+  "title",
+  "summary",
+  "url",
+  "file_url",
+  "file_size",
+  "file_type",
+  "cover_url",
+  "category",
+  "subcategory",
+  "tags",
+  "duration",
+  "owner_id",
+  "published_at",
+  "created_at",
+  "updated_at",
+  "lang",
+  "i18n_key",
+].join(",");
+
 export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   article: "文章",
   video: "视频",
@@ -36,16 +65,41 @@ export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   note: "笔记",
 };
 
+/**
+ * 列表用的全量查询:不含 content(见 LIST_COLUMNS 的说明)。
+ * 返回值里 content 为 undefined —— 需要正文的地方请用 fetchResourceBySlug。
+ */
 export async function fetchResources(opts?: {
   type?: ResourceType;
   limit?: number;
 }): Promise<Resource[]> {
-  let q = supabase.from("resources").select("*").order("published_at", { ascending: false });
+  let q = supabase
+    .from("resources")
+    .select(LIST_COLUMNS)
+    .order("published_at", { ascending: false });
   if (opts?.type) q = q.eq("type", opts.type);
   if (opts?.limit) q = q.limit(opts.limit);
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []) as Resource[];
+  return (data ?? []) as unknown as Resource[];
+}
+
+/**
+ * 正文命中的 id 集合。列表不再带 content(见 LIST_COLUMNS),但搜索仍该能搜到正文,
+ * 所以把这一段下推给数据库:只有用户真的输入了关键词才发这个请求,返回的也只是 id。
+ * 失败时返回空集 —— 搜索退化成只搜标题/摘要/标签,不该因此整页报错。
+ */
+export async function fetchContentMatchIds(query: string): Promise<Set<string>> {
+  const q = query.trim();
+  if (!q) return new Set();
+  // ilike 的通配符:把用户输入里的 % 和 _ 转义掉,免得被当成模式
+  const escaped = q.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data, error } = await supabase
+    .from("resources")
+    .select("id")
+    .ilike("content", `%${escaped}%`);
+  if (error) return new Set();
+  return new Set((data ?? []).map((r) => r.id as string));
 }
 
 export async function fetchResourceBySlug(slug: string): Promise<Resource | null> {
