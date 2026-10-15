@@ -15,8 +15,16 @@
 // 写权限来自 service_role key,只从仓库外的 ~/.ms-supabase-admin 读取
 // (chmod 600,绝不进 git、绝不打包进网站)。缺这个文件时本步骤直接跳过,
 // 不阻断部署。
+//
+//   --dry-run   只打印「会新增哪些行」,一个字都不写库(改口径前先拿它核对)
+//
+// 失败一律非零退出 + 发 macOS 通知:2026-10-10 ~ 10-14 的教训是这条链路会偶发
+// 断网,错误被 publish.sh 的 `|| warn` 吞掉,静态页天天上线、库里停在 10-05,
+// 首页「每日更新」的卖点自证相反,而没有任何一处报警。现在:同一趟内自己重试,
+// 写完还要回读对账(库里少一行就报错),publish.sh 则以非零退出收尾。
 // =============================================================================
 import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,8 +57,24 @@ const SCAN = [
   { dir: "", prefix: "", category: "ai", subcategory: null, tags: ["AI"] }, // public/ 根
 ];
 
+const DRY_RUN = process.argv.includes("--dry-run");
+
 function log(m) { process.stdout.write(`  ${m}\n`); }
-function die(m) { process.stderr.write(`\x1b[1;31m✘ sync: ${m}\x1b[0m\n`); process.exit(1); }
+// 发一条 macOS 通知。日更是 launchd 在后台跑的,日志没人天天看,所以失败必须主动找人
+// (部署包装脚本 ~/.ms-ai-daily-deploy.sh 的状态点名用的也是这个渠道)。
+function notify(body) {
+  if (process.platform !== "darwin") return;
+  try {
+    const esc = (t) => t.replace(/[\\"]/g, "\\$&").slice(0, 300);
+    spawnSync("osascript", ["-e", `display notification "${esc(body)}" with title "资料库同步失败"`], { stdio: "ignore" });
+  } catch { /* 通知发不出去不能反过来弄挂同步 */ }
+}
+function die(m) {
+  process.stderr.write(`\x1b[1;31m✘ sync: ${m}\x1b[0m\n`);
+  notify(m);
+  process.exit(1);
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- 凭证 ----------------------------------------------------------------
 if (!existsSync(ADMIN_KEY_FILE)) {
@@ -155,11 +179,63 @@ for (const s of SCAN) {
 }
 if (!rows.length) { log("没有发现静态文档,跳过。"); process.exit(0); }
 
+// ---- 请求:带重试(这条链路实测会偶发断网)-------------------------------
+// 本机 → supabase.co 偶发 ECONNRESET / getaddrinfo ENOTFOUND / connect & headers
+// timeout。单次失败就放弃的话,这一天的内容就永远留在 public/ 里不入库(除非哪天
+// 又碰巧成功一次),所以同一趟内先自己重试 3 次。
+const REST = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1`;
+const AUTH = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
+
+async function request(url, init, what) {
+  let last = "未知错误";
+  for (let i = 1; i <= 3; i++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status < 500) return res;              // 4xx 是口径问题,重试也没用
+      last = `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`;
+    } catch (e) {
+      last = e.cause?.message || e.message;
+    }
+    if (i < 3) { log(`${what}失败(${last}),${i * 3}s 后重试…`); await sleep(i * 3000); }
+  }
+  die(`${what}连续 3 次失败:${last}`);
+}
+
+// 库里已有的 slug 全集(翻页读完;slug 是 on_conflict 键,比对它就够了)
+async function fetchDbSlugs() {
+  const out = new Set();
+  for (let offset = 0; ; offset += 1000) {
+    const res = await request(
+      `${REST}/resources?select=slug&limit=1000&offset=${offset}`,
+      { headers: AUTH },
+      "读取库内 slug",
+    );
+    if (!res.ok) die(`读取库内 slug 返回 ${res.status}: ${await res.text()}`);
+    const page = await res.json();
+    for (const r of page) out.add(r.slug);
+    if (page.length < 1000) return out;
+  }
+}
+
+const before = await fetchDbSlugs();
+const missing = rows.filter((r) => !before.has(r.slug));
+
+if (DRY_RUN) {
+  log(`扫描到 ${rows.length} 篇静态文档,库里已有 ${rows.length - missing.length} 篇,将新增 ${missing.length} 篇:`);
+  for (const r of missing) {
+    log(`  + ${r.slug}`);
+    log(`      ${JSON.stringify(r)}`);
+  }
+  if (!missing.length) log("(全部已在库中,无需改动。)");
+  log("--dry-run:没有写库。");
+  process.exit(0);
+}
+
 // ---- upsert:on_conflict=slug + ignore-duplicates(只新增、不覆盖)--------
 // PostgREST 的批量插入要求同一请求里所有对象的键集完全一致(否则 400 PGRST102),
 // 而日期型栏目的行多带一个 published_at。所以按键集分组、分批插,别把 published_at
 // 对无日期文档补成 null —— 那会覆盖掉 DB 默认值,列表排序就乱了。
-const endpoint = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/resources?on_conflict=slug`;
+const endpoint = `${REST}/resources?on_conflict=slug`;
 const groups = new Map();
 for (const r of rows) {
   const sig = Object.keys(r).sort().join(",");
@@ -168,16 +244,15 @@ for (const r of rows) {
 }
 const inserted = [];
 for (const batch of groups.values()) {
-  const res = await fetch(endpoint, {
+  const res = await request(endpoint, {
     method: "POST",
     headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
+      ...AUTH,
       "Content-Type": "application/json",
       Prefer: "resolution=ignore-duplicates,return=representation",
     },
     body: JSON.stringify(batch),
-  });
+  }, "写入资料库");
   if (!res.ok) die(`Supabase 返回 ${res.status}: ${await res.text()}`);
   inserted.push(...(await res.json()));
 }
@@ -185,3 +260,16 @@ for (const batch of groups.values()) {
 log(`扫描到 ${rows.length} 篇静态文档(${groups.size} 批),新增 ${inserted.length} 篇到资料库。`);
 for (const r of inserted) log(`  + ${r.slug}  →  ${r.title}`);
 if (!inserted.length) log("(全部已在库中,无需改动。)");
+
+// ---- 回读对账:库里必须一篇不少 ------------------------------------------
+// 「写请求成功」不等于「东西进去了」:ignore-duplicates 会静静吞掉唯一索引冲突
+// (小课 2026-08-04 两篇撞 idx_resources_i18n_key_lang 就是这么丢的),分批里只要
+// 有一批没发出去也一样。所以写完回读一遍,少一篇就报错 + 发通知,别等首页露馅。
+const after = await fetchDbSlugs();
+const stillMissing = rows.filter((r) => !after.has(r.slug)).map((r) => r.slug);
+if (stillMissing.length) {
+  for (const slug of stillMissing) log(`  ! 未入库:${slug}`);
+  die(`对账不过:${stillMissing.length} 篇静态文档不在 resources 表里` +
+      `(最早一篇 ${stillMissing[0]})。静态页已上线、库里没有 —— 站内列表与首页「最近更新」会漏掉它们。`);
+}
+log(`对账通过:${rows.length} 篇静态文档都在库里。`);

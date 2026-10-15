@@ -122,8 +122,15 @@ done
 # 把 public/ 下的静态 HTML 自动 upsert 进 resources 表(只新增、不覆盖),
 # 这样新文档不用手动跑 SQL 就出现在资料库列表里。需要 ~/.ms-supabase-admin
 # (service_role key);没有就自动跳过、不阻断部署。
+#
+# 失败不再只是 warn 就算了:2026-10-10 ~ 10-14 连着几趟同步都因为偶发断网失败,
+# 被这里吞掉,于是静态页天天上线、resources 表停在 10-05,首页「每日更新」自证
+# 相反,却没有任何一处报警。现在记一个标记、照常走完验证与推送,最后以非零退出
+# 收尾 —— 部署包装脚本看到非零会发 macOS 通知,同步脚本自己也会发一条。
 say "同步静态文档到资料库(Supabase)"
-node scripts/sync-static-resources.mjs || warn "文章同步出错(部署本身已成功),看上面的报错。"
+SYNC_FAILED=0
+node scripts/sync-static-resources.mjs || SYNC_FAILED=1
+[ "$SYNC_FAILED" -eq 0 ] || warn "文章同步出错(部署本身已成功),看上面的报错;本次会以非零退出收尾。"
 
 # --- 6. 线上验证 -------------------------------------------------------------
 say "验证线上"
@@ -139,3 +146,10 @@ git push origin prod || warn "push 失败(部署本身已成功),稍后手动 gi
 
 printf "\n\033[1;32m✔ 完成:%s 已更新。\033[0m\n" "$SITE"
 echo "  当前分支:$(git rev-parse --abbrev-ref HEAD)(prod);main 保持 Lovable 镜像。"
+
+# 站点已经上线了,但资料库没跟上 —— 以失败收尾,让谁调用都能看见。
+if [ "$SYNC_FAILED" -ne 0 ]; then
+  die "部署已完成,但静态文档没同步进 resources 表(见上面 sync 的报错)。
+    网络恢复后补跑:node scripts/sync-static-resources.mjs
+    先看会插什么:node scripts/sync-static-resources.mjs --dry-run"
+fi

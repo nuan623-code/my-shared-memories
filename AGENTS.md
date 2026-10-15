@@ -97,6 +97,7 @@
 - **写凭证**:service_role key,只存 **仓库外 `~/.ms-supabase-admin`(chmod 600,绝不进 git、绝不打包/内联)**。缺这个文件脚本自动跳过、不阻断部署。**这是唯一能写 `resources` 的凭证**(`.env` 里的 publishable key 对该表只读;管理员登录后经 RLS 也可删/改,见 `supabase/patches/`)。
 - **删静态文档**:在 /admin 资料管理里删掉库中行后,只要 HTML 还在 `public/`,下次部署会被同步脚本重新插回 —— 要么删掉 HTML 文件,要么在 `scripts/resources.manifest.json` 给该 slug 设 `"skip": true`。
 - 已废弃:一次性 `supabase/seed-*.sql`(改由脚本统一管理)。
+- **失败不再静默(2026-10-15)**:这条链路(本机 → supabase.co)实测会偶发断网,过去错误被 `publish.sh` 的 `|| warn` 吞掉 —— 10-10 ~ 10-14 连着几趟同步都失败,静态页天天上线、`resources` 表停在 10-05,首页「每日更新」自证相反却无人知道。现在三道兜:① 同步脚本自己重试 3 次(3s/6s 退避),② 写完**回读对账**(本地扫出的每个 slug 都必须在库里,少一个就非零退出 —— `ignore-duplicates` 会静静吞掉唯一索引冲突,「请求成功」不等于「进去了」),③ 失败发一条 macOS 通知 + `publish.sh` 以非零退出收尾(部署照常走完验证与推送,只是结尾报错,包装脚本也会跟着报警)。补跑随时幂等:`node scripts/sync-static-resources.mjs`;先看会插什么:`--dry-run`。
 - `public/ai-daily/` 也在扫描列表内(2026-07-10 起,用户要求每日简报进资料库):subcategory `daily`、标签「AI 简报」、标题优先 `<title>`;各目录的 `index.html` 一律跳过不入库。
 
 ## 测试深度(默认最轻,省 token)
