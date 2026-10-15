@@ -75,8 +75,8 @@ export function ContentRow({
   const more = moreLabel ?? t("home.viewAll");
 
   return (
-    <section className="border-b border-border/50 py-8">
-      <div className="mx-auto max-w-7xl px-4">
+    <section className="border-b border-border/50 px-4 py-8">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div className="min-w-0">
             {kicker && (
@@ -142,17 +142,23 @@ export function ContentRow({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 滚动容器铺满整宽、用内边距对齐内容区,这样卡片能滚到贴边再出画,
-          而不是在 max-w-7xl 的边界上被硬切 */}
-      <div
-        ref={scroller}
-        className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-1 [scroll-padding-left:1rem] xl:px-[max(1rem,calc((100vw-80rem)/2+1rem))]"
-      >
-        {items.map((r) => (
-          <RowCard key={r.id} r={r} locale={locale} />
-        ))}
+        {/* 滚动容器与上面的标题同在这条 max-w-7xl 里,左边缘跟「今日更新」那几张卡对齐。
+
+            这里不要再给滚动容器单独加横向 padding:padding-left 必须和
+            scroll-padding-left 一致。之前整行是铺满窗口的,padding 用
+            calc((100vw-80rem)/2+1rem) 算出三百多 px,而 scroll-padding 写死 1rem ——
+            snap-mandatory 为了把第一张卡吸附到「距起点 1rem」处,会在页面加载时
+            直接把整行右滚三百多 px:第一张卡被推出左边缘切掉半张,整行看上去
+            和页面其它部分都没对齐。两个值要么都设、要么都不设。 */}
+        <div
+          ref={scroller}
+          className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-1"
+        >
+          {items.map((r) => (
+            <RowCard key={r.id} r={r} locale={locale} />
+          ))}
+        </div>
       </div>
     </section>
   );

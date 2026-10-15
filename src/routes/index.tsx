@@ -357,15 +357,17 @@ export function HomePage() {
           改版前这里是「栏目导览」:三张只写着栏目简介和条数的卡,一条内容都不露。
           现在同样是按栏目组织,但每行直接摆十几篇真内容,首页露出量从 12 条上到百条量级。 */}
       <div id="library" className="scroll-mt-20">
-        <div className="mx-auto max-w-7xl px-4 pt-10">
-          <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
-            <Library className="h-3.5 w-3.5" />
-            {t("home.library.kicker")}
+        <div className="px-4 pt-10">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
+              <Library className="h-3.5 w-3.5" />
+              {t("home.library.kicker")}
+            </div>
+            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+              {t("home.library.title")}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t("home.library.desc")}</p>
           </div>
-          <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-            {t("home.library.title")}
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t("home.library.desc")}</p>
         </div>
 
         {rows.map(({ section, items, total }) => {
@@ -388,14 +390,16 @@ export function HomePage() {
           );
         })}
 
-        <div className="mx-auto max-w-7xl px-4 py-8">
-          <Link
-            to={lp("/resources")}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:text-primary"
-          >
-            {t("home.enterLibrary")}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+        <div className="px-4 py-8">
+          <div className="mx-auto max-w-7xl">
+            <Link
+              to={lp("/resources")}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:text-primary"
+            >
+              {t("home.enterLibrary")}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </div>
 
