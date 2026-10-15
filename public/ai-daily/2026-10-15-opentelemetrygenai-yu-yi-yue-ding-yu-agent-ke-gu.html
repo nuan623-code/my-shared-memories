@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenTelemetry GenAI 语义约定与 Agent 可观测性 | OpenTelemetry GenAI Semantic Conventions for Agent Observability</title>
+<style>
+:root{--bg:#f6f8fc;--surface:#fff;--ink:#141a2b;--ink2:#38425f;--muted:#68728f;--line:#dde3f0;--accent:#1f4fb4;--soft:#e6eefc;--warn:#fff4e0;--warnb:#eac98f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+header{background:linear-gradient(160deg,#fff,#e9f0fd);border-bottom:1px solid var(--line)}
+.hin{max-width:860px;margin:0 auto;padding:46px 20px 30px}
+h1{font-size:clamp(25px,5vw,36px);margin:0 0 10px;line-height:1.3;letter-spacing:-.01em}
+.meta{color:var(--muted);font-size:14px}
+#lang{position:fixed;top:12px;right:14px;z-index:20;border:1px solid var(--accent);background:var(--surface);color:var(--accent);font-weight:800;border-radius:99px;padding:7px 16px;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(20,26,43,.12)}
+.wrap{max-width:860px;margin:0 auto;padding:22px 20px 70px}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 18px;margin-bottom:24px;font-size:14.5px}
+.toc a{display:inline-block;margin:2px 14px 2px 0;color:var(--ink2);text-decoration:none}
+.toc a:hover{color:var(--accent)}
+h2{font-size:22px;margin:34px 0 10px;padding-top:6px;border-top:2px solid var(--soft)}
+p,li{color:var(--ink2)}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:var(--soft);padding:1px 5px;border-radius:5px}
+pre{background:#101828;color:#e6edf7;border-radius:10px;padding:13px 15px;overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:inherit}
+.tw{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+.callout{border-radius:11px;padding:12px 16px;margin:14px 0;font-size:15px;background:var(--soft);border:1px solid #bcd0f3}
+.callout.warn{background:var(--warn);border-color:var(--warnb)}
+.fig{margin:16px 0;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:10px;opacity:0;transform:translateY(8px);transition:.5s}
+.fig.in{opacity:1;transform:none}
+.fig svg{width:100%;height:auto;display:block}
+footer{color:var(--muted);font-size:13px;margin-top:34px;text-align:center}
+@media(max-width:620px){.hin{padding:56px 16px 24px}body{font-size:16px}#lang{top:8px;right:8px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中 / EN OpenTelemetry GenAI 语义约定与 Agent 可观测性 OpenTelemetry GenAI Semantic Conventions for Agent Observability 2…">
+<meta property="og:title" content="OpenTelemetry GenAI 语义约定与 Agent 可观测性 | OpenTelemetry GenAI Semantic Conventions for Agent Observability">
+<meta property="og:description" content="中 / EN OpenTelemetry GenAI 语义约定与 Agent 可观测性 OpenTelemetry GenAI Semantic Conventions for Agent Observability 2…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-15-opentelemetrygenai-yu-yi-yue-ding-yu-agent-ke-gu.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-15-opentelemetrygenai-yu-yi-yue-ding-yu-agent-ke-gu.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "OpenTelemetry GenAI 语义约定与 Agent 可观测性 | OpenTelemetry GenAI Semantic Conventions for Agent Observability", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-15-opentelemetrygenai-yu-yi-yue-ding-yu-agent-ke-gu.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-15", "dateModified": "2026-10-15"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="lang" type="button" aria-label="切换语言 / Switch language">中 / EN</button>
+<header><div class="hin">
+<h1 class="zh">OpenTelemetry GenAI 语义约定与 Agent 可观测性</h1>
+<h1 class="en">OpenTelemetry GenAI Semantic Conventions for Agent Observability</h1>
+<div class="meta zh">2026-10-15 · 今日精选主题 · 依据 Claude Code v2.1.300 changelog 与公开说明文章</div>
+<div class="meta en">2026-10-15 · Topic of the day · Based on the Claude Code v2.1.300 changelog and public write-ups</div>
+</div></header>
+<div class="wrap">
+<nav class="toc"><a href="#what"><span class="zh">1. 这是什么、为什么现在值得看</span><span class="en">1. What it is, and why it matters now</span></a><a href="#layers"><span class="zh">2. 一次 agent 运行在 trace 里长什么样</span><span class="en">2. What one agent run looks like as a trace</span></a><a href="#attrs"><span class="zh">3. 最该先认识的属性</span><span class="en">3. The attributes to learn first</span></a><a href="#metrics"><span class="zh">4. 指标与事件</span><span class="en">4. Metrics and events</span></a><a href="#privacy"><span class="zh">5. 内容采集:默认不记,记就要有章法</span><span class="en">5. Content capture: off by default, and deliberate when on</span></a><a href="#cc"><span class="zh">6. Claude Code 怎么对应这套标准</span><span class="en">6. How Claude Code maps onto the standard</span></a><a href="#mcp"><span class="zh">7. 配套:MCP 的链路怎么接上</span><span class="en">7. Companion piece: connecting MCP into the trace</span></a><a href="#use"><span class="zh">8. 什么场景用、怎么选</span><span class="en">8. When to use it, and how to choose</span></a><a href="#pitfalls"><span class="zh">9. 常见坑</span><span class="en">9. Common pitfalls</span></a><a href="#glossary"><span class="zh">10. 术语表</span><span class="en">10. Glossary</span></a><a href="#src"><span class="zh">11. 来源与说明</span><span class="en">11. Sources and notes</span></a></nav>
+<section id="what"><h2 class="zh">1. 这是什么、为什么现在值得看</h2><h2 class="en">1. What it is, and why it matters now</h2></section>
+<p class="zh"><b>OpenTelemetry GenAI 语义约定</b>(semantic conventions,简称 semconv)是一份「命名词典」:规定 LLM 调用、agent 运行、工具执行在 <b>trace(链路追踪)</b>、<b>metric(指标)</b>和 <b>event(事件)</b>里该用什么名字、带哪些属性(都以 <code>gen_ai.*</code> 开头)。好处是:不同框架、不同语言、不同模型厂商吐出的遥测,可以进同一个看板、同一套告警。</p>
+<p class="en">The <b>OpenTelemetry GenAI semantic conventions</b> (semconv) are a naming dictionary: they say what names and attributes (all prefixed <code>gen_ai.*</code>) LLM calls, agent runs and tool executions should use in <b>traces</b>, <b>metrics</b> and <b>events</b>. The payoff is that telemetry from different frameworks, languages and model vendors can land in the same dashboards and alerts.</p>
+<p class="zh">为什么是今天:Claude Code v2.1.300(2026-10-14)的 changelog 写明 span 上新增了 OpenTelemetry GenAI 语义约定的属性(如 <code>gen_ai.provider.name</code>、<code>gen_ai.tool.name</code>、<code>error.type</code>)。同时,据 Dash0 的说明文章,这套约定在 v1.42.0(2026-06-12)搬到了独立仓库 <code>semantic-conventions-genai</code>,且所有 <code>gen_ai.*</code> 仍处于 <b>Development</b>(开发中)阶段——名称可能在没有弃用期的情况下改变。也就是说:标准值得用,但要带着「会改名」的心理预期用。</p>
+<p class="en">Why today: the Claude Code v2.1.300 changelog (2026-10-14) says spans now carry attributes from the OpenTelemetry GenAI semantic conventions (e.g. <code>gen_ai.provider.name</code>, <code>gen_ai.tool.name</code>, <code>error.type</code>). Meanwhile, per Dash0's explainer, the conventions moved to a separate repository, <code>semantic-conventions-genai</code>, in v1.42.0 (2026-06-12), and every <code>gen_ai.*</code> item is still at <b>Development</b> stability, so names can change without a deprecation window. In short: worth adopting, but adopt expecting renames.</p>
+<div class="callout warn zh">诚实提示:不同来源对稳定度的说法不完全一致——OpenObserve(2026-05)认为核心 chat 属性相对稳定、agent/工具属性仍在变;Dash0(更新于 09-14)则称全部为 Development。本文按更保守的说法处理。官方旧页面(opentelemetry.io/docs/specs/semconv/gen-ai/)现在只剩一条「已迁移」提示,我没能直接读到新仓库 docs 里的原文,所以属性细节来自上述两篇二手说明,落地前请对照新仓库核对。</div>
+<div class="callout warn en">A candid note: sources disagree slightly on stability. OpenObserve (May 2026) treats core chat attributes as relatively settled and agent/tool attributes as still moving; Dash0 (updated Sep 14) says everything is Development. This document takes the more conservative view. The old official spec pages now show only a "moved" notice, and I could not read the new repository's docs directly, so attribute details below come from those two secondary write-ups; verify against the new repo before you commit.</div>
+<section id="layers"><h2 class="zh">2. 一次 agent 运行在 trace 里长什么样</h2><h2 class="en">2. What one agent run looks like as a trace</h2></section>
+<p class="zh">核心思路:一次 agent 运行是一棵树。最外层是 <code>invoke_agent</code>,里面交替出现模型调用(<code>chat</code>)和工具执行(<code>execute_tool</code>);子 agent 就是再嵌一层 <code>invoke_agent</code>。字段 <code>gen_ai.operation.name</code> 标明每个 span 是哪种操作。</p>
+<p class="en">The core idea: an agent run is a tree. The outermost span is <code>invoke_agent</code>; inside it, model calls (<code>chat</code>) alternate with tool executions (<code>execute_tool</code>); a sub-agent is just another nested <code>invoke_agent</code>. The <code>gen_ai.operation.name</code> attribute says which kind of operation each span is.</p>
+<figure class="fig zh"><svg viewBox="0 0 640 330" role="img" aria-label="invoke_agent(agent 运行)" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6b8c"/></marker></defs>
+<rect x="10" y="10" width="620" height="310" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<rect x="30" y="28" width="300" height="38" rx="9" fill="#1f3a6e"/><text x="44" y="52" fill="#fff" font-size="14" font-weight="700">invoke_agent(agent 运行)</text>
+<path d="M44 66V96M44 96H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar)"/>
+<rect x="74" y="80" width="260" height="32" rx="8" fill="#dbe7ff" stroke="#9db6e8"/><text x="86" y="101" font-size="13" fill="#1f3a6e">chat(模型调用 #1)</text>
+<path d="M44 96V140M44 140H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar)"/>
+<rect x="74" y="124" width="260" height="32" rx="8" fill="#e7f6ea" stroke="#9fd2aa"/><text x="86" y="145" font-size="13" fill="#1d5a2c">execute_tool(工具:读文件)</text>
+<path d="M44 140V184M44 184H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar)"/>
+<rect x="74" y="168" width="260" height="32" rx="8" fill="#dbe7ff" stroke="#9db6e8"/><text x="86" y="189" font-size="13" fill="#1f3a6e">chat(模型调用 #2)</text>
+<path d="M44 184V230M44 230H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar)"/>
+<rect x="74" y="212" width="300" height="34" rx="8" fill="#fff1dc" stroke="#e8c48a"/><text x="86" y="234" font-size="13" fill="#7a4a07">invoke_agent(子 agent)</text>
+<rect x="130" y="256" width="150" height="26" rx="7" fill="#dbe7ff" stroke="#9db6e8"/><text x="142" y="274" font-size="12" fill="#1f3a6e">chat</text>
+<path d="M44 230V298M44 298H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar)"/>
+<rect x="74" y="284" width="260" height="28" rx="8" fill="#dbe7ff" stroke="#9db6e8"/><text x="86" y="303" font-size="13" fill="#1f3a6e">最终 chat(给出答案)</text>
+<text x="360" y="60" font-size="12.5" fill="#44506b">同一个 trace ID 串起整棵树</text>
+</svg></figure>
+<figure class="fig en"><svg viewBox="0 0 640 330" role="img" aria-label="invoke_agent (agent run)" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ar-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6b8c"/></marker></defs>
+<rect x="10" y="10" width="620" height="310" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<rect x="30" y="28" width="300" height="38" rx="9" fill="#1f3a6e"/><text x="44" y="52" fill="#fff" font-size="14" font-weight="700">invoke_agent (agent run)</text>
+<path d="M44 66V96M44 96H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar-e)"/>
+<rect x="74" y="80" width="260" height="32" rx="8" fill="#dbe7ff" stroke="#9db6e8"/><text x="86" y="101" font-size="13" fill="#1f3a6e">chat (model call #1)</text>
+<path d="M44 96V140M44 140H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar-e)"/>
+<rect x="74" y="124" width="260" height="32" rx="8" fill="#e7f6ea" stroke="#9fd2aa"/><text x="86" y="145" font-size="13" fill="#1d5a2c">execute_tool (tool: read file)</text>
+<path d="M44 140V184M44 184H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar-e)"/>
+<rect x="74" y="168" width="260" height="32" rx="8" fill="#dbe7ff" stroke="#9db6e8"/><text x="86" y="189" font-size="13" fill="#1f3a6e">chat (model call #2)</text>
+<path d="M44 184V230M44 230H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar-e)"/>
+<rect x="74" y="212" width="300" height="34" rx="8" fill="#fff1dc" stroke="#e8c48a"/><text x="86" y="234" font-size="13" fill="#7a4a07">invoke_agent (sub-agent)</text>
+<rect x="130" y="256" width="150" height="26" rx="7" fill="#dbe7ff" stroke="#9db6e8"/><text x="142" y="274" font-size="12" fill="#1f3a6e">chat</text>
+<path d="M44 230V298M44 298H70" stroke="#5b6b8c" fill="none" marker-end="url(#ar-e)"/>
+<rect x="74" y="284" width="260" height="28" rx="8" fill="#dbe7ff" stroke="#9db6e8"/><text x="86" y="303" font-size="13" fill="#1f3a6e">final chat (answer)</text>
+<text x="360" y="60" font-size="12.5" fill="#44506b">one trace ID ties the whole tree together</text>
+</svg></figure>
+<div class="tw zh"><table><tr><th>operation.name</th><th>含义</th><th>span 类型(据 OpenObserve)</th></tr>
+<tr><td><code>chat</code> / <code>text_completion</code> / <code>generate_content</code></td><td>一次模型推理调用</td><td>CLIENT</td></tr>
+<tr><td><code>embeddings</code></td><td>生成向量</td><td>CLIENT</td></tr>
+<tr><td><code>create_agent</code></td><td>创建(远端)agent</td><td>CLIENT</td></tr>
+<tr><td><code>invoke_agent</code></td><td>运行 agent;远端为 CLIENT,进程内框架执行为 INTERNAL(v1.41 起)</td><td>CLIENT / INTERNAL</td></tr>
+<tr><td><code>invoke_workflow</code></td><td>固定路径的工作流(区别于自主决策的 agent),v1.41 新增</td><td>—</td></tr>
+<tr><td><code>execute_tool</code></td><td>执行一次工具调用;v1.41 起 span 名里要带工具名</td><td>INTERNAL</td></tr>
+<tr><td><code>retrieval</code> / <code>plan</code> / 记忆类操作</td><td>RAG 检索、规划、记忆读写(据 Dash0 列表)</td><td>—</td></tr></table></div>
+<div class="tw en"><table><tr><th>operation.name</th><th>Meaning</th><th>Span kind (per OpenObserve)</th></tr>
+<tr><td><code>chat</code> / <code>text_completion</code> / <code>generate_content</code></td><td>One model inference call</td><td>CLIENT</td></tr>
+<tr><td><code>embeddings</code></td><td>Embedding generation</td><td>CLIENT</td></tr>
+<tr><td><code>create_agent</code></td><td>Creating a (remote) agent</td><td>CLIENT</td></tr>
+<tr><td><code>invoke_agent</code></td><td>Running an agent; CLIENT for remote, INTERNAL for in-process framework execution (since v1.41)</td><td>CLIENT / INTERNAL</td></tr>
+<tr><td><code>invoke_workflow</code></td><td>A fixed-path workflow (as opposed to autonomous agent reasoning), added in v1.41</td><td>—</td></tr>
+<tr><td><code>execute_tool</code></td><td>One tool execution; since v1.41 the tool name must appear in the span name</td><td>INTERNAL</td></tr>
+<tr><td><code>retrieval</code> / <code>plan</code> / memory ops</td><td>RAG lookups, planning, memory reads/writes (per Dash0's list)</td><td>—</td></tr></table></div>
+<section id="attrs"><h2 class="zh">3. 最该先认识的属性</h2><h2 class="en">3. The attributes to learn first</h2></section>
+<div class="tw zh"><table><tr><th>属性</th><th>作用</th></tr>
+<tr><td><code>gen_ai.operation.name</code></td><td>操作类型(必填)</td></tr>
+<tr><td><code>gen_ai.provider.name</code></td><td>厂商标识,如 <code>anthropic</code>;取代了旧的 <code>gen_ai.system</code>(必填)</td></tr>
+<tr><td><code>gen_ai.request.model</code> / <code>gen_ai.response.model</code></td><td>请求的模型 vs 实际响应的模型,二者可能不同(例如带日期的快照)</td></tr>
+<tr><td><code>gen_ai.usage.input_tokens</code> / <code>output_tokens</code></td><td>token 用量,成本的主要来源;另有缓存读取、推理 token 属性(v1.40、v1.41 加入)</td></tr>
+<tr><td><code>gen_ai.response.finish_reasons</code></td><td>结束原因,<b>是数组</b>不是字符串</td></tr>
+<tr><td><code>gen_ai.conversation.id</code></td><td>把多轮会话/agent 循环的 span 串在一起</td></tr>
+<tr><td><code>gen_ai.agent.name</code> / <code>.id</code> / <code>.version</code></td><td>agent 身份</td></tr>
+<tr><td><code>gen_ai.tool.name</code> / <code>gen_ai.tool.call.id</code></td><td>工具名与调用 ID(用来把调用和结果配对)</td></tr>
+<tr><td><code>error.type</code></td><td>失败类别;来自核心约定,是少数已 Stable 的属性之一(另有 <code>server.address</code>、<code>server.port</code>,据 Dash0)</td></tr></table></div>
+<div class="tw en"><table><tr><th>Attribute</th><th>Purpose</th></tr>
+<tr><td><code>gen_ai.operation.name</code></td><td>Operation type (required)</td></tr>
+<tr><td><code>gen_ai.provider.name</code></td><td>Vendor identifier such as <code>anthropic</code>; replaces the older <code>gen_ai.system</code> (required)</td></tr>
+<tr><td><code>gen_ai.request.model</code> / <code>gen_ai.response.model</code></td><td>Requested vs actually serving model; they can differ (e.g. dated snapshots)</td></tr>
+<tr><td><code>gen_ai.usage.input_tokens</code> / <code>output_tokens</code></td><td>Token usage, the main cost driver; cache-read and reasoning token attributes were added in v1.40 and v1.41</td></tr>
+<tr><td><code>gen_ai.response.finish_reasons</code></td><td>Why generation stopped; <b>an array</b>, not a string</td></tr>
+<tr><td><code>gen_ai.conversation.id</code></td><td>Groups spans of a multi-turn session or agent loop</td></tr>
+<tr><td><code>gen_ai.agent.name</code> / <code>.id</code> / <code>.version</code></td><td>Agent identity</td></tr>
+<tr><td><code>gen_ai.tool.name</code> / <code>gen_ai.tool.call.id</code></td><td>Tool name and call ID (to pair a call with its result)</td></tr>
+<tr><td><code>error.type</code></td><td>Failure category; from the core conventions and one of the few Stable attributes (along with <code>server.address</code> and <code>server.port</code>, per Dash0)</td></tr></table></div>
+<section id="metrics"><h2 class="zh">4. 指标与事件</h2><h2 class="en">4. Metrics and events</h2></section>
+<ul class="zh"><li><code>gen_ai.client.token.usage</code>:按类型、操作、模型统计 token(直方图);配上单价就是实时成本视图。</li><li><code>gen_ai.client.operation.duration</code>:调用端到端耗时(秒)。</li><li>据 Dash0,还有 <code>gen_ai.invoke_agent.duration</code>、<code>.tool_calls</code>、<code>.inference_calls</code> 等 agent 级指标:工具调用数与推理调用数的比例,可以帮助区分「空转循环」与「反复重试」。</li><li>事件:<code>gen_ai.client.inference.operation.details</code> 承载完整输入/输出消息(需主动开启);<code>gen_ai.evaluation.result</code> 承载评测分数。</li></ul>
+<ul class="en"><li><code>gen_ai.client.token.usage</code>: tokens by type, operation and model (histogram); pair it with pricing for a live cost view.</li><li><code>gen_ai.client.operation.duration</code>: end-to-end call latency in seconds.</li><li>Per Dash0, there are also agent-level metrics such as <code>gen_ai.invoke_agent.duration</code>, <code>.tool_calls</code> and <code>.inference_calls</code>; the ratio of tool calls to inference calls helps tell looping without action from repeated retries.</li><li>Events: <code>gen_ai.client.inference.operation.details</code> carries full input/output messages (opt-in); <code>gen_ai.evaluation.result</code> carries evaluation scores.</li></ul>
+<section id="privacy"><h2 class="zh">5. 内容采集:默认不记,记就要有章法</h2><h2 class="en">5. Content capture: off by default, and deliberate when on</h2></section>
+<p class="zh">prompt 和回答里常有个人信息或商业机密,也可能很大,所以规范把它们放在事件里而不是 span 属性里,并且默认不记录。OpenObserve 总结了三种做法:不记录(默认);记在 span 属性(简单,但有大小限制,且能看 trace 的人都能看到);存到外部存储、span 上只放引用(规范推荐用于敏感或大流量的生产环境)。启用开关由各库自己决定——规范只把 <code>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</code> 作为示例,不同库的取值写法不一样,务必看库文档。</p>
+<p class="en">Prompts and responses often contain personal or confidential data and can be large, so the spec puts them in events rather than span attributes and does not record them by default. OpenObserve describes three approaches: not recorded (default); recorded as span attributes (simple, but size-limited and visible to anyone with trace access); or stored externally with only a reference on the span (recommended for sensitive or high-volume production). The switch is up to each library: the spec offers <code>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</code> only as an example, and accepted values differ, so read your library's docs.</p>
+<figure class="fig zh"><svg viewBox="0 0 640 220" role="img" aria-label="内容采集三选一" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6b8c"/></marker></defs>
+<rect x="10" y="10" width="620" height="200" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<rect x="30" y="30" width="170" height="60" rx="10" fill="#e7f6ea" stroke="#9fd2aa"/><text x="42" y="56" font-size="14" font-weight="700" fill="#1d5a2c">① 不记录(默认)</text><text x="42" y="78" font-size="12" fill="#1d5a2c">只留元数据</text>
+<rect x="235" y="30" width="170" height="60" rx="10" fill="#fff1dc" stroke="#e8c48a"/><text x="247" y="56" font-size="14" font-weight="700" fill="#7a4a07">② 写进 span 属性</text><text x="247" y="78" font-size="12" fill="#7a4a07">有大小限制、人人可见</text>
+<rect x="440" y="30" width="170" height="60" rx="10" fill="#dbe7ff" stroke="#9db6e8"/><text x="452" y="56" font-size="14" font-weight="700" fill="#1f3a6e">③ 外部存储+引用</text><text x="452" y="78" font-size="12" fill="#1f3a6e">独立权限与保留期</text>
+<path d="M115 90V130M320 90V130M525 90V130" stroke="#5b6b8c" fill="none" marker-end="url(#ar2)"/>
+<text x="30" y="160" font-size="13" fill="#44506b">适合:默认/生产排障看元数据</text>
+<text x="235" y="160" font-size="13" fill="#44506b">适合:测试/预发调试</text>
+<text x="440" y="160" font-size="13" fill="#44506b">适合:生产且含敏感数据</text>
+<text x="30" y="192" font-size="12.5" fill="#44506b">建议在源头脱敏/过滤,而不是指望下游。</text>
+</svg></figure>
+<figure class="fig en"><svg viewBox="0 0 640 220" role="img" aria-label="Three ways to capture content" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ar2-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6b8c"/></marker></defs>
+<rect x="10" y="10" width="620" height="200" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<rect x="30" y="30" width="170" height="60" rx="10" fill="#e7f6ea" stroke="#9fd2aa"/><text x="42" y="56" font-size="14" font-weight="700" fill="#1d5a2c">1. Not recorded (default)</text><text x="42" y="78" font-size="12" fill="#1d5a2c">metadata only</text>
+<rect x="235" y="30" width="170" height="60" rx="10" fill="#fff1dc" stroke="#e8c48a"/><text x="247" y="56" font-size="14" font-weight="700" fill="#7a4a07">2. Span attributes</text><text x="247" y="78" font-size="12" fill="#7a4a07">size-limited, visible to all</text>
+<rect x="440" y="30" width="170" height="60" rx="10" fill="#dbe7ff" stroke="#9db6e8"/><text x="452" y="56" font-size="14" font-weight="700" fill="#1f3a6e">3. External store + ref</text><text x="452" y="78" font-size="12" fill="#1f3a6e">own access and retention</text>
+<path d="M115 90V130M320 90V130M525 90V130" stroke="#5b6b8c" fill="none" marker-end="url(#ar2-e)"/>
+<text x="30" y="160" font-size="13" fill="#44506b">Fits: default / prod triage on metadata</text>
+<text x="235" y="160" font-size="13" fill="#44506b">Fits: test / staging debugging</text>
+<text x="440" y="160" font-size="13" fill="#44506b">Fits: prod with sensitive data</text>
+<text x="30" y="192" font-size="12.5" fill="#44506b">Redact at the source rather than relying on downstream consumers.</text>
+</svg></figure>
+<section id="cc"><h2 class="zh">6. Claude Code 怎么对应这套标准</h2><h2 class="en">6. How Claude Code maps onto the standard</h2></section>
+<p class="zh">Claude Code 的官方监控文档里,traces 仍是 beta,层级是:<code>claude_code.interaction</code>(每次用户提问一个)→ <code>claude_code.llm_request</code>、<code>claude_code.tool</code>(其下有 <code>blocked_on_user</code> 与 <code>execution</code>)、<code>claude_code.hook</code>;子 agent 的 span 嵌在工具之下。它自己的 span 名是 <code>claude_code.*</code>,GenAI 约定的属性是「叠加」在这些 span 上的:文档列出 <code>gen_ai.system</code>(恒为 <code>anthropic</code>)、<code>gen_ai.request.model</code>、<code>gen_ai.response.id</code>、<code>gen_ai.response.finish_reasons</code>、<code>gen_ai.tool.call.id</code>;而 v2.1.300 changelog 则提到 <code>gen_ai.provider.name</code>、<code>gen_ai.tool.name</code>、<code>error.type</code>。两处并存,说明它正处在从旧名到新名的过渡中——查询时两个名字都要考虑。</p>
+<p class="en">In Claude Code's official monitoring docs, traces are still beta, with this hierarchy: <code>claude_code.interaction</code> (one per user prompt) → <code>claude_code.llm_request</code>, <code>claude_code.tool</code> (with <code>blocked_on_user</code> and <code>execution</code> beneath it) and <code>claude_code.hook</code>; subagent spans nest under tools. Span names are Claude Code's own <code>claude_code.*</code>; GenAI attributes are layered on top. The docs list <code>gen_ai.system</code> (always <code>anthropic</code>), <code>gen_ai.request.model</code>, <code>gen_ai.response.id</code>, <code>gen_ai.response.finish_reasons</code> and <code>gen_ai.tool.call.id</code>, while the v2.1.300 changelog mentions <code>gen_ai.provider.name</code>, <code>gen_ai.tool.name</code> and <code>error.type</code>. Both coexisting suggests a transition from old names to new, so queries should consider both.</p>
+<pre class="zh"><code>export CLAUDE_CODE_ENABLE_TELEMETRY=1
+export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1      # traces are beta
+export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+# content stays redacted unless you opt in, one switch per category:
+# OTEL_LOG_USER_PROMPTS=1  OTEL_LOG_TOOL_DETAILS=1  OTEL_LOG_TOOL_CONTENT=1</code></pre>
+<pre class="en"><code>export CLAUDE_CODE_ENABLE_TELEMETRY=1
+export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1      # traces are beta
+export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+# content stays redacted unless you opt in, one switch per category:
+# OTEL_LOG_USER_PROMPTS=1  OTEL_LOG_TOOL_DETAILS=1  OTEL_LOG_TOOL_CONTENT=1</code></pre>
+<p class="zh">另外,Claude Code 的 Bash/PowerShell 子进程会继承 <code>TRACEPARENT</code>,你的脚本可以把自己的 span 挂到同一条 trace 上;经自定义 <code>ANTHROPIC_BASE_URL</code> 代理时需设 <code>CLAUDE_CODE_PROPAGATE_TRACEPARENT=1</code> 才会透传。管理员可在 managed settings 里固定 OTLP 端点,仓库内的 <code>.claude/settings.json</code> 不能开启遥测或改目的地。</p>
+<p class="en">Also, Bash and PowerShell subprocesses inherit <code>TRACEPARENT</code>, so your scripts can attach their own spans to the same trace; behind a custom <code>ANTHROPIC_BASE_URL</code> proxy you need <code>CLAUDE_CODE_PROPAGATE_TRACEPARENT=1</code> to propagate it. Admins can pin the OTLP endpoint in managed settings, and a repository's <code>.claude/settings.json</code> cannot enable telemetry or change its destination.</p>
+<section id="mcp"><h2 class="zh">7. 配套:MCP 的链路怎么接上</h2><h2 class="en">7. Companion piece: connecting MCP into the trace</h2></section>
+<p class="zh">据 OpenObserve,MCP 约定(v1.39)解决的是「agent 侧与 MCP server 侧的 trace 断开」:靠 W3C Trace Context 传播,让 server 的 span 挂在 client 的 span 之下;关键属性有 <code>mcp.method.name</code>、<code>mcp.session.id</code>、<code>mcp.protocol.version</code>。如果外层 GenAI 插桩已经记录了工具执行,MCP 插桩应当丰富那个 span,而不是再造一个重复的。两侧都不传播上下文,链路就连不起来。</p>
+<p class="en">Per OpenObserve, the MCP conventions (v1.39) fix the problem of agent-side and MCP-server-side traces being disconnected: W3C Trace Context propagation nests the server span under the client span, with key attributes <code>mcp.method.name</code>, <code>mcp.session.id</code> and <code>mcp.protocol.version</code>. If outer GenAI instrumentation already tracks tool execution, MCP instrumentation should enrich that span rather than create a duplicate. Without propagation on both sides, the traces will not connect.</p>
+<section id="use"><h2 class="zh">8. 什么场景用、怎么选</h2><h2 class="en">8. When to use it, and how to choose</h2></section>
+<ul class="zh"><li><b>多个框架/模型混用</b>:统一命名后一个看板看全部,避免每个厂商一套自定义字段。</li><li><b>要看成本与卡点</b>:用 token 指标做成本,用 <code>execute_tool</code> 与 <code>chat</code> 的耗时找慢点,用 <code>finish_reasons</code> 找被截断的调用。</li><li><b>排查 agent 空转</b>:有 <code>gen_ai.conversation.id</code> 才能把循环里的 span 串起来;没有它,失控循环只是一堆互不相连的 span。</li><li><b>不适合</b>:想把 Development 阶段的 agent 属性直接做成永久告警而不做版本钉扎——改名时看板会静默失效。</li></ul>
+<ul class="en"><li><b>Mixed frameworks and models</b>: one naming scheme, one dashboard, no per-vendor custom fields.</li><li><b>Cost and bottleneck visibility</b>: token metrics for cost, <code>execute_tool</code> vs <code>chat</code> durations for slow spots, <code>finish_reasons</code> to find truncated calls.</li><li><b>Debugging looping agents</b>: only with <code>gen_ai.conversation.id</code> can loop spans be tied together; without it a runaway loop is just disconnected spans.</li><li><b>Poor fit</b>: turning Development-stage agent attributes into permanent alerts without pinning versions; a rename silently breaks the dashboard.</li></ul>
+<section id="pitfalls"><h2 class="zh">9. 常见坑</h2><h2 class="en">9. Common pitfalls</h2></section>
+<ul class="zh"><li><b>改名风险</b>:新仓库目前没有打 tag 的发布,README 的 Schema URL 仍写「TODO」(据 Dash0),后端无法自动迁移被改名的属性。建议钉扎插桩库版本,把属性字符串集中在一个模块里,必要时用 Collector 的 transform 处理器做映射。</li><li><b>新旧并存</b>:<code>gen_ai.system</code> 正被 <code>gen_ai.provider.name</code> 取代,有的库两个都发——查询要兼容。</li><li><b>finish_reasons 是数组</b>,当标量处理会查不到。</li><li><b>请求模型 ≠ 响应模型</b>:只按 request.model 分组会掩盖实际服务的模型。</li><li><b>默认就开内容采集</b>:会把个人信息常规性地写进遥测;生产里只留元数据,按需对特定 trace 打开。</li><li><b>框架覆盖不全</b>:据 OpenObserve(5 月),LangGraph、CrewAI 的插桩仍在推进,agent trace 可能不完整。</li><li><b>自造属性名</b>:会让共享看板失效。</li></ul>
+<ul class="en"><li><b>Renames</b>: the new repo has no tagged release and the README's Schema URL still reads "TODO" (per Dash0), so backends cannot auto-migrate renamed attributes. Pin instrumentation versions, keep attribute strings in one module, and use a Collector transform processor for mapping if needed.</li><li><b>Old and new coexist</b>: <code>gen_ai.system</code> is being superseded by <code>gen_ai.provider.name</code>, and some libraries emit both; make queries tolerant.</li><li><b>finish_reasons is an array</b>; treating it as a scalar finds nothing.</li><li><b>Request model ≠ response model</b>: grouping only by request.model hides which model actually served.</li><li><b>Content capture on by default</b> routinely writes personal data into telemetry; keep production to metadata and enable content for specific traces on demand.</li><li><b>Partial framework coverage</b>: per OpenObserve (May), LangGraph and CrewAI instrumentation was still in progress, so agent traces may be incomplete.</li><li><b>Inventing attribute names</b> breaks shared dashboards.</li></ul>
+<section id="glossary"><h2 class="zh">10. 术语表</h2><h2 class="en">10. Glossary</h2></section>
+<div class="tw zh"><table><tr><th>术语</th><th>人话解释</th></tr>
+<tr><td>span</td><td>trace 里的一段操作记录,有起止时间和属性</td></tr>
+<tr><td>trace</td><td>由 span 组成的一棵树,代表一次完整请求/运行</td></tr>
+<tr><td>attribute</td><td>挂在 span 上的键值对,如模型名、token 数</td></tr>
+<tr><td>semantic conventions</td><td>规定名字和含义的「命名词典」</td></tr>
+<tr><td>OTLP</td><td>OpenTelemetry 的数据传输协议</td></tr>
+<tr><td>Development(稳定度)</td><td>最早的稳定度级别,名称可能随时变</td></tr></table></div>
+<div class="tw en"><table><tr><th>Term</th><th>Plain meaning</th></tr>
+<tr><td>span</td><td>One recorded operation in a trace, with start/end time and attributes</td></tr>
+<tr><td>trace</td><td>A tree of spans representing one complete request or run</td></tr>
+<tr><td>attribute</td><td>A key-value pair on a span, e.g. model name or token count</td></tr>
+<tr><td>semantic conventions</td><td>A naming dictionary that fixes names and meanings</td></tr>
+<tr><td>OTLP</td><td>OpenTelemetry's wire protocol for sending data</td></tr>
+<tr><td>Development (stability)</td><td>The earliest stability level; names may change at any time</td></tr></table></div>
+<section id="src"><h2 class="zh">11. 来源与说明</h2><h2 class="en">11. Sources and notes</h2></section>
+<ul class="zh"><li><a href="https://code.claude.com/docs/en/changelog">Claude Code Changelog</a>(v2.1.299 / v2.1.300,2026-10-14)</li><li><a href="https://code.claude.com/docs/en/monitoring-usage">Claude Code: Monitoring usage</a></li><li><a href="https://www.dash0.com/knowledge/opentelemetry-genai-semantic-conventions-explained">Dash0: OpenTelemetry GenAI semantic conventions explained</a>(更新于 2026-09-14;厂商文章,Dash0 销售相关产品)</li><li><a href="https://openobserve.ai/blog/opentelemetry-genai-semantic-conventions.md">OpenObserve: OpenTelemetry GenAI semantic conventions guide</a>(2026-05,厂商文章)</li><li><a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/">OpenTelemetry 官方迁移提示页</a> · <a href="https://github.com/open-telemetry/semantic-conventions-genai">semantic-conventions-genai 仓库</a>(仅读到仓库首页概览)</li></ul>
+<ul class="en"><li><a href="https://code.claude.com/docs/en/changelog">Claude Code Changelog</a> (v2.1.299 / v2.1.300, 2026-10-14)</li><li><a href="https://code.claude.com/docs/en/monitoring-usage">Claude Code: Monitoring usage</a></li><li><a href="https://www.dash0.com/knowledge/opentelemetry-genai-semantic-conventions-explained">Dash0: OpenTelemetry GenAI semantic conventions explained</a> (updated 2026-09-14; vendor article, Dash0 sells related products)</li><li><a href="https://openobserve.ai/blog/opentelemetry-genai-semantic-conventions.md">OpenObserve: OpenTelemetry GenAI semantic conventions guide</a> (2026-05, vendor article)</li><li><a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/">OpenTelemetry official "moved" notice</a> · <a href="https://github.com/open-telemetry/semantic-conventions-genai">semantic-conventions-genai repo</a> (only the repo front page overview was readable)</li></ul>
+<footer><p class="zh">本文基于 2026-10-15 前能检索到的公开资料;属性名与稳定度可能已变化,请以官方仓库为准。</p>
+<p class="en">Based on public material available as of 2026-10-15; attribute names and stability may have changed, so treat the official repository as authoritative.</p></footer>
+</div>
+<script>
+(function(){
+  var body=document.body,btn=document.getElementById('lang');
+  var figs=[].slice.call(document.querySelectorAll('.fig'));
+  var io=null;
+  function visible(el){var r=el.getBoundingClientRect();return r.width>0&&r.top<window.innerHeight&&r.bottom>0;}
+  function observe(){
+    figs.forEach(function(f){
+      if(f.classList.contains('in'))return;
+      if(f.offsetParent===null&&getComputedStyle(f).display==='none')return;
+      if(visible(f)){f.classList.add('in');}
+      else if(io){io.observe(f);}
+    });
+  }
+  if('IntersectionObserver' in window){io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.15});}
+  else{figs.forEach(function(f){f.classList.add('in');});}
+  function set(l,save){
+    body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang',l==='zh'?'zh-CN':'en');
+    if(save){try{localStorage.setItem('aidaily-lang',l);}catch(e){}}
+    setTimeout(observe,30);
+  }
+  var init=null;
+  try{init=localStorage.getItem('aidaily-lang');}catch(e){}
+  if(init!=='zh'&&init!=='en'){init=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en';}
+  set(init,false);
+  btn.addEventListener('click',function(){set(body.getAttribute('data-lang')==='zh'?'en':'zh',true);});
+  window.addEventListener('scroll',function(){observe();},{passive:true});
+})();
+</script>
+</body>
+</html>
