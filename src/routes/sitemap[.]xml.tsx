@@ -26,6 +26,9 @@ async function buildSitemap(): Promise<string> {
     // 三条日更内容线的静态归档站(每天新增的内容都挂在这几个目录下)
     "/ai-daily/",
     "/ai-briefing/",
+    // 小课在 2026-10-15 从 /claude-code/ 搬到 /cc-lessons/;老站停更但仍在线、
+    // 存着 14 课 + 25 条 Tip,两个都要收进来
+    "/cc-lessons/",
     "/claude-code/",
     // 英文界面页(内容是原生英文的界面文案,不是中文页的翻版)
     "/en",

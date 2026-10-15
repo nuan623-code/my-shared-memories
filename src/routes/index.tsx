@@ -35,9 +35,15 @@ export const resourcesQO = queryOptions({
 // 招牌精选(2026-08-26 改为半自动):前两格是人工钉选的门面,永远在;
 // 后面几格自动补 —— 先按最近 30 天阅读量,不够再按内容日期补最新长文。
 // 于是首页每周自然换血,不用再记得手动改数组。想换门面改 PINNED_SLUGS 即可。
-const FEATURED_COUNT = 6;
-/** 头图轮播放几张(从精选里取前几张) */
+/** 头图轮播放几张 */
 const CAROUSEL_COUNT = 5;
+/**
+ * 每日栏目里允许上轮播的两条线。
+ * 简报不在其中:它的标题只有一个日期,占满一屏大卡等于什么都没说。
+ */
+const CAROUSEL_DAILY_SUBS = new Set(["daily", "claude-code"]);
+/** 轮播里留给每日栏目的席位上限 */
+const CAROUSEL_DAILY_QUOTA = 2;
 /** 每条卡片带最多放几张。再多就只是让 HTML 变大,没人横滚到第 15 张以后 */
 const ROW_LIMIT = 14;
 const PINNED_SLUGS: Record<Locale, string[]> = {
@@ -86,8 +92,12 @@ function fmtShortDate(iso: string): string {
 }
 
 /**
- * 招牌精选选片:钉选 → 30 天热读 → 最新长文,按序补满 FEATURED_COUNT。
- * 只从「手写长文」里挑(三个每日栏目有自己的今日更新条与栏目导览,不占精选位)。
+ * 轮播选片:钉选 → 每日栏目配额 → 30 天热读 → 最新长文,按序补满 CAROUSEL_COUNT。
+ *
+ * 原来这里只从手写长文里挑,理由是「每日栏目有自己的今日更新条与栏目导览」。
+ * 栏目导览在 2026-10-15 的改版里已经去掉,深度学习与小课便只剩今日更新那一张卡,
+ * 所以给它们开了配额 —— 但不是直接并池:日更每天产出,一周就能把 70 篇手写长文
+ * 全挤出轮播,精选会退化成「最近五天」。
  */
 function pickFeatured(
   resources: Resource[],
@@ -97,12 +107,26 @@ function pickFeatured(
   const picked: Resource[] = [];
   const seen = new Set<string>();
   const take = (r: Resource | undefined | null) => {
-    if (!r || seen.has(r.id) || picked.length >= FEATURED_COUNT) return;
+    if (!r || seen.has(r.id) || picked.length >= CAROUSEL_COUNT) return;
     seen.add(r.id);
     picked.push(r);
   };
 
   for (const slug of PINNED_SLUGS[locale]) take(resources.find((r) => r.slug === slug));
+
+  // 每日栏目的配额,取各线最新的几篇。
+  // 要求必须有摘要:管线入库时不写 summary(靠 scripts/backfill-summaries.mjs 事后补),
+  // 当天新入库那条在补摘要之前是没有的 —— 放进一屏大卡,下半张就是空的。
+  const dailyPool = resources
+    .filter(
+      (r) =>
+        CAROUSEL_DAILY_SUBS.has(r.subcategory ?? "") &&
+        (r.lang ?? "zh") === locale &&
+        Boolean(r.slug) &&
+        Boolean(r.summary?.trim()),
+    )
+    .sort((a, b) => (contentDate(a) < contentDate(b) ? 1 : -1));
+  for (const r of dailyPool.slice(0, CAROUSEL_DAILY_QUOTA)) take(r);
 
   const pool = resources.filter(
     (r) => !isDailyColumn(r) && (r.lang ?? "zh") === locale && Boolean(r.slug),
@@ -259,7 +283,7 @@ export function HomePage() {
       </section>
 
       {/* 区块 2 · 头图轮播:精选长文轮流占一屏宽,替代改版前那个六宫格 */}
-      <HeroCarousel items={featured.slice(0, CAROUSEL_COUNT)} />
+      <HeroCarousel items={featured} />
 
       {/* 区块 3 · 今日更新:三栏目各最新一条,只替换不加长 */}
       <section id="today" className="scroll-mt-20 border-b border-border/50 bg-card/40 px-4 py-10">
