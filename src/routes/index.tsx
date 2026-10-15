@@ -1,16 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useMemo } from "react";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Library,
-  Sparkles,
-  Clock,
-  CalendarDays,
-  Wrench,
-  User,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, Library, Clock, CalendarDays, Wrench, User } from "lucide-react";
 import {
   fetchResources,
   resourceHref,
@@ -21,7 +12,9 @@ import {
 } from "@/lib/resources";
 import { fetchTopViewed } from "@/lib/views";
 import { computeSiteStats } from "@/lib/site-stats";
-import { categories, catLabel } from "@/lib/data";
+import { dedupeByLocale, groupBySection, subColor, subLabel } from "@/lib/library";
+import { HeroCarousel } from "@/components/HeroCarousel";
+import { ContentRow } from "@/components/ContentRow";
 import { SubscribeCard } from "@/components/SubscribeCard";
 import { ToolCard } from "@/components/ToolCard";
 import { TOOLS } from "@/lib/tools";
@@ -43,6 +36,10 @@ export const resourcesQO = queryOptions({
 // 后面几格自动补 —— 先按最近 30 天阅读量,不够再按内容日期补最新长文。
 // 于是首页每周自然换血,不用再记得手动改数组。想换门面改 PINNED_SLUGS 即可。
 const FEATURED_COUNT = 6;
+/** 头图轮播放几张(从精选里取前几张) */
+const CAROUSEL_COUNT = 5;
+/** 每条卡片带最多放几张。再多就只是让 HTML 变大,没人横滚到第 15 张以后 */
+const ROW_LIMIT = 14;
 const PINNED_SLUGS: Record<Locale, string[]> = {
   zh: ["ai-notes-multi-session-vs-multi-agent", "overseas-ios-first-launch-attribution"],
   en: ["ai-notes-multi-session-vs-multi-agent-en", "overseas-ios-first-launch-attribution"],
@@ -129,20 +126,30 @@ function latestPerColumn(resources: Resource[], locale: Locale) {
   });
 }
 
+/** 每条卡片带的数据:按栏目分组、同内容中英去重、每行截断 */
+function buildRows(resources: Resource[], locale: Locale) {
+  return groupBySection(dedupeByLocale(resources, locale)).map(({ section, items }) => ({
+    section,
+    items: items.slice(0, ROW_LIMIT),
+    total: items.length,
+  }));
+}
+
 export function HomePage() {
   const t = useT();
   const locale = useLocale();
   const lp = (path: string) => localizedPath(path, locale);
   const { data: resources } = useSuspenseQuery(resourcesQO);
+  const { data: topViewed } = useSuspenseQuery(topViewedQO);
 
   const today = useMemo(() => latestPerColumn(resources, locale), [resources, locale]);
-
-  const { data: topViewed } = useSuspenseQuery(topViewedQO);
 
   const featured = useMemo(
     () => pickFeatured(resources, topViewed, locale),
     [resources, topViewed, locale],
   );
+
+  const rows = useMemo(() => buildRows(resources, locale), [resources, locale]);
 
   const stats = useMemo(() => computeSiteStats(resources), [resources]);
 
@@ -159,14 +166,22 @@ export function HomePage() {
   const scrollTo = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
+  // 每日栏目的归档是 public/ 下的静态站,用 <a> 直链;手写长文进资源库的对应栏目
+  const archiveOf = (sub: string) => {
+    const col = DAILY_COLUMNS.find((c) => c.sub === sub);
+    if (!col) return undefined;
+    return locale === "en" && col.archiveEn ? col.archiveEn : col.archive;
+  };
+
   return (
     <div className="flex flex-col">
-      {/* 区块 1 · Hero(读者视角主张 + 今日/精选双入口) */}
-      <section className="relative overflow-hidden border-b border-border/50 px-4 py-16 sm:py-20">
+      {/* 区块 1 · 身份带(主张 + 这站还活着的数据 + 两个入口)
+          纵向留白比改版前收了一截:原来 py-16/20 在手机上要占满一屏,
+          第一条内容得滑一屏才见得到,而这轮改版的全部意义就是让内容早点露面。 */}
+      <section className="relative overflow-hidden border-b border-border/50 px-4 py-10 sm:py-14">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-secondary/20" />
         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
         <div className="pointer-events-none absolute -right-32 top-20 h-80 w-80 rounded-full bg-accent/30 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-[-6rem] left-1/3 h-72 w-72 rounded-full bg-secondary/40 blur-3xl" />
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
           style={{
@@ -176,8 +191,8 @@ export function HomePage() {
           }}
         />
 
-        <div className="relative mx-auto max-w-5xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+        <div className="relative mx-auto max-w-7xl">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
             <Library className="h-3.5 w-3.5 text-primary" />
             {t("home.badge")}
             {lastUpdated && (
@@ -188,61 +203,65 @@ export function HomePage() {
               </>
             )}
           </div>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-6xl">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
             {t("home.hero.line1")}
             <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
               {t("home.hero.line2")}
             </span>
           </h1>
-          <p className="mt-5 max-w-2xl text-sm text-muted-foreground sm:text-base">
+          <p className="mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
             {t("home.hero.desc")}
           </p>
 
-          {/* 「这站还活着」数据条(2026-08-26):连更天数是回访读者最认的信号 */}
-          <dl className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-            {[
-              {
-                key: "active",
-                value: stats.activeDays,
-                label: t("home.stats.active"),
-                accent: true,
-              },
-              { key: "total", value: stats.total, label: t("home.stats.total") },
-              { key: "longform", value: stats.longform, label: t("home.stats.longform") },
-            ].map((s) => (
-              <div key={s.key} className="flex items-baseline gap-1.5">
-                <dt className="sr-only">{s.label}</dt>
-                <dd
-                  className={`text-2xl font-bold tabular-nums ${s.accent ? "text-primary" : "text-foreground"}`}
-                >
-                  {s.value}
-                </dd>
-                <span className="text-xs text-muted-foreground">{s.label}</span>
-              </div>
-            ))}
-          </dl>
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <dl className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {[
+                {
+                  key: "active",
+                  value: stats.activeDays,
+                  label: t("home.stats.active"),
+                  accent: true,
+                },
+                { key: "total", value: stats.total, label: t("home.stats.total") },
+                { key: "longform", value: stats.longform, label: t("home.stats.longform") },
+              ].map((s) => (
+                <div key={s.key} className="flex items-baseline gap-1.5">
+                  <dt className="sr-only">{s.label}</dt>
+                  <dd
+                    className={`text-2xl font-bold tabular-nums ${s.accent ? "text-primary" : "text-foreground"}`}
+                  >
+                    {s.value}
+                  </dd>
+                  <span className="text-xs text-muted-foreground">{s.label}</span>
+                </div>
+              ))}
+            </dl>
 
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => scrollTo("today")}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition hover:shadow-primary/40"
-            >
-              <CalendarDays className="h-4 w-4" />
-              {t("home.cta.today")}
-            </button>
-            <button
-              onClick={() => scrollTo("featured")}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur transition hover:border-primary/40"
-            >
-              <Sparkles className="h-4 w-4 text-primary" />
-              {t("home.cta.featured")}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => scrollTo("today")}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition hover:shadow-primary/40"
+              >
+                <CalendarDays className="h-4 w-4" />
+                {t("home.cta.today")}
+              </button>
+              <button
+                onClick={() => scrollTo("library")}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur transition hover:border-primary/40"
+              >
+                <Library className="h-4 w-4 text-primary" />
+                {t("home.cta.browseAll")}
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 区块 2 · 今日更新条:三栏目各最新一条,只替换不加长(重构方案核心原则) */}
+      {/* 区块 2 · 头图轮播:精选长文轮流占一屏宽,替代改版前那个六宫格 */}
+      <HeroCarousel items={featured.slice(0, CAROUSEL_COUNT)} />
+
+      {/* 区块 3 · 今日更新:三栏目各最新一条,只替换不加长 */}
       <section id="today" className="scroll-mt-20 border-b border-border/50 bg-card/40 px-4 py-10">
         <div className="mx-auto max-w-7xl">
           <div className="mb-5 flex items-end justify-between">
@@ -310,147 +329,54 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* 区块 3 · 招牌精选:人工钉选,不随时间变 */}
-      {featured.length > 0 && (
-        <section id="featured" className="scroll-mt-20 border-b border-border/50 px-4 py-12">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-6">
-              <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                {t("home.featured.kicker")}
-              </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-                {t("home.featured.title")}
-              </h2>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((r) => {
-                const cat = categories.find((c) => c.id === r.category);
-                const href = resourceHref(r);
-                const isExternal = href.startsWith("http");
-                const inner = (
-                  <article className="group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
-                    <div
-                      className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition group-hover:bg-primary/20"
-                      aria-hidden
-                    />
-                    <div className="relative">
-                      <div className="mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                          {cat && (
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: cat.color }}
-                            />
-                          )}
-                          {cat ? catLabel(cat, locale) : t("res.uncategorized")}
-                        </span>
-                      </div>
-                      <h3 className="line-clamp-2 text-lg font-semibold text-foreground transition group-hover:text-primary">
-                        {r.title || t("home.untitled")}
-                      </h3>
-                      {r.summary && (
-                        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                          {r.summary}
-                        </p>
-                      )}
-                    </div>
-                    <div className="relative mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>
-                        {new Date(r.published_at).toLocaleDateString("zh-CN", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-primary opacity-0 transition group-hover:opacity-100">
-                        {t("home.read")}
-                        <ArrowUpRight className="h-3 w-3" />
-                      </span>
-                    </div>
-                  </article>
-                );
-                return isExternal ? (
-                  <a key={r.id} href={href} target="_blank" rel="noreferrer">
-                    {inner}
-                  </a>
-                ) : (
-                  <Link key={r.id} to={href}>
-                    {inner}
-                  </Link>
-                );
-              })}
-            </div>
+      {/* 区块 4 · 按栏目的横向卡片带。
+          改版前这里是「栏目导览」:三张只写着栏目简介和条数的卡,一条内容都不露。
+          现在同样是按栏目组织,但每行直接摆十几篇真内容,首页露出量从 12 条上到百条量级。 */}
+      <div id="library" className="scroll-mt-20">
+        <div className="mx-auto max-w-7xl px-4 pt-10">
+          <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
+            <Library className="h-3.5 w-3.5" />
+            {t("home.library.kicker")}
           </div>
-        </section>
-      )}
-
-      {/* 区块 4 · 三栏目导览:是什么、更新到哪、进归档 */}
-      <section className="border-b border-border/50 px-4 py-12">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {t("home.columns.kicker")}
-              </div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-                {t("home.columns.title")}
-              </h2>
-            </div>
-            <Link
-              to={lp("/daily")}
-              className="hidden items-center gap-1 text-xs font-medium text-primary hover:underline sm:inline-flex"
-            >
-              {t("home.viewAll")}
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {today.map(({ col, item, total }) => (
-              <article
-                key={col.sub}
-                className="group flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg"
-              >
-                <div>
-                  <div className="mb-2 flex items-center gap-2">
-                    <h3 className="text-base font-semibold text-foreground">{t(col.titleKey)}</h3>
-                    <span className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] font-medium text-primary">
-                      {t("daily.perDay")}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {total} {t("home.count")}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{t(col.descKey)}</p>
-                  {item && (
-                    <p className="mt-3 line-clamp-1 text-xs text-muted-foreground">
-                      <span className="font-medium text-primary/80">
-                        {t("home.columns.latest")}:
-                      </span>{" "}
-                      {item.title}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-4 flex items-center gap-3 text-xs font-medium">
-                  <a
-                    href={locale === "en" && col.archiveEn ? col.archiveEn : col.archive}
-                    className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1.5 text-primary transition hover:border-primary/50 hover:shadow-sm"
-                  >
-                    {t("home.columns.archive")}
-                    <ArrowUpRight className="h-3 w-3" />
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
+          <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+            {t("home.library.title")}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{t("home.library.desc")}</p>
         </div>
-      </section>
+
+        {rows.map(({ section, items, total }) => {
+          const archive = archiveOf(section.sub);
+          return (
+            <ContentRow
+              key={section.sub}
+              title={subLabel(section.sub, locale)}
+              color={subColor(section.sub)}
+              kicker={section.family === "daily" ? t("home.library.dailyKicker") : undefined}
+              items={items}
+              // 每日栏目的全量在静态归档站,长文的全量在资源库对应栏目
+              moreHref={archive}
+              moreTo={archive ? undefined : lp("/resources")}
+              moreSearch={archive ? undefined : { col: section.sub }}
+              moreLabel={
+                archive ? t("home.columns.archive") : t("home.row.all", { n: String(total) })
+              }
+            />
+          );
+        })}
+
+        <div className="mx-auto max-w-7xl px-4 py-8">
+          <Link
+            to={lp("/resources")}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:text-primary"
+          >
+            {t("home.enterLibrary")}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
 
       {/* 区块 5 · 作品带 */}
-      <section className="border-b border-border/50 px-4 py-12">
+      <section className="border-b border-t border-border/50 px-4 py-12">
         <div className="mx-auto max-w-7xl">
           <div className="mb-6 flex items-end justify-between">
             <div>
