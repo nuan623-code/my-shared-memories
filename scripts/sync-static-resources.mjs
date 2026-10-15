@@ -37,7 +37,9 @@ const SCAN = [
   { dir: "en/ai-briefing", prefix: "en-ai-briefing-", category: "ai", subcategory: "briefing", tags: ["AI briefing"], preferTitleTag: true, lang: "en", keyPrefix: "ai-briefing" },
   // Claude Code 小课(2026-10-15):Cowork 每天写一篇 md,部署脚本渲染进 public/cc-lessons/。
   // 标题取 <h1>(= 「第 N 课:…」,<title> 是「小课 · 日期」,区分不开),入库时补回栏目前缀。
-  { dir: "cc-lessons", prefix: "cc-lessons-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], titlePrefix: "Claude Code 小课 · ", keyPrefix: "cc-lessons" },
+  // keyFromBase:i18n_key 取文件名而非日期 —— 小课无英文镜像,且一天两篇时按日期取会撞
+  // idx_resources_i18n_key_lang 这个唯一索引(2026-08-04 就是两篇)。
+  { dir: "cc-lessons", prefix: "cc-lessons-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], titlePrefix: "Claude Code 小课 · ", keyPrefix: "cc-lessons", keyFromBase: true },
   // Claude Code 学习站(2026-08-05):课程与 tip 单页入库;index/template 由通用规则+manifest skip 排除。
   // keyFromBase:slug 不含日期,i18n_key 直接取 keyPrefix-文件名,中英两版共享同一 key(供 hreflang 与语言切换)。
   { dir: "claude-code/course", prefix: "claude-code-course-", category: "ai", subcategory: "claude-code", tags: ["Claude Code"], preferTitleTag: true, keyPrefix: "claude-code-course", keyFromBase: true },
@@ -154,20 +156,32 @@ for (const s of SCAN) {
 if (!rows.length) { log("没有发现静态文档,跳过。"); process.exit(0); }
 
 // ---- upsert:on_conflict=slug + ignore-duplicates(只新增、不覆盖)--------
+// PostgREST 的批量插入要求同一请求里所有对象的键集完全一致(否则 400 PGRST102),
+// 而日期型栏目的行多带一个 published_at。所以按键集分组、分批插,别把 published_at
+// 对无日期文档补成 null —— 那会覆盖掉 DB 默认值,列表排序就乱了。
 const endpoint = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/resources?on_conflict=slug`;
-const res = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    apikey: SERVICE_KEY,
-    Authorization: `Bearer ${SERVICE_KEY}`,
-    "Content-Type": "application/json",
-    Prefer: "resolution=ignore-duplicates,return=representation",
-  },
-  body: JSON.stringify(rows),
-});
-if (!res.ok) die(`Supabase 返回 ${res.status}: ${await res.text()}`);
-const inserted = await res.json();
+const groups = new Map();
+for (const r of rows) {
+  const sig = Object.keys(r).sort().join(",");
+  if (!groups.has(sig)) groups.set(sig, []);
+  groups.get(sig).push(r);
+}
+const inserted = [];
+for (const batch of groups.values()) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=ignore-duplicates,return=representation",
+    },
+    body: JSON.stringify(batch),
+  });
+  if (!res.ok) die(`Supabase 返回 ${res.status}: ${await res.text()}`);
+  inserted.push(...(await res.json()));
+}
 
-log(`扫描到 ${rows.length} 篇静态文档,新增 ${inserted.length} 篇到资料库。`);
+log(`扫描到 ${rows.length} 篇静态文档(${groups.size} 批),新增 ${inserted.length} 篇到资料库。`);
 for (const r of inserted) log(`  + ${r.slug}  →  ${r.title}`);
 if (!inserted.length) log("(全部已在库中,无需改动。)");
