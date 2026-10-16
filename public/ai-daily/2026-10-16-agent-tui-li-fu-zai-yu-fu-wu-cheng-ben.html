@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 推理负载与服务成本 | Serving Cost of Agent Workloads</title>
+<style>
+:root{--bg:#f6f8fc;--surface:#fff;--ink:#141a2b;--ink2:#38425f;--muted:#68728f;--line:#dde3f0;--accent:#1f4fb4;--soft:#e6eefc;--warn:#fff4e0;--warnb:#eac98f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+header{background:linear-gradient(160deg,#fff,#e9f0fd);border-bottom:1px solid var(--line)}
+.hin{max-width:860px;margin:0 auto;padding:46px 20px 30px}
+h1{font-size:clamp(25px,5vw,36px);margin:0 0 10px;line-height:1.3;letter-spacing:-.01em}
+.meta{color:var(--muted);font-size:14px}
+#lang{position:fixed;top:12px;right:14px;z-index:20;border:1px solid var(--accent);background:var(--surface);color:var(--accent);font-weight:800;border-radius:99px;padding:7px 16px;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(20,26,43,.12)}
+.wrap{max-width:860px;margin:0 auto;padding:22px 20px 70px}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 18px;margin-bottom:24px;font-size:14.5px}
+.toc a{display:inline-block;margin:2px 14px 2px 0;color:var(--ink2);text-decoration:none}
+.toc a:hover{color:var(--accent)}
+h2{font-size:22px;margin:34px 0 10px;padding-top:6px;border-top:2px solid var(--soft)}
+p,li{color:var(--ink2)}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:var(--soft);padding:1px 5px;border-radius:5px}
+.tw{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+.callout{border-radius:11px;padding:12px 16px;margin:14px 0;font-size:15px;background:var(--soft);border:1px solid #bcd0f3}
+.callout.warn{background:var(--warn);border-color:var(--warnb)}
+.fig{margin:16px 0;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:10px;opacity:0;transform:translateY(8px);transition:.5s}
+.fig.in{opacity:1;transform:none}
+.fig svg{width:100%;height:auto;display:block}
+footer{color:var(--muted);font-size:13px;margin-top:34px;text-align:center}
+@media(max-width:620px){.hin{padding:56px 16px 24px}body{font-size:16px}#lang{top:8px;right:8px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="中 / EN Agent 推理负载与服务成本:为什么聊天基准会骗你 Serving Cost of Agent Workloads: Why Chat Benchmarks Mislead 2026-10-16 · 今日…">
+<meta property="og:title" content="Agent 推理负载与服务成本 | Serving Cost of Agent Workloads">
+<meta property="og:description" content="中 / EN Agent 推理负载与服务成本:为什么聊天基准会骗你 Serving Cost of Agent Workloads: Why Chat Benchmarks Mislead 2026-10-16 · 今日…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-16-agent-tui-li-fu-zai-yu-fu-wu-cheng-ben.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-16-agent-tui-li-fu-zai-yu-fu-wu-cheng-ben.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent 推理负载与服务成本 | Serving Cost of Agent Workloads", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-16-agent-tui-li-fu-zai-yu-fu-wu-cheng-ben.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-16", "dateModified": "2026-10-16"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="lang" type="button" aria-label="切换语言 / Switch language">中 / EN</button>
+<header><div class="hin">
+<h1 class="zh">Agent 推理负载与服务成本:为什么聊天基准会骗你</h1>
+<h1 class="en">Serving Cost of Agent Workloads: Why Chat Benchmarks Mislead</h1>
+<div class="meta zh">2026-10-16 · 今日精选主题 · 依据 AgentPerfBench、vLLM AgentX、llm-d</div>
+<div class="meta en">2026-10-16 · Topic of the day · Based on AgentPerfBench, vLLM AgentX and llm-d</div>
+</div></header>
+<div class="wrap">
+<nav class="toc"><a href="#what"><span class="zh">1. 这是什么</span><span class="en">1. What it is</span></a><a href="#bench"><span class="zh">2. 量出的差距</span><span class="en">2. The measured gap</span></a><a href="#fix"><span class="zh">3. 引擎的应对</span><span class="en">3. How engines respond</span></a><a href="#use"><span class="zh">4. 怎么用</span><span class="en">4. How to use it</span></a><a href="#limits"><span class="zh">5. 边界</span><span class="en">5. Limits</span></a><a href="#src"><span class="zh">6. 来源</span><span class="en">6. Sources</span></a></nav>
+<h2 id="what" class="zh">1. 这是什么:Agent 的推理负载和聊天完全不是一回事</h2>
+<h2 id="what-en" class="en">1. What this is: agent inference load is not chat load</h2>
+<p class="zh">先说结论:你用 agent 写代码时,模型服务器吃的不是「一问一答」,而是一个越滚越长的会话。每一轮都要把之前的全部内容(系统提示、工具定义、历史、工具返回)再送一遍,新生成的却只有几百个 token。所以瓶颈主要在「读上下文」(prefill,预填充)和显存里的 KV cache(模型为已读内容存的中间结果),不在「写答案」。</p>
+<p class="en">The short version: when you run a coding agent, the model server does not see one question and one answer. It sees a session that keeps growing. Every turn resends everything so far (system prompt, tool definitions, history, tool results) and generates only a few hundred new tokens. So the bottleneck is reading context (prefill) and the KV cache (the intermediate results the model keeps for what it has already read), not writing the answer.</p>
+<p class="zh">这件事对你有两个直接影响:自己部署模型的人,测性能时不能再用聊天基准;用 API 的人,缓存命中率直接决定账单和延迟(这个话题我们在 8 月讲过 Prompt 缓存命中率工程,今天看的是服务端那一侧)。</p>
+<p class="en">This matters in two ways. If you self-host, chat benchmarks will mislead you. If you use an API, cache hit rate decides your bill and latency (we covered the client side in August under prompt-cache engineering; today is the server side).</p>
+<figure class="fig zh"><svg viewBox="0 0 640 310" role="img" aria-label="Agent 会话:每一轮都重发整段上下文" xmlns="http://www.w3.org/2000/svg">
+<rect x="10" y="10" width="620" height="290" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<text x="30" y="36" font-size="14" font-weight="700" fill="#1f3a6e">Agent 会话:每一轮都重发整段上下文</text>
+<line x1="30" y1="250" x2="610" y2="250" stroke="#5b6b8c"/><rect x="40" y="230" width="46" height="20" fill="#dbe7ff" stroke="#9db6e8"/><rect x="40" y="225" width="46" height="5" fill="#e0662f"/><rect x="110" y="205" width="46" height="45" fill="#dbe7ff" stroke="#9db6e8"/><rect x="110" y="200" width="46" height="5" fill="#e0662f"/><rect x="180" y="180" width="46" height="70" fill="#dbe7ff" stroke="#9db6e8"/><rect x="180" y="175" width="46" height="5" fill="#e0662f"/><rect x="250" y="155" width="46" height="95" fill="#dbe7ff" stroke="#9db6e8"/><rect x="250" y="150" width="46" height="5" fill="#e0662f"/><rect x="320" y="130" width="46" height="120" fill="#dbe7ff" stroke="#9db6e8"/><rect x="320" y="125" width="46" height="5" fill="#e0662f"/><rect x="390" y="105" width="46" height="145" fill="#dbe7ff" stroke="#9db6e8"/><rect x="390" y="100" width="46" height="5" fill="#e0662f"/><rect x="460" y="80" width="46" height="170" fill="#dbe7ff" stroke="#9db6e8"/><rect x="460" y="75" width="46" height="5" fill="#e0662f"/><rect x="530" y="55" width="46" height="195" fill="#dbe7ff" stroke="#9db6e8"/><rect x="530" y="50" width="46" height="5" fill="#e0662f"/>
+<text x="40" y="272" font-size="12" fill="#44506b">第 1 轮</text><text x="500" y="272" font-size="12" fill="#44506b">第 N 轮</text>
+<rect x="30" y="52" width="14" height="14" fill="#dbe7ff" stroke="#9db6e8"/><text x="50" y="64" font-size="12.5" fill="#44506b">输入(几乎全是上一轮的内容)</text>
+<rect x="330" y="52" width="14" height="6" fill="#e0662f"/><text x="350" y="64" font-size="12.5" fill="#44506b">新增输出(很短)</text>
+<text x="30" y="292" font-size="12" fill="#44506b">示意图,非实测。AgentX 的中位数是 43 轮、142K 输入、444 输出 token。</text></svg></figure>
+<figure class="fig en"><svg viewBox="0 0 640 310" role="img" aria-label="Agent session: every turn resends the whole context" xmlns="http://www.w3.org/2000/svg">
+<rect x="10" y="10" width="620" height="290" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<text x="30" y="36" font-size="14" font-weight="700" fill="#1f3a6e">Agent session: every turn resends the whole context</text>
+<line x1="30" y1="250" x2="610" y2="250" stroke="#5b6b8c"/><rect x="40" y="230" width="46" height="20" fill="#dbe7ff" stroke="#9db6e8"/><rect x="40" y="225" width="46" height="5" fill="#e0662f"/><rect x="110" y="205" width="46" height="45" fill="#dbe7ff" stroke="#9db6e8"/><rect x="110" y="200" width="46" height="5" fill="#e0662f"/><rect x="180" y="180" width="46" height="70" fill="#dbe7ff" stroke="#9db6e8"/><rect x="180" y="175" width="46" height="5" fill="#e0662f"/><rect x="250" y="155" width="46" height="95" fill="#dbe7ff" stroke="#9db6e8"/><rect x="250" y="150" width="46" height="5" fill="#e0662f"/><rect x="320" y="130" width="46" height="120" fill="#dbe7ff" stroke="#9db6e8"/><rect x="320" y="125" width="46" height="5" fill="#e0662f"/><rect x="390" y="105" width="46" height="145" fill="#dbe7ff" stroke="#9db6e8"/><rect x="390" y="100" width="46" height="5" fill="#e0662f"/><rect x="460" y="80" width="46" height="170" fill="#dbe7ff" stroke="#9db6e8"/><rect x="460" y="75" width="46" height="5" fill="#e0662f"/><rect x="530" y="55" width="46" height="195" fill="#dbe7ff" stroke="#9db6e8"/><rect x="530" y="50" width="46" height="5" fill="#e0662f"/>
+<text x="40" y="272" font-size="12" fill="#44506b">Turn 1</text><text x="500" y="272" font-size="12" fill="#44506b">Turn N</text>
+<rect x="30" y="52" width="14" height="14" fill="#dbe7ff" stroke="#9db6e8"/><text x="50" y="64" font-size="12.5" fill="#44506b">Input (mostly the previous turn's content)</text>
+<rect x="330" y="52" width="14" height="6" fill="#e0662f"/><text x="350" y="64" font-size="12.5" fill="#44506b">New output (short)</text>
+<text x="30" y="292" font-size="12" fill="#44506b">Schematic, not measured. AgentX median: 43 turns, 142K input, 444 output tokens.</text></svg></figure>
+<h2 id="bench" class="zh">2. AgentPerfBench 量出了什么差距</h2>
+<h2 id="bench-en" class="en">2. What AgentPerfBench measured</h2>
+<p class="zh">AgentPerfBench(arXiv 2609.34683,2026-09-28 提交,作者来自 Imperial College London、Cambridge、Oxford)回放 SWE-Bench、TerminalBench、OSWorld 的真实多轮轨迹,再和聊天负载对比。引擎是 vLLM v0.19.x 和 SGLang v0.5.9,硬件从 H100 到 RTX 2080Ti。下面的数字都是论文报告的,我没有自己复现。</p>
+<p class="en">AgentPerfBench (arXiv 2609.34683, submitted 2026-09-28, authors from Imperial College London, Cambridge and Oxford) replays real multi-turn traces from SWE-Bench, TerminalBench and OSWorld and compares them with chat load. Engines were vLLM v0.19.x and SGLang v0.5.9, on hardware from H100 down to RTX 2080Ti. All numbers below are as reported in the paper; I did not reproduce them.</p>
+<div class="tw zh"><table><tr><th>场景</th><th>论文报告</th></tr><tr><td>LLaMA-3.1-70B,H100,饱和时</td><td>TTFT 239 ms → 1,139 ms(4.8×);TPOT 19 → 28 ms(1.5×)</td></tr><tr><td>SWE-Bench 会话每轮中位 TTFT</td><td>433 ms,聊天是 62 ms(7.0×)</td></tr><tr><td>LLaMA-3.1-8B</td><td>中位 TTFT 11,719 ms 对 343 ms;吞吐 13.5 → 2.4 req/s</td></tr><tr><td>并发 C=200 → 320</td><td>聊天吞吐中位 +11%;agent 负载在代表性案例里掉 43–76%</td></tr><tr><td>算术强度(H100)</td><td>coding agent 2,409 FLOP/byte,聊天 181;H100 拐点 295</td></tr><tr><td>KV cache 容量</td><td>coding agent 在 C=40 时超过 80 GB 显存,C=80 时约 155 GB(解析模型)</td></tr></table></div>
+<div class="tw en"><table><tr><th>Setting</th><th>Reported</th></tr><tr><td>LLaMA-3.1-70B, H100, at saturation</td><td>TTFT 239 ms → 1,139 ms (4.8×); TPOT 19 → 28 ms (1.5×)</td></tr><tr><td>Median per-turn TTFT, SWE-Bench sessions</td><td>433 ms vs 62 ms for chat (7.0×)</td></tr><tr><td>LLaMA-3.1-8B</td><td>Median TTFT 11,719 ms vs 343 ms; throughput 13.5 → 2.4 req/s</td></tr><tr><td>Concurrency C=200 → 320</td><td>Chat throughput median +11%; agentic profiles lose 43–76% in representative cases</td></tr><tr><td>Operational intensity (H100)</td><td>Coding agent 2,409 FLOP/byte vs 181 for chat; H100 ridge point 295</td></tr><tr><td>KV cache capacity</td><td>Coding agent exceeds 80 GB HBM by C=40 and reaches about 155 GB at C=80 (analytical model)</td></tr></table></div>
+<p class="zh">TTFT 是首 token 延迟,TPOT 是每个输出 token 的耗时。读表的要点:agent 的输出速度(TPOT)变化不大,变慢的几乎全是首 token,也就是在读上下文。另一个值得记住的点是「过了饱和点还加并发」:聊天负载吞吐还会涨,agent 负载反而大幅下跌。</p>
+<p class="en">TTFT is time to first token; TPOT is time per output token. The pattern: output speed (TPOT) barely moves, while time to first token blows up, which means the server is busy reading context. The other thing worth remembering is what happens past saturation: chat throughput keeps growing, agent throughput drops sharply.</p>
+<div class="callout zh">论文的建议很具体:扫并发找到吞吐平台再报数;看 request throughput(每秒完成请求数)而不是 token throughput,因为后者会藏住长 prefill 的代价;用贴近 agent 的分布做测试,别用定长或只有 ShareGPT 的数据;回放时带上共享前缀并打开 APC(自动前缀缓存)。</div>
+<div class="callout en">The paper's advice is concrete: sweep concurrency and report only after throughput plateaus; use request throughput (completed requests per second) rather than token throughput, which hides the cost of long prefills; test with agent-like distributions, not fixed lengths or ShareGPT alone; and replay with a shared prefix and APC (automatic prefix caching) on.</div>
+<h2 id="fix" class="zh">3. 推理引擎在怎么应对</h2>
+<h2 id="fix-en" class="en">3. How inference stacks are responding</h2>
+<p class="zh">vLLM 在 2026-09-08 的博客里讲了它和 AgentX 合作的结果。AgentX 的轨迹中位数是 43 轮、142K 输入 token、444 输出 token,前缀缓存命中率超过 96%。vLLM 的改动包括:混合 KV 缓存管理器(多种注意力共用一个块池)、用 Mooncake Store 把 KV 放到 CPU 和磁盘分层、限制单次长 prefill 的 token 数(示例是 512)避免它堵住短请求、以及按「先测饱和、再扫组合」的方法定 P/D 比例。</p>
+<p class="en">vLLM's 2026-09-08 post describes its work with AgentX. The AgentX traces had a median of 43 turns, 142K input tokens and 444 output tokens, with prefix-cache hit rates above 96%. vLLM's changes include a hybrid KV cache manager (one block pool shared across attention types), tiered KV storage on CPU and disk through Mooncake Store, a cap on long-prefill tokens (512 in the example) so one long prompt does not block short turns, and a two-phase method for the P/D ratio: profile saturation first, then sweep combinations.</p>
+<p class="zh">它给出的一条经验很实在:会话粘性路由(session-sticky routing)比各种负载均衡策略都强,因为缓存位置比负载均匀更重要。llm-d 的 agentic serving 指南也是同一个思路:前缀和负载感知路由打底,再叠加分层 KV 卸载、精确的前缀缓存路由、P/D 分离。</p>
+<p class="en">One lesson from that post is practical: session-sticky routing beat the load-balancing policies, because cache locality matters more than even load. The llm-d agentic serving guide follows the same idea: prefix- and load-aware routing as the baseline, then tiered KV offloading, precise prefix-cache routing and P/D disaggregation on top.</p>
+<figure class="fig zh"><svg viewBox="0 0 640 250" role="img" aria-label="服务端怎么对付这种负载" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6b8c"/></marker></defs>
+<rect x="10" y="10" width="620" height="230" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<text x="30" y="40" font-size="14" font-weight="700" fill="#1f3a6e">服务端怎么对付这种负载</text><rect x="24" y="70" width="136" height="110" rx="11" fill="#e7f6ea" stroke="#9fd2aa"/><text x="34" y="98" font-size="13.5" font-weight="700" fill="#1d5a2c">会话粘性路由</text><text x="34" y="122" font-size="12" fill="#1d5a2c">同一会话打到</text><text x="34" y="142" font-size="12" fill="#1d5a2c">同一台机器</text><text x="34" y="162" font-size="12" fill="#1d5a2c">缓存才命中</text><path d="M162 125H174" stroke="#5b6b8c" fill="none" marker-end="url(#arc)"/><rect x="176" y="70" width="136" height="110" rx="11" fill="#dbe7ff" stroke="#9db6e8"/><text x="186" y="98" font-size="13.5" font-weight="700" fill="#1f3a6e">前缀缓存</text><text x="186" y="122" font-size="12" fill="#1f3a6e">系统提示+工具</text><text x="186" y="142" font-size="12" fill="#1f3a6e">定义+历史只算</text><text x="186" y="162" font-size="12" fill="#1f3a6e">一次</text><path d="M314 125H326" stroke="#5b6b8c" fill="none" marker-end="url(#arc)"/><rect x="328" y="70" width="136" height="110" rx="11" fill="#fff1dc" stroke="#e8c48a"/><text x="338" y="98" font-size="13.5" font-weight="700" fill="#7a4a07">分层 KV 缓存</text><text x="338" y="122" font-size="12" fill="#7a4a07">GPU 放不下就</text><text x="338" y="142" font-size="12" fill="#7a4a07">下放到 CPU /</text><text x="338" y="162" font-size="12" fill="#7a4a07">磁盘,不丢弃</text><path d="M466 125H478" stroke="#5b6b8c" fill="none" marker-end="url(#arc)"/><rect x="480" y="70" width="136" height="110" rx="11" fill="#f3e6fb" stroke="#cfa6e6"/><text x="490" y="98" font-size="13.5" font-weight="700" fill="#5a2a78">P/D 分离</text><text x="490" y="122" font-size="12" fill="#5a2a78">预填充和解码</text><text x="490" y="142" font-size="12" fill="#5a2a78">分开部署,按</text><text x="490" y="162" font-size="12" fill="#5a2a78">比例配卡</text>
+<text x="30" y="216" font-size="12.5" fill="#44506b">顺序即优先级:先保证命中缓存,再谈分层和拆分。(依据 vLLM AgentX 与 llm-d 的建议)</text></svg></figure>
+<figure class="fig en"><svg viewBox="0 0 640 250" role="img" aria-label="How serving stacks cope with this load" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ard" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6b8c"/></marker></defs>
+<rect x="10" y="10" width="620" height="230" rx="14" fill="#f4f7fc" stroke="#cdd7ea"/>
+<text x="30" y="40" font-size="14" font-weight="700" fill="#1f3a6e">How serving stacks cope with this load</text><rect x="24" y="70" width="136" height="110" rx="11" fill="#e7f6ea" stroke="#9fd2aa"/><text x="34" y="98" font-size="13.5" font-weight="700" fill="#1d5a2c">Session-sticky routing</text><text x="34" y="122" font-size="12" fill="#1d5a2c">Send a session to</text><text x="34" y="142" font-size="12" fill="#1d5a2c">the same machine</text><text x="34" y="162" font-size="12" fill="#1d5a2c">so the cache hits</text><path d="M162 125H174" stroke="#5b6b8c" fill="none" marker-end="url(#ard)"/><rect x="176" y="70" width="136" height="110" rx="11" fill="#dbe7ff" stroke="#9db6e8"/><text x="186" y="98" font-size="13.5" font-weight="700" fill="#1f3a6e">Prefix caching</text><text x="186" y="122" font-size="12" fill="#1f3a6e">Compute system</text><text x="186" y="142" font-size="12" fill="#1f3a6e">prompt + tools +</text><text x="186" y="162" font-size="12" fill="#1f3a6e">history once</text><path d="M314 125H326" stroke="#5b6b8c" fill="none" marker-end="url(#ard)"/><rect x="328" y="70" width="136" height="110" rx="11" fill="#fff1dc" stroke="#e8c48a"/><text x="338" y="98" font-size="13.5" font-weight="700" fill="#7a4a07">Tiered KV cache</text><text x="338" y="122" font-size="12" fill="#7a4a07">Spill to CPU or</text><text x="338" y="142" font-size="12" fill="#7a4a07">disk instead of</text><text x="338" y="162" font-size="12" fill="#7a4a07">evicting</text><path d="M466 125H478" stroke="#5b6b8c" fill="none" marker-end="url(#ard)"/><rect x="480" y="70" width="136" height="110" rx="11" fill="#f3e6fb" stroke="#cfa6e6"/><text x="490" y="98" font-size="13.5" font-weight="700" fill="#5a2a78">P/D disaggregation</text><text x="490" y="122" font-size="12" fill="#5a2a78">Separate prefill</text><text x="490" y="142" font-size="12" fill="#5a2a78">and decode pools,</text><text x="490" y="162" font-size="12" fill="#5a2a78">tune the ratio</text>
+<text x="30" y="216" font-size="12.5" fill="#44506b">Read left to right as priority: get cache hits first, then tiering and splitting. (Based on vLLM AgentX and llm-d guidance)</text></svg></figure>
+<div class="callout warn zh">vLLM 博客里的成本对比(比 Opus 5 API 定价低 14.6×–106×)基于理论缓存命中率,并且排除了部分定价因素。我会把它当作上限参考,不是你自己部署能直接拿到的数字。</div>
+<div class="callout warn en">The cost comparison in the vLLM post (14.6×–106× cheaper than Opus 5 API pricing) assumes a theoretical cache hit rate and leaves out some pricing factors. I would read it as an upper bound, not something you will get on your own hardware.</div>
+<h2 id="use" class="zh">4. 怎么用:按你的位置选做法</h2>
+<h2 id="use-en" class="en">4. How to use this, depending on where you sit</h2>
+<div class="tw zh"><table><tr><th>你的情况</th><th>做法</th></tr><tr><td>只用 API</td><td>把稳定内容放前面、保持前缀不变;能传缓存提示就传(Anthropic 的 cache_control,OpenAI 的 prompt_cache_key,llm-d 文档提到的就是这两个);看账单里的缓存命中字段</td></tr><tr><td>自己部署开源模型</td><td>按 agent 轨迹压测,不要用聊天数据;先打开前缀缓存;路由做会话粘性;盯 KV cache 占用,超显存前就要有分层或限并发的方案</td></tr><tr><td>在选型、做容量规划</td><td>用 request throughput 和饱和点定容量;别按聊天 benchmark 的并发数外推</td></tr></table></div>
+<div class="tw en"><table><tr><th>Your situation</th><th>What to do</th></tr><tr><td>API user only</td><td>Keep stable content first and the prefix unchanged; pass cache hints when available (Anthropic cache_control, OpenAI prompt_cache_key, both named in the llm-d docs); watch the cache-hit fields on your bill</td></tr><tr><td>Self-hosting open models</td><td>Load-test with agent traces, not chat data; turn on prefix caching; route sticky by session; watch KV cache usage and have tiering or a concurrency limit before you run out of HBM</td></tr><tr><td>Capacity planning</td><td>Size on request throughput and the saturation point; do not extrapolate from chat-benchmark concurrency</td></tr></table></div>
+<h2 id="limits" class="zh">5. 这些结论的边界</h2>
+<h2 id="limits-en" class="en">5. Limits of these results</h2>
+<p class="zh">AgentPerfBench 只测了单机多卡(最多 TP 8),没有测多机和流水线并行;长会话被上限截断,所以「滚雪球」效应是下限;前缀缓存结果是逻辑估算,没有直接测服务端的 KV 淘汰和上下文压缩;合成负载用随机 token,只在 coding agent 一种情况下验证过。另外 AgentPerfBench 是 9 月底的 arXiv 预印本,我没查到它是否已经过同行评审。vLLM 的数字来自厂商自己的博客。</p>
+<p class="en">AgentPerfBench ran single-node multi-GPU servers only (up to TP 8), with no multi-node or pipeline-parallel overhead; long sessions were truncated by per-run context caps, so the snowball effect is a lower bound; prefix-cache results are logical estimates and do not directly measure server-side KV eviction or context compaction; synthetic profiles use random tokens and were validated only for the coding-agent case. It is also a late-September arXiv preprint, and I did not find whether it has been peer reviewed. The vLLM numbers come from the vendor's own blog.</p>
+<h2 id="src" class="zh">6. 来源</h2>
+<h2 id="src-en" class="en">6. Sources</h2>
+<div class="zh"><ul>
+<li><a href="https://arxiv.org/abs/2609.34683">AgentPerfBench, arXiv 2609.34683</a> (2026-09-28)</li>
+<li><a href="https://vllm.ai/blog/2026-09-08-vllm-agentx">vLLM x AgentX: Optimizing for Real-World Agentic Serving</a> (2026-09-08)</li>
+<li><a href="https://llm-d.ai/docs/well-lit-paths/workloads/agentic-serving">llm-d: Agentic serving</a></li>
+</ul></div>
+<div class="en"><ul>
+<li><a href="https://arxiv.org/abs/2609.34683">AgentPerfBench, arXiv 2609.34683</a> (2026-09-28)</li>
+<li><a href="https://vllm.ai/blog/2026-09-08-vllm-agentx">vLLM x AgentX: Optimizing for Real-World Agentic Serving</a> (2026-09-08)</li>
+<li><a href="https://llm-d.ai/docs/well-lit-paths/workloads/agentic-serving">llm-d: Agentic serving</a></li>
+</ul></div>
+<footer class="zh">AI Daily · 2026-10-16 · 数字均为来源报告值,未独立复现。</footer>
+<footer class="en">AI Daily · 2026-10-16 · All figures are as reported by the sources; not independently reproduced.</footer>
+</div>
+<script>
+(function(){
+  var body=document.body,btn=document.getElementById('lang');
+  var figs=[].slice.call(document.querySelectorAll('.fig'));
+  var io=null;
+  function visible(el){var r=el.getBoundingClientRect();return r.width>0&&r.top<window.innerHeight&&r.bottom>0;}
+  function observe(){
+    figs.forEach(function(f){
+      if(f.classList.contains('in'))return;
+      if(f.offsetParent===null&&getComputedStyle(f).display==='none')return;
+      if(visible(f)){f.classList.add('in');}
+      else if(io){io.observe(f);}
+    });
+  }
+  if('IntersectionObserver' in window){io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.15});}
+  else{figs.forEach(function(f){f.classList.add('in');});}
+  function set(l,save){
+    body.setAttribute('data-lang',l);
+    document.documentElement.setAttribute('lang',l==='zh'?'zh-CN':'en');
+    if(save){try{localStorage.setItem('aidaily-lang',l);}catch(e){}}
+    setTimeout(observe,30);
+  }
+  var init=null;
+  try{init=localStorage.getItem('aidaily-lang');}catch(e){}
+  if(init!=='zh'&&init!=='en'){init=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en';}
+  set(init,false);
+  btn.addEventListener('click',function(){set(body.getAttribute('data-lang')==='zh'?'en':'zh',true);});
+  window.addEventListener('scroll',function(){observe();},{passive:true});
+})();
+</script>
+</body>
+</html>
