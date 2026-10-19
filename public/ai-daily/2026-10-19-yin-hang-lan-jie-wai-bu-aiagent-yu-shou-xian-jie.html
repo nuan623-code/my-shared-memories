@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>银行为什么拦外部 AI Agent:凭证代登录 vs 受限接入 | Why Banks Block Outside AI Agents: Credential Login vs Scoped Access</title>
+<style>
+:root{--bg:#f6f7fb;--sf:#fff;--ink:#1d2433;--ink2:#3b465c;--mut:#6a7590;--line:#dde2ee;--ac:#2a5bd7;--acs:#e8eefc;--code:#f1f3f9;--r:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px 70px}
+header{background:linear-gradient(160deg,#fff,#eaf0fd);border-bottom:1px solid var(--line);margin-bottom:22px}
+.hin{max-width:780px;margin:0 auto;padding:44px 20px 30px}
+h1{font-size:clamp(24px,5.2vw,34px);line-height:1.3;margin:0 0 10px;letter-spacing:-.01em}
+.sub{margin:0;color:var(--ink2)}
+.meta{margin-top:12px;font-size:13px;color:var(--mut)}
+#lang{position:fixed;top:12px;right:12px;z-index:20;border:1.5px solid var(--ac);background:#fff;color:var(--ac);font-weight:700;font-size:14px;padding:6px 14px;border-radius:99px;cursor:pointer}
+nav.toc{background:var(--sf);border:1px solid var(--line);border-radius:var(--r);padding:12px 18px;margin-bottom:20px;font-size:15px}
+nav.toc ol{margin:6px 0 0;padding-left:20px}nav.toc a{color:var(--ac);text-decoration:none}
+section{background:var(--sf);border:1px solid var(--line);border-radius:var(--r);padding:18px 22px;margin-bottom:16px}
+h2{font-size:20px;margin:0 0 8px}
+p{margin:0 0 12px;color:var(--ink2)}ul{padding-left:22px;color:var(--ink2)}li{margin-bottom:6px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:9px;padding:11px 14px;overflow-x:auto;font-size:13px;line-height:1.55}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+dt{font-weight:700;margin-top:8px}dd{margin:0 0 6px;color:var(--ink2)}
+figure{margin:12px 0}figure svg{width:100%;height:auto;background:#fbfcff;border:1px solid var(--line);border-radius:10px}
+figcaption{font-size:13px;color:var(--mut);margin-top:6px}
+.fig{opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}.fig.in{opacity:1;transform:none}
+.note{font-size:13.5px;color:var(--mut)}
+footer{text-align:center;color:var(--mut);font-size:13px;margin-top:20px}
+@media(max-width:620px){section{padding:16px 15px}.hin{padding:50px 16px 24px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 银行为什么拦外部 AI Agent:凭证代登录 vs 受限接入 Why Banks Block Outside AI Agents: Credential Login vs Scoped Access Schwab…">
+<meta property="og:title" content="银行为什么拦外部 AI Agent:凭证代登录 vs 受限接入 | Why Banks Block Outside AI Agents: Credential Login vs Scoped Access">
+<meta property="og:description" content="EN 银行为什么拦外部 AI Agent:凭证代登录 vs 受限接入 Why Banks Block Outside AI Agents: Credential Login vs Scoped Access Schwab…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-19-yin-hang-lan-jie-wai-bu-aiagent-yu-shou-xian-jie.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-19-yin-hang-lan-jie-wai-bu-aiagent-yu-shou-xian-jie.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "银行为什么拦外部 AI Agent:凭证代登录 vs 受限接入 | Why Banks Block Outside AI Agents: Credential Login vs Scoped Access", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-19-yin-hang-lan-jie-wai-bu-aiagent-yu-shou-xian-jie.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-19", "dateModified": "2026-10-19"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="lang" type="button" aria-label="Switch language">EN</button>
+<header><div class="hin">
+<h1 class="zh">银行为什么拦外部 AI Agent:凭证代登录 vs 受限接入</h1>
+<h1 class="en">Why Banks Block Outside AI Agents: Credential Login vs Scoped Access</h1>
+<p class="sub zh">Schwab 和 JPMorgan 同一周公开表态。拦的是什么,留的是什么,做 Agent 的人该怎么办。</p>
+<p class="sub en">Schwab and JPMorgan spoke up in the same week. What they block, what they leave open, and what agent builders should do.</p>
+<div class="meta zh">2026-10-19 · AI 每日简报深度学习</div><div class="meta en">2026-10-19 · AI Daily deep dive</div>
+</div></header>
+<div class="wrap">
+<nav class="toc"><b class="zh">目录</b><b class="en">Contents</b><ol><li><a href="#tldr"><span class="zh">结论先说</span><span class="en">The short version</span></a></li><li><a href="#facts"><span class="zh">两家银行到底说了什么</span><span class="en">What the two banks actually said</span></a></li><li><a href="#fig1"><span class="zh">两条路:代登录 vs 受限接入</span><span class="en">Two paths: credential login vs scoped access</span></a></li><li><a href="#how"><span class="zh">「受限接入」在技术上长什么样</span><span class="en">What "scoped access" looks like technically</span></a></li><li><a href="#fig2"><span class="zh">权限梯子:读、交易、转钱</span><span class="en">The permission ladder: read, trade, move money</span></a></li><li><a href="#build"><span class="zh">如果你在做 Agent:五件事</span><span class="en">If you build agents: five things</span></a></li><li><a href="#caveats"><span class="zh">还没弄清楚的</span><span class="en">What is still unclear</span></a></li><li><a href="#gloss"><span class="zh">小词典</span><span class="en">Glossary</span></a></li><li><a href="#src"><span class="zh">来源</span><span class="en">Sources</span></a></li></ol></nav>
+<section id="tldr"><h2 class="zh">结论先说</h2><h2 class="en">The short version</h2><div class="zh"><p>两家美国大机构在同一周公开说:外部 AI Agent 想拿客户的账号密码代登录、动客户的钱,不行。但它们都留了口子:只读查看、通过 MCP 接口做查询研究。</p>
+<p>这对做 Agent 的人意味着一件事:接金融类系统,别指望「模拟用户登录」这条路。要走银行愿意开的受限接口,并且把「只读」和「能动钱」分开设计。</p></div><div class="en"><p>Two big US institutions said the same thing in the same week: an outside AI agent that logs in with a client's password and moves the client's money is not allowed. Both left a door open, though: read-only views, and lookup/research through an MCP interface.</p>
+<p>If you build agents, the takeaway is simple. Don't count on "pretend to be the user and log in" for financial systems. Build for the narrower interfaces banks are willing to open, and design "read" and "move money" as two separate things.</p></div></section>
+<section id="facts"><h2 class="zh">两家银行到底说了什么</h2><h2 class="en">What the two banks actually said</h2><div class="zh"><p><b>Schwab。</b>CEO Rick Wurster 对 Bloomberg Television 说,Schwab 会拦截未经授权的外部 Agent(包括 Meta 的 Muse)去动客户的钱。他最担心的是客户把登录凭证交给 Agent。他的原话大意是:我们控制不了,客户也控制不了,出了事谁负责?据 The Next Web,Schwab 每周收到拦截报告,被拦的大型 Agent「几十个」;American Banker 的说法则是这类拦截「很少」,因为大多数客户不这样用 AI。两家报道的口径不一样,我不替它们调和。</p>
+<p>Schwab 给的替代方案有两个:一是自家助手 Charley(9 月 30 日发布,基于外部大模型和 Schwab 自己的数据);二是 The Next Web 提到的 MCP server,让客户自选的模型查余额、做研究,但不能转钱。American Banker 补充:客户用自己的 LLM(比如 ChatGPT)连 Schwab 能完成部分交易,以后会有更多模型能「交易」,但转钱不会开放。</p>
+<p><b>JPMorgan。</b>Jamie Dimon 在财报电话会上说,银行不会让「随便什么外部 Agent」进入内部系统,「对客户和对 JPMorgan 都太危险」,还说「你不想要流氓 Agent,而且可能是成千上万个」。发言人对 CNBC 的说法是:不允许第三方用客户的银行凭证替客户登录。Cybernews 报道:像 Muse 这样的第三方 Agent 可以只读查看部分账户数据,不能转钱或付账单。</p></div><div class="en"><p><b>Schwab.</b> CEO Rick Wurster told Bloomberg Television that Schwab blocks unauthorized outside agents, Meta's Muse included, from moving client money. His main worry is clients handing their login credentials to an agent. Roughly: we can't control it, the client can't control it, so who is liable if something goes wrong? According to The Next Web, Schwab gets a weekly report on blocks and sees large agents stopped "in the tens and twenties" a week. American Banker says such blocks are rare because most clients don't use AI that way. The two reports differ in tone, and I won't smooth that over.</p>
+<p>Schwab offers two alternatives. One is its own assistant, Charley (announced September 30, built on outside LLMs and Schwab's own data). The other, per The Next Web, is MCP servers that let a client's chosen model check balances and do research, but not move money. American Banker adds that clients can use their own LLM, such as ChatGPT, to connect to Schwab and complete some transactions, and that more models will be able to trade later, but money movement will not be opened up.</p>
+<p><b>JPMorgan.</b> Jamie Dimon said on the earnings call that the bank won't let "just any outside agent" operate inside its systems, because it is "too risky for clients and for JPMorgan." He added, "You don't want rogue agents, and it could be thousands of them." A spokeswoman told CNBC the bank does not allow third parties to log in with customers' banking credentials. Cybernews reports that third-party agents such as Muse can view some account data read-only, but cannot move money or pay bills.</p></div></section>
+<section id="fig1"><h2 class="zh">两条路:代登录 vs 受限接入</h2><h2 class="en">Two paths: credential login vs scoped access</h2><div class="zh"><p>银行拦的是左边那条。留的是右边那条。区别不在「用不用 AI」,在「银行能不能知道、限制、撤销这个 Agent 的权力」。</p>
+<figure class="fig zh"><svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="做法 A:代登录(被拦的) / 做法 B:受限接入(被留的口子)">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6a86"/></marker></defs>
+<style>.bx{fill:#fff;stroke:#5a6a86;stroke-width:1.5}.bd{fill:#fdecec;stroke:#c2453b;stroke-width:1.5}.gd{fill:#e9f6ee;stroke:#2f8a55;stroke-width:1.5}.tx{font:13px sans-serif;fill:#1d2433}.tl{font:700 14px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}.ln{stroke:#5a6a86;stroke-width:1.6;fill:none}</style>
+<text class="tl" x="10" y="22">做法 A:代登录(被拦的)</text>
+<rect class="bx" x="10" y="40" width="90" height="46" rx="8"/><text class="tx" x="55" y="68" text-anchor="middle">客户</text>
+<rect class="bx" x="140" y="40" width="100" height="46" rx="8"/><text class="tx" x="190" y="68" text-anchor="middle">外部 Agent</text>
+<rect class="bd" x="280" y="40" width="110" height="46" rx="8"/><text class="tx" x="335" y="68" text-anchor="middle">银行网站</text>
+<path class="ln" d="M100 63 H138" marker-end="url(#arr)"/><text class="sm" x="60" y="108">交出账号密码</text>
+<path class="ln" d="M240 63 H278" marker-end="url(#arr)"/><text class="sm" x="196" y="108">用客户身份登录</text>
+<text class="sm" x="410" y="58">✗ 银行看不出是人还是 Agent</text><text class="sm" x="410" y="78">✗ 权限 = 客户的全部权限</text>
+<line x1="10" y1="140" x2="710" y2="140" stroke="#d6dbe6" stroke-dasharray="4 4"/>
+<text class="tl" x="10" y="168">做法 B:受限接入(被留的口子)</text>
+<rect class="bx" x="10" y="190" width="90" height="46" rx="8"/><text class="tx" x="55" y="218" text-anchor="middle">客户</text>
+<rect class="bx" x="170" y="190" width="120" height="46" rx="8"/><text class="tx" x="230" y="218" text-anchor="middle">授权服务器</text>
+<rect class="bx" x="350" y="190" width="110" height="46" rx="8"/><text class="tx" x="405" y="218" text-anchor="middle">外部 Agent</text>
+<rect class="gd" x="540" y="190" width="150" height="46" rx="8"/><text class="tx" x="615" y="218" text-anchor="middle">银行接口 / MCP</text>
+<path class="ln" d="M100 213 H168" marker-end="url(#arr)"/><text class="sm" x="104" y="256">同意一次</text>
+<path class="ln" d="M290 213 H348" marker-end="url(#arr)"/><text class="sm" x="290" y="256">短期 token</text>
+<path class="ln" d="M460 213 H538" marker-end="url(#arr)"/><text class="sm" x="462" y="256">带 scope 请求</text>
+<text class="sm" x="170" y="290">✓ token 只写 accounts:read</text><text class="sm" x="170" y="310">✓ 转账 scope 不发给它</text>
+</svg><figcaption>图 1:左边 Agent 拿着客户的全部权力;右边 Agent 只拿到一张写明范围、会过期的 token。</figcaption></figure>
+<p>代登录有三个问题。第一,银行看不出是人还是 Agent(Schwab 说的是「Agent 来我们网站,替客户登录」)。第二,Agent 一旦拿到密码,权限就是客户的全部权限,没法只给「看」不给「转」。第三,出事了责任归谁没人说得清,Wurster 问的就是这个。</p></div><div class="en"><p>The banks are blocking the left path and leaving the right one open. The difference isn't "AI or no AI." It's whether the bank can know about, limit, and revoke the agent's power.</p>
+<figure class="fig en"><svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Path A: credential login (blocked) / Path B: scoped access (the door left open)">
+<defs><marker id="arr-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6a86"/></marker></defs>
+<style>.bx{fill:#fff;stroke:#5a6a86;stroke-width:1.5}.bd{fill:#fdecec;stroke:#c2453b;stroke-width:1.5}.gd{fill:#e9f6ee;stroke:#2f8a55;stroke-width:1.5}.tx{font:13px sans-serif;fill:#1d2433}.tl{font:700 14px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}.ln{stroke:#5a6a86;stroke-width:1.6;fill:none}</style>
+<text class="tl" x="10" y="22">Path A: credential login (blocked)</text>
+<rect class="bx" x="10" y="40" width="90" height="46" rx="8"/><text class="tx" x="55" y="68" text-anchor="middle">Client</text>
+<rect class="bx" x="140" y="40" width="100" height="46" rx="8"/><text class="tx" x="190" y="68" text-anchor="middle">Outside agent</text>
+<rect class="bd" x="280" y="40" width="110" height="46" rx="8"/><text class="tx" x="335" y="68" text-anchor="middle">Bank website</text>
+<path class="ln" d="M100 63 H138" marker-end="url(#arr-e)"/><text class="sm" x="60" y="108">hands over password</text>
+<path class="ln" d="M240 63 H278" marker-end="url(#arr-e)"/><text class="sm" x="196" y="108">logs in as the client</text>
+<text class="sm" x="410" y="58">✗ Bank can't tell human from agent</text><text class="sm" x="410" y="78">✗ Power = the client's full power</text>
+<line x1="10" y1="140" x2="710" y2="140" stroke="#d6dbe6" stroke-dasharray="4 4"/>
+<text class="tl" x="10" y="168">Path B: scoped access (the door left open)</text>
+<rect class="bx" x="10" y="190" width="90" height="46" rx="8"/><text class="tx" x="55" y="218" text-anchor="middle">Client</text>
+<rect class="bx" x="170" y="190" width="120" height="46" rx="8"/><text class="tx" x="230" y="218" text-anchor="middle">Auth server</text>
+<rect class="bx" x="350" y="190" width="110" height="46" rx="8"/><text class="tx" x="405" y="218" text-anchor="middle">Outside agent</text>
+<rect class="gd" x="540" y="190" width="150" height="46" rx="8"/><text class="tx" x="615" y="218" text-anchor="middle">Bank API / MCP</text>
+<path class="ln" d="M100 213 H168" marker-end="url(#arr-e)"/><text class="sm" x="104" y="256">consents once</text>
+<path class="ln" d="M290 213 H348" marker-end="url(#arr-e)"/><text class="sm" x="290" y="256">short-lived token</text>
+<path class="ln" d="M460 213 H538" marker-end="url(#arr-e)"/><text class="sm" x="462" y="256">calls with scope</text>
+<text class="sm" x="170" y="290">✓ token says accounts:read only</text><text class="sm" x="170" y="310">✓ no transfer scope is issued</text>
+</svg><figcaption>Figure 1: on the left the agent holds the client's full power; on the right it holds a token that states its scope and expires.</figcaption></figure>
+<p>Credential login has three problems. The bank can't tell a human from an agent (Schwab's phrase was an agent "coming to our site and trying to log in on behalf of a client"). Once the agent has the password, its power is the client's full power, so you can't give "look" without "move." And nobody can say who is liable when it goes wrong, which is exactly Wurster's question.</p></div></section>
+<section id="how"><h2 class="zh">「受限接入」在技术上长什么样</h2><h2 class="en">What "scoped access" looks like technically</h2><div class="zh"><p>银行没公开自己的接口细节,下面是通用标准和 MCP 规范里的做法,不是 Schwab 或 JPMorgan 的实现(这点我没查到)。</p>
+<p>MCP 的授权规范(draft)要求:MCP server 实现 OAuth 2.0 Protected Resource Metadata(RFC 9728),客户端发请求时必须带 <code>resource</code> 参数(RFC 8707),让 token 只对这一个服务有效;token 必须放在 <code>Authorization: Bearer</code> 头里,不能放 URL。权限不够时,服务器返回 403 加 <code>insufficient_scope</code>,客户端再走 step-up(升级授权)流程。</p>
+<pre><code>HTTP/1.1 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope",
+                  scope="files:write",
+                  resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource"</code></pre>
+<p>在这之上,行业文章里常见的几条加固:用 RFC 8693 token exchange 把用户的宽 token 换成窄的、几分钟过期的任务 token;用 DPoP(RFC 9449)把 token 绑到客户端私钥,偷到 token 也用不了;高风险动作(付款、改权限)要求人工确认;每次工具调用在运行时做策略判断,而不是只在发 token 时判断。以上来自 WorkOS 和 Zylos 的指南,是社区做法,不是银行披露的。</p></div><div class="en"><p>The banks haven't published their interface details. What follows is the general standards and the MCP spec, not Schwab's or JPMorgan's implementation (I couldn't find that).</p>
+<p>The MCP authorization spec (draft) requires MCP servers to implement OAuth 2.0 Protected Resource Metadata (RFC 9728). Clients must send a <code>resource</code> parameter (RFC 8707) so a token is valid for one service only. Tokens go in the <code>Authorization: Bearer</code> header, never in the URL. When scope is not enough, the server returns 403 with <code>insufficient_scope</code>, and the client runs a step-up flow.</p>
+<pre><code>HTTP/1.1 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope",
+                  scope="files:write",
+                  resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource"</code></pre>
+<p>On top of that, industry guides commonly add a few hardening steps. Use RFC 8693 token exchange to trade the user's broad token for a narrow, minutes-long task token. Use DPoP (RFC 9449) to bind a token to the client's private key, so a stolen token is useless. Require human approval for high-risk actions (payments, permission changes). Evaluate every tool call against policy at runtime, not only when the token is issued. These come from the WorkOS and Zylos guides; they are community practice, not something the banks disclosed.</p></div></section>
+<section id="fig2"><h2 class="zh">权限梯子:读、交易、转钱</h2><h2 class="en">The permission ladder: read, trade, move money</h2><div class="zh"><p>把两家的表态摆在一起,是一把三级梯子。越往上,出错的代价越大,银行放得越慢。</p>
+<figure class="fig zh"><svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="这几家现在给 Agent 的权限梯子">
+<defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6a86"/></marker></defs>
+<style>.tx{font:13px sans-serif;fill:#1d2433}.tl{font:700 14px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}</style>
+<text class="tl" x="10" y="22">这几家现在给 Agent 的权限梯子</text>
+<rect x="10" y="190" width="440" height="52" rx="8" fill="#e9f6ee" stroke="#2f8a55" stroke-width="1.5"/><text class="tx" x="24" y="213">查询 / 研究</text><text class="sm" x="24" y="231">读余额、做分析</text>
+<rect x="10" y="125" width="440" height="52" rx="8" fill="#fff6e0" stroke="#c28a1a" stroke-width="1.5"/><text class="tx" x="24" y="148">下单交易</text><text class="sm" x="24" y="166">Schwab:以后会有更多模型能做</text>
+<rect x="10" y="60" width="440" height="52" rx="8" fill="#fdecec" stroke="#c2453b" stroke-width="1.5"/><text class="tx" x="24" y="83">转账 / 付款</text><text class="sm" x="24" y="101">两家都说:不给</text>
+<text class="sm" x="470" y="220">← 已开放(只读,部分)</text><text class="sm" x="470" y="155">← 未来可能(Schwab 原话方向)</text><text class="sm" x="470" y="90">← 明确不给</text>
+<text class="sm" x="10" y="262">JPMorgan:部分第三方可只读;不能转钱、不能付账单</text>
+</svg><figcaption>图 2:查询最先放开,交易是 Schwab 说的方向,转钱两家都明确不给。</figcaption></figure>
+<p>这个分层对你设计自己的 Agent 产品也适用:把「只读工具」和「有副作用的工具」拆成不同的 scope,甚至不同的 server。读的 scope 可以宽松发,写的 scope 单独申请、短期有效、需要人点头。</p></div><div class="en"><p>Put the two statements side by side and you get a three-step ladder. The higher the step, the costlier a mistake, and the slower the banks open it.</p>
+<figure class="fig en"><svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The permission ladder these firms offer to agents">
+<defs><marker id="arr2-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6a86"/></marker></defs>
+<style>.tx{font:13px sans-serif;fill:#1d2433}.tl{font:700 14px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}</style>
+<text class="tl" x="10" y="22">The permission ladder these firms offer to agents</text>
+<rect x="10" y="190" width="440" height="52" rx="8" fill="#e9f6ee" stroke="#2f8a55" stroke-width="1.5"/><text class="tx" x="24" y="213">Look up / research</text><text class="sm" x="24" y="231">read balances, analyze</text>
+<rect x="10" y="125" width="440" height="52" rx="8" fill="#fff6e0" stroke="#c28a1a" stroke-width="1.5"/><text class="tx" x="24" y="148">Place trades</text><text class="sm" x="24" y="166">Schwab: more models will get this later</text>
+<rect x="10" y="60" width="440" height="52" rx="8" fill="#fdecec" stroke="#c2453b" stroke-width="1.5"/><text class="tx" x="24" y="83">Move money / pay bills</text><text class="sm" x="24" y="101">Both say no</text>
+<text class="sm" x="470" y="220">← Open (read-only, some tools)</text><text class="sm" x="470" y="155">← Possible later (Schwab's stated direction)</text><text class="sm" x="470" y="90">← Explicitly not allowed</text>
+<text class="sm" x="10" y="262">JPMorgan: some third parties may read; no money movement, no bill pay</text>
+</svg><figcaption>Figure 2: lookup opens first, trading is the direction Schwab described, and money movement is a no from both.</figcaption></figure>
+<p>The same layering works for your own agent product. Split read-only tools from side-effect tools into different scopes, or even different servers. Hand out read scopes freely; make write scopes a separate request, short-lived, and gated by a human.</p></div></section>
+<section id="build"><h2 class="zh">如果你在做 Agent:五件事</h2><h2 class="en">If you build agents: five things</h2><div class="zh"><ul>
+<li>别存用户密码,也别让 Agent 驱动浏览器登录别人的账号。这是被拦的那条路,而且 Schwab 明确点名了「浏览器自动化」。</li>
+<li>优先找对方官方开放的接口或 MCP server;没有的话,把「这个系统不支持 Agent」当作产品限制写进文档,不要硬绕。</li>
+<li>每个 Agent 有自己的身份(独立 OAuth client),日志里能回答「这次调用是哪个 Agent、代表哪个用户」。</li>
+<li>读写分 scope;写操作短期 token、人工确认。授权失败(401/403)就停,不换别的凭证重试,也不退回到服务账号。</li>
+<li>把撤销做成一键:撤一个 Agent(所有用户)或一个用户(所有 Agent)。</li>
+</ul>
+<p>这五条里,第 3、4、5 条来自 WorkOS 的 Agent auth 清单;第 1、2 条是我从银行这次的表态里推的,属于我的判断。</p></div><div class="en"><ul>
+<li>Don't store user passwords, and don't have the agent drive a browser to log in to someone else's account. That's the blocked path, and Schwab named browser automation explicitly.</li>
+<li>Look for the other side's official interface or MCP server first. If none exists, write "this system doesn't support agents" into your docs as a product limit rather than working around it.</li>
+<li>Give each agent its own identity (its own OAuth client), so your logs can answer "which agent made this call, on behalf of which user."</li>
+<li>Split read and write scopes. Use short-lived tokens and human approval for writes. On an authorization failure (401/403), stop; don't retry with other credentials or fall back to a service account.</li>
+<li>Make revocation one click: revoke one agent (across all users) or one user (across all agents).</li>
+</ul>
+<p>Items 3, 4 and 5 come from the WorkOS agent-auth checklist. Items 1 and 2 are my inference from what the banks said, so treat them as my judgment.</p></div></section>
+<section id="caveats"><h2 class="zh">还没弄清楚的</h2><h2 class="en">What is still unclear</h2><div class="zh"><p>几件事我没查到:Schwab 和 JPMorgan 具体怎么识别 Agent(American Banker 那篇没写);银行说的「MCP server」是已经上线还是计划;责任归属在法律上怎么算(The Next Web 说美国国会还在讨论)。</p>
+<p>另外要留意动机。分析师 Tim Welsh 对 American Banker 说:「外部 Agent 为客户工作,Charley 为 Schwab 工作。」Schwab 第三季净利息收入约 34.8 亿美元,很大一块来自约 4930 亿美元的现金清扫账户。安全理由是真的,商业利益也是真的,两者可以同时成立。</p>
+<p>最后,这几篇报道里的拦截数字和表态,都是转述 CEO 对媒体说的话,没有银行自己的原始文档,我没看到。</p></div><div class="en"><p>A few things I couldn't find: how Schwab and JPMorgan actually detect agents (the American Banker piece doesn't say); whether the "MCP servers" Schwab mentioned are live or planned; and how liability works legally (The Next Web says Congress is still debating it).</p>
+<p>Keep motive in view too. Analyst Tim Welsh told American Banker: "An outside agent works for the client. Charley works for Schwab." Schwab reported about $3.48 billion in Q3 net interest revenue, much of it on roughly $493 billion in cash-sweep accounts. The security reasons are real, and so is the business interest. Both can be true.</p>
+<p>Finally, the block counts and statements in these reports are secondhand accounts of what executives told the media. I didn't see any primary documents from the banks.</p></div></section>
+<section id="gloss"><h2 class="zh">小词典</h2><h2 class="en">Glossary</h2><div class="zh"><dl><dt>scope</dt><dd>token 允许做什么的范围,比如 <code>accounts:read</code>。范围越窄,Agent 出错或被劫持时损失越小。</dd>
+<dt>token exchange (RFC 8693)</dt><dd>拿一个宽权限的 token 去换一个窄权限、短有效期的 token。</dd>
+<dt>DPoP (RFC 9449)</dt><dd>把 token 绑定到客户端的私钥,别人偷到 token 也不能用。</dd>
+<dt>step-up</dt><dd>当前权限不够时,重新走一次授权,拿更高的权限。</dd>
+<dt>MCP</dt><dd>Model Context Protocol,让模型调用外部工具和数据的一套开放协议。</dd></dl></div><div class="en"><dl><dt>scope</dt><dd>What a token is allowed to do, for example <code>accounts:read</code>. The narrower it is, the less you lose when an agent errs or is hijacked.</dd>
+<dt>token exchange (RFC 8693)</dt><dd>Trade a broad token for a narrow, short-lived one.</dd>
+<dt>DPoP (RFC 9449)</dt><dd>Binds a token to the client's private key, so a stolen token can't be used by someone else.</dd>
+<dt>step-up</dt><dd>When current permission isn't enough, run authorization again to get a higher level.</dd>
+<dt>MCP</dt><dd>Model Context Protocol, an open protocol for letting models call external tools and data.</dd></dl></div></section>
+<section id="src"><h2 class="zh">来源</h2><h2 class="en">Sources</h2><div class="zh"><ul class="srcs">
+<li><a href="https://thenextweb.com/news/schwab-blocks-ai-agents-meta-muse">The Next Web:Schwab 与 JPMorgan 拦截 AI Agent(2026-10-16)</a></li>
+<li><a href="https://www.americanbanker.com/news/schwab-blocks-unauthorized-ai-agents-points-clients-to-charley">American Banker:Schwab 拦截未授权 Agent,引导客户用 Charley</a></li>
+<li><a href="https://cybernews.com/security/jpmorgan-chase-blocks-outside-ai-agents/">Cybernews:JPMorgan 拦截外部 AI Agent(2026-10-14,10-16 更新)</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/draft/basic/authorization">MCP Authorization 规范(draft)</a></li>
+<li><a href="https://workos.com/blog/ai-agent-auth-checklist">WorkOS:2026 AI agent auth 清单</a>(社区指南)</li>
+<li><a href="https://zylos.ai/research/2026-04-11-agent-authentication-delegated-access-oauth-scoped-tokens/">Zylos:Agent 认证与委托访问</a>(社区指南)</li></ul>
+<p class="note">我没有读到银行的原始文件;文中所有引语都经过媒体转述。以原文为准。</p></div><div class="en"><ul class="srcs">
+<li><a href="https://thenextweb.com/news/schwab-blocks-ai-agents-meta-muse">The Next Web: Schwab and JPMorgan block AI agents (2026-10-16)</a></li>
+<li><a href="https://www.americanbanker.com/news/schwab-blocks-unauthorized-ai-agents-points-clients-to-charley">American Banker: Schwab blocks unauthorized AI agents, points clients to Charley</a></li>
+<li><a href="https://cybernews.com/security/jpmorgan-chase-blocks-outside-ai-agents/">Cybernews: JPMorgan blocks outside AI agents (2026-10-14, updated 10-16)</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/draft/basic/authorization">MCP Authorization spec (draft)</a></li>
+<li><a href="https://workos.com/blog/ai-agent-auth-checklist">WorkOS: the 2026 AI agent auth checklist</a> (community guide)</li>
+<li><a href="https://zylos.ai/research/2026-04-11-agent-authentication-delegated-access-oauth-scoped-tokens/">Zylos: Agent authentication and delegated access</a> (community guide)</li></ul>
+<p class="note">I did not read any primary documents from the banks; every quote here is relayed by the press. Defer to the originals.</p></div></section>
+
+<footer class="zh">本文基于公开报道整理,可能有遗漏,以原文为准。</footer>
+<footer class="en">Compiled from public reporting; it may have gaps. Defer to the originals.</footer>
+</div>
+<script>
+(function(){
+var b=document.body,btn=document.getElementById('lang'),io=null;
+function figs(){return Array.prototype.slice.call(document.querySelectorAll('.fig'));}
+function visible(el){return el.offsetParent!==null;}
+function play(){
+  figs().forEach(function(f){
+    if(!visible(f)){return;}
+    var r=f.getBoundingClientRect();
+    if(r.top<window.innerHeight&&r.bottom>0){f.classList.add('in');}
+    else if(io&&!f.classList.contains('in')){io.observe(f);}
+  });
+}
+if('IntersectionObserver' in window){
+  io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.15});
+}else{figs().forEach(function(f){f.classList.add('in');});}
+function set(l){
+  b.setAttribute('data-lang',l);
+  document.documentElement.lang=(l==='zh'?'zh-CN':'en');
+  btn.textContent=(l==='zh'?'EN':'中');
+  try{localStorage.setItem('aid-lang',l);}catch(e){}
+  play();
+}
+var l0=null;try{l0=localStorage.getItem('aid-lang');}catch(e){}
+if(!l0){l0=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en';}
+btn.addEventListener('click',function(){set(b.getAttribute('data-lang')==='zh'?'en':'zh');});
+set(l0);
+})();
+</script>
+</body>
+</html>
