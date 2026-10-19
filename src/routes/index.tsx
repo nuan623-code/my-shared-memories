@@ -36,7 +36,7 @@ export const resourcesQO = queryOptions({
 // 后面几格自动补 —— 先按最近 30 天阅读量,不够再按内容日期补最新长文。
 // 于是首页每周自然换血,不用再记得手动改数组。想换门面改 PINNED_SLUGS 即可。
 /** 头图轮播放几张 */
-const CAROUSEL_COUNT = 5;
+const CAROUSEL_COUNT = 12;
 /**
  * 每日栏目里允许上轮播的两条线。
  * 简报不在其中:它的标题只有一个日期,占满一屏大卡等于什么都没说。
@@ -282,8 +282,8 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* 区块 2 · 头图轮播:精选长文轮流占一屏宽,替代改版前那个六宫格 */}
-      <HeroCarousel items={featured} />
+      {/* 区块 2 · 十二篇精选:主卡 + 两侧预览,可按主题筛选或从目录直达 */}
+      <HeroCarousel key={locale} items={featured} />
 
       {/* 区块 3 · 今日更新:三栏目各最新一条,只替换不加长 */}
       <section id="today" className="scroll-mt-20 border-b border-border/50 bg-card/40 px-4 py-10">
