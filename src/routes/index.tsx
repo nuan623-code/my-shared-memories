@@ -38,12 +38,11 @@ export const resourcesQO = queryOptions({
 /** 头图轮播放几张 */
 const CAROUSEL_COUNT = 12;
 /**
- * 每日栏目里允许上轮播的两条线。
+ * 每日栏目里允许上轮播的两条线,各占一个固定席位(取该线最新一篇)。
+ * 原先是两条线合用 2 席、谁新谁上,小课一停更轮播里就只剩深度学习。
  * 简报不在其中:它的标题只有一个日期,占满一屏大卡等于什么都没说。
  */
-const CAROUSEL_DAILY_SUBS = new Set(["daily", "claude-code"]);
-/** 轮播里留给每日栏目的席位上限 */
-const CAROUSEL_DAILY_QUOTA = 2;
+const CAROUSEL_DAILY_SUBS = ["daily", "claude-code"];
 /** 每条卡片带最多放几张。再多就只是让 HTML 变大,没人横滚到第 15 张以后 */
 const ROW_LIMIT = 14;
 const PINNED_SLUGS: Record<Locale, string[]> = {
@@ -114,19 +113,21 @@ function pickFeatured(
 
   for (const slug of PINNED_SLUGS[locale]) take(resources.find((r) => r.slug === slug));
 
-  // 每日栏目的配额,取各线最新的几篇。
-  // 要求必须有摘要:管线入库时不写 summary(靠 scripts/backfill-summaries.mjs 事后补),
-  // 当天新入库那条在补摘要之前是没有的 —— 放进一屏大卡,下半张就是空的。
-  const dailyPool = resources
-    .filter(
-      (r) =>
-        CAROUSEL_DAILY_SUBS.has(r.subcategory ?? "") &&
-        (r.lang ?? "zh") === locale &&
-        Boolean(r.slug) &&
-        Boolean(r.summary?.trim()),
-    )
-    .sort((a, b) => (contentDate(a) < contentDate(b) ? 1 : -1));
-  for (const r of dailyPool.slice(0, CAROUSEL_DAILY_QUOTA)) take(r);
+  // 每日栏目:每条线一个席位,取该线最新一篇;某条线没有合格的,席位让给后面的补位。
+  // 要求必须有摘要:管线入库时不写 summary(部署脚本每趟跑 backfill-summaries.mjs 补),
+  // 补摘要之前那条放进一屏大卡,下半张就是空的。
+  for (const sub of CAROUSEL_DAILY_SUBS) {
+    const latest = resources
+      .filter(
+        (r) =>
+          r.subcategory === sub &&
+          (r.lang ?? "zh") === locale &&
+          Boolean(r.slug) &&
+          Boolean(r.summary?.trim()),
+      )
+      .sort((a, b) => (contentDate(a) < contentDate(b) ? 1 : -1))[0];
+    take(latest);
+  }
 
   const pool = resources.filter(
     (r) => !isDailyColumn(r) && (r.lang ?? "zh") === locale && Boolean(r.slug),
