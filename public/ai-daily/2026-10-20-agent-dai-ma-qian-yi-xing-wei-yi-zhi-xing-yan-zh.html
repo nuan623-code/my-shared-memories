@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>怎么验证 Agent 做的代码迁移“行为没变”:OpenAI MultiLangBench 与 COBOL 迁移评测 | How to Check an Agent's Code Migration Kept Behavior: OpenAI's MultiLangBench and COBOL Migration Evals</title>
+<style>
+:root{--bg:#f6f7fb;--sf:#fff;--ink:#1d2433;--ink2:#3b465c;--mut:#6a7590;--line:#dde2ee;--ac:#2a5bd7;--acs:#e8eefc;--code:#f1f3f9;--r:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px 70px}
+header{background:linear-gradient(160deg,#fff,#eaf0fd);border-bottom:1px solid var(--line);margin-bottom:22px}
+.hin{max-width:780px;margin:0 auto;padding:44px 20px 30px}
+h1{font-size:clamp(22px,5vw,32px);line-height:1.3;margin:0 0 10px;letter-spacing:-.01em}
+.sub{margin:0;color:var(--ink2)}
+.meta{margin-top:12px;font-size:13px;color:var(--mut)}
+#lang{position:fixed;top:12px;right:12px;z-index:20;border:1.5px solid var(--ac);background:#fff;color:var(--ac);font-weight:700;font-size:14px;padding:6px 14px;border-radius:99px;cursor:pointer}
+nav.toc{background:var(--sf);border:1px solid var(--line);border-radius:var(--r);padding:12px 18px;margin-bottom:20px;font-size:15px}
+nav.toc ol{margin:6px 0 0;padding-left:20px}nav.toc a{color:var(--ac);text-decoration:none}
+section{background:var(--sf);border:1px solid var(--line);border-radius:var(--r);padding:18px 22px;margin-bottom:16px}
+h2{font-size:20px;margin:0 0 8px}
+p{margin:0 0 12px;color:var(--ink2)}ul{padding-left:22px;color:var(--ink2)}li{margin-bottom:6px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:9px;padding:11px 14px;overflow-x:auto;font-size:13px;line-height:1.55}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+dt{font-weight:700;margin-top:8px}dd{margin:0 0 6px;color:var(--ink2)}
+figure{margin:12px 0}figure svg{width:100%;height:auto;background:#fbfcff;border:1px solid var(--line);border-radius:10px}
+figcaption{font-size:13px;color:var(--mut);margin-top:6px}
+.fig{opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}.fig.in{opacity:1;transform:none}
+.note{font-size:13.5px;color:var(--mut)}
+footer{text-align:center;color:var(--mut);font-size:13px;margin-top:20px}
+@media(max-width:620px){section{padding:16px 15px}.hin{padding:54px 16px 24px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN 怎么验证 Agent 做的代码迁移“行为没变”:OpenAI MultiLangBench 与 COBOL 迁移评测 How to Check an Agent&#x27;s Code Migration Kept Beha…">
+<meta property="og:title" content="怎么验证 Agent 做的代码迁移“行为没变”:OpenAI MultiLangBench 与 COBOL 迁移评测 | How to Check an Agent&#x27;s Code Migration Kept Behavior: OpenAI&#x27;s MultiLangBench and COBOL Migration Evals">
+<meta property="og:description" content="EN 怎么验证 Agent 做的代码迁移“行为没变”:OpenAI MultiLangBench 与 COBOL 迁移评测 How to Check an Agent&#x27;s Code Migration Kept Beha…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-20-agent-dai-ma-qian-yi-xing-wei-yi-zhi-xing-yan-zh.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-20-agent-dai-ma-qian-yi-xing-wei-yi-zhi-xing-yan-zh.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "怎么验证 Agent 做的代码迁移“行为没变”:OpenAI MultiLangBench 与 COBOL 迁移评测 | How to Check an Agent's Code Migration Kept Behavior: OpenAI's MultiLangBench and COBOL Migration Evals", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-20-agent-dai-ma-qian-yi-xing-wei-yi-zhi-xing-yan-zh.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-20", "dateModified": "2026-10-20"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="lang" type="button" aria-label="Switch language">EN</button>
+<header><div class="hin">
+<h1 class="zh">怎么验证 Agent 做的代码迁移“行为没变”:OpenAI MultiLangBench 与 COBOL 迁移评测</h1>
+<h1 class="en">How to Check an Agent's Code Migration Kept Behavior: OpenAI's MultiLangBench and COBOL Migration Evals</h1>
+<p class="sub zh">OpenAI 10 月 19 日的评测怎么设计、数字怎么读、你能借走什么。</p>
+<p class="sub en">How OpenAI's October 19 evals are built, how to read the numbers, and what you can borrow.</p>
+<div class="meta zh">2026-10-20 · AI 每日简报深度学习</div><div class="meta en">2026-10-20 · AI Daily deep dive</div>
+</div></header>
+<div class="wrap">
+<nav class="toc"><b class="zh">目录</b><b class="en">Contents</b><ol><li><a href="#tldr"><span class="zh">结论先说</span><span class="en">The short version</span></a></li><li><a href="#what"><span class="zh">OpenAI 到底测了什么</span><span class="en">What OpenAI actually measured</span></a></li><li><a href="#flow"><span class="zh">验收是怎么设计的</span><span class="en">How the acceptance check is built</span></a></li><li><a href="#nums"><span class="zh">分数说明了什么</span><span class="en">What the scores say</span></a></li><li><a href="#mlb"><span class="zh">MultiLangBench 在 GitHub 上怎么跑</span><span class="en">How MultiLangBench works on GitHub</span></a></li><li><a href="#use"><span class="zh">你能借走什么</span><span class="en">What you can borrow</span></a></li><li><a href="#caveats"><span class="zh">还没弄清楚的</span><span class="en">What is still unclear</span></a></li><li><a href="#gloss"><span class="zh">小词典</span><span class="en">Glossary</span></a></li><li><a href="#src"><span class="zh">来源</span><span class="en">Sources</span></a></li></ol></nav>
+<section id="tldr"><h2 class="zh">结论先说</h2><h2 class="en">The short version</h2><div class="zh"><p>10 月 19 日 OpenAI 发了一篇讲“低资源编程语言”的文章,里面有两个评测。一个是让模型用 20 种语言各写一个兼容 SQLite 的数据库;一个是把 COBOL 程序迁移到别的语言,而且要求输出<b>逐字节一致</b>。</p>
+<p>数字很夸张:COBOL 迁移准确率,GPT-5.6 Sol 是 5.4%,GPT-6.1 Sol 低推理强度下 86.6%,高推理强度 97.9%。但这些都是 OpenAI 自己报的。我觉得更值得学的是评测的设计:它不看代码像不像,只看“隐藏测试下行为是否完全一样”。你自己给 Agent 派迁移、重构任务时,可以照这个思路搭验收。</p></div><div class="en"><p>On October 19, OpenAI published a post about "low-resource programming languages" with two evals. One asks a model to write a SQLite-compatible database in each of 20 languages. The other migrates COBOL programs to other languages and requires <b>byte-for-byte identical</b> output.</p>
+<p>The numbers are big. On COBOL migration, GPT-5.6 Sol scores 5.4%, GPT-6.1 Sol scores 86.6% at low reasoning effort and 97.9% at higher effort. All of these are OpenAI's own figures. What I think is more useful is the eval design: it doesn't ask whether the code looks right, only whether behavior under hidden tests is exactly the same. If you hand migration or refactoring jobs to an agent, you can build your acceptance checks the same way.</p></div></section>
+<section id="what"><h2 class="zh">OpenAI 到底测了什么</h2><h2 class="en">What OpenAI actually measured</h2><div class="zh"><p>“低资源语言”指训练数据和文档少的语言,比如 COBOL、Fortran、Visual Basic、OCaml。文章提到它们支撑着银行、天气预报这类关键系统。</p>
+<p><b>评测一:MultiLangBench(从零写软件)。</b>任务是用 20 种语言各实现一个兼容 SQLite 的数据库引擎。每个实现拿到一个初始数据库和一条 SQL,输出的数据库用真正的 SQLite 做对照检查;测试改自 SQLite 自己的测试套件。指标是通过率和 API 成本。</p>
+<p><b>评测二:COBOL 迁移(保持行为)。</b>把 COBOL 程序迁移到 C++、Java、Kotlin、Python 或 Rust。隐藏测试要求可观察的输出逐字节一致,所有测试都过才算成功。文章特别提到 COBOL 的定点数舍入这类细节容易出错。</p></div><div class="en"><p>"Low-resource" here means languages with little training code and documentation, such as COBOL, Fortran, Visual Basic and OCaml. The post notes they underpin critical systems like banking and weather forecasting.</p>
+<p><b>Eval 1: MultiLangBench (build software from scratch).</b> The task is to implement a SQLite-compatible database engine in each of 20 languages. Each implementation gets an initial database and a SQL query, and its output database is checked against a reference SQLite. The tests are adapted from SQLite's own test suite. Metrics are pass rate and API cost.</p>
+<p><b>Eval 2: COBOL migration (preserve behavior).</b> Migrate COBOL programs to C++, Java, Kotlin, Python or Rust. Hidden tests require byte-for-byte identical observable output, and a migration counts only if every test passes. The post calls out details such as COBOL's fixed-point rounding as a risk.</p></div></section>
+<section id="flow"><h2 class="zh">验收是怎么设计的</h2><h2 class="en">How the acceptance check is built</h2><div class="zh"><p>迁移评测的关键是“拿旧程序当标准答案”:同一批隐藏测试先在旧程序上跑一遍,记下输出;再在 Agent 迁移出来的新程序上跑,逐字节对比。只要有一个测试不同,整个迁移算失败。</p>
+<p>这比“让另一个模型看代码对不对”可靠得多,因为它不依赖谁的判断,只依赖输出。代价是你得先有一批能覆盖业务规则的测试。OpenAI 也在文章里说,迁移真实生产系统仍要专家评审,并按业务规则和依赖做测试。</p>
+<figure class="fig zh"><svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="所以验收看行为,不看代码长相">
+<defs><marker id="a1z" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6a86"/></marker></defs>
+<style>.bx{fill:#fff;stroke:#5a6a86;stroke-width:1.5}.gd{fill:#e9f6ee;stroke:#2f8a55;stroke-width:1.5}.bd{fill:#fdecec;stroke:#c2453b;stroke-width:1.5}.tx{font:13px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}.ln{stroke:#5a6a86;stroke-width:1.5;fill:none}</style>
+<rect class="bx" x="10" y="30" width="150" height="48" rx="8"/><text class="tx" x="85" y="59" text-anchor="middle">旧程序(COBOL)</text>
+<rect class="bx" x="215" y="30" width="130" height="48" rx="8"/><text class="tx" x="280" y="59" text-anchor="middle">Agent 迁移</text>
+<rect class="bx" x="400" y="30" width="170" height="48" rx="8"/><text class="tx" x="485" y="59" text-anchor="middle">新程序(如 Java)</text>
+<path class="ln" d="M160 54 H213" marker-end="url(#a1z)"/><path class="ln" d="M345 54 H398" marker-end="url(#a1z)"/>
+<rect class="bx" x="10" y="120" width="560" height="40" rx="8" stroke-dasharray="5 4"/><text class="tx" x="290" y="145" text-anchor="middle">同一批隐藏测试</text>
+<path class="ln" d="M85 120 V80" marker-end="url(#a1z)"/><path class="ln" d="M485 120 V80" marker-end="url(#a1z)"/>
+<text class="sm" x="95" y="104">先在旧程序上跑,记下输出</text><text class="sm" x="495" y="104">再在新程序上跑</text>
+<rect class="bx" x="600" y="30" width="110" height="48" rx="8"/><text class="tx" x="655" y="59" text-anchor="middle">逐字节对比输出</text>
+<path class="ln" d="M570 54 H598" marker-end="url(#a1z)"/>
+<rect class="gd" x="590" y="100" width="120" height="36" rx="8"/><text class="tx" x="650" y="123" text-anchor="middle">全部一致 = 成功</text>
+<rect class="bd" x="590" y="146" width="120" height="36" rx="8"/><text class="tx" x="650" y="169" text-anchor="middle">任一不同 = 失败</text>
+<text class="sm" x="10" y="215">所以验收看行为,不看代码长相</text>
+</svg><figcaption>图 1:旧程序是标准答案,新程序必须在同一批隐藏测试上输出完全一致。</figcaption></figure></div><div class="en"><p>The key idea in a migration eval is to treat the old program as the answer key. The same hidden tests run on the old program first and the output is recorded. Then they run on the program the agent produced, and outputs are compared byte for byte. One differing test fails the whole migration.</p>
+<p>That is far more reliable than asking another model whether the code looks right, because it doesn't depend on anyone's judgment, only on output. The cost is that you need tests that cover the business rules first. OpenAI also says in the post that migrating real production systems still needs expert review and tests against the system's business rules and dependencies.</p>
+<figure class="fig en"><svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="So acceptance checks behavior, not how the code looks">
+<defs><marker id="a1e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6a86"/></marker></defs>
+<style>.bx{fill:#fff;stroke:#5a6a86;stroke-width:1.5}.gd{fill:#e9f6ee;stroke:#2f8a55;stroke-width:1.5}.bd{fill:#fdecec;stroke:#c2453b;stroke-width:1.5}.tx{font:13px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}.ln{stroke:#5a6a86;stroke-width:1.5;fill:none}</style>
+<rect class="bx" x="10" y="30" width="150" height="48" rx="8"/><text class="tx" x="85" y="59" text-anchor="middle">Old program (COBOL)</text>
+<rect class="bx" x="215" y="30" width="130" height="48" rx="8"/><text class="tx" x="280" y="59" text-anchor="middle">Agent migrates</text>
+<rect class="bx" x="400" y="30" width="170" height="48" rx="8"/><text class="tx" x="485" y="59" text-anchor="middle">New program (e.g. Java)</text>
+<path class="ln" d="M160 54 H213" marker-end="url(#a1e)"/><path class="ln" d="M345 54 H398" marker-end="url(#a1e)"/>
+<rect class="bx" x="10" y="120" width="560" height="40" rx="8" stroke-dasharray="5 4"/><text class="tx" x="290" y="145" text-anchor="middle">Same hidden tests</text>
+<path class="ln" d="M85 120 V80" marker-end="url(#a1e)"/><path class="ln" d="M485 120 V80" marker-end="url(#a1e)"/>
+<text class="sm" x="95" y="104">Run on old program first, record output</text><text class="sm" x="495" y="104">Then run on new program</text>
+<rect class="bx" x="600" y="30" width="110" height="48" rx="8"/><text class="tx" x="655" y="59" text-anchor="middle">Byte-for-byte compare</text>
+<path class="ln" d="M570 54 H598" marker-end="url(#a1e)"/>
+<rect class="gd" x="590" y="100" width="120" height="36" rx="8"/><text class="tx" x="650" y="123" text-anchor="middle">All match = pass</text>
+<rect class="bd" x="590" y="146" width="120" height="36" rx="8"/><text class="tx" x="650" y="169" text-anchor="middle">Any diff = fail</text>
+<text class="sm" x="10" y="215">So acceptance checks behavior, not how the code looks</text>
+</svg><figcaption>Figure 1: the old program is the answer key; the new one must produce identical output on the same hidden tests.</figcaption></figure></div></section>
+<section id="nums"><h2 class="zh">分数说明了什么</h2><h2 class="en">What the scores say</h2><div class="zh"><p>文章给出的数字(都是 OpenAI 自己的结果,我没找到独立复现):</p>
+<ul><li>MultiLangBench,最高推理强度:GPT-6 Astra 平均 87.4%,GPT-5.6 Sol 是 26.8%。20 种语言里有 19 种超过 83%,最难的 COBOL 是 72%。</li>
+<li>GPT-6 Luna(更便宜的型号):平均 40.3%,每个样本约 $0.77,GPT-5.6 Sol 约 $3.48,便宜约 78%。</li>
+<li>COBOL 迁移:GPT-6.1 Sol 低推理强度 86.6%,成本约为 GPT-5.6 Sol 的 61%;高推理强度到 97.9%,接近把这个评测做满。GPT-5.6 Sol 是 5.4%。</li></ul>
+<figure class="fig zh"><svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MultiLangBench 通过率(%):GPT-5.6 Sol → GPT-6 Astra(最高推理强度)"><style>.tx{font:13px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}</style><text class="tx" x="10" y="22" style="font-weight:700">MultiLangBench 通过率(%):GPT-5.6 Sol → GPT-6 Astra(最高推理强度)</text><text class="tx" x="10" y="61">COBOL</text><rect x="120" y="44" width="60" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="185" y="57">10.9%</text><rect x="120" y="64" width="397" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="522" y="77">72.1%</text><text class="tx" x="10" y="117">OCaml</text><rect x="120" y="100" width="141" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="266" y="113">25.6%</text><rect x="120" y="120" width="472" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="597" y="133">85.8%</text><text class="tx" x="10" y="173">Fortran</text><rect x="120" y="156" width="118" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="243" y="169">21.4%</text><rect x="120" y="176" width="459" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="584" y="189">83.5%</text><text class="tx" x="10" y="229">Visual Basic</text><rect x="120" y="212" width="151" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="276" y="225">27.5%</text><rect x="120" y="232" width="492" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="617" y="245">89.4%</text><rect x="120" y="262" width="12" height="10" fill="#9aa8c7"/><text class="sm" x="136" y="271">GPT-5.6 Sol</text><rect x="230" y="262" width="12" height="10" fill="#2a5bd7"/><text class="sm" x="246" y="271">GPT-6 Astra</text></svg><figcaption>图 2:四种低资源语言的通过率变化。浅色是 GPT-5.6 Sol,深色是 GPT-6 Astra。</figcaption></figure>
+<p>我的看法:从 5.4% 到 86.6% 是一次大跳跃,但“接近做满”也意味着这个评测可能快没有区分度了。这点是我的推测,文章没这么说。</p></div><div class="en"><p>Numbers from the post (all OpenAI's own results; I found no independent reproduction):</p>
+<ul><li>MultiLangBench at maximum reasoning effort: GPT-6 Astra averages 87.4% versus 26.8% for GPT-5.6 Sol. It scores above 83% in 19 of 20 languages; COBOL, the hardest, is 72%.</li>
+<li>GPT-6 Luna (the cheaper model): 40.3% average at about $0.77 per sample, versus about $3.48 for GPT-5.6 Sol, roughly 78% cheaper.</li>
+<li>COBOL migration: GPT-6.1 Sol hits 86.6% at low reasoning effort at about 61% of GPT-5.6 Sol's API cost, and 97.9% at higher effort, close to saturating the benchmark. GPT-5.6 Sol scores 5.4%.</li></ul>
+<figure class="fig en"><svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MultiLangBench pass rate (%): GPT-5.6 Sol → GPT-6 Astra (max reasoning effort)"><style>.tx{font:13px sans-serif;fill:#1d2433}.sm{font:12px sans-serif;fill:#5a6a86}</style><text class="tx" x="10" y="22" style="font-weight:700">MultiLangBench pass rate (%): GPT-5.6 Sol → GPT-6 Astra (max reasoning effort)</text><text class="tx" x="10" y="61">COBOL</text><rect x="120" y="44" width="60" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="185" y="57">10.9%</text><rect x="120" y="64" width="397" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="522" y="77">72.1%</text><text class="tx" x="10" y="117">OCaml</text><rect x="120" y="100" width="141" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="266" y="113">25.6%</text><rect x="120" y="120" width="472" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="597" y="133">85.8%</text><text class="tx" x="10" y="173">Fortran</text><rect x="120" y="156" width="118" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="243" y="169">21.4%</text><rect x="120" y="176" width="459" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="584" y="189">83.5%</text><text class="tx" x="10" y="229">Visual Basic</text><rect x="120" y="212" width="151" height="16" rx="3" fill="#9aa8c7"/><text class="sm" x="276" y="225">27.5%</text><rect x="120" y="232" width="492" height="16" rx="3" fill="#2a5bd7"/><text class="sm" x="617" y="245">89.4%</text><rect x="120" y="262" width="12" height="10" fill="#9aa8c7"/><text class="sm" x="136" y="271">GPT-5.6 Sol</text><rect x="230" y="262" width="12" height="10" fill="#2a5bd7"/><text class="sm" x="246" y="271">GPT-6 Astra</text></svg><figcaption>Figure 2: pass rate change in four low-resource languages. Light bars are GPT-5.6 Sol, dark bars are GPT-6 Astra.</figcaption></figure>
+<p>My take: going from 5.4% to 86.6% is a big jump, but "close to saturating" also means the eval may soon stop telling models apart. That is my speculation; the post doesn't say it.</p></div></section>
+<section id="mlb"><h2 class="zh">MultiLangBench 在 GitHub 上怎么跑</h2><h2 class="en">How MultiLangBench works on GitHub</h2><div class="zh"><p>仓库是 <code>openai/MultiLangBench</code>(Apache-2.0)。README 的要点:</p>
+<ul><li>任务是让模型凭 SQLite 3.40.1 文档实现 SQLite。约 5.1 万条 TCL 测试里,约 2.4 万条被转成了评测格式。</li>
+<li>每条测试有三部分:<code>initial_database</code>、<code>user_query</code>、<code>validation_query</code>。验证查询在真正的 SQLite 3.40.1 上跑,输出必须与期望字符串完全一致。</li>
+<li>模型的程序接收数据库路径作为命令行参数,从 stdin 读 SQL。</li>
+<li>环境要求:放入文档、清掉环境里所有 SQLite 痕迹(仓库有示例脚本 <code>scripts/remove_sqlite.sh</code>,README 要求你自己再验证)、断网。</li>
+<li>标准评测用 272 条测试(名字以 00、01、02 开头);允许跑全集,但要注明。崩溃、输出不一致、超过 60 秒都算失败;没用指定语言,通过率记 0。</li></ul>
+<p>README 没写具体的运行命令,也没列出 20 种语言的名字,所以想复现要自己搭运行脚本。这点我没法替它补。</p></div><div class="en"><p>The repo is <code>openai/MultiLangBench</code> (Apache-2.0). Key points from the README:</p>
+<ul><li>The task is to implement SQLite from the SQLite 3.40.1 docs. Of roughly 51k TCL tests, about 24k were converted to the eval format.</li>
+<li>Each test has three parts: <code>initial_database</code>, <code>user_query</code> and <code>validation_query</code>. The validation query runs on real SQLite 3.40.1, and the output must match the expected string exactly.</li>
+<li>The model's program takes a database path as a command-line argument and reads SQL from stdin.</li>
+<li>Environment setup: put the docs in, remove every trace of SQLite (the repo has an example <code>scripts/remove_sqlite.sh</code>, and the README tells you to verify it yourself), and block internet access.</li>
+<li>The standard eval uses 272 tests (names starting with 00, 01 or 02); running the full set is allowed but must be noted. Crashes, mismatches and timeouts over 60 seconds count as failures; writing in the wrong language sets the pass rate to 0.</li></ul>
+<p>The README gives no run commands and doesn't name the 20 languages, so reproducing it means writing your own runner. I can't fill that gap for it.</p></div></section>
+<section id="use"><h2 class="zh">你能借走什么</h2><h2 class="en">What you can borrow</h2><div class="zh"><ul><li><b>先固定“标准答案”。</b>迁移前先在旧系统上录一批输入输出(真实流量、业务样例、边界值),再让 Agent 动手。</li>
+<li><b>验收只看输出。</b>不要让 Agent 自己判断“我改对了”;让脚本逐字节比较,差异附上输入,方便人看。</li>
+<li><b>测试对 Agent 隐藏。</b>评测里用的是隐藏测试,防止 Agent 为了过测试而写死答案。你自己的验收集也该和 Agent 能看到的示例分开。</li>
+<li><b>留意最容易错的地方。</b>OpenAI 点名了定点数舍入。老系统里的金额、日期、字符串截断、补零规则,都值得单独写测试。</li>
+<li><b>断网、清环境。</b>MultiLangBench 要求断网并删掉 SQLite,为的是防止模型直接调用现成实现。你做“从零重写”类任务时也要想清楚这一点。</li></ul>
+<p>以上是我从评测设计里总结的做法,不是 OpenAI 的官方建议。</p></div><div class="en"><ul><li><b>Fix the answer key first.</b> Before migrating, record a set of inputs and outputs from the old system (real traffic, business samples, edge values), then let the agent start.</li>
+<li><b>Accept on output only.</b> Don't let the agent decide "I got it right." Compare byte by byte with a script and attach the input to every diff so a human can read it.</li>
+<li><b>Hide the tests from the agent.</b> The eval uses hidden tests so the agent can't hard-code answers. Keep your own acceptance set separate from any examples the agent can see.</li>
+<li><b>Watch the usual traps.</b> OpenAI names fixed-point rounding. Money amounts, dates, string truncation and zero-padding rules in old systems deserve their own tests.</li>
+<li><b>Cut the network, clean the environment.</b> MultiLangBench blocks internet access and removes SQLite so the model can't call an existing implementation. Think about this for any from-scratch rewrite task.</li></ul>
+<p>These are my takeaways from the eval design, not official OpenAI advice.</p></div></section>
+<section id="caveats"><h2 class="zh">还没弄清楚的</h2><h2 class="en">What is still unclear</h2><div class="zh"><p>文章没有公开 COBOL 迁移评测本身(只说了 MultiLangBench 的评测在 GitHub 上);所以 86.6% 和 97.9% 没法自己复现。测试集里的 COBOL 程序有多大、多复杂,我也没看到。</p>
+<p>还有一点:评测的是“输出一致”,不是“代码好维护”。迁移出来的 Java 能不能让团队接手,是另一个问题。这篇文章没覆盖。</p></div><div class="en"><p>The post doesn't release the COBOL migration eval itself (only MultiLangBench is on GitHub), so the 86.6% and 97.9% figures can't be reproduced by you. I also didn't see how large or complex the COBOL programs in the test set are.</p>
+<p>One more thing: the eval measures matching output, not maintainable code. Whether a team can take over the migrated Java is a separate question this post doesn't cover.</p></div></section>
+<section id="gloss"><h2 class="zh">小词典</h2><h2 class="en">Glossary</h2><div class="zh"><dl><dt>低资源语言</dt><dd>训练数据和文档都少的编程语言,如 COBOL、Fortran。</dd>
+<dt>隐藏测试(hidden tests)</dt><dd>Agent 看不到的测试,防止它为了通过测试而写死答案。</dd>
+<dt>byte-for-byte</dt><dd>逐字节一致:连空格、小数位都必须相同。</dd>
+<dt>定点数舍入</dt><dd>按固定小数位做的十进制运算,舍入规则和浮点数不同,迁移时容易出现一分钱的差。</dd>
+<dt>推理强度(reasoning effort)</dt><dd>让模型想多久的档位,越高通常越准也越贵。</dd></dl></div><div class="en"><dl><dt>Low-resource language</dt><dd>A programming language with little training data and documentation, such as COBOL or Fortran.</dd>
+<dt>Hidden tests</dt><dd>Tests the agent can't see, so it can't hard-code answers to pass them.</dd>
+<dt>Byte-for-byte</dt><dd>Exactly identical output, down to spaces and decimal places.</dd>
+<dt>Fixed-point rounding</dt><dd>Decimal math with a fixed number of places. Its rounding rules differ from floating point, so a migration can end up a cent off.</dd>
+<dt>Reasoning effort</dt><dd>A setting for how long the model thinks. Higher is usually more accurate and more expensive.</dd></dl></div></section>
+<section id="src"><h2 class="zh">来源</h2><h2 class="en">Sources</h2><div class="zh"><ul class="srcs"><li><a href="https://openai.com/index/low-resource-programming-languages/">OpenAI:Advancing coding in low-resource programming languages(2026-10-19)</a></li>
+<li><a href="https://github.com/openai/MultiLangBench">GitHub:openai/MultiLangBench(README)</a></li></ul>
+<p class="note">文中数字均来自这两个页面,是 OpenAI 自己的结果。我没有找到独立复现。以原文为准。</p></div><div class="en"><ul class="srcs"><li><a href="https://openai.com/index/low-resource-programming-languages/">OpenAI: Advancing coding in low-resource programming languages (2026-10-19)</a></li>
+<li><a href="https://github.com/openai/MultiLangBench">GitHub: openai/MultiLangBench (README)</a></li></ul>
+<p class="note">All numbers come from these two pages and are OpenAI's own results. I found no independent reproduction. Defer to the originals.</p></div></section>
+
+<footer class="zh">本文基于 OpenAI 官方页面和 GitHub README 整理,可能有遗漏,以原文为准。</footer>
+<footer class="en">Compiled from OpenAI's pages and the GitHub README; it may have gaps. Defer to the originals.</footer>
+</div>
+<script>
+(function(){
+var b=document.body,btn=document.getElementById('lang'),io=null;
+function figs(){return Array.prototype.slice.call(document.querySelectorAll('.fig'));}
+function visible(el){return el.offsetParent!==null;}
+function play(){
+  figs().forEach(function(f){
+    if(!visible(f)){return;}
+    var r=f.getBoundingClientRect();
+    if(r.top<window.innerHeight&&r.bottom>0){f.classList.add('in');}
+    else if(io&&!f.classList.contains('in')){io.observe(f);}
+  });
+}
+if('IntersectionObserver' in window){
+  io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.15});
+}else{figs().forEach(function(f){f.classList.add('in');});}
+function set(l){
+  b.setAttribute('data-lang',l);
+  document.documentElement.lang=(l==='zh'?'zh-CN':'en');
+  btn.textContent=(l==='zh'?'EN':'中');
+  try{localStorage.setItem('aid-lang',l);}catch(e){}
+  play();
+}
+var l0=null;try{l0=localStorage.getItem('aid-lang');}catch(e){}
+if(!l0){l0=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en';}
+btn.addEventListener('click',function(){set(b.getAttribute('data-lang')==='zh'?'en':'zh');});
+set(l0);
+})();
+</script>
+</body>
+</html>
