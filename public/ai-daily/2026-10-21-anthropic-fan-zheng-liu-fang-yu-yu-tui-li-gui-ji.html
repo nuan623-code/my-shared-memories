@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anthropic 反蒸馏防御:推理轨迹怎么被保护 | How Anthropic Defends Claude's Reasoning Against Distillation</title>
+<style>
+:root{--bg:#f6f7fb;--sf:#fff;--ink:#1d2433;--ink2:#3b465c;--mut:#6a7590;--line:#dde2ee;--ac:#2a5bd7;--acs:#e8eefc;--code:#f1f3f9;--r:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px 70px}
+header{background:linear-gradient(160deg,#fff,#eaf0fd);border-bottom:1px solid var(--line);margin-bottom:22px}
+.hin{max-width:780px;margin:0 auto;padding:44px 20px 30px}
+h1{font-size:clamp(22px,5vw,32px);line-height:1.3;margin:0 0 10px;letter-spacing:-.01em}
+.sub{margin:0;color:var(--ink2)}
+.meta{margin-top:12px;font-size:13px;color:var(--mut)}
+#lang{position:fixed;top:12px;right:12px;z-index:20;border:1.5px solid var(--ac);background:#fff;color:var(--ac);font-weight:700;font-size:14px;padding:6px 14px;border-radius:99px;cursor:pointer}
+nav.toc{background:var(--sf);border:1px solid var(--line);border-radius:var(--r);padding:12px 18px;margin-bottom:20px;font-size:15px}
+nav.toc ol{margin:6px 0 0;padding-left:20px}nav.toc a{color:var(--ac);text-decoration:none}
+section{background:var(--sf);border:1px solid var(--line);border-radius:var(--r);padding:18px 22px;margin-bottom:16px}
+h2{font-size:20px;margin:0 0 8px}
+p{margin:0 0 12px;color:var(--ink2)}ul{padding-left:22px;color:var(--ink2)}li{margin-bottom:6px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:9px;padding:11px 14px;overflow-x:auto;font-size:13px;line-height:1.55}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+dt{font-weight:700;margin-top:8px}dd{margin:0 0 6px;color:var(--ink2)}
+figure{margin:12px 0}figure svg{width:100%;height:auto;background:#fbfcff;border:1px solid var(--line);border-radius:10px}
+figcaption{font-size:13px;color:var(--mut);margin-top:6px}
+.fig{opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}.fig.in{opacity:1;transform:none}
+.note{font-size:13.5px;color:var(--mut)}
+footer{text-align:center;color:var(--mut);font-size:13px;margin-top:20px}
+@media(max-width:620px){section{padding:16px 15px}.hin{padding:54px 16px 24px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN Anthropic 反蒸馏防御:推理轨迹怎么被保护,代价是什么 How Anthropic Defends Claude&#x27;s Reasoning Against Distillation, and What It …">
+<meta property="og:title" content="Anthropic 反蒸馏防御:推理轨迹怎么被保护 | How Anthropic Defends Claude&#x27;s Reasoning Against Distillation">
+<meta property="og:description" content="EN Anthropic 反蒸馏防御:推理轨迹怎么被保护,代价是什么 How Anthropic Defends Claude&#x27;s Reasoning Against Distillation, and What It …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-21-anthropic-fan-zheng-liu-fang-yu-yu-tui-li-gui-ji.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-21-anthropic-fan-zheng-liu-fang-yu-yu-tui-li-gui-ji.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Anthropic 反蒸馏防御:推理轨迹怎么被保护 | How Anthropic Defends Claude's Reasoning Against Distillation", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-21-anthropic-fan-zheng-liu-fang-yu-yu-tui-li-gui-ji.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-21", "dateModified": "2026-10-21"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="lang" type="button" aria-label="Switch language">EN</button>
+<header><div class="hin">
+<h1 class="zh">Anthropic 反蒸馏防御:推理轨迹怎么被保护,代价是什么</h1>
+<h1 class="en">How Anthropic Defends Claude's Reasoning Against Distillation, and What It Costs</h1>
+<p class="sub zh">10 月 12 日原文读完后的整理:三层防御、官方数字怎么读、你的集成要查什么。</p>
+<p class="sub en">A read-through of the October 12 post: three defense layers, how to read the numbers, and what to check in your integration.</p>
+<div class="meta zh">2026-10-21 · AI 每日简报深度学习</div><div class="meta en">2026-10-21 · AI Daily deep dive</div>
+</div></header>
+<div class="wrap">
+<nav class="toc"><b class="zh">目录</b><b class="en">Contents</b><ol><li><a href="#tldr"><span class="zh">结论先说</span><span class="en">The short version</span></a></li><li><a href="#what"><span class="zh">蒸馏攻击是什么,为什么盯着推理轨迹</span><span class="en">What distillation is, and why reasoning</span></a></li><li><a href="#attack"><span class="zh">攻击方怎么做</span><span class="en">How attackers operate</span></a></li><li><a href="#defense"><span class="zh">三层防御各做了什么</span><span class="en">What the three layers do</span></a></li><li><a href="#numbers"><span class="zh">数字怎么读</span><span class="en">How to read the numbers</span></a></li><li><a href="#cost"><span class="zh">对正常用户的代价</span><span class="en">The cost to legitimate users</span></a></li><li><a href="#cases"><span class="zh">点名的两个案例</span><span class="en">The two named cases</span></a></li><li><a href="#limits"><span class="zh">局限与行业要求</span><span class="en">Limits and industry asks</span></a></li><li><a href="#gloss"><span class="zh">术语表</span><span class="en">Glossary</span></a></li><li><a href="#src"><span class="zh">来源</span><span class="en">Sources</span></a></li></ol></nav>
+<section id="tldr"><h2 class="zh">结论先说</h2><h2 class="en">The short version</h2>
+<div class="zh"><p>10 月 12 日 Anthropic 发了一篇长文,讲它怎么防别人“蒸馏”Claude。蒸馏就是拿一个强模型的输出去训练另一个模型。Anthropic 特别在意的是 Claude 的<b>推理轨迹</b>(最终答案之前写的那段思考),因为它最能教会别的模型“怎么想”。</p>
+<p>它的做法分三层:控制推理内容流到哪里、用分类器拦“把推理吐出来”的请求、让反复尝试的账号越来越难受。Anthropic 自己给的结果是:被蒸馏方拿走的数据少了 90%~99%。这些数字都是它自己报的,没有第三方复核。</p>
+<p>对你的实际影响有两点:一是新账号上你没法再随意改写 Claude 之前的推理上下文;二是被安全机制拦下的请求现在也要收费。如果你在做 Agent 平台,这篇是难得的“防御方视角”材料。</p></div>
+<div class="en"><p>On October 12 Anthropic published a long post on how it defends Claude against distillation, which means training one model on another model's outputs. What it cares about most is Claude's <b>reasoning transcripts</b>, the thinking written before the final answer, because they teach another model how to think.</p>
+<p>The defense has three layers: control where reasoning content can go, use classifiers to block attempts to extract it, and make repeated attempts increasingly costly. Anthropic's own result is a 90-99% drop in the data distillers harvest. All of these numbers are Anthropic's; none has been independently checked.</p>
+<p>Two things change for you in practice. On new accounts you can no longer freely rewrite Claude's earlier reasoning context. And requests blocked by the safeguards are now billed. If you build agent platforms, this is a rare look from the defender's side.</p></div>
+</section>
+<section id="what"><h2 class="zh">蒸馏攻击是什么,为什么盯着推理轨迹</h2><h2 class="en">What a distillation attack is, and why reasoning transcripts</h2>
+<div class="zh"><p>Anthropic 的定义是:有组织、成规模地提取一个模型的能力去训练另一个模型,而且没有得到授权,常常通过一大批假账号进行。它给了两个担心:蒸馏出来的模型可能接近前沿能力却没有同等的安全措施(比如生物、网络安全方向);复制来的能力也可能被用进军事、情报和监控系统。</p>
+<p>为什么盯着推理?因为推理轨迹展示的是 Claude <i>怎么得出答案</i>,不只是答案本身。文章里有个具体对比:一个预训练模型,用 Claude Opus 4.8 的完整推理轨迹训练,在 SWE-bench Verified 上得 80.4%;只用摘要版轨迹,只有 71.8%。差了 8.6 个百分点,这就是“推理值钱”的量化说明。</p></div>
+<div class="en"><p>Anthropic defines it as covert, large-scale extraction of one model's capabilities to build another, without permission, often through networks of fraudulent accounts. It gives two worries: distilled models may approach the frontier without matching safeguards (biology and cybersecurity are the examples), and the copied capability may end up in military, intelligence and surveillance systems.</p>
+<p>Why reasoning? Because a transcript shows <i>how</i> Claude reaches an answer, not just the answer. The post has a concrete comparison: a pretrained model trained on full reasoning transcripts from Claude Opus 4.8 scored 80.4% on SWE-bench Verified; trained on summarized transcripts only, it scored 71.8%. That 8.6-point gap is the number behind "reasoning is valuable".</p></div>
+</section>
+<figure class="fig zh"><svg viewBox="0 0 720 230" role="img" aria-label="摘要推理对蒸馏效果的影响">
+<text x="20" y="28" font-size="14" font-weight="700" fill="#1d2433">同一个预训练模型,蒸馏用的数据不同(SWE-bench Verified)</text>
+<text x="20" y="80" font-size="13" fill="#3b465c">完整推理轨迹</text>
+<rect x="200" y="62" width="482.40000000000003" height="26" rx="5" fill="#2a5bd7"/>
+<text x="690.4000000000001" y="81" font-size="13" fill="#1d2433">80.4%</text>
+<text x="20" y="130" font-size="13" fill="#3b465c">只有摘要轨迹</text>
+<rect x="200" y="112" width="430.79999999999995" height="26" rx="5" fill="#9fb4e8"/>
+<text x="638.8" y="131" font-size="13" fill="#1d2433">71.8%</text>
+<text x="20" y="190" font-size="12" fill="#6a7590">训练数据来自 Claude Opus 4.8;数字为 Anthropic 自报,条形从 0 起画。</text>
+</svg><figcaption>图 1:完整推理轨迹 vs 摘要轨迹,蒸馏效果差 8.6 个点(Anthropic 自报)。</figcaption></figure>
+<figure class="fig en"><svg viewBox="0 0 720 230" role="img" aria-label="Effect of summarized reasoning on distillation">
+<text x="20" y="28" font-size="14" font-weight="700" fill="#1d2433">Same pretrained model, different distillation data (SWE-bench Verified)</text>
+<text x="20" y="80" font-size="13" fill="#3b465c">Full reasoning transcripts</text>
+<rect x="200" y="62" width="482.40000000000003" height="26" rx="5" fill="#2a5bd7"/>
+<text x="690.4000000000001" y="81" font-size="13" fill="#1d2433">80.4%</text>
+<text x="20" y="130" font-size="13" fill="#3b465c">Summarized transcripts only</text>
+<rect x="200" y="112" width="430.79999999999995" height="26" rx="5" fill="#9fb4e8"/>
+<text x="638.8" y="131" font-size="13" fill="#1d2433">71.8%</text>
+<text x="20" y="190" font-size="12" fill="#6a7590">Training data came from Claude Opus 4.8. Figures are Anthropic’s own; bars start at 0.</text>
+</svg><figcaption>Figure 1: Full vs summarized reasoning transcripts, an 8.6-point gap in distillation quality (Anthropic-reported).</figcaption></figure>
+<section id="attack"><h2 class="zh">攻击方怎么做</h2><h2 class="en">How the attackers operate</h2>
+<div class="zh"><p>文章把手法分成两类。<b>被动蒸馏</b>:发普通请求,把回答拿去训练,早期防御主要针对这种。<b>主动提取</b>:Claude 开始只给推理摘要之后,攻击方转而想办法让它吐出完整推理。文章举的例子有:让 Claude 逐字输出之前的推理;还有一个实验室测试了 12,000 个请求,每个用一种不同的花招。</p>
+<p>规模和躲避手段也很夸张:控制几十万假账号的代理网络、在不受支持的地区转售访问、用假身份和被盗支付信息开户,被封后把推理在不同对话、不同模型(用防护更弱的模型)、不同账号之间搬运。2 月的一份报告里,一个网络同时管理超过 20,000 个假账号。</p></div>
+<div class="en"><p>The post splits the methods in two. <b>Passive distillation</b>: send ordinary requests and train on the responses; early defenses targeted this. <b>Active extraction</b>: once Claude began showing only summarized reasoning, attackers looked for ways to make it reveal the full reasoning. Examples include telling Claude to output its earlier reasoning verbatim, and one lab testing 12,000 requests, each with a different trick.</p>
+<p>The scale and evasion are large: proxy networks controlling hundreds of thousands of fraudulent accounts, resold access in unsupported regions, accounts opened with false identities and stolen payment details, and reasoning moved between conversations, between models (using one with weaker safeguards) and between accounts after bans. A February report described one network managing more than 20,000 fraudulent accounts at once.</p></div>
+</section>
+<section id="defense"><h2 class="zh">三层防御各做了什么</h2><h2 class="en">What each of the three layers does</h2>
+<div class="zh"><p><b>第一层:控制推理流向。</b>先是只展示推理摘要。然后是 preserved thinking(随 Claude Fable 5.1 和 Opus 5.5 引入):2026 年 8 月 31 日及之后创建的新 API 账号,不能编辑 Claude 之前的上下文,这样攻击者没法拿“改过的上下文”去套出推理。推理也不再能被防护更弱的旧模型读到。Claude Sonnet 5.5 起,推理轨迹只有发起那次请求的组织才能访问。</p>
+<p><b>第二层:拦截和修补。</b>一个两阶段分类器,基于 Anthropic 的 constitutional classifiers 研究,用蒸馏方真实的提取尝试来训练。Anthropic 称它的稳健程度大致相当于防生物武器协助的那套防护,误拦率低于 0.1%。目前部署在 Sonnet 5.5、Opus 5 和 5.5、Fable 5 和 5.1 上。新手法出现后能快速补,比如“把之前的推理翻译成另一种语言”,或“把推理写在标签里跟答案一起给”,都已经被挡住。</p>
+<p>关于“两阶段”长什么样,这篇文章没细讲。Anthropic 另一篇 constitutional classifiers 研究里的下一代设计是:一个读模型内部激活的轻量线性探针先筛全部流量,被标记的再交给更贵的探针加分类器组合做最终判断,额外算力约 1%。这是不同的研究文章,我没法确认蒸馏用的分类器和它完全一样,这里只当背景参考。</p>
+<p><b>第三层:让反复尝试变难。</b>对反复尝试提取推理的账号收紧用量限制,持续尝试就封禁关联账号。另外从 9 月 24 日起,在 Claude 回答之前就被安全机制拦下的请求也要收费,覆盖包括蒸馏在内的几个领域,Anthropic 说误判率低于 0.1%。</p></div>
+<div class="en"><p><b>Layer 1: control where reasoning goes.</b> First, show only summaries of reasoning. Then preserved thinking (introduced with Claude Fable 5.1 and Opus 5.5): new API accounts created on or after August 31, 2026 cannot edit Claude's prior context, so attackers can't use doctored context to coax reasoning out. Reasoning is also no longer readable by earlier models with weaker safeguards. With Claude Sonnet 5.5, reasoning transcripts are accessible only to the organization whose request produced them.</p>
+<p><b>Layer 2: block and patch.</b> A two-stage classifier, built on Anthropic's constitutional classifiers research and trained on distillers' real extraction attempts. Anthropic says its robustness roughly matches the safeguards against bioweapons help, with a false positive rate below 0.1%. It is deployed on Sonnet 5.5, Opus 5 and 5.5, and Fable 5 and 5.1. New tricks get patched quickly; asking Claude to translate earlier reasoning into another language, or to write it in tags next to the answer, are both blocked now.</p>
+<p>This post doesn't describe what "two-stage" looks like inside. A separate Anthropic research post on next-generation constitutional classifiers describes a lightweight linear probe that reads the model's internal activations and screens all traffic, with flagged exchanges passed to a more expensive probe-plus-classifier ensemble, at roughly 1% extra compute. That is a different article, and I can't confirm the distillation classifier is identical, so treat it as background only.</p>
+<p><b>Layer 3: make repeated attempts hard.</b> Stricter usage limits for accounts that keep trying to extract reasoning, and bans on associated accounts after persistent attempts. Since September 24, requests blocked by safeguards before Claude responds are also billed, in several areas including distillation, with a stated false positive rate below 0.1%.</p></div>
+</section>
+<figure class="fig zh"><svg viewBox="0 0 720 400" role="img" aria-label="反蒸馏三层防御示意图">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2a5bd7"/></marker></defs>
+<rect x="20" y="150" width="130" height="70" rx="10" fill="#fff" stroke="#c9d3ea"/>
+<text x="85" y="180" text-anchor="middle" font-size="14" fill="#1d2433">蒸馏方</text>
+<text x="85" y="200" text-anchor="middle" font-size="12" fill="#6a7590">大量假账号</text>
+<line x1="150" y1="185" x2="215" y2="185" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="215" y="20" width="250" height="100" rx="10" fill="#e8eefc" stroke="#2a5bd7"/>
+<text x="340" y="46" text-anchor="middle" font-size="14" font-weight="700" fill="#1d2433">① 控制推理流向</text>
+<text x="340" y="68" text-anchor="middle" font-size="12" fill="#3b465c">只给摘要</text>
+<text x="340" y="86" text-anchor="middle" font-size="12" fill="#3b465c">preserved thinking</text>
+<text x="340" y="104" text-anchor="middle" font-size="12" fill="#3b465c">推理只对发起请求的组织可读</text>
+<rect x="215" y="150" width="250" height="100" rx="10" fill="#e8eefc" stroke="#2a5bd7"/>
+<text x="340" y="176" text-anchor="middle" font-size="14" font-weight="700" fill="#1d2433">② 拦截提取请求</text>
+<text x="340" y="198" text-anchor="middle" font-size="12" fill="#3b465c">两阶段分类器</text>
+<text x="340" y="216" text-anchor="middle" font-size="12" fill="#3b465c">误拦率低于 0.1%</text>
+<text x="340" y="234" text-anchor="middle" font-size="12" fill="#3b465c">新手法快速补丁</text>
+<rect x="215" y="280" width="250" height="100" rx="10" fill="#e8eefc" stroke="#2a5bd7"/>
+<text x="340" y="306" text-anchor="middle" font-size="14" font-weight="700" fill="#1d2433">③ 让反复尝试变贵</text>
+<text x="340" y="328" text-anchor="middle" font-size="12" fill="#3b465c">更严的限额</text>
+<text x="340" y="346" text-anchor="middle" font-size="12" fill="#3b465c">封禁关联账号</text>
+<text x="340" y="364" text-anchor="middle" font-size="12" fill="#3b465c">被拦请求照常收费(9/24 起)</text>
+<line x1="215" y1="185" x2="215" y2="185" stroke="none"/>
+<line x1="465" y1="70" x2="545" y2="170" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="465" y1="200" x2="545" y2="200" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="465" y1="330" x2="545" y2="230" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="545" y="150" width="155" height="100" rx="10" fill="#fff" stroke="#c9d3ea"/>
+<text x="622" y="182" text-anchor="middle" font-size="14" fill="#1d2433">结果(官方数字)</text>
+<text x="622" y="206" text-anchor="middle" font-size="12" fill="#3b465c">提取量 -90%~99%</text>
+<text x="622" y="224" text-anchor="middle" font-size="12" fill="#3b465c">推理 token 低 10~100 倍</text>
+</svg><figcaption>图 2:三层防御和官方给出的结果。</figcaption></figure>
+<figure class="fig en"><svg viewBox="0 0 720 400" role="img" aria-label="Three layers of anti-distillation defense">
+<defs><marker id="ar-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2a5bd7"/></marker></defs>
+<rect x="20" y="150" width="130" height="70" rx="10" fill="#fff" stroke="#c9d3ea"/>
+<text x="85" y="180" text-anchor="middle" font-size="14" fill="#1d2433">Distiller</text>
+<text x="85" y="200" text-anchor="middle" font-size="12" fill="#6a7590">many fake accounts</text>
+<line x1="150" y1="185" x2="215" y2="185" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar-e)"/>
+<rect x="215" y="20" width="250" height="100" rx="10" fill="#e8eefc" stroke="#2a5bd7"/>
+<text x="340" y="46" text-anchor="middle" font-size="14" font-weight="700" fill="#1d2433">1 Control where reasoning goes</text>
+<text x="340" y="68" text-anchor="middle" font-size="12" fill="#3b465c">Show summaries only</text>
+<text x="340" y="86" text-anchor="middle" font-size="12" fill="#3b465c">Preserved thinking</text>
+<text x="340" y="104" text-anchor="middle" font-size="12" fill="#3b465c">Reasoning readable only to the requesting org</text>
+<rect x="215" y="150" width="250" height="100" rx="10" fill="#e8eefc" stroke="#2a5bd7"/>
+<text x="340" y="176" text-anchor="middle" font-size="14" font-weight="700" fill="#1d2433">2 Block extraction attempts</text>
+<text x="340" y="198" text-anchor="middle" font-size="12" fill="#3b465c">Two-stage classifier</text>
+<text x="340" y="216" text-anchor="middle" font-size="12" fill="#3b465c">False positives below 0.1%</text>
+<text x="340" y="234" text-anchor="middle" font-size="12" fill="#3b465c">Fast patches for new tricks</text>
+<rect x="215" y="280" width="250" height="100" rx="10" fill="#e8eefc" stroke="#2a5bd7"/>
+<text x="340" y="306" text-anchor="middle" font-size="14" font-weight="700" fill="#1d2433">3 Make repeat tries costly</text>
+<text x="340" y="328" text-anchor="middle" font-size="12" fill="#3b465c">Tighter usage limits</text>
+<text x="340" y="346" text-anchor="middle" font-size="12" fill="#3b465c">Ban linked accounts</text>
+<text x="340" y="364" text-anchor="middle" font-size="12" fill="#3b465c">Blocked requests are billed (since Sep 24)</text>
+<line x1="215" y1="185" x2="215" y2="185" stroke="none"/>
+<line x1="465" y1="70" x2="545" y2="170" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar-e)"/>
+<line x1="465" y1="200" x2="545" y2="200" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar-e)"/>
+<line x1="465" y1="330" x2="545" y2="230" stroke="#2a5bd7" stroke-width="2" marker-end="url(#ar-e)"/>
+<rect x="545" y="150" width="155" height="100" rx="10" fill="#fff" stroke="#c9d3ea"/>
+<text x="622" y="182" text-anchor="middle" font-size="14" fill="#1d2433">Result (Anthropic figures)</text>
+<text x="622" y="206" text-anchor="middle" font-size="12" fill="#3b465c">Harvest down 90-99%</text>
+<text x="622" y="224" text-anchor="middle" font-size="12" fill="#3b465c">Reasoning tokens 10-100x lower</text>
+</svg><figcaption>Figure 2: The three defense layers and the results Anthropic reports.</figcaption></figure>
+<section id="numbers"><h2 class="zh">数字怎么读</h2><h2 class="en">How to read the numbers</h2>
+<div class="zh"><p>Anthropic 给的结果:早期证据显示蒸馏方拿走的数据减少 90%~99%;分类器上线后,蒸馏方在 Anthropic 平台上提取的推理 token 持续低了 10 到 100 倍,有些天少到测不出来;数万个与蒸馏相关的账号被封,常常在一场行动开始后不到两小时;Anthropic 还说自己拒绝了可观的收入和“数万亿 token”的蒸馏方付费流量。</p>
+<p>我的读法有三点。第一,这些都是 Anthropic 自己统计的,文章没有第三方数据,而且“早期证据”“consistently”这类措辞说明还在观察期。第二,“减少”衡量的是 Anthropic 平台上被拿走的量,蒸馏方也用别的平台,文章自己也承认防御依赖别人配合。第三,文章说它还没见过“高度复杂、持续”的绕过尝试,所以这些数字面对强对手时会怎样,目前没有答案。</p></div>
+<div class="en"><p>Anthropic's reported results: early evidence of a 90-99% reduction in data harvested by distillers; after the classifier launched, reasoning tokens extracted on Anthropic's platform were consistently 10 to 100 times lower, and on some days too small to measure; tens of thousands of distillation-linked accounts were banned, often within two hours of a campaign starting; and Anthropic says it turned away meaningful revenue and "trillions of tokens" of paying distiller traffic.</p>
+<p>Three ways I read this. First, these are Anthropic's own statistics; the post has no third-party data, and wording like "early evidence" and "consistently" says it's still a watching period. Second, the reduction measures what was taken from Anthropic's platform; distillers use other platforms too, and the post admits the defense depends on others. Third, it says Anthropic hasn't yet seen a highly sophisticated, persistent bypass attempt, so how these numbers hold up against a strong adversary is an open question.</p></div>
+</section>
+<section id="cost"><h2 class="zh">对正常用户的代价,和你该检查什么</h2><h2 class="en">The cost to legitimate users, and what to check</h2>
+<div class="zh"><p>文章没有回避代价。Anthropic 承认没有完全做到“不影响正常用户”:preserved thinking 让一部分开发者得改集成;分类器会在不到 0.1% 的情况下误拦正常请求,而被拦的请求现在要收费。</p>
+<p>如果你在用 Claude API 做 Agent,值得自查这几项:</p>
+<ul><li>你的框架是否会改写、裁剪或重排历史里的推理块?新账号(2026-08-31 及之后创建)上这可能不再行。</li>
+<li>你是否依赖在不同组织之间共享推理轨迹(比如把轨迹交给第三方评测或存档)?Sonnet 5.5 起轨迹只对发起请求的组织可读。具体 API 细节我没读到,请对照官方文档。</li>
+<li>你的监控是否会把“被安全机制拦下”的请求当成零成本?现在它们会出现在账单上。</li></ul></div>
+<div class="en"><p>The post doesn't hide the cost. Anthropic admits it hasn't fully met the goal of not affecting legitimate users: preserved thinking forced some developers to update their integrations, and the classifier misidentifies benign requests in fewer than 0.1% of cases, and blocked requests are now billed.</p>
+<p>If you build agents on the Claude API, worth checking:</p>
+<ul><li>Does your framework rewrite, trim or reorder reasoning blocks in history? On new accounts (created on or after 2026-08-31) that may no longer work.</li>
+<li>Do you rely on sharing reasoning transcripts across organizations, say with a third-party evaluator or archive? From Sonnet 5.5, transcripts are readable only by the organization that made the request. I didn't read the API details, so check the official docs.</li>
+<li>Does your cost monitoring assume safeguard-blocked requests are free? They now show up on the bill.</li></ul></div>
+</section>
+<section id="cases"><h2 class="zh">点名的两个案例</h2><h2 class="en">The two named cases</h2>
+<div class="zh"><p>文章点了两家中国公司。<b>智谱(Zhipu)</b>:在开发 GLM-5.3 期间蒸馏了美国领先模型的网络攻击能力;Claude 的网络安全防护让它的攻击受阻后,它换去用较旧的 Claude 模型和另一家实验室的模型。美国 CAISSI 评估 GLM-5.3 是迄今发布的网络能力最强的开放权重模型;Anthropic 的研究称它的安全措施很容易被绕过。<b>月之暗面(Moonshot,Kimi)</b>:发给 Kimi 模型的请求被偷偷转发到 Claude 做蒸馏;其中一名据信与中国人民解放军有关联的用户,想分析针对特定个人的监控录像。</p>
+<p>这些都是 Anthropic 单方面的说法。我没有查到被点名公司的回应,所以“这点我没查到”。</p></div>
+<div class="en"><p>The post names two Chinese companies. <b>Zhipu</b>: distilled the cyber capabilities of leading US models while developing GLM-5.3; after Claude's cyber safeguards degraded its attacks, it tried an older Claude model and another lab's model. The US CAISSI assessed GLM-5.3 as the most cyber-capable open-weights model released to date, and Anthropic's research found its safeguards easy to bypass. <b>Moonshot (Kimi)</b>: requests to Kimi models were secretly forwarded to Claude for distillation; one user, believed to be affiliated with China's People's Liberation Army, sought to analyze CCTV surveillance of a specific individual.</p>
+<p>These are Anthropic's claims alone. I found no response from the named companies, so: I couldn't find that.</p></div>
+</section>
+<section id="limits"><h2 class="zh">局限,和 Anthropic 对行业的要求</h2><h2 class="en">Limits, and what Anthropic asks of the industry</h2>
+<div class="zh"><p>Anthropic 自己说这是一场“猫鼠游戏”,要持续迭代。它要求:所有前沿模型开发者都做反蒸馏防护,因为任何一家的弱防护都会削弱别人;云平台、推理服务商和 API 平台要快速发现并处置滥用、清退假账号。它也承认行业激励是反着的:防御有成本,而蒸馏方还是付费客户。它公开方法,是想证明有可行的替代方案。</p>
+<p>我觉得这里有个值得想的张力:摘要推理、限制推理共享,一边保护了模型方的投入,一边让开发者更难看清、调试和复用模型的思考过程。文章没有讨论这个取舍,这是我的判断,不是它的结论。</p></div>
+<div class="en"><p>Anthropic calls this a cat-and-mouse game that needs continued iteration. It asks all frontier developers to invest in anti-distillation safeguards, since weak safeguards at any lab undermine the others, and asks cloud, inference and API platforms to detect and disrupt abuse fast and offboard fraudulent accounts. It also admits the incentives run the other way: defense is costly, and illicit distillers are paying customers. It published its methods to show that a workable alternative exists.</p>
+<p>One tension I think is worth holding: summarizing reasoning and restricting who can read it protects the model maker's investment, but also makes it harder for developers to see, debug and reuse the model's thinking. The post doesn't discuss that trade-off. That's my judgment, not its conclusion.</p></div>
+</section>
+<section id="gloss"><h2 class="zh">术语表</h2><h2 class="en">Glossary</h2>
+<div class="zh"><dl><dt>distillation(蒸馏)</dt><dd>拿一个强模型的输出训练另一个模型。合法使用(自己的模型)和未授权提取是两回事。</dd>
+<dt>reasoning transcript(推理轨迹)</dt><dd>模型在给出最终答案前写的思考过程。</dd>
+<dt>preserved thinking</dt><dd>Anthropic 的机制:新 API 账号不能编辑 Claude 之前的上下文。</dd>
+<dt>constitutional classifiers</dt><dd>Anthropic 的一类安全分类器研究,按一套明文规则训练,用来拦有害请求。</dd>
+<dt>false positive(误拦)</dt><dd>把正常请求当成攻击拦下。</dd>
+<dt>SWE-bench Verified</dt><dd>用真实 GitHub issue 测编码 Agent 的基准。</dd></dl></div>
+<div class="en"><dl><dt>distillation</dt><dd>Training one model on another model's outputs. Using your own model is one thing; unauthorized extraction is another.</dd>
+<dt>reasoning transcript</dt><dd>The thinking a model writes before its final answer.</dd>
+<dt>preserved thinking</dt><dd>Anthropic's mechanism: new API accounts cannot edit Claude's prior context.</dd>
+<dt>constitutional classifiers</dt><dd>Anthropic's line of safety-classifier research, trained against a written set of rules to block harmful requests.</dd>
+<dt>false positive</dt><dd>A legitimate request blocked as if it were an attack.</dd>
+<dt>SWE-bench Verified</dt><dd>A benchmark of coding agents on real GitHub issues.</dd></dl></div>
+</section>
+<section id="src"><h2 class="zh">来源</h2><h2 class="en">Sources</h2>
+<div class="zh"><ul><li><a href="https://www.anthropic.com/news/distillation-defenses" target="_blank" rel="noopener">Anthropic: Strengthening our defenses against distillation attacks(2026-10-12,主要来源,所有数字出自这里)</a></li>
+<li><a href="https://www.anthropic.com/research/next-generation-constitutional-classifiers" target="_blank" rel="noopener">Anthropic Research: Next-generation constitutional classifiers(仅作两阶段设计的背景)</a></li>
+<li><a href="https://www.anthropic.com/news" target="_blank" rel="noopener">Anthropic Newsroom(确认发布日期)</a></li></ul>
+<p class="note">我只读到了这一篇一手原文,没找到第三方复核或被点名公司的回应。一个聚合站的报道(2026-10-14 的简报里引用过)与原文方向一致,但以原文为准。</p></div>
+<div class="en"><ul><li><a href="https://www.anthropic.com/news/distillation-defenses" target="_blank" rel="noopener">Anthropic: Strengthening our defenses against distillation attacks (2026-10-12; primary source, all figures come from here)</a></li>
+<li><a href="https://www.anthropic.com/research/next-generation-constitutional-classifiers" target="_blank" rel="noopener">Anthropic Research: Next-generation constitutional classifiers (background on two-stage design only)</a></li>
+<li><a href="https://www.anthropic.com/news" target="_blank" rel="noopener">Anthropic Newsroom (to confirm the publication date)</a></li></ul>
+<p class="note">I read only this one primary source, and found no third-party verification or response from the named companies. An aggregator report cited in the 2026-10-14 briefing points the same way, but the original post governs.</p></div>
+</section>
+<footer class="zh">本文基于 Anthropic 官方原文整理,可能有遗漏,以原文为准。</footer>
+<footer class="en">Compiled from Anthropic's original post; it may have gaps. Defer to the original.</footer>
+</div>
+<script>
+(function(){
+var b=document.body,btn=document.getElementById('lang'),io=null;
+function figs(){return Array.prototype.slice.call(document.querySelectorAll('.fig'));}
+function visible(el){return el.offsetParent!==null;}
+function play(){
+  figs().forEach(function(f){
+    if(!visible(f)){return;}
+    var r=f.getBoundingClientRect();
+    if(r.top<window.innerHeight&&r.bottom>0){f.classList.add('in');}
+    else if(io&&!f.classList.contains('in')){io.observe(f);}
+  });
+}
+if('IntersectionObserver' in window){
+  io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.15});
+}else{figs().forEach(function(f){f.classList.add('in');});}
+function set(l){
+  b.setAttribute('data-lang',l);
+  document.documentElement.lang=(l==='zh'?'zh-CN':'en');
+  btn.textContent=(l==='zh'?'EN':'中');
+  try{localStorage.setItem('aid-lang',l);}catch(e){}
+  play();
+}
+var l0=null;try{l0=localStorage.getItem('aid-lang');}catch(e){}
+if(!l0){l0=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en';}
+btn.addEventListener('click',function(){set(b.getAttribute('data-lang')==='zh'?'en':'zh');});
+set(l0);
+})();
+</script>
+</body>
+</html>
