@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>子 Agent 该拆还是折回主循环 | Fold the Subagents? When One Agent Loop Beats a Team</title>
+<style>
+:root{--bg:#f4f1ea;--surface:#fffdf8;--ink:#1d2523;--ink2:#3d4b48;--muted:#6b7a78;--line:#ddd8cb;
+--accent:#0f766e;--accent-d:#0b4f4a;--accent-soft:#e1f0ed;--warn:#b4441f;--warn-soft:#fbece5;--code:#efece3;--r:12px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.8;
+font-family:Georgia,"Noto Serif SC","Songti SC","STSong",serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:50}
+.lang{position:fixed;top:12px;right:14px;z-index:60;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent-d);
+font:700 13px/1 -apple-system,"Segoe UI",sans-serif;padding:8px 14px;border-radius:99px;cursor:pointer}
+.lang:hover{background:var(--accent-soft)}
+header{padding:64px 20px 30px;background:var(--surface);border-bottom:1px solid var(--line)}
+.hin{max-width:760px;margin:0 auto}
+.kick{font:700 12.5px/1 -apple-system,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(26px,5.4vw,40px);line-height:1.25;margin:12px 0 10px;letter-spacing:-.01em}
+.meta{font:14px/1.6 -apple-system,sans-serif;color:var(--muted)}
+.layout{max-width:760px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px;margin-bottom:28px;
+font:14.5px/1.9 -apple-system,"PingFang SC",sans-serif}
+nav.toc b{color:var(--accent-d);margin-right:6px}
+nav.toc a{color:var(--ink2);text-decoration:none;margin-right:14px;display:inline-block}
+nav.toc a:hover,nav.toc a.on{color:var(--accent);font-weight:700}
+section{margin:0 0 40px;scroll-margin-top:16px}
+h2{font-size:24px;line-height:1.35;margin:0 0 12px;padding-left:12px;border-left:4px solid var(--accent)}
+p{margin:0 0 14px}
+ul{margin:0 0 14px;padding-left:22px}li{margin-bottom:6px}
+.callout{border-radius:10px;padding:12px 16px;margin:16px 0;font:15.5px/1.75 -apple-system,"PingFang SC",sans-serif}
+.callout.key{background:var(--accent-soft);border:1px solid #b6d9d3}
+.callout.warn{background:var(--warn-soft);border:1px solid #efc6b4}
+.figure{margin:20px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.figure svg{width:100%;height:auto;display:block}
+figcaption{font:13.5px/1.6 -apple-system,"PingFang SC",sans-serif;color:var(--muted);margin-top:8px}
+svg text{font:13px -apple-system,"PingFang SC","Segoe UI",sans-serif;fill:#1d2523}
+svg .nd circle,svg .nd .tr{fill:#fffdf8;stroke:#0f5c56;stroke-width:2}
+svg .nd .tr{fill:#0f766e}
+svg .tok{fill:#0f766e;stroke:none}
+svg .ln{fill:none;stroke:#0f5c56;stroke-width:2}
+svg .bx{fill:#fffdf8;stroke:#0f5c56;stroke-width:2}
+svg .bx.key{fill:#e1f0ed}
+svg .note{font-size:12px;fill:#3d4b48}
+svg .ar{fill:none;stroke:#0f5c56;stroke-width:2}
+svg .bar{fill:#0f766e}
+svg .bar.hi{fill:#b4441f}
+svg .wt{fill:#fff}
+svg .warn{fill:#b4441f;font-weight:600;font-size:12.5px}
+.figure .nd{opacity:0;transform:translateY(6px);transition:opacity .5s ease,transform .5s ease}
+.figure.in .nd{opacity:1;transform:none}
+.figure.in .nd[data-d="2"]{transition-delay:.25s}.figure.in .nd[data-d="3"]{transition-delay:.5s}
+table{width:100%;border-collapse:collapse;margin:14px 0;font:14.5px/1.6 -apple-system,"PingFang SC",sans-serif;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);color:var(--accent-d)}
+.gl dt{font-weight:700;color:var(--accent-d);margin-top:10px;font-family:-apple-system,sans-serif}
+.gl dd{margin:2px 0 6px 0}
+a{color:var(--accent)}
+footer{max-width:760px;margin:0 auto;padding:0 20px 60px;color:var(--muted);font:13.5px/1.7 -apple-system,sans-serif}
+@media(max-width:620px){body{font-size:16.5px}header{padding:58px 18px 24px}.layout{padding:20px 16px 60px}
+th,td{padding:7px 8px;font-size:13.5px}h2{font-size:21px}}
+@media(prefers-reduced-motion:reduce){.figure .nd{opacity:1;transform:none;transition:none}}
+</style>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button class="lang" id="langBtn" type="button" aria-label="Switch language">EN</button>
+<header><div class="hin">
+<div class="kick">AI Daily · 2026-10-27</div>
+<h1 class="zh">子 Agent 该拆,还是折回主循环?</h1>
+<h1 class="en">Fold the Subagents? When One Agent Loop Beats a Team</h1>
+<p class="zh meta">Anthropic 10 月 22 日的文章说了什么、Vals 的实验数据怎么读、迁移该怎么一步步做。</p>
+<p class="en meta">What Anthropic's October 22 article says, how to read the Vals experiment, and how to migrate step by step.</p>
+</div></header>
+<div class="layout">
+<nav class="toc"><b class="zh">目录</b><b class="en">Contents</b><a href="#tldr"><span class="zh">30 秒版本</span><span class="en">The 30-second version</span></a><a href="#what"><span class="zh">文章到底说了什么</span><span class="en">What the article actually says</span></a><a href="#loop"><span class="zh">单循环长什么样</span><span class="en">What the single loop looks like</span></a><a href="#keep"><span class="zh">什么时候还是该留着子 agent</span><span class="en">When you should still keep subagents</span></a><a href="#migrate"><span class="zh">怎么折:四步,一次动一个</span><span class="en">How to fold: four steps, one change at a time</span></a><a href="#evidence"><span class="zh">独立数据:团队到底值不值</span><span class="en">Independent data: are teams worth it?</span></a><a href="#kit"><span class="zh">Anthropic 的迁移套件</span><span class="en">Anthropic's migration kit</span></a><a href="#limits"><span class="zh">我的怀疑和保留意见</span><span class="en">My doubts and reservations</span></a><a href="#glossary"><span class="zh">术语表</span><span class="en">Glossary</span></a><a href="#sources"><span class="zh">来源</span><span class="en">Sources</span></a></nav>
+<section id="tldr">
+<h2 class="zh">30 秒版本</h2>
+<h2 class="en">The 30-second version</h2>
+<p class="zh">Anthropic 10 月 22 日发了一篇文章,意思很直接:很多企业 agent 里的子 agent(subagent,一个有自己上下文和工具的小 agent,由主 agent 调度)太多了。把它们折回一个主循环,靠 skill 和按需加载的工具来干活,通常质量更好,还更快更便宜。</p>
+<p class="en">On October 22 Anthropic published an article with a blunt message: many enterprise agents carry too many subagents (a small agent with its own context and tools, dispatched by a main agent). Fold them back into one main loop that uses skills and on-demand tools, and you often get better quality, lower latency and lower cost.</p>
+<p class="zh">但这不是「子 agent 过时了」。文章自己列了三种该留的情况:上下文真的塞爆了、需要并行跑且各自要干净的上下文、单个 agent 选不对工具或指令互相打架。它给的做法是:先建 eval(评测集),一次折一个,分数不掉才算数。</p>
+<p class="en">It does not say subagents are obsolete. The article lists three cases where you should keep them: the context really is bloated, you need parallel work with fresh contexts, or one agent cannot pick the right tool or gets conflicting instructions. Its method: build evals first, fold one subagent at a time, and keep the change only if the score holds.</p>
+<p class="zh">另一份独立数据是 Vals AI 10 月 9 日的实验:同样做 50 个全栈 web app,团队版比单 agent 贵 1.8 到 5.1 倍,质量只在一种配置里显著更好。两份材料放一起读,结论比任何一份都稳:先别加 agent,先量。</p>
+<p class="en">A separate data point comes from Vals AI on October 9: on the same 50 full-stack web apps, teams cost 1.8x to 5.1x more than a single agent, and quality was significantly better in only one of four configurations. Read together, the two sources give a steadier conclusion than either alone: do not add agents first; measure first.</p>
+<div class="zh callout warn"><b>我读了什么:</b>Anthropic 文章和 GitHub 迁移套件我读到了正文级摘要;Vals 博客读到了完整的结果表。文章里的数字(2 倍快、system prompt 砍 80%、30 到 50 个工具)是 Anthropic 自己给的,没有给实验方法,我没法独立验证。</div>
+<div class="en callout warn"><b>What I read:</b> I got body-level summaries of the Anthropic article and the GitHub migration kit, and the full results table from the Vals post. The numbers in the article (2x faster, 80% shorter system prompt, 30 to 50 tools) are Anthropic's own and come without methodology, so I could not verify them independently.</div>
+</section>
+<section id="what">
+<h2 class="zh">文章到底说了什么</h2>
+<h2 class="en">What the article actually says</h2>
+<p class="zh">文章作者是 Diane Sarkis,出自 Anthropic 的 Applied AI 团队的观察。背景是:企业做 agent,常见做法是每个团队做一个子 agent,再由平台团队放一个 orchestrator(编排者)在最上面。结果是子 agent 越堆越多,出现这些毛病:</p>
+<p class="en">The author is Diane Sarkis, writing from what Anthropic's Applied AI team has seen. The usual enterprise pattern: each team builds its own subagent, and a platform team puts an orchestrator on top. Subagents pile up, and you get these problems:</p>
+<ul class="zh"><li><b>交接丢信息。</b>子 agent 之间传的是摘要,细节在交接里掉了。文章把「按问题类型拆」比作传话游戏(telephone game)。</li><li><b>子 agent 泛滥。</b>几百个互相重叠的子 agent,没有标准,没有 owner。</li><li><b>Frankenprompt。</b>每个团队往 prompt 里加规则,规则打架,口吻不统一。例子:一家公司的客服 agent 里塞了十几个专科子 agent,品牌口吻很难统一,延迟也拖累体验。</li><li><b>评测各管各的。</b>每个团队只优化自己那一块,领导层看到的是被稀释的分数。</li><li><b>慢。</b>文中说有一位客户发现单循环比他们的多 agent 框架快约 2 倍。</li></ul>
+<ul class="en"><li><b>Handoffs lose detail.</b> Subagents pass summaries to each other and detail drops out. The article compares splitting by problem type to a game of telephone.</li><li><b>Subagent sprawl.</b> Hundreds of overlapping subagents, no standards, no owners.</li><li><b>The Frankenprompt.</b> Each team adds rules to the prompt; rules conflict and the voice is inconsistent. One example: a customer-facing agent with a dozen specialist subagents, which made an on-brand voice hard to keep and added latency that hurt the experience.</li><li><b>Local evals.</b> Each team optimizes its own slice, and leadership sees watered-down scores.</li><li><b>Slow.</b> One customer found a single loop ran about 2x faster than their multi-agent harness.</li></ul>
+<p class="zh">文章的替代方案叫 progressive disclosure(渐进式披露):agent 一开始只看到每个 skill 的短描述,需要时才加载全文;工具也一样,用 tool search 按需加载,而不是一股脑全塞进 prompt。这样一个 agent 可以「很宽」,但每一刻的上下文并不长。</p>
+<p class="en">The alternative is progressive disclosure. The agent starts by seeing only a short description of each skill and loads the full text when needed. Tools work the same way: tool search loads them on demand instead of stuffing them all into the prompt. One agent can be broad without carrying a long context at every moment.</p>
+<p class="zh">文章给了三个理由:一是同一个 agent 看到每一步,能把步骤串起来,比拿到子 agent 回来的摘要更靠谱;二是 Anthropic 说它把 Claude Code 的 system prompt 砍了 80% 以上,一部分靠渐进式披露;三是从 Opus 4.5 起模型能在单个循环里处理更复杂的计划,会自己讲进度、自己检查,很多外部脚手架变成多余。</p>
+<p class="en">It gives three reasons. First, one agent that sees every step can connect them, which beats summaries coming back from subagents. Second, Anthropic says it cut the Claude Code system prompt by more than 80% for newer models, partly through progressive disclosure. Third, starting with Opus 4.5, models handle more complex plans inside one loop; they narrate progress and check their own work, which makes some scaffolding redundant.</p>
+</section>
+<section id="loop">
+<h2 class="zh">单循环长什么样</h2>
+<h2 class="en">What the single loop looks like</h2>
+<p class="zh">文章推荐的结构很朴素:一个模型、一个上下文窗口,跑一个开放式的工具循环。每一轮模型吐出一批工具调用,harness(外围运行框架)并行执行,把原始结果返回同一个模型。模型答完或者撞到预算就结束。限制放在 harness 里:轮数预算、成本预算、写操作闸门。</p>
+<p class="en">The recommended structure is plain: one model, one context window, one open-ended tool loop. Each turn the model emits a batch of tool calls, the harness (the runtime around the model) runs them in parallel and returns raw results to the same model. The loop ends when the model answers or hits a budget. Limits live in the harness: turn budget, cost budget, write gate.</p>
+<p class="zh">逻辑放哪儿,文章分得很清楚:</p>
+<p class="en">The article is specific about where logic goes:</p>
+<div class="zh"><table><tr><th>要放的东西</th><th>放哪儿</th><th>原因</th></tr><tr><td>做事的顺序、领域流程</td><td>skill</td><td>按需加载,不占常驻上下文</td></tr><tr><td>硬性限制(校验、审批)、对话中途的查询</td><td>tool</td><td>把前置条件写进工具,不满足就返回模型能照做的指示</td></tr><tr><td>廉价且几乎总相关的加载(如实体解析)</td><td>代码</td><td>每次都要的事别让模型来回问</td></tr><tr><td>参考资料(政策、指标定义、产品规格)</td><td>搜索/查询工具,或 skill 里的参考文件</td><td>别用代码往 prompt 里贴</td></tr></table></div>
+<div class="en"><table><tr><th>What</th><th>Where</th><th>Why</th></tr><tr><td>Order of work, domain procedure</td><td>skill</td><td>Loaded on demand, no standing context cost</td></tr><tr><td>Hard limits (validation, approval), mid-conversation lookups</td><td>tool</td><td>Put preconditions in the tool; if unmet, return an instruction the model can act on</td></tr><tr><td>Cheap, almost-always-relevant loading (e.g. entity resolution)</td><td>code</td><td>Do not make the model ask for what is needed every time</td></tr><tr><td>Reference material (policies, metric definitions, product specs)</td><td>search/lookup tool, or reference files inside a skill</td><td>Do not paste it into the prompt from code</td></tr></table></div>
+<p class="zh">工具设计上文章给了一个数:工具定义超过大约 30 到 50 个,选工具的准确度会下降。所以工具按用户意图分组,而不是一个 API 一个工具,并配合 tool search 延迟加载。</p>
+<p class="en">On tool design the article gives one number: tool selection tends to degrade beyond roughly 30 to 50 tool definitions in the prompt. So group tools by user intent rather than one tool per API, and defer loading with tool search.</p>
+</section>
+<section id="keep">
+<h2 class="zh">什么时候还是该留着子 agent</h2>
+<h2 class="en">When you should still keep subagents</h2>
+<p class="zh">文章没有把子 agent 一棍子打死。它说该留或该加的三种情况:</p>
+<p class="en">The article does not write subagents off. It names three cases to keep or add them:</p>
+<ul class="zh"><li><b>上下文膨胀。</b>单循环里已经能测到质量因为上下文太长而变差。</li><li><b>并行 + 干净上下文。</b>多个任务可以同时跑,并且每个用完就能丢掉自己的上下文。</li><li><b>选工具困难或指令冲突。</b>一个 agent 总选错工具,或 system prompt 里的规则互相矛盾。</li></ul>
+<ul class="en"><li><b>Context bloat.</b> You can measure quality dropping because the context got too long.</li><li><b>Parallel work with fresh contexts.</b> Tasks run at the same time and each can throw its context away when done.</li><li><b>Tool-selection trouble or conflicting instructions.</b> One agent keeps picking the wrong tool, or rules in the system prompt contradict each other.</li></ul>
+<p class="zh">如果留,文章的建议是:从最简单的模式开始(generator-verifier 或 orchestrator-subagent),并且<b>按上下文拆,不按问题类型拆</b>。好的候选是互相独立的调研路径、接口干净的组件、黑盒验证。每个子 agent 应该只需要系统其余部分的一点点信息,返回一个紧凑的结果。另外它警告了「康威定律式」架构:每个团队一个子 agent,agent 就成了组织架构图的镜像。</p>
+<p class="en">If you keep them, the advice is to start with the simplest pattern (generator-verifier or orchestrator-subagent) and to <b>split by context, not by problem type</b>. Good candidates: independent research paths, components with clean interfaces, black-box verification. Each subagent should need little from the rest of the system and return a compact result. The article also warns against Conway's-law architectures, where each team gets a subagent and the agent mirrors the org chart.</p>
+<div class="zh callout key">跟 Claude Code 里的子 agent 对上号:Claude Code 的子 agent 文件是带 YAML frontmatter 的 Markdown,只有 <code>name</code> 和 <code>description</code> 必填;<code>tools</code> 是白名单,<code>model</code> 可选 <code>sonnet</code>、<code>opus</code>、<code>haiku</code> 等,<code>isolation: worktree</code> 能让它在临时 git worktree 里跑。今天的 Claude Tips 小课会讲怎么写。</div>
+<div class="en callout key">Mapping to Claude Code: a Claude Code subagent is a Markdown file with YAML frontmatter, where only <code>name</code> and <code>description</code> are required; <code>tools</code> is an allowlist, <code>model</code> can be <code>sonnet</code>, <code>opus</code>, <code>haiku</code> and others, and <code>isolation: worktree</code> runs it in a temporary git worktree. Today's Claude Tips lesson covers how to write one.</div>
+</section>
+<section id="migrate">
+<h2 class="zh">怎么折:四步,一次动一个</h2>
+<h2 class="en">How to fold: four steps, one change at a time</h2>
+<figure class="zh figure"><svg viewBox="0 0 640 445" role="img" aria-label="子 agent 折叠决策流程"><defs><marker id="arz" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f5c56"/></marker></defs><g class="nd" data-d="1"><rect x="30" y="10" width="270" height="46" rx="8" class="bx"/><text x="165" y="29.0" text-anchor="middle" font-size="13">每个子 agent 先问:</text><text x="165" y="45.0" text-anchor="middle" font-size="13">有 eval 能测它吗?</text></g><g class="nd" data-d="1"><rect x="30" y="85" width="270" height="46" rx="8" class="bx"/><text x="165" y="104.0" text-anchor="middle" font-size="13">它是不是总和另一个</text><text x="165" y="120.0" text-anchor="middle" font-size="13">子 agent 连着跑?</text></g><g class="nd" data-d="1"><rect x="30" y="160" width="270" height="46" rx="8" class="bx"/><text x="165" y="179.0" text-anchor="middle" font-size="13">必须直接和用户</text><text x="165" y="195.0" text-anchor="middle" font-size="13">说话吗?</text></g><g class="nd" data-d="1"><rect x="30" y="235" width="270" height="46" rx="8" class="bx key"/><text x="165" y="254.0" text-anchor="middle" font-size="13">折成 skill + tool,</text><text x="165" y="270.0" text-anchor="middle" font-size="13">跑同一套 eval</text></g><g class="nd" data-d="1"><rect x="30" y="310" width="270" height="46" rx="8" class="bx"/><text x="165" y="329.0" text-anchor="middle" font-size="13">折之后分数</text><text x="165" y="345.0" text-anchor="middle" font-size="13">不低于原来?</text></g><path class="ar" d="M165,56 L165,95" marker-end="url(#arz)"/><path class="ar" d="M165,131 L165,170" marker-end="url(#arz)"/><path class="ar" d="M165,206 L165,245" marker-end="url(#arz)"/><path class="ar" d="M165,281 L165,320" marker-end="url(#arz)"/><path class="ar" d="M300,33 L335,33" marker-end="url(#arz)"/><g class="nd" data-d="1"><rect x="340" y="10" width="285" height="46" rx="8" class="bx"/><text x="482" y="29.0" text-anchor="middle" font-size="12">没有 → 先建 eval</text><text x="482" y="45.0" text-anchor="middle" font-size="12">10 个 golden 例子起步</text></g><path class="ar" d="M300,108 L335,108" marker-end="url(#arz)"/><g class="nd" data-d="1"><rect x="340" y="85" width="285" height="46" rx="8" class="bx"/><text x="482" y="104.0" text-anchor="middle" font-size="12">是 → 合并这两个</text><text x="482" y="120.0" text-anchor="middle" font-size="12">(紧耦合的先合)</text></g><path class="ar" d="M300,183 L335,183" marker-end="url(#arz)"/><g class="nd" data-d="1"><rect x="340" y="160" width="285" height="46" rx="8" class="bx"/><text x="482" y="187.0" text-anchor="middle" font-size="12">是 → 完整 handoff,保留</text></g><path class="ar" d="M300,258 L335,258" marker-end="url(#arz)"/><g class="nd" data-d="1"><rect x="340" y="235" width="285" height="46" rx="8" class="bx"/><text x="482" y="254.0" text-anchor="middle" font-size="12">一次只折一个</text><text x="482" y="270.0" text-anchor="middle" font-size="12">看「哪些任务翻车」</text></g><path class="ar" d="M300,333 L335,333" marker-end="url(#arz)"/><g class="nd" data-d="1"><rect x="340" y="310" width="285" height="46" rx="8" class="bx key"/><text x="482" y="329.0" text-anchor="middle" font-size="12">是 → 折掉,</text><text x="482" y="345.0" text-anchor="middle" font-size="12">省一个 prompt 和一份 eval</text></g><path class="ar" d="M165,356 L165,382" marker-end="url(#arz)"/><g class="nd" data-d="1"><rect x="30" y="384" width="270" height="46" rx="8" class="bx"/><text x="165" y="403.0" text-anchor="middle" font-size="12">否 → 留着,但改成</text><text x="165" y="419.0" text-anchor="middle" font-size="12">被主 agent 当 tool 调用</text></g></svg><figcaption>图 1:折一个子 agent 的决策流程(根据 Anthropic 文章的步骤整理)。</figcaption></figure>
+<figure class="en figure"><svg viewBox="0 0 640 445" role="img" aria-label="Decision flow for folding a subagent"><defs><marker id="are" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f5c56"/></marker></defs><g class="nd" data-d="1"><rect x="30" y="10" width="270" height="46" rx="8" class="bx"/><text x="165" y="29.0" text-anchor="middle" font-size="13">For each subagent, first ask:</text><text x="165" y="45.0" text-anchor="middle" font-size="13">is there an eval to measure it?</text></g><g class="nd" data-d="1"><rect x="30" y="85" width="270" height="46" rx="8" class="bx"/><text x="165" y="104.0" text-anchor="middle" font-size="13">Does it always run</text><text x="165" y="120.0" text-anchor="middle" font-size="13">right after another subagent?</text></g><g class="nd" data-d="1"><rect x="30" y="160" width="270" height="46" rx="8" class="bx"/><text x="165" y="179.0" text-anchor="middle" font-size="13">Must it speak to</text><text x="165" y="195.0" text-anchor="middle" font-size="13">the user directly?</text></g><g class="nd" data-d="1"><rect x="30" y="235" width="270" height="46" rx="8" class="bx key"/><text x="165" y="254.0" text-anchor="middle" font-size="13">Fold into skill + tool,</text><text x="165" y="270.0" text-anchor="middle" font-size="13">run the same eval</text></g><g class="nd" data-d="1"><rect x="30" y="310" width="270" height="46" rx="8" class="bx"/><text x="165" y="329.0" text-anchor="middle" font-size="13">After folding, is the</text><text x="165" y="345.0" text-anchor="middle" font-size="13">score at least as good?</text></g><path class="ar" d="M165,56 L165,95" marker-end="url(#are)"/><path class="ar" d="M165,131 L165,170" marker-end="url(#are)"/><path class="ar" d="M165,206 L165,245" marker-end="url(#are)"/><path class="ar" d="M165,281 L165,320" marker-end="url(#are)"/><path class="ar" d="M300,33 L335,33" marker-end="url(#are)"/><g class="nd" data-d="1"><rect x="340" y="10" width="285" height="46" rx="8" class="bx"/><text x="482" y="29.0" text-anchor="middle" font-size="12">No → build the eval first</text><text x="482" y="45.0" text-anchor="middle" font-size="12">start with 10 golden examples</text></g><path class="ar" d="M300,108 L335,108" marker-end="url(#are)"/><g class="nd" data-d="1"><rect x="340" y="85" width="285" height="46" rx="8" class="bx"/><text x="482" y="104.0" text-anchor="middle" font-size="12">Yes → merge the two</text><text x="482" y="120.0" text-anchor="middle" font-size="12">(merge tight pairs first)</text></g><path class="ar" d="M300,183 L335,183" marker-end="url(#are)"/><g class="nd" data-d="1"><rect x="340" y="160" width="285" height="46" rx="8" class="bx"/><text x="482" y="187.0" text-anchor="middle" font-size="12">Yes → full handoff, keep it</text></g><path class="ar" d="M300,258 L335,258" marker-end="url(#are)"/><g class="nd" data-d="1"><rect x="340" y="235" width="285" height="46" rx="8" class="bx"/><text x="482" y="254.0" text-anchor="middle" font-size="12">Fold one at a time</text><text x="482" y="270.0" text-anchor="middle" font-size="12">check which tasks flipped</text></g><path class="ar" d="M300,333 L335,333" marker-end="url(#are)"/><g class="nd" data-d="1"><rect x="340" y="310" width="285" height="46" rx="8" class="bx key"/><text x="482" y="329.0" text-anchor="middle" font-size="12">Yes → fold it. One less</text><text x="482" y="345.0" text-anchor="middle" font-size="12">prompt and one less eval</text></g><path class="ar" d="M165,356 L165,382" marker-end="url(#are)"/><g class="nd" data-d="1"><rect x="30" y="384" width="270" height="46" rx="8" class="bx"/><text x="165" y="403.0" text-anchor="middle" font-size="12">No → keep it, but have the</text><text x="165" y="419.0" text-anchor="middle" font-size="12">main agent call it as a tool</text></g></svg><figcaption>Figure 1: Decision flow for folding one subagent (organized from the steps in Anthropic's article).</figcaption></figure>
+<p class="zh"><b>第一步,先建 eval。</b>一套端到端的共享评测由中央团队负责,再加每个 skill 各自的小评测,各团队负责。十个 golden example(人工认可的标准样例)就能起步。按 rubric 给最终答案打分;还有 orchestrator 时跟踪路由准确率,折掉之后看是不是调用了对的 skill 或 tool。系统难以重放的话,给关键事件记时间戳,之后能回放成针对性的评测。</p>
+<p class="en"><b>Step 1: build evals first.</b> One shared end-to-end set owned by a central team, plus smaller per-skill sets owned by each team. Ten golden examples (human-approved reference cases) are enough to start. Grade final answers against a rubric; while an orchestrator exists, track routing accuracy, and after folding check whether the right skill or tool got used. If the system is hard to replay, record timestamps on key events so you can replay them as targeted evals later.</p>
+<p class="zh"><b>第二步,先合并。</b>从用得最多的子 agent 开始。紧耦合的专科(互相接着对方输出干活、碰同一份数据、总是一起被调用)是合并候选。如果线上大部分流量是「A 之后跟着 B」,那就把它们合成一个。</p>
+<p class="en"><b>Step 2: merge first.</b> Start with the most-used subagents. Tightly coupled specialists (they chain on each other's output, touch the same data, or are called together) are merge candidates. If most production traffic runs A followed by B, make them one.</p>
+<p class="zh"><b>第三步,把子 agent 变成主 agent 的 tool(过渡)。</b>主 agent 保持对话,调用子 agent 当工具。好处:统一响应格式、主 agent 能对照真实数据校验、给合成步骤的输入更精简、不用重写子 agent,而且顺手得到一个基线分数。只有子 agent 必须直接跟用户说话时才做完整 handoff。遗留问题:每个专科仍有自己的 prompt、owner 和 eval,结果仍是有损摘要,每次调用是一个嵌套循环,增加延迟。</p>
+<p class="en"><b>Step 3: call subagents as tools (the intermediate step).</b> The main agent keeps the conversation and calls subagents as tools. Benefits: a shared response schema, the main agent can check against real data, tighter input to the synthesis step, no rewrite of the subagents, and a baseline score for free. Use a full handoff only when a subagent must talk to the user directly. What remains: each specialist still has its own prompt, owner and evals, results are still lossy summaries, and each call is a nested loop that adds latency.</p>
+<p class="zh"><b>第四步,一次折一个。</b>把子 agent 的 prompt 变成 skill,把它调的 API 变成 MCP 工具,然后在同一套 eval 上比「折」和「不折」。不要只看总分,要看<b>哪些任务翻转了</b>。文章里的例子:折掉一个子 agent 后延迟降了,但一个查送达日期的任务坏了,因为以前是物流专科负责那次调用,折掉后主 agent 没调就直接答了。这个退化在两次运行里只出现了一次,所以每个任务要跑多次。</p>
+<p class="en"><b>Step 4: fold one at a time.</b> Turn the subagent's prompts into a skill and its API calls into MCP tools, then compare folded against kept on the same evals. Do not stop at the aggregate; look at <b>which tasks flipped</b>. The article's example: folding one subagent cut latency but broke a delivery-date lookup, because the shipping specialist used to make that call and the main agent now answered without making it. The regression showed up in only one of two runs, so run each task more than once.</p>
+<div class="zh callout key">这一步我最认同:<b>看翻转的任务,不看均值</b>。均值能掩盖一个关键流程的崩坏。</div>
+<div class="en callout key">This is the step I agree with most: <b>look at the flipped tasks, not the average</b>. An average can hide a critical workflow breaking.</div>
+</section>
+<section id="evidence">
+<h2 class="zh">独立数据:团队到底值不值</h2>
+<h2 class="en">Independent data: are teams worth it?</h2>
+<p class="zh">Vals AI 在 10 月 9 日发了一个对照实验(作者 Katrina Drozdov)。基准是 Vibe Code Bench:50 个全栈 web app,按产品规格做出来,用 Docker Compose 部署,再由浏览器 agent 跑 UI 测试,得分是通过的 UI 测试比例。八种配置,每种只跑一次:两个模型 × 两档推理强度 × 单 agent 或团队。团队版是一个 lead agent 最多同时派五个子 agent,子 agent 不能再派子 agent。</p>
+<p class="en">Vals AI published a controlled comparison on October 9 (author Katrina Drozdov). The benchmark is Vibe Code Bench: 50 full-stack web apps built from product specs, deployed with Docker Compose, then graded by browser agents running UI tests; the score is the share of UI tests passed. Eight setups, each run once: 2 models x 2 reasoning efforts x single agent or team. In the team setup a lead agent spawned up to five subagents at once, and subagents could not spawn their own.</p>
+<div class="zh"><table><tr><th>模型 / 强度</th><th>单 agent</th><th>团队</th><th>差值</th><th>显著?</th><th>成本倍数</th></tr><tr><td>GPT 6 Sol / medium</td><td>77.6%</td><td>84.9%</td><td>+7.3 分</td><td>是 (p=0.005)</td><td>2.5×</td></tr><tr><td>GPT 6 Sol / max</td><td>89.0%</td><td>90.4%</td><td>+1.4 分</td><td>否</td><td>1.8×</td></tr><tr><td>Claude Opus 5.5 / medium</td><td>91.5%</td><td>91.2%</td><td>−0.3 分</td><td>否</td><td>2.2×</td></tr><tr><td>Claude Opus 5.5 / max</td><td>89.8%</td><td>93.2%</td><td>+3.4 分</td><td>否</td><td>5.1×</td></tr></table></div>
+<div class="en"><table><tr><th>Model / effort</th><th>Single</th><th>Team</th><th>Diff</th><th>Significant?</th><th>Cost multiple</th></tr><tr><td>GPT 6 Sol / medium</td><td>77.6%</td><td>84.9%</td><td>+7.3 pts</td><td>Yes (p=0.005)</td><td>2.5x</td></tr><tr><td>GPT 6 Sol / max</td><td>89.0%</td><td>90.4%</td><td>+1.4 pts</td><td>No</td><td>1.8x</td></tr><tr><td>Claude Opus 5.5 / medium</td><td>91.5%</td><td>91.2%</td><td>-0.3 pts</td><td>No</td><td>2.2x</td></tr><tr><td>Claude Opus 5.5 / max</td><td>89.8%</td><td>93.2%</td><td>+3.4 pts</td><td>No</td><td>5.1x</td></tr></table></div>
+<figure class="zh figure"><svg viewBox="0 0 640 250" role="img" aria-label="八种配置的每个 app 平均成本"><g class="nd" data-d="1"><text x="8" y="26" font-weight="700">Sol medium</text><rect class="bar" x="120" y="14" width="4.0" height="16" rx="3"/><text x="130.0" y="26" class="note">单 agent $1.22</text><rect class="bar hi" x="120" y="34" width="10.1" height="16" rx="3"/><text x="136.1" y="46" class="note">团队 $3.07</text></g><g class="nd" data-d="1"><text x="8" y="84" font-weight="700">Sol max</text><rect class="bar" x="120" y="72" width="15.8" height="16" rx="3"/><text x="141.8" y="84" class="note">单 agent $4.82</text><rect class="bar hi" x="120" y="92" width="28.0" height="16" rx="3"/><text x="154.0" y="104" class="note">团队 $8.54</text></g><g class="nd" data-d="1"><text x="8" y="142" font-weight="700">Opus medium</text><rect class="bar" x="120" y="130" width="13.4" height="16" rx="3"/><text x="139.4" y="142" class="note">单 agent $4.08</text><rect class="bar hi" x="120" y="150" width="29.8" height="16" rx="3"/><text x="155.8" y="162" class="note">团队 $9.10</text></g><g class="nd" data-d="1"><text x="8" y="200" font-weight="700">Opus max</text><rect class="bar" x="120" y="188" width="77.9" height="16" rx="3"/><text x="203.9" y="200" class="note">单 agent $23.77</text><rect class="bar hi" x="120" y="208" width="400.0" height="16" rx="3"/><text x="425.0" y="220" class="note wt">团队 $122.00</text></g></svg><figcaption>图 2:每个 app 的平均成本(美元)。青色是单 agent,橙色是团队。数据来自 Vals 博客。</figcaption></figure>
+<figure class="en figure"><svg viewBox="0 0 640 250" role="img" aria-label="Mean cost per app for eight setups"><g class="nd" data-d="1"><text x="8" y="26" font-weight="700">Sol medium</text><rect class="bar" x="120" y="14" width="4.0" height="16" rx="3"/><text x="130.0" y="26" class="note">single $1.22</text><rect class="bar hi" x="120" y="34" width="10.1" height="16" rx="3"/><text x="136.1" y="46" class="note">team $3.07</text></g><g class="nd" data-d="1"><text x="8" y="84" font-weight="700">Sol max</text><rect class="bar" x="120" y="72" width="15.8" height="16" rx="3"/><text x="141.8" y="84" class="note">single $4.82</text><rect class="bar hi" x="120" y="92" width="28.0" height="16" rx="3"/><text x="154.0" y="104" class="note">team $8.54</text></g><g class="nd" data-d="1"><text x="8" y="142" font-weight="700">Opus medium</text><rect class="bar" x="120" y="130" width="13.4" height="16" rx="3"/><text x="139.4" y="142" class="note">single $4.08</text><rect class="bar hi" x="120" y="150" width="29.8" height="16" rx="3"/><text x="155.8" y="162" class="note">team $9.10</text></g><g class="nd" data-d="1"><text x="8" y="200" font-weight="700">Opus max</text><rect class="bar" x="120" y="188" width="77.9" height="16" rx="3"/><text x="203.9" y="200" class="note">single $23.77</text><rect class="bar hi" x="120" y="208" width="400.0" height="16" rx="3"/><text x="425.0" y="220" class="note wt">team $122.00</text></g></svg><figcaption>Figure 2: Mean cost per app (USD). Teal is single agent, orange is team. Data from the Vals post.</figcaption></figure>
+<p class="zh">几个读法。第一,只有 Sol 的 medium 档团队版显著更好(+7.3 分)。第二,Sol 的 max 档单 agent(89.0%)比它自己的 medium 档团队(84.9%)还高,虽然差距不显著(p=0.08):对 Sol 来说,加推理强度比加团队划算。第三,Opus 最便宜的配置(medium 单 agent,每个 app 4.08 美元,91.5%)和最贵的(max 团队,每个 app 122 美元,93.2%)分数差不多。第四,时间上两家不一样:Sol 的团队在 max 档更快(中位数 27.6 对 38.4 分钟),Opus 的 max 团队更慢(174.1 对 74.7 分钟)。</p>
+<p class="en">How to read it. First, only Sol's medium-effort team was significantly better (+7.3 pts). Second, Sol's max-effort single agent (89.0%) beat its own medium-effort team (84.9%), though not significantly (p=0.08): for Sol, more reasoning effort paid off better than a team. Third, Opus's cheapest setup (medium single agent, $4.08 per app, 91.5%) scored about the same as its most expensive (max team, $122 per app, 93.2%). Fourth, runtime differed by model: Sol's teams were faster at max effort (median 27.6 vs 38.4 min), Opus's max teams were slower (174.1 vs 74.7 min).</p>
+<div class="zh callout warn">作者自己的提醒:这是一个基准(web app)、每种配置只跑一次,结论不一定能推广。他们认为适合团队的任务是「能拆成并行部分」的。这跟 Anthropic 文章的「并行 + 干净上下文」是同一条线。</div>
+<div class="en callout warn">The authors' own caveat: one benchmark (web apps), each setup run once, so the findings may not generalize. They suggest teams fit tasks that split into parallel parts. That is the same line as the article's "parallel work with fresh contexts".</div>
+<p class="zh">再补一个背景:今年 1 月有篇 arXiv 论文(2601.04748,Xiaoxiao Li,1 月 8 日提交)提出,多 agent 系统可以「编译」成等价的单 agent + skills,用技能选择换掉 agent 间通信,摘要说能明显降 token 和延迟、准确率保持有竞争力。它还报告了一个现象:skill 库超过某个临界规模后,选择准确率不是缓慢下降而是陡降,而且相似 skill 之间的语义混淆比数量本身更要紧。摘要没给具体数字,所以我不引用数字。这对「折回单循环」是个现实提醒:skill 也不能无限加。</p>
+<p class="en">One more piece of background: a January arXiv paper (2601.04748, Xiaoxiao Li, submitted January 8) argues a multi-agent system can be "compiled" into an equivalent single agent with skills, trading inter-agent communication for skill selection; the abstract says this can cut tokens and latency substantially while keeping accuracy competitive. It also reports that skill-selection accuracy holds up to a critical library size and then drops sharply rather than gradually, and that semantic confusability between similar skills matters more than raw count. The abstract gives no figures, so I quote none. It is a practical warning for folding into one loop: you cannot add skills forever.</p>
+</section>
+<section id="kit">
+<h2 class="zh">Anthropic 的迁移套件</h2>
+<h2 class="en">Anthropic's migration kit</h2>
+<p class="zh">配套的 GitHub 仓库叫 <code>anthropics/single-agent-loop-kit</code>,是一个 Claude Code skill,按「审计、基线、合并、折叠、当 tool、维护」六个步骤文件带你走。注意它自己标明:这是参考实现,不维护,不接受贡献,Apache-2.0 许可。README 还承认:合并和维护步骤、折完的 <code>single_loop/</code> 版本,以及两个测试任务(t18、t19)没有在真实模型上跑过。</p>
+<p class="en">The companion GitHub repo is <code>anthropics/single-agent-loop-kit</code>, a Claude Code skill that walks you through six step files: audit, baseline, merge, fold, as-tool, upkeep. It labels itself a reference implementation that is not maintained and does not accept contributions, under Apache-2.0. The README also admits the merge and upkeep steps, the finished <code>single_loop/</code> version, and two test tasks (t18, t19) have not been run on a real model.</p>
+<pre class="zh"><code># 先跑自带示例(不要 API key,用离线假模型,只验证管道,不出分数)
+cd single-agent-loop-kit/examples/support-desk
+KIT_MODEL=fake python3 evals/run_eval.py --variant smoke
+
+# 用到自己的仓库
+git clone https://github.com/anthropics/single-agent-loop-kit
+cp -r single-agent-loop-kit/skill &lt;你的仓库&gt;/.claude/skills/single-agent-loop
+# 然后在 Claude Code 里说:Run the single-agent-loop skill.</code></pre>
+<pre class="en"><code># Run the bundled example first (no API key; offline stand-in model; checks plumbing, produces no scores)
+cd single-agent-loop-kit/examples/support-desk
+KIT_MODEL=fake python3 evals/run_eval.py --variant smoke
+
+# Use it on your own repo
+git clone https://github.com/anthropics/single-agent-loop-kit
+cp -r single-agent-loop-kit/skill &lt;your repo&gt;/.claude/skills/single-agent-loop
+# Then in Claude Code say: Run the single-agent-loop skill.</code></pre>
+<p class="zh">套件会先审计,让你对每个子 agent 确认结论(折、合并、当 tool、保留),然后一次改一处、跑 eval、对比。每次花钱的运行前它会停下来给 token 估算。README 建议从 10 个任务、2 到 3 次重复开始。它还依赖几个 Claude Code 命令:<code>/claude-api build-eval</code>、<code>hillclimb</code>、<code>prompt-audit</code>、<code>cost-optimize</code>,以及 <code>/skill-creator</code>、<code>/skill-doctor</code>。</p>
+<p class="en">The kit audits first and asks you to confirm a verdict per subagent (fold, merge, call as a tool, or keep), then changes one thing at a time, runs the eval, and compares. It pauses before every paid run with a token estimate. The README suggests starting with 10 tasks and 2 to 3 repetitions. It relies on several Claude Code commands: <code>/claude-api build-eval</code>, <code>hillclimb</code>, <code>prompt-audit</code>, <code>cost-optimize</code>, plus <code>/skill-creator</code> and <code>/skill-doctor</code>.</p>
+</section>
+<section id="limits">
+<h2 class="zh">我的怀疑和保留意见</h2>
+<h2 class="en">My doubts and reservations</h2>
+<ul class="zh"><li><b>这是厂商视角。</b>文章推荐的正是 Anthropic 自己的 skill、工具和迁移套件。方向我觉得合理,但数字(2 倍快、80%)没有方法说明,别当成通用结论。</li><li><b>跟模型强相关。</b>文章也说,架构建议会随模型进步而变。Vals 的数据里 Sol 和 Opus 对「加团队」的反应完全不同。你换了模型,结论要重测。</li><li><b>没有 eval 就别折。</b>套件作者自己写:没有可重复的 eval,迁移就是「观点问题」。我觉得这是整篇文章最实在的一句。</li><li><b>skill 也会泛滥。</b>折回单循环不是消灭复杂度,是把它从「agent 之间」搬到「skill 库里」。1 月那篇论文的临界规模现象说明这里也有上限。</li><li><b>我没查到的:</b>文章里「一个客户 2 倍快」的客户是谁、任务是什么,文章没写;Vals 博客的每组样本只有一次运行。</li></ul>
+<ul class="en"><li><b>It is a vendor view.</b> The article recommends Anthropic's own skills, tools and kit. The direction seems reasonable to me, but the numbers (2x faster, 80%) come without methodology; do not treat them as general.</li><li><b>It depends on the model.</b> The article itself says the architectural advice will shift as models improve. In the Vals data Sol and Opus reacted completely differently to adding a team. If you change models, re-measure.</li><li><b>No eval, no folding.</b> The kit's README says without a repeatable eval a migration is "a matter of opinion". I think that is the most practical sentence in the whole piece.</li><li><b>Skills sprawl too.</b> Folding into one loop does not remove complexity; it moves it from between agents into the skill library. The January paper's critical-size effect suggests a ceiling there as well.</li><li><b>What I did not find:</b> who the "2x faster" customer was and what the task was; the Vals post has one run per setup.</li></ul>
+</section>
+<section id="glossary">
+<h2 class="zh">术语表</h2>
+<h2 class="en">Glossary</h2>
+<dl class="gl zh"><dt>subagent 子 agent</dt><dd>有自己上下文、工具和指令的小 agent,由主 agent 调度。</dd><dt>orchestrator 编排者</dt><dd>在子 agent 之上分派任务的那一层。</dd><dt>progressive disclosure 渐进式披露</dt><dd>先给短描述,需要时再加载全文,skill 和 tool search 都是这个思路。</dd><dt>skill</dt><dd>打包好的做事流程和判断规则,按需加载。</dd><dt>tool search</dt><dd>工具定义不一次全给模型,需要时搜索再加载。</dd><dt>handoff 交接</dt><dd>把对话整个交给另一个 agent;文章建议只在子 agent 必须直接跟用户说话时用。</dd><dt>eval 评测集</dt><dd>一组任务加评分办法,用来量系统改动前后的好坏。</dd><dt>golden example</dt><dd>人工认可的标准样例,eval 的起点。</dd><dt>harness</dt><dd>模型外围的运行框架:循环、预算、权限闸门。</dd></dl>
+<dl class="gl en"><dt>subagent</dt><dd>A small agent with its own context, tools and instructions, dispatched by a main agent.</dd><dt>orchestrator</dt><dd>The layer above subagents that assigns tasks.</dd><dt>progressive disclosure</dt><dd>Show a short description first and load the full text on demand; skills and tool search both work this way.</dd><dt>skill</dt><dd>A packaged procedure and set of judgment rules, loaded on demand.</dd><dt>tool search</dt><dd>Tool definitions are not all handed to the model up front; it searches and loads them when needed.</dd><dt>handoff</dt><dd>Passing the whole conversation to another agent; the article suggests it only when a subagent must talk to the user directly.</dd><dt>eval</dt><dd>A set of tasks plus a scoring method, used to measure a system before and after a change.</dd><dt>golden example</dt><dd>A human-approved reference case; the starting point for an eval.</dd><dt>harness</dt><dd>The runtime around the model: the loop, budgets, permission gates.</dd></dl>
+</section>
+<section id="sources">
+<h2 class="zh">来源</h2>
+<h2 class="en">Sources</h2>
+<ul class="zh"><li><a href="https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop" target="_blank" rel="noopener">Building agents: When to fold subagents into your main agent loop</a>(Anthropic,Diane Sarkis,2026-10-22;主要来源)</li><li><a href="https://github.com/anthropics/single-agent-loop-kit" target="_blank" rel="noopener">anthropics/single-agent-loop-kit</a>(迁移套件,README)</li><li><a href="https://www.vals.ai/blogs/multi-agent-vibe-code-bench" target="_blank" rel="noopener">Do Agent Teams Pay Off? A Case Study on Vibe Code Bench</a>(Vals AI,Katrina Drozdov,2026-10-09)</li><li><a href="https://arxiv.org/abs/2601.04748" target="_blank" rel="noopener">When Single-Agent with Skills Replace Multi-Agent Systems and When They Fail</a>(arXiv 2601.04748,Xiaoxiao Li,2026-01-08;只读了摘要)</li><li><a href="https://code.claude.com/docs/en/sub-agents" target="_blank" rel="noopener">Create custom subagents</a>(Claude Code 子 agent 官方文档)</li><li><a href="https://the-decoder.com/anthropic-says-one-ai-agent-beats-many-subagents-now-that-models-can-handle-complexity-alone/" target="_blank" rel="noopener">The Decoder</a>(The Decoder 对 Anthropic 文章的二手报道,2026-10-25;以原文为准)</li></ul>
+<ul class="en"><li><a href="https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop" target="_blank" rel="noopener">Building agents: When to fold subagents into your main agent loop</a> (Anthropic, Diane Sarkis, 2026-10-22; primary source)</li><li><a href="https://github.com/anthropics/single-agent-loop-kit" target="_blank" rel="noopener">anthropics/single-agent-loop-kit</a> (migration kit, README)</li><li><a href="https://www.vals.ai/blogs/multi-agent-vibe-code-bench" target="_blank" rel="noopener">Do Agent Teams Pay Off? A Case Study on Vibe Code Bench</a> (Vals AI, Katrina Drozdov, 2026-10-09)</li><li><a href="https://arxiv.org/abs/2601.04748" target="_blank" rel="noopener">When Single-Agent with Skills Replace Multi-Agent Systems and When They Fail</a> (arXiv 2601.04748, Xiaoxiao Li, 2026-01-08; abstract only)</li><li><a href="https://code.claude.com/docs/en/sub-agents" target="_blank" rel="noopener">Create custom subagents</a> (Claude Code subagent docs)</li><li><a href="https://the-decoder.com/anthropic-says-one-ai-agent-beats-many-subagents-now-that-models-can-handle-complexity-alone/" target="_blank" rel="noopener">The Decoder</a> (The Decoder's secondary report on the Anthropic article, 2026-10-25; the original wins)</li></ul>
+</section>
+</div>
+<footer>
+<p class="zh">调研时间:2026-10-27。Anthropic 文章和 GitHub 仓库来自网页抓取的摘要级内容,细节以原文为准;文中数字除特别注明外都是各来源自己给的。</p>
+<p class="en">Researched on 2026-10-27. The Anthropic article and GitHub repo were read through page-fetch summaries; the originals win on detail. Unless noted, the numbers are the sources' own.</p>
+</footer>
+<script>
+(function(){
+var body=document.body,root=document.documentElement;
+function setLang(l,save){
+  body.setAttribute('data-lang',l);root.setAttribute('lang',l==='zh'?'zh-CN':'en');
+  document.title=l==='zh'?'子 Agent 该拆还是折回主循环 | Fold the Subagents? When One Agent Loop Beats a Team':'Fold the Subagents? When One Agent Loop Beats a Team | 子 Agent 该拆还是折回主循环';
+  var b=document.getElementById('langBtn');b.textContent=l==='zh'?'EN':'中';
+  if(save){try{localStorage.setItem('aidaily-lang',l);}catch(e){}}
+  observeFigures();
+}
+var io=null;
+function inView(el){var r=el.getBoundingClientRect();return r.width>0&&r.top<window.innerHeight&&r.bottom>0;}
+function observeFigures(){
+  var figs=document.querySelectorAll('.figure:not(.in)');
+  figs.forEach(function(f){
+    if(f.offsetParent===null)return;
+    if(inView(f)){f.classList.add('in');}
+    else if(io){io.observe(f);}
+  });
+}
+if('IntersectionObserver' in window){
+  io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.2});
+}else{document.querySelectorAll('.figure').forEach(function(f){f.classList.add('in');});}
+var saved=null;try{saved=localStorage.getItem('aidaily-lang');}catch(e){}
+var init=saved||((navigator.language||'').toLowerCase().indexOf('zh')===0?'zh':'en');
+document.getElementById('langBtn').addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh',true);});
+setLang(init,false);
+var bar=document.getElementById('bar');
+var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+function onScroll(){
+  var h=document.documentElement;var m=h.scrollHeight-h.clientHeight;
+  bar.style.width=(m>0?h.scrollTop/m*100:0)+'%';
+  var cur=0;secs.forEach(function(s,i){if(s&&s.getBoundingClientRect().top<120)cur=i;});
+  links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+})();
+</script>
+</body>
+</html>
