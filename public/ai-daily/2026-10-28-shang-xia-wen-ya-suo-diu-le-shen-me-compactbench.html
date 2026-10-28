@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>上下文压缩到底丢了什么 | What Context Compaction Really Costs</title>
+<style>
+:root{--bg:#f4f1ea;--surface:#fffdf8;--ink:#1d2523;--ink2:#3d4b48;--muted:#6b7a78;--line:#ddd8cb;
+--accent:#0f766e;--accent-d:#0b4f4a;--accent-soft:#e1f0ed;--warn:#b4441f;--warn-soft:#fbece5;--code:#efece3;--r:12px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.8;
+font-family:Georgia,"Noto Serif SC","Songti SC","STSong",serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:50}
+.lang{position:fixed;top:12px;right:14px;z-index:60;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent-d);
+font:700 13px/1 -apple-system,"Segoe UI",sans-serif;padding:8px 14px;border-radius:99px;cursor:pointer}
+.lang:hover{background:var(--accent-soft)}
+header{padding:64px 20px 30px;background:var(--surface);border-bottom:1px solid var(--line)}
+.hin{max-width:760px;margin:0 auto}
+.kick{font:700 12.5px/1 -apple-system,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(26px,5.4vw,40px);line-height:1.25;margin:12px 0 10px;letter-spacing:-.01em}
+.meta{font:14px/1.6 -apple-system,sans-serif;color:var(--muted)}
+.layout{max-width:760px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px;margin-bottom:28px;
+font:14.5px/1.9 -apple-system,"PingFang SC",sans-serif}
+nav.toc b{color:var(--accent-d);margin-right:6px}
+nav.toc a{color:var(--ink2);text-decoration:none;margin-right:14px;display:inline-block}
+nav.toc a:hover,nav.toc a.on{color:var(--accent);font-weight:700}
+section{margin:0 0 40px;scroll-margin-top:16px}
+h2{font-size:24px;line-height:1.35;margin:0 0 12px;padding-left:12px;border-left:4px solid var(--accent)}
+p{margin:0 0 14px}
+ul{margin:0 0 14px;padding-left:22px}li{margin-bottom:6px}
+.callout{border-radius:10px;padding:12px 16px;margin:16px 0;font:15.5px/1.75 -apple-system,"PingFang SC",sans-serif}
+.callout.key{background:var(--accent-soft);border:1px solid #b6d9d3}
+.callout.warn{background:var(--warn-soft);border:1px solid #efc6b4}
+.figure{margin:20px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.figure svg{width:100%;height:auto;display:block}
+figcaption{font:13.5px/1.6 -apple-system,"PingFang SC",sans-serif;color:var(--muted);margin-top:8px}
+svg text{font:13px -apple-system,"PingFang SC","Segoe UI",sans-serif;fill:#1d2523}
+svg .nd circle,svg .nd .tr{fill:#fffdf8;stroke:#0f5c56;stroke-width:2}
+svg .nd .tr{fill:#0f766e}
+svg .tok{fill:#0f766e;stroke:none}
+svg .ln{fill:none;stroke:#0f5c56;stroke-width:2}
+svg .bx{fill:#fffdf8;stroke:#0f5c56;stroke-width:2}
+svg .bx.key{fill:#e1f0ed}
+svg .note{font-size:12px;fill:#3d4b48}
+svg .ar{fill:none;stroke:#0f5c56;stroke-width:2}
+svg .bar{fill:#0f766e}
+svg .bar.hi{fill:#b4441f}
+svg .wt{fill:#fff}
+svg .warn{fill:#b4441f;font-weight:600;font-size:12.5px}
+.figure .nd{opacity:0;transform:translateY(6px);transition:opacity .5s ease,transform .5s ease}
+.figure.in .nd{opacity:1;transform:none}
+.figure.in .nd[data-d="2"]{transition-delay:.25s}.figure.in .nd[data-d="3"]{transition-delay:.5s}
+table{width:100%;border-collapse:collapse;margin:14px 0;font:14.5px/1.6 -apple-system,"PingFang SC",sans-serif;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);color:var(--accent-d)}
+.gl dt{font-weight:700;color:var(--accent-d);margin-top:10px;font-family:-apple-system,sans-serif}
+.gl dd{margin:2px 0 6px 0}
+a{color:var(--accent)}
+footer{max-width:760px;margin:0 auto;padding:0 20px 60px;color:var(--muted);font:13.5px/1.7 -apple-system,sans-serif}
+@media(max-width:620px){body{font-size:16.5px}header{padding:58px 18px 24px}.layout{padding:20px 16px 60px}
+th,td{padding:7px 8px;font-size:13.5px}h2{font-size:21px}}
+@media(prefers-reduced-motion:reduce){.figure .nd{opacity:1;transform:none;transition:none}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN AI Daily · 2026-10-28 上下文压缩到底丢了什么? What Does Context Compaction Really Cost a Coding Agent? 读 Compact-Bench…">
+<meta property="og:title" content="上下文压缩到底丢了什么 | What Context Compaction Really Costs">
+<meta property="og:description" content="EN AI Daily · 2026-10-28 上下文压缩到底丢了什么? What Does Context Compaction Really Cost a Coding Agent? 读 Compact-Bench…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-28-shang-xia-wen-ya-suo-diu-le-shen-me-compactbench.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-28-shang-xia-wen-ya-suo-diu-le-shen-me-compactbench.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "上下文压缩到底丢了什么 | What Context Compaction Really Costs", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-28-shang-xia-wen-ya-suo-diu-le-shen-me-compactbench.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-28", "dateModified": "2026-10-28"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<div id="bar"></div>
+<button class="lang" id="langBtn" type="button" aria-label="Switch language">EN</button>
+<header><div class="hin">
+<div class="kick">AI Daily · 2026-10-28</div>
+<h1 class="zh">上下文压缩到底丢了什么?</h1>
+<h1 class="en">What Does Context Compaction Really Cost a Coding Agent?</h1>
+<p class="zh meta">读 Compact-Bench(arXiv 2610.31710):同一个任务,带完整历史和只带摘要,结果差多少。</p>
+<p class="en meta">A reading of Compact-Bench (arXiv 2610.31710): the same task, with full history versus summary only, and how far the results diverge.</p>
+</div></header>
+<div class="layout">
+<nav class="toc"><b class="zh">目录</b><b class="en">Contents</b><a href="#tldr"><span class="zh">30 秒版本</span><span class="en">The 30-second version</span></a><a href="#problem"><span class="zh">压缩到底在干什么</span><span class="en">What compaction does</span></a><a href="#design"><span class="zh">Compact-Bench 怎么测</span><span class="en">How Compact-Bench measures it</span></a><a href="#damage"><span class="zh">结果一:任务做不完了</span><span class="en">Result 1: tasks stop getting finished</span></a><a href="#detail"><span class="zh">结果二:细节几乎没留下</span><span class="en">Result 2: details barely survive</span></a><a href="#why"><span class="zh">为什么"留了证据"还是做不完</span><span class="en">Why keeping the evidence is not enough</span></a><a href="#practice"><span class="zh">我会怎么用(我的推断)</span><span class="en">What I would do (my inference)</span></a><a href="#doubts"><span class="zh">保留意见</span><span class="en">Reservations</span></a><a href="#glossary"><span class="zh">术语表</span><span class="en">Glossary</span></a><a href="#sources"><span class="zh">来源</span><span class="en">Sources</span></a></nav>
+<section id="tldr">
+<h2 class="zh">30 秒版本</h2>
+<h2 class="en">The 30-second version</h2>
+<p class="zh">编码 agent 的上下文快满时,会把前面的对话压成一段摘要,后面只带摘要往下干。这叫压缩(compaction)。Compact-Bench 这篇论文(10 月 22 日,中国科大团队)想知道:压缩让本来能做完的活,有多少做不完了。</p>
+<p class="en">When a coding agent's context fills up, it squeezes the earlier conversation into a summary and carries on with only the summary. That is compaction. Compact-Bench (October 22, a USTC team) asks how many tasks that were finishable before compaction stop being finishable after it.</p>
+<p class="zh">答案是:不少。在 14 个做摘要的模型上,22 个"带完整历史能做对"的修复任务里,有 5% 到 64% 压缩后稳定做不对。回头还会再用到的字面细节(路径、commit 哈希、报错类型这些),LLM 写的摘要最多只留下 16.0%,而不用模型、直接机械提取能留 79.1%。</p>
+<p class="en">The answer: quite a few. Across 14 summarizer models, 5% to 64% of 22 repairs that full-history runs could solve were reliably lost after compaction. For literal details that come back later (paths, commit hashes, error types), LLM-written summaries keep at most 16.0%, while plain mechanical extraction keeps 79.1%.</p>
+<div class="zh callout key">最有意思的一点:摘要里留着目标文件、甚至留着全部修复要用的关键 token,任务照样做不完。留住材料,不等于留住"做到哪一步了、为什么这么改"。</div>
+<div class="en callout key">The most interesting point: a summary can keep the target file, even every key token of the fix, and the task still fails. Keeping the ingredients is not the same as keeping where you were and why you were making the edit.</div>
+<div class="zh callout warn"><b>我读了什么:</b>通过网页抓取的摘要读了论文 HTML 版的全部要点和数字,没有逐页读 PDF 原文;PDF 那次被限流了。数字都是论文自己给的,我没有复现。</div>
+<div class="en callout warn"><b>What I read:</b> I read the paper's HTML version through a page-fetch summary, covering the design and numbers, not the PDF page by page (that fetch was rate-limited). All numbers are the paper's own; I did not reproduce them.</div>
+</section>
+<section id="problem">
+<h2 class="zh">压缩到底在干什么</h2>
+<h2 class="en">What compaction does</h2>
+<p class="zh">长任务里 agent 每走一步,上下文就长一截:读过的文件、跑过的命令、试错的过程。上限一到,就得腾地方。主流做法是让模型把前面的内容总结成一段话,然后丢掉原文,从摘要继续。Claude Code、Codex、Gemini CLI、opencode、Kimi Code 各有自己的压缩 prompt,论文测了这五个。</p>
+<p class="en">In a long task the context grows with every step: files read, commands run, dead ends tried. At the limit something has to go. The common approach is to have a model summarize the earlier material, throw away the original, and continue from the summary. Claude Code, Codex, Gemini CLI, opencode and Kimi Code each ship their own compaction prompt, and the paper tests all five.</p>
+<p class="zh">以前的评测多半看三类东西:省了多少 token、摘要里保留了多少信息、任务最终成没成功。问题是这三类很难分开回答"摘要本身到底造成了多少损失"。</p>
+<p class="en">Earlier evaluations mostly looked at three things: tokens saved, information retained, and end-to-end success. It is hard to separate "how much did the summary itself cost us" from those.</p>
+</section>
+<section id="design">
+<h2 class="zh">Compact-Bench 怎么测</h2>
+<h2 class="en">How Compact-Bench measures it</h2>
+<p class="zh">核心是成对对比:同一个任务、同一个压缩前的仓库状态,一条跑道带完整历史继续(PRE),一条只带摘要继续(POST)。两边用同一个 agent、同样的工具、同样的 8 步上限,最后都由仓库的 FAIL_TO_PASS 测试判分。结果分四类:保住、受损、捡回、没解出。"稳定受损"的定义是 POST 三次里至少挂两次。</p>
+<p class="en">The core is a paired comparison: same task, same pre-compaction repository state. One lane continues with the full history (PRE), the other with only the summary (POST). Both use the same agent, tools and eight-step limit, and both are scored by the repository's FAIL_TO_PASS tests. Outcomes fall into four labels: preserved, damaged, rescued, unsolved. "Stable damage" means POST fails in at least two of three runs.</p>
+<figure class="zh figure"><svg viewBox="0 0 640 400" role="img" aria-label="Compact-Bench 的成对对比设计"><defs><marker id="a1z" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f5c56"/></marker></defs><g class="nd" data-d="1"><rect x="185" y="8" width="270" height="44" rx="8" class="bx key"/><text x="320.0" y="26.5" text-anchor="middle" font-size="13">同一个任务</text><text x="320.0" y="42.5" text-anchor="middle" font-size="13">同一个仓库快照</text></g><g class="nd" data-d="1"><rect x="20" y="100" width="280" height="60" rx="8" class="bx"/><text x="160.0" y="126.5" text-anchor="middle" font-size="13">PRE:带完整历史继续</text><text x="160.0" y="142.5" text-anchor="middle" font-size="13">(原样接着干)</text></g><g class="nd" data-d="1"><rect x="340" y="100" width="280" height="60" rx="8" class="bx"/><text x="480.0" y="126.5" text-anchor="middle" font-size="13">POST:只带摘要继续</text><text x="480.0" y="142.5" text-anchor="middle" font-size="13">(压缩后接着干)</text></g><path class="ar" d="M270,52 L160,98" marker-end="url(#a1z)"/><path class="ar" d="M370,52 L480,98" marker-end="url(#a1z)"/><g class="nd" data-d="1"><rect x="20" y="205" width="280" height="50" rx="8" class="bx"/><text x="160.0" y="226.5" text-anchor="middle" font-size="12">同一个 agent、同样的工具</text><text x="160.0" y="242.5" text-anchor="middle" font-size="12">最多 8 步</text></g><g class="nd" data-d="1"><rect x="340" y="205" width="280" height="50" rx="8" class="bx"/><text x="480.0" y="226.5" text-anchor="middle" font-size="12">同一个 agent、同样的工具</text><text x="480.0" y="242.5" text-anchor="middle" font-size="12">最多 8 步</text></g><path class="ar" d="M160,160 L160,203" marker-end="url(#a1z)"/><path class="ar" d="M480,160 L480,203" marker-end="url(#a1z)"/><g class="nd" data-d="1"><rect x="100" y="295" width="440" height="40" rx="8" class="bx key"/><text x="320.0" y="319.5" text-anchor="middle" font-size="12">同一组 FAIL_TO_PASS 测试判分</text></g><path class="ar" d="M160,255 L250,293" marker-end="url(#a1z)"/><path class="ar" d="M480,255 L390,293" marker-end="url(#a1z)"/><g class="nd" data-d="1"><rect x="20" y="355" width="145" height="36" rx="8" class="bx"/><text x="92.5" y="377.5" text-anchor="middle" font-size="11">保住:PRE过、POST过</text></g><g class="nd" data-d="1"><rect x="175" y="355" width="145" height="36" rx="8" class="bx"/><text x="247.5" y="377.5" text-anchor="middle" font-size="11">受损:PRE过、POST挂</text></g><g class="nd" data-d="1"><rect x="330" y="355" width="145" height="36" rx="8" class="bx"/><text x="402.5" y="377.5" text-anchor="middle" font-size="11">捡回:PRE挂、POST过</text></g><g class="nd" data-d="1"><rect x="485" y="355" width="135" height="36" rx="8" class="bx"/><text x="552.5" y="377.5" text-anchor="middle" font-size="11">没解出:都挂</text></g></svg><figcaption>图 1:成对对比的设计(根据论文描述整理)。</figcaption></figure>
+<figure class="en figure"><svg viewBox="0 0 640 400" role="img" aria-label="Compact-Bench paired design"><defs><marker id="a1e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f5c56"/></marker></defs><g class="nd" data-d="1"><rect x="185" y="8" width="270" height="44" rx="8" class="bx key"/><text x="320.0" y="26.5" text-anchor="middle" font-size="13">Same task</text><text x="320.0" y="42.5" text-anchor="middle" font-size="13">Same repo snapshot</text></g><g class="nd" data-d="1"><rect x="20" y="100" width="280" height="60" rx="8" class="bx"/><text x="160.0" y="126.5" text-anchor="middle" font-size="13">PRE: continue with full history</text><text x="160.0" y="142.5" text-anchor="middle" font-size="13">(carry on as is)</text></g><g class="nd" data-d="1"><rect x="340" y="100" width="280" height="60" rx="8" class="bx"/><text x="480.0" y="126.5" text-anchor="middle" font-size="13">POST: continue from the summary only</text><text x="480.0" y="142.5" text-anchor="middle" font-size="13">(after compaction)</text></g><path class="ar" d="M270,52 L160,98" marker-end="url(#a1e)"/><path class="ar" d="M370,52 L480,98" marker-end="url(#a1e)"/><g class="nd" data-d="1"><rect x="20" y="205" width="280" height="50" rx="8" class="bx"/><text x="160.0" y="226.5" text-anchor="middle" font-size="12">Same agent, same tools</text><text x="160.0" y="242.5" text-anchor="middle" font-size="12">Eight-step limit</text></g><g class="nd" data-d="1"><rect x="340" y="205" width="280" height="50" rx="8" class="bx"/><text x="480.0" y="226.5" text-anchor="middle" font-size="12">Same agent, same tools</text><text x="480.0" y="242.5" text-anchor="middle" font-size="12">Eight-step limit</text></g><path class="ar" d="M160,160 L160,203" marker-end="url(#a1e)"/><path class="ar" d="M480,160 L480,203" marker-end="url(#a1e)"/><g class="nd" data-d="1"><rect x="100" y="295" width="440" height="40" rx="8" class="bx key"/><text x="320.0" y="319.5" text-anchor="middle" font-size="12">Scored by the same FAIL_TO_PASS tests</text></g><path class="ar" d="M160,255 L250,293" marker-end="url(#a1e)"/><path class="ar" d="M480,255 L390,293" marker-end="url(#a1e)"/><g class="nd" data-d="1"><rect x="20" y="355" width="145" height="36" rx="8" class="bx"/><text x="92.5" y="377.5" text-anchor="middle" font-size="11">Preserved: both pass</text></g><g class="nd" data-d="1"><rect x="175" y="355" width="145" height="36" rx="8" class="bx"/><text x="247.5" y="377.5" text-anchor="middle" font-size="11">Damaged: PRE pass, POST fail</text></g><g class="nd" data-d="1"><rect x="330" y="355" width="145" height="36" rx="8" class="bx"/><text x="402.5" y="377.5" text-anchor="middle" font-size="11">Rescued: PRE fail, POST pass</text></g><g class="nd" data-d="1"><rect x="485" y="355" width="135" height="36" rx="8" class="bx"/><text x="552.5" y="377.5" text-anchor="middle" font-size="11">Unsolved: both fail</text></g></svg><figcaption>Figure 1: the paired design (reconstructed from the paper's description).</figcaption></figure>
+<p class="zh">三套评测:</p>
+<p class="en">Three suites:</p>
+<div class="zh"><table><tr><th>套件</th><th>规模</th><th>测什么</th></tr><tr><td>任务保留</td><td>35 个局部 SWE-bench 修复,来自 7 个仓库</td><td>只带摘要还能不能做完完整历史能做完的修复(22 个是已验证 PRE 能过的)</td></tr><tr><td>重复细节保留</td><td>146 个会话,9,330 个会重复出现的细节</td><td>路径、SHA、PR 号、报错类型、URL 等字面值,摘要后面有没有留下</td></tr><tr><td>生产链路保留</td><td>106 个会话,224 个真实压缩边界</td><td>连续多次压缩后,细节在后续最多 5 个请求里还在不在</td></tr></table></div>
+<div class="en"><table><tr><th>Suite</th><th>Size</th><th>What it tests</th></tr><tr><td>Task preservation</td><td>35 localized SWE-bench repairs from 7 repositories</td><td>Can a summary-only run finish the repairs a full-history run finishes (22 were validated PRE-pass cases)</td></tr><tr><td>Recurring-detail retention</td><td>146 sessions, 9,330 recurring details</td><td>Whether literal values (paths, SHAs, PR IDs, error types, URLs) that reappear later survive the summary</td></tr><tr><td>Production-chain retention</td><td>106 sessions, 224 real compaction boundaries</td><td>Whether details survive successive compactions, scored on the next up to five requests</td></tr></table></div>
+</section>
+<section id="damage">
+<h2 class="zh">结果一:任务做不完了</h2>
+<h2 class="en">Result 1: tasks stop getting finished</h2>
+<p class="zh">用 Claude Code 的压缩 prompt、Kimi-K3 当继续干活的 agent,换 14 个模型来写摘要:稳定受损比例从 5%(Claude Opus 4.8,22 个里坏 1 个)到 64%(DeepSeek-Flash,22 个里坏 14 个)。Claude Opus 4.8 保住了 22 个里的 21 个。重复跑确认了第一轮 126 个"摘要模型-任务"受损对里的 120 个。</p>
+<p class="en">With the Claude Code compaction prompt and Kimi-K3 as the continuing agent, swapping in 14 summarizer models gave stable damage from 5% (Claude Opus 4.8, 1 of 22) to 64% (DeepSeek-Flash, 14 of 22). Claude Opus 4.8 preserved 21 of 22. Repeat runs confirmed 120 of the 126 damaged model-task pairs from the first round.</p>
+<p class="zh">换压缩 prompt 也有差别(Kimi-K3 写摘要,22 个任务里 POST 能过的数量):</p>
+<p class="en">The compaction prompt matters too (Kimi-K3 as summarizer; POST passes out of 22):</p>
+<div class="zh"><table><tr><th>压缩 prompt</th><th>POST 通过</th><th>回头细节保留率</th></tr><tr><td>Kimi Code</td><td>19(86%)</td><td>8.2%</td></tr><tr><td>Claude Code</td><td>18(82%)</td><td>15.0%</td></tr><tr><td>Gemini CLI</td><td>17(77%)</td><td>7.2%</td></tr><tr><td>Codex</td><td>16(73%)</td><td>9.5%</td></tr><tr><td>opencode</td><td>16(73%)</td><td>9.5%</td></tr></table></div>
+<div class="en"><table><tr><th>Compaction prompt</th><th>POST passes</th><th>Recurring-detail retention</th></tr><tr><td>Kimi Code</td><td>19 (86%)</td><td>8.2%</td></tr><tr><td>Claude Code</td><td>18 (82%)</td><td>15.0%</td></tr><tr><td>Gemini CLI</td><td>17 (77%)</td><td>7.2%</td></tr><tr><td>Codex</td><td>16 (73%)</td><td>9.5%</td></tr><tr><td>opencode</td><td>16 (73%)</td><td>9.5%</td></tr></table></div>
+<div class="zh callout key">这张表自己就能说明一件事:"任务通过数"最高的 prompt(Kimi Code)和"细节保留率"最高的 prompt(Claude Code)不是同一个。只看其中一个指标会选错。</div>
+<div class="en callout key">The table makes one point by itself: the prompt with the most task passes (Kimi Code) is not the prompt with the highest detail retention (Claude Code). Looking at either metric alone would pick differently.</div>
+<p class="zh">另外,同一个任务会被很多摘要模型一起搞坏:pytest-10081 被 14 个里的 13 个损坏,只有 Claude Opus 4.8 保住;sphinx-9230 被 9 个模型损坏,五个 prompt 下全挂。也有只在某个 prompt 下才坏的(比如 pytest-7490 只在 Claude Code 的 prompt 下坏)。</p>
+<p class="en">Failures also cluster on specific tasks: pytest-10081 is damaged by 13 of 14 summarizers and preserved only by Claude Opus 4.8; sphinx-9230 is damaged by nine summarizers and fails under all five prompts. Some failures are prompt-specific (pytest-7490 breaks only under the Claude Code prompt).</p>
+</section>
+<section id="detail">
+<h2 class="zh">结果二:细节几乎没留下</h2>
+<h2 class="en">Result 2: details barely survive</h2>
+<p class="zh">"重复细节"指后面的请求里还会原样出现的字面值。七个模型 × 五个 prompt 的矩阵里,LLM 摘要的保留率在 5.0% 到 16.0% 之间。用 Claude Code 的 prompt 时:DeepSeek-Flash 16.0%、Kimi-K3 15.0%、GPT-5.6-Sol 14.8%、GPT-5.6-Luna 13.3%、DeepSeek-V4-Pro 11.9%、GLM-5.3 9.5%、GPT-5.6-Terra 8.2%。对照组是不用模型的机械提取(anchor_index),保留率 79.1%,比最好的 LLM 摘要高 63.1 个百分点。</p>
+<p class="en">"Recurring details" are literal values that reappear verbatim in later requests. Across the seven-model by five-prompt matrix, LLM summaries retain between 5.0% and 16.0%. With the Claude Code prompt: DeepSeek-Flash 16.0%, Kimi-K3 15.0%, GPT-5.6-Sol 14.8%, GPT-5.6-Luna 13.3%, DeepSeek-V4-Pro 11.9%, GLM-5.3 9.5%, GPT-5.6-Terra 8.2%. The baseline is mechanical extraction (anchor_index) with no model involved: 79.1%, 63.1 points above the best LLM summary.</p>
+<figure class="zh figure"><svg viewBox="0 0 640 330" role="img" aria-label="回头还会用到的细节,摘要保住多少"><g class="nd" data-d="1"><text x="170" y="27" text-anchor="end" font-size="12.5">DeepSeek-Flash</text><rect x="180" y="10" width="72.8" height="24" rx="4" class="bar"/><text x="260.8" y="27" font-size="12.5">16.0%</text></g><g class="nd" data-d="1"><text x="170" y="65" text-anchor="end" font-size="12.5">Kimi-K3</text><rect x="180" y="48" width="68.3" height="24" rx="4" class="bar"/><text x="256.3" y="65" font-size="12.5">15.0%</text></g><g class="nd" data-d="1"><text x="170" y="103" text-anchor="end" font-size="12.5">GPT-5.6-Sol</text><rect x="180" y="86" width="67.4" height="24" rx="4" class="bar"/><text x="255.4" y="103" font-size="12.5">14.8%</text></g><g class="nd" data-d="1"><text x="170" y="141" text-anchor="end" font-size="12.5">GPT-5.6-Luna</text><rect x="180" y="124" width="60.5" height="24" rx="4" class="bar"/><text x="248.5" y="141" font-size="12.5">13.3%</text></g><g class="nd" data-d="1"><text x="170" y="179" text-anchor="end" font-size="12.5">DeepSeek-V4-Pro</text><rect x="180" y="162" width="54.2" height="24" rx="4" class="bar"/><text x="242.2" y="179" font-size="12.5">11.9%</text></g><g class="nd" data-d="1"><text x="170" y="217" text-anchor="end" font-size="12.5">GLM-5.3</text><rect x="180" y="200" width="43.2" height="24" rx="4" class="bar"/><text x="231.2" y="217" font-size="12.5">9.5%</text></g><g class="nd" data-d="1"><text x="170" y="255" text-anchor="end" font-size="12.5">GPT-5.6-Terra</text><rect x="180" y="238" width="37.3" height="24" rx="4" class="bar"/><text x="225.3" y="255" font-size="12.5">8.2%</text></g><g class="nd" data-d="1"><text x="170" y="293" text-anchor="end" font-size="12.5">机械提取 anchor_index</text><rect x="180" y="276" width="360.0" height="24" rx="4" class="bar hi"/><text x="548.0" y="293" font-size="12.5">79.1%</text></g><text x="180" y="322" class="note">LLM 摘要用的是 Claude Code 的压缩 prompt;最后一行是机械提取。</text></svg><figcaption>图 2:摘要对"回头还会用到的细节"的保留率(Claude Code 压缩 prompt)。</figcaption></figure>
+<figure class="en figure"><svg viewBox="0 0 640 330" role="img" aria-label="Share of recurring details kept by each summary"><g class="nd" data-d="1"><text x="170" y="27" text-anchor="end" font-size="12.5">DeepSeek-Flash</text><rect x="180" y="10" width="72.8" height="24" rx="4" class="bar"/><text x="260.8" y="27" font-size="12.5">16.0%</text></g><g class="nd" data-d="1"><text x="170" y="65" text-anchor="end" font-size="12.5">Kimi-K3</text><rect x="180" y="48" width="68.3" height="24" rx="4" class="bar"/><text x="256.3" y="65" font-size="12.5">15.0%</text></g><g class="nd" data-d="1"><text x="170" y="103" text-anchor="end" font-size="12.5">GPT-5.6-Sol</text><rect x="180" y="86" width="67.4" height="24" rx="4" class="bar"/><text x="255.4" y="103" font-size="12.5">14.8%</text></g><g class="nd" data-d="1"><text x="170" y="141" text-anchor="end" font-size="12.5">GPT-5.6-Luna</text><rect x="180" y="124" width="60.5" height="24" rx="4" class="bar"/><text x="248.5" y="141" font-size="12.5">13.3%</text></g><g class="nd" data-d="1"><text x="170" y="179" text-anchor="end" font-size="12.5">DeepSeek-V4-Pro</text><rect x="180" y="162" width="54.2" height="24" rx="4" class="bar"/><text x="242.2" y="179" font-size="12.5">11.9%</text></g><g class="nd" data-d="1"><text x="170" y="217" text-anchor="end" font-size="12.5">GLM-5.3</text><rect x="180" y="200" width="43.2" height="24" rx="4" class="bar"/><text x="231.2" y="217" font-size="12.5">9.5%</text></g><g class="nd" data-d="1"><text x="170" y="255" text-anchor="end" font-size="12.5">GPT-5.6-Terra</text><rect x="180" y="238" width="37.3" height="24" rx="4" class="bar"/><text x="225.3" y="255" font-size="12.5">8.2%</text></g><g class="nd" data-d="1"><text x="170" y="293" text-anchor="end" font-size="12.5">Mechanical anchor_index</text><rect x="180" y="276" width="360.0" height="24" rx="4" class="bar hi"/><text x="548.0" y="293" font-size="12.5">79.1%</text></g><text x="180" y="322" class="note">LLM rows use the Claude Code compaction prompt; the last row is mechanical extraction.</text></svg><figcaption>Figure 2: share of recurring details each summary keeps (Claude Code compaction prompt).</figcaption></figure>
+<p class="zh">生产环境里的会话也一样:第一次压缩边界后只保留了 15.7%(106 个样本),第二次 19.9%(27 个),第三次 4.9%(6 个),第四次 1.8%(1 个)。后几次样本很少,这几个数别当趋势看。</p>
+<p class="en">Production sessions tell the same story: 15.7% kept after the first boundary (n=106), 19.9% after the second (n=27), 4.9% after the third (n=6), 1.8% after the fourth (n=1). The later samples are tiny, so do not read them as a trend.</p>
+</section>
+<section id="why">
+<h2 class="zh">为什么"留了证据"还是做不完</h2>
+<h2 class="en">Why keeping the evidence is not enough</h2>
+<p class="zh">论文分析了受损的几个例子。在 Kimi-K3 的四个稳定受损格子里,每份摘要都保留了目标文件;pytest-7571 的摘要甚至保留了全部五个被审计的 gold-patch token,任务还是挂了。sphinx-9230 的摘要漏掉了一个关键推理:这里的 <code>split(None, 1)</code> 必须改成 <code>rsplit</code>。POST 那一跑就在仓库里到处搜,最后没做出修改。</p>
+<p class="en">The paper examines some damaged cases. In the four stably damaged Kimi-K3 cells, every summary kept the target file. The pytest-7571 summary even kept all five audited gold-patch tokens, and the task still failed. The sphinx-9230 summary dropped one key piece of reasoning: <code>split(None, 1)</code> had to become <code>rsplit</code>. The POST run then searched the repository broadly and never made the edit.</p>
+<div class="zh callout key">论文的结论是:留住修复要用的原料,不能保证留住"把这次编辑做完所需要的进度"。可靠的压缩要保留任务进度,不是只保留相关字符串。</div>
+<div class="en callout key">The paper's conclusion: retaining the ingredients of a repair does not guarantee retaining the progress needed to finish the edit. Reliable compaction has to preserve task progress, not just relevant strings.</div>
+</section>
+<section id="practice">
+<h2 class="zh">我会怎么用(我的推断)</h2>
+<h2 class="en">What I would do (my inference)</h2>
+<div class="zh callout warn">这一节是我自己的推断。论文说它没有给出正式的建议清单,只给了含义:评测压缩要同时看信息保留和下游行为;压缩 prompt 的选择是独立于模型选择的重要配置。</div>
+<div class="en callout warn">This section is my own inference. The paper says it gives no formal recommendation list; it only offers implications: evaluate compaction on both retained information and downstream behavior, and treat the compaction prompt as a consequential setting separate from the model choice.</div>
+<ul class="zh"><li><b>把关键状态写到文件里,别指望摘要。</b>机械提取能留 79.1%,这提示:路径、哈希、报错原文这类"字面值"放在一份 NOTES.md 或 TODO 里,比赌摘要靠谱。Claude Code 的 CLAUDE.md、Codex 的 AGENTS.md 本来也是这类持久文件。</li><li><b>压缩前,让 agent 先写"下一步准备改什么、为什么"。</b>sphinx 的例子里丢的就是这类推理。这是把论文的失败原因倒过来用,我没有测过效果。</li><li><b>长任务里自己决定什么时候压,别等自动触发。</b>论文显示第一次压缩后细节就只剩约 16%。自动触发往往落在任务中途,这后半句是我的推断,不是论文的发现。</li><li><b>想换摘要模型或 prompt,自己先做个 PRE/POST 小测。</b>挑几个你常做的任务,在压缩点前后各跑一遍,看哪些翻车。这个方法直接借自论文的设计。</li></ul>
+<ul class="en"><li><b>Put key state in files, not in the summary.</b> Mechanical extraction keeps 79.1%, which suggests literal values (paths, hashes, error text) are safer in a NOTES.md or TODO than left to a summary. CLAUDE.md in Claude Code and AGENTS.md in Codex are persistent files of this kind anyway.</li><li><b>Before compacting, have the agent write down what it plans to edit next and why.</b> The sphinx case lost exactly that kind of reasoning. This inverts the paper's failure cause; I have not tested it.</li><li><b>Choose when to compact in long tasks instead of waiting for the automatic trigger.</b> The paper shows only about 16% of details survive the first compaction, and a late compaction is more likely to land mid-task. That second half is my reasoning, not a finding.</li><li><b>Before swapping the summarizer model or prompt, run a small PRE/POST test of your own.</b> Pick a few tasks you often do, run them before and after the compaction point, and see which ones flip. The method is borrowed straight from the paper's design.</li></ul>
+<p class="zh">这也解释了为什么 Claude Code 2.1.311 的几条修复值得留意:压缩返回没有摘要时重试一次、自动压缩后 CLAUDE.md/MEMORY.md 过期的 bug 修复。这些是 changelog 里的事实;它们和论文的数字没有直接对应关系,论文测的是各家压缩 prompt,不是这一版的行为。</p>
+<p class="en">It also explains why a few Claude Code 2.1.311 fixes matter: retrying once when a compaction reply has no summary, and the fix for stale CLAUDE.md/MEMORY.md after automatic compaction. These are changelog facts; they do not map directly onto the paper's numbers, because the paper tests each tool's compaction prompt, not this version's behavior.</p>
+</section>
+<section id="doubts">
+<h2 class="zh">保留意见</h2>
+<h2 class="en">Reservations</h2>
+<ul class="zh"><li>结果依赖这批修复任务、继续干活的 agent(Kimi-K3)和 8 步预算。换个 agent 或放宽步数,结果可能变。论文自己也这么说。</li><li>"细节保留率"只数字面值的重复,不数语义。摘要把一个路径改写成同义描述,算丢。</li><li>生产链路后几次压缩的样本太少(最后一格只有 1 个)。</li><li>私有会话数据和缓存的修复状态没有公开,公开的是评分规则、配置和结果表。想完全复现要自己重做数据。</li><li>成本上,35 个修复的实验用了约 8,000 次模型调用,压缩本身占不到 5% 的 token。</li></ul>
+<ul class="en"><li>Results depend on this set of repairs, the continuing agent (Kimi-K3) and the 8-step budget. A different agent or a larger budget could move them. The paper says as much.</li><li>"Detail retention" counts literal recurrence only, not meaning. A summary that rewords a path into a description counts as a loss.</li><li>The later production boundaries have very few samples (the last cell has one).</li><li>Private session payloads and cached repair states are not released; scoring rules, configurations and outcome tables are. Full reproduction means rebuilding the data.</li><li>On cost: the 35-repair study used about 8,000 model calls, with compression under 5% of tokens.</li></ul>
+</section>
+<section id="glossary">
+<h2 class="zh">术语表</h2>
+<h2 class="en">Glossary</h2>
+<dl class="gl zh"><dt>compaction(压缩)</dt><dd>把前面的对话总结成摘要、丢掉原文,从摘要接着干。</dd><dt>PRE / POST</dt><dd>PRE:带完整历史继续;POST:只带摘要继续。同一任务各跑一次来比较。</dd><dt>FAIL_TO_PASS</dt><dd>修复前失败、修复后应该通过的那组测试,用来判定修复成不成功。</dd><dt>stable damage(稳定受损)</dt><dd>PRE 能过,但 POST 三次里至少挂两次。</dd><dt>anchor_index</dt><dd>论文里的机械提取基线:不用模型,直接把路径、哈希这类字面值抽出来保留。</dd><dt>summarizer backbone</dt><dd>负责写摘要的那个模型。</dd></dl>
+<dl class="gl en"><dt>compaction</dt><dd>Summarizing earlier conversation, discarding the original, and carrying on from the summary.</dd><dt>PRE / POST</dt><dd>PRE: continue with full history. POST: continue with only the summary. Run once each on the same task to compare.</dd><dt>FAIL_TO_PASS</dt><dd>The tests that fail before a fix and should pass after it; they decide whether a repair worked.</dd><dt>stable damage</dt><dd>PRE passes but POST fails in at least two of three runs.</dd><dt>anchor_index</dt><dd>The paper's mechanical-extraction baseline: no model, just pull out literal values like paths and hashes and keep them.</dd><dt>summarizer backbone</dt><dd>The model that writes the summary.</dd></dl>
+</section>
+<section id="sources">
+<h2 class="zh">来源</h2>
+<h2 class="en">Sources</h2>
+<ul class="zh"><li><a href="https://arxiv.org/abs/2610.31710" target="_blank" rel="noopener">Compact-Bench: Measuring What Context Compaction Costs Long-Horizon Coding Agents</a>(arXiv 2610.31710v1,Sun、Cai、Zhao、Zhou、Li,2026-10-22;主要来源,通过 HTML 版摘要读取)</li><li><a href="https://code.claude.com/docs/en/changelog" target="_blank" rel="noopener">Claude Code changelog</a>(2.1.311,2026-10-26)</li></ul>
+<ul class="en"><li><a href="https://arxiv.org/abs/2610.31710" target="_blank" rel="noopener">Compact-Bench: Measuring What Context Compaction Costs Long-Horizon Coding Agents</a> (arXiv 2610.31710v1, Sun, Cai, Zhao, Zhou, Li, 2026-10-22; primary source, read via a summary of the HTML version)</li><li><a href="https://code.claude.com/docs/en/changelog" target="_blank" rel="noopener">Claude Code changelog</a> (2.1.311, 2026-10-26)</li></ul>
+</section>
+</div>
+<footer>
+<p class="zh">调研时间:2026-10-28。论文内容通过网页抓取的摘要级内容读取,细节以原文为准;文中数字都是论文自己给的,我没有复现。「我会怎么用」一节的建议是我的推断,不是论文的结论。</p>
+<p class="en">Researched on 2026-10-28. The paper was read through page-fetch summaries; the original wins on detail. All numbers are the paper's own and were not reproduced. The advice in the "What I would do" section is my inference, not the paper's conclusion.</p>
+</footer>
+<script>
+(function(){
+var body=document.body,root=document.documentElement;
+function setLang(l,save){
+  body.setAttribute('data-lang',l);root.setAttribute('lang',l==='zh'?'zh-CN':'en');
+  document.title=l==='zh'?'上下文压缩到底丢了什么 | What Context Compaction Really Costs':'What Context Compaction Really Costs | 上下文压缩到底丢了什么';
+  var b=document.getElementById('langBtn');b.textContent=l==='zh'?'EN':'中';
+  if(save){try{localStorage.setItem('aidaily-lang',l);}catch(e){}}
+  observeFigures();
+}
+var io=null;
+function inView(el){var r=el.getBoundingClientRect();return r.width>0&&r.top<window.innerHeight&&r.bottom>0;}
+function observeFigures(){
+  var figs=document.querySelectorAll('.figure:not(.in)');
+  figs.forEach(function(f){
+    if(f.offsetParent===null)return;
+    if(inView(f)){f.classList.add('in');}
+    else if(io){io.observe(f);}
+  });
+}
+if('IntersectionObserver' in window){
+  io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.2});
+}else{document.querySelectorAll('.figure').forEach(function(f){f.classList.add('in');});}
+var saved=null;try{saved=localStorage.getItem('aidaily-lang');}catch(e){}
+var init=saved||((navigator.language||'').toLowerCase().indexOf('zh')===0?'zh':'en');
+document.getElementById('langBtn').addEventListener('click',function(){setLang(body.getAttribute('data-lang')==='zh'?'en':'zh',true);});
+setLang(init,false);
+var bar=document.getElementById('bar');
+var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+function onScroll(){
+  var h=document.documentElement;var m=h.scrollHeight-h.clientHeight;
+  bar.style.width=(m>0?h.scrollTop/m*100:0)+'%';
+  var cur=0;secs.forEach(function(s,i){if(s&&s.getBoundingClientRect().top<120)cur=i;});
+  links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+})();
+</script>
+</body>
+</html>
