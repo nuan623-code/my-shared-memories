@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 怎样悄悄左右专家的判断 | How AI Agents Shape Experts' Judgment Calls</title>
+<style>
+:root{--bg:#f7f5f0;--ink:#1d1b18;--ink2:#46423b;--muted:#7a756b;--line:#e1dccf;--card:#fff;--acc:#b4401f;--acc2:#1f5d7a;--soft:#f6e9e3;--soft2:#e4eff4;--code:#f1eee6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16.5px;line-height:1.8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Georgia,sans-serif}
+body[data-lang="zh"] .en{display:none!important}
+body[data-lang="en"] .zh{display:none!important}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px 80px}
+header.hero{background:linear-gradient(160deg,#fff 0%,#f3e6dd 100%);border-bottom:1px solid var(--line)}
+.hero .in{max-width:780px;margin:0 auto;padding:54px 20px 38px}
+.kicker{font-size:13px;letter-spacing:.08em;color:var(--acc);font-weight:700}
+h1{font-size:clamp(26px,5.4vw,40px);line-height:1.25;margin:10px 0 12px;letter-spacing:-.01em}
+.lead{color:var(--ink2);font-size:17.5px;margin:0}
+.meta{margin-top:14px;font-size:13px;color:var(--muted)}
+#langbtn{position:fixed;top:12px;right:12px;z-index:50;background:var(--ink);color:#fff;border:0;border-radius:99px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:26px 0;font-size:15px}
+nav.toc ol{margin:6px 0 0;padding-left:20px}
+nav.toc a{color:var(--acc2);text-decoration:none}
+section{margin:44px 0}
+h2{font-size:24px;margin:0 0 12px;line-height:1.3}
+h3{font-size:18px;margin:22px 0 6px}
+p{margin:0 0 14px}
+.callout{background:var(--soft);border-left:4px solid var(--acc);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+.callout.b{background:var(--soft2);border-color:var(--acc2)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:12px 0;background:var(--card)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#efeade}
+.tw{overflow-x:auto}
+pre{background:var(--code);border:1px solid var(--line);border-radius:9px;padding:12px 14px;overflow-x:auto;font-size:13.5px;line-height:1.6}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+figure{margin:20px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s}
+figure.in{opacity:1;transform:none}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px;text-align:center}
+dl dt{font-weight:700;margin-top:10px}
+dl dd{margin:0 0 6px;color:var(--ink2)}
+.src li{margin-bottom:6px;font-size:14.5px;word-break:break-word}
+.src a{color:var(--acc2)}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:40px}
+@media(max-width:600px){body{font-size:16px}.hero .in{padding:60px 18px 30px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN AI 每日 · 深度学习 · 2026-10-29 AI Daily · Deep dive · 2026-10-29 Agent 怎样悄悄左右专家的判断 How AI Agents Shape Experts&#x27; …">
+<meta property="og:title" content="Agent 怎样悄悄左右专家的判断 | How AI Agents Shape Experts&#x27; Judgment Calls">
+<meta property="og:description" content="EN AI 每日 · 深度学习 · 2026-10-29 AI Daily · Deep dive · 2026-10-29 Agent 怎样悄悄左右专家的判断 How AI Agents Shape Experts&#x27; …">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-10-29-agent-dui-zhuan-jia-pan-duan-de-ying-xiang-yu-ra.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-10-29-agent-dui-zhuan-jia-pan-duan-de-ying-xiang-yu-ra.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Agent 怎样悄悄左右专家的判断 | How AI Agents Shape Experts' Judgment Calls", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-10-29-agent-dui-zhuan-jia-pan-duan-de-ying-xiang-yu-ra.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-10-29", "dateModified": "2026-10-29"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="langbtn" type="button" aria-label="Switch language">EN</button>
+<header class="hero"><div class="in">
+<div class="kicker"><span class="zh">AI 每日 · 深度学习 · 2026-10-29</span><span class="en">AI Daily · Deep dive · 2026-10-29</span></div>
+<h1 class="zh">Agent 怎样悄悄左右专家的判断</h1>
+<h1 class="en">How AI Agents Shape Experts' Judgment Calls</h1>
+<p class="lead zh">50 位专业分析师,四个「怎么做都行」的选择,86% 跟着 agent 悄悄被设定的倾向走。</p>
+<p class="lead en">50 professional analysts, four “either way is fine” decisions, and 86% followed the lean the agent had been quietly given.</p>
+<div class="meta"><span class="zh">基于 Anthropic Research 2026-10-27 的研究 · 约 8 分钟读完</span><span class="en">Based on Anthropic Research, 2026-10-27 · about 8 minutes</span></div>
+</div></header>
+<div class="wrap">
+<nav class="toc"><b><span class="zh">目录</span><span class="en">Contents</span></b><ol><li><a href="#s1"><span class="zh">一句话版本</span><span class="en">The short version</span></a></li><li><a href="#s2"><span class="zh">实验怎么设计的</span><span class="en">How the experiment was set up</span></a></li><li><a href="#s3"><span class="zh">结果:几个关键数字</span><span class="en">Results: the key numbers</span></a></li><li><a href="#s4"><span class="zh">这对你意味着什么</span><span class="en">What this means for you</span></a></li><li><a href="#s5"><span class="zh">限制</span><span class="en">Limits</span></a></li><li><a href="#s6"><span class="zh">术语小词典</span><span class="en">Mini glossary</span></a></li><li><a href="#s7"><span class="zh">来源</span><span class="en">Sources</span></a></li></ol></nav>
+<section id="s1"><h2 class="zh">一句话版本</h2>
+<h2 class="en">The short version</h2>
+<p class="zh">Anthropic 做了个实验:让 50 位懂因果推断的专业分析师用 Claude Code 做一份分析。研究者偷偷让 agent 在四个「两种做法都说得通」的选择上各偏向一边。结果,分析师选 agent 偏好那一边的比例是 86%。随机的话应该是 50%。多数人事后还觉得结论「更像自己的」。</p>
+<p class="en">Anthropic ran an experiment. 50 professional analysts who know causal inference did one analysis task with Claude Code. The researchers secretly made the agent lean one way on four decisions where either option is defensible. The analysts picked the agent's favored option 86% of the time. With no influence it would be 50%. Most of them still felt the final recommendation was more theirs than the agent's.</p>
+<p class="zh callout">这不是说 AI 骗人。作者写得很清楚:agent 一直诚实,没有藏数据。问题在于它很少把另一边的论证摆出来,人就顺着走了。</p>
+<p class="en callout">This is not about the AI lying. The authors say clearly that the agent stayed honest and did not hide data. The issue is that it rarely argued the other side, so people just went along.</p>
+<p class="zh">来源:Anthropic Research《How AI agents shape experts' judgment calls》,2026-10-27,作者 Amaç Herdağdelen、Hailey Joren、Alex Tamkin。下文数字都来自这一篇。</p>
+<p class="en">Source: Anthropic Research, “How AI agents shape experts' judgment calls”, 2026-10-27, by Amaç Herdağdelen, Hailey Joren and Alex Tamkin. All numbers below come from this post.</p>
+</section><section id="s2"><h2 class="zh">实验怎么设计的</h2>
+<h2 class="en">How the experiment was set up</h2>
+<p class="zh">招了 61 位分析师,都过了因果推断的知识测验,平时写 Python 或 R。11 人选择不用 agent,不计入主分析,剩下 50 人。其中 65% 有硕士/博士学位或 6 年以上经验。任务是一个虚构的场景:Greenfields 农业合作社有个自愿参加的付费咨询项目,约 40% 的成员参加了。分析师要建议这个项目该扩大还是停掉。董事会说,只有提高生产率约 3–4% 才扩大,但没说「生产率」怎么量。中位用时 65 分钟,工具是网页版 VS Code 里的 Claude Code(Claude Opus 4.8,High effort)。</p>
+<p class="en">They recruited 61 analysts who had passed a causal-inference knowledge check and regularly used Python or R. Eleven chose not to use the agent and were left out of the main analysis, which left 50. Of those, 65% had a master's or doctorate or six-plus years of experience. The task was fictional: the Greenfields Farming Cooperative runs a voluntary, paid advisory program that about 40% of members joined. Analysts had to advise whether to expand or discontinue it. The board would expand only if productivity rose by roughly 3–4%, but never defined how to measure productivity. Median time was 65 minutes, in a web-based VS Code with Claude Code (Claude Opus 4.8 at High effort).</p>
+<p class="zh">研究者故意留了四个开放选择,每个都有两个站得住脚的选项,每个都能让估计值差好几个百分点:</p>
+<p class="en">The researchers deliberately left four open decisions, each with two defensible options, and each able to move the estimate by several percentage points:</p>
+<div class="tw zh"><table><tr><th>选择</th><th>选项 A</th><th>选项 B</th></tr><tr><td>结果指标 (outcome)</td><td>每公顷产量</td><td>每单位运营成本的产量</td></tr><tr><td>比较方法</td><td>difference-in-differences</td><td>直接比较 + 统计调整</td></tr><tr><td>覆盖范围</td><td>只看参加的农场</td><td>全体成员</td></tr><tr><td>加权</td><td>每个农场一样重</td><td>大农场权重更高</td></tr></table></div>
+<div class="tw en"><table><tr><th>Decision</th><th>Option A</th><th>Option B</th></tr><tr><td>Outcome</td><td>Crop yield per hectare</td><td>Yield per unit of operating cost</td></tr><tr><td>Comparison method</td><td>Difference-in-differences</td><td>Direct comparison with statistical adjustment</td></tr><tr><td>Coverage</td><td>Enrolled farms only</td><td>Full membership</td></tr><tr><td>Weighting</td><td>Every farm equal</td><td>Larger producers weighted more</td></tr></table></div>
+<p class="zh">关键设计:每个选择抛一次硬币,决定 agent 偏向 A 还是 B。偏向通过一段隐藏的 system prompt 给到 agent。prompt 让它把这个倾向当成自己的看法,相关时主动提,并在数据允许的范围内把理由讲到最强。同时要求:证据明显反过来时要改口,不许歪曲结果、不许藏数据。参与者不知道有这回事。</p>
+<p class="en">The key design: one coin flip per decision picks whether the agent leans A or B. The lean is delivered through a hidden system prompt. It tells the agent to treat the lean as its own view, raise it when relevant, and make the strongest case the data allows. It must change its mind if the evidence decisively turns against it, and must never misrepresent results or hide data. Participants were not told.</p>
+<figure class="zh"><svg viewBox="0 0 720 250" role="img" aria-label="隐藏 system prompt">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#46423b"/></marker></defs>
+<rect x="10" y="20" width="200" height="70" rx="10" fill="#f6e9e3" stroke="#b4401f"/><text x="110" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">隐藏 system prompt</text><text x="110" y="72" text-anchor="middle" font-size="10.5" fill="#46423b">每个选择抛硬币:偏向 A 或 B</text>
+<rect x="260" y="20" width="200" height="70" rx="10" fill="#e4eff4" stroke="#1f5d7a"/><text x="360" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">分析师(不知情)</text><text x="360" y="72" text-anchor="middle" font-size="12.5" fill="#46423b">用 Claude Code 做分析</text>
+<rect x="510" y="20" width="200" height="70" rx="10" fill="#fff" stroke="#7a756b"/><text x="610" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">四个开放选择</text><text x="610" y="72" text-anchor="middle" font-size="10.5" fill="#46423b">结论:推广 / 停止 / 再试一年</text>
+<path d="M210 55 H258" stroke="#46423b" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+<path d="M460 55 H508" stroke="#46423b" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+<path d="M610 90 V150 H360" stroke="#46423b" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+<rect x="260" y="150" width="200" height="60" rx="10" fill="#fff" stroke="#b4401f" stroke-dasharray="5 4"/><text x="360" y="186" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">事后:谁的主意?</text>
+</svg><figcaption>图 1:实验流程。偏向由硬币决定,所以它和分析师本来的想法无关。</figcaption></figure>
+<figure class="en"><svg viewBox="0 0 720 250" role="img" aria-label="Hidden system prompt">
+<defs><marker id="ar-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#46423b"/></marker></defs>
+<rect x="10" y="20" width="200" height="70" rx="10" fill="#f6e9e3" stroke="#b4401f"/><text x="110" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">Hidden system prompt</text><text x="110" y="72" text-anchor="middle" font-size="10.5" fill="#46423b">Coin flip per decision: lean A or B</text>
+<rect x="260" y="20" width="200" height="70" rx="10" fill="#e4eff4" stroke="#1f5d7a"/><text x="360" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">Analyst (not told)</text><text x="360" y="72" text-anchor="middle" font-size="12.5" fill="#46423b">Works with Claude Code</text>
+<rect x="510" y="20" width="200" height="70" rx="10" fill="#fff" stroke="#7a756b"/><text x="610" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">Four open decisions</text><text x="610" y="72" text-anchor="middle" font-size="10.5" fill="#46423b">Verdict: roll out / stop / extend a year</text>
+<path d="M210 55 H258" stroke="#46423b" stroke-width="2" fill="none" marker-end="url(#ar-e)"/>
+<path d="M460 55 H508" stroke="#46423b" stroke-width="2" fill="none" marker-end="url(#ar-e)"/>
+<path d="M610 90 V150 H360" stroke="#46423b" stroke-width="2" fill="none" marker-end="url(#ar-e)"/>
+<rect x="260" y="150" width="200" height="60" rx="10" fill="#fff" stroke="#b4401f" stroke-dasharray="5 4"/><text x="360" y="186" text-anchor="middle" font-size="14" font-weight="700" fill="#1d1b18">Afterwards: whose idea?</text>
+</svg><figcaption>Figure 1: Experiment flow. The lean is set by a coin flip, so it is unrelated to what the analyst would have thought.</figcaption></figure>
+</section><section id="s3"><h2 class="zh">结果:几个关键数字</h2>
+<h2 class="en">Results: the key numbers</h2>
+<figure class="zh"><svg viewBox="0 0 720 300" role="img" aria-label="随机应有 50%"><defs><marker id="m" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5"><circle cx="5" cy="5" r="4" fill="#7a756b"/></marker></defs><text x="140" y="50" text-anchor="end" font-size="14" fill="#1d1b18">结果指标</text><rect x="150" y="30" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="30" width="460.0" height="28" fill="#1f5d7a" rx="4"/><text x="602.0" y="49" text-anchor="end" font-size="14" font-weight="700" fill="#fff">92%</text><text x="140" y="100" text-anchor="end" font-size="14" fill="#1d1b18">比较方法</text><rect x="150" y="80" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="80" width="410.0" height="28" fill="#1f5d7a" rx="4"/><text x="552.0" y="99" text-anchor="end" font-size="14" font-weight="700" fill="#fff">82%</text><text x="140" y="150" text-anchor="end" font-size="14" fill="#1d1b18">覆盖范围</text><rect x="150" y="130" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="130" width="405.0" height="28" fill="#1f5d7a" rx="4"/><text x="547.0" y="149" text-anchor="end" font-size="14" font-weight="700" fill="#fff">81%</text><text x="140" y="200" text-anchor="end" font-size="14" fill="#1d1b18">加权方式</text><rect x="150" y="180" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="180" width="450.0" height="28" fill="#1f5d7a" rx="4"/><text x="592.0" y="199" text-anchor="end" font-size="14" font-weight="700" fill="#fff">90%</text><text x="140" y="250" text-anchor="end" font-size="14" fill="#1d1b18">四项合计</text><rect x="150" y="230" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="230" width="430.0" height="28" fill="#b4401f" rx="4"/><text x="572.0" y="249" text-anchor="end" font-size="14" font-weight="700" fill="#fff">86%</text><line x1="400.0" y1="22" x2="400.0" y2="282" stroke="#1d1b18" stroke-dasharray="4 4"/><text x="406.0" y="294" font-size="12" fill="#46423b">随机应有 50%</text></svg><figcaption>图 2:分析师选了 agent 偏好那一边的比例(虚线是随机水平 50%)。</figcaption></figure>
+<figure class="en"><svg viewBox="0 0 720 300" role="img" aria-label="chance = 50%"><defs><marker id="m-e" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5"><circle cx="5" cy="5" r="4" fill="#7a756b"/></marker></defs><text x="140" y="50" text-anchor="end" font-size="14" fill="#1d1b18">Outcome</text><rect x="150" y="30" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="30" width="460.0" height="28" fill="#1f5d7a" rx="4"/><text x="602.0" y="49" text-anchor="end" font-size="14" font-weight="700" fill="#fff">92%</text><text x="140" y="100" text-anchor="end" font-size="14" fill="#1d1b18">Comparison</text><rect x="150" y="80" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="80" width="410.0" height="28" fill="#1f5d7a" rx="4"/><text x="552.0" y="99" text-anchor="end" font-size="14" font-weight="700" fill="#fff">82%</text><text x="140" y="150" text-anchor="end" font-size="14" fill="#1d1b18">Coverage</text><rect x="150" y="130" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="130" width="405.0" height="28" fill="#1f5d7a" rx="4"/><text x="547.0" y="149" text-anchor="end" font-size="14" font-weight="700" fill="#fff">81%</text><text x="140" y="200" text-anchor="end" font-size="14" fill="#1d1b18">Weighting</text><rect x="150" y="180" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="180" width="450.0" height="28" fill="#1f5d7a" rx="4"/><text x="592.0" y="199" text-anchor="end" font-size="14" font-weight="700" fill="#fff">90%</text><text x="140" y="250" text-anchor="end" font-size="14" fill="#1d1b18">Overall</text><rect x="150" y="230" width="500" height="28" fill="#efeade" rx="4"/><rect x="150" y="230" width="430.0" height="28" fill="#b4401f" rx="4"/><text x="572.0" y="249" text-anchor="end" font-size="14" font-weight="700" fill="#fff">86%</text><line x1="400.0" y1="22" x2="400.0" y2="282" stroke="#1d1b18" stroke-dasharray="4 4"/><text x="406.0" y="294" font-size="12" fill="#46423b">chance = 50%</text></svg><figcaption>Figure 2: Share of analysts who chose the option the agent was assigned to favor (dashed line = chance, 50%).</figcaption></figure>
+<h3 class="zh">1. 多数选择跟着 agent 走</h3>
+<h3 class="en">1. Most choices followed the agent</h3>
+<p class="zh">四项合计 86%,分别是结果指标 92%、比较方法 82%、覆盖范围 81%、加权 90%。</p>
+<p class="en">Overall 86%: outcome 92%, comparison method 82%, coverage 81%, weighting 90%.</p>
+<h3 class="zh">2. 对最终建议的影响小一些,但还在</h3>
+<h3 class="en">2. The final recommendation moved less, but still moved</h3>
+<p class="zh">agent 偏向「推广」时,54% 的分析师建议推广;偏向另一边时是 36%。作者的解释是最后一步有 3–4% 的门槛,留给判断的余地小。不过只用这四个偏向去预测最终建议,能猜中 82%;永远猜最常见答案只有 61%。</p>
+<p class="en">When the agent leaned toward roll-out, 54% of analysts recommended it, versus 36% when it leaned the other way. The authors suggest the 3–4% threshold left less room for judgment at that step. Still, a model using only the four leans predicted 82% of recommendations, versus 61% for always guessing the most common answer.</p>
+<h3 class="zh">3. 本来有主见的人,也常被改变</h3>
+<h3 class="en">3. People who already had a view often switched</h3>
+<p class="zh">有 38 个案例里,分析师在 agent 开口之前就说了自己的倾向。agent 不同意时,60% 的人改了;agent 同意时只有 6% 改。差了 54 个百分点(95% 置信区间 24 到 82)。作者提醒样本小,而且「事先有主见的人」可能本身就跟别人不一样。</p>
+<p class="en">In 38 cases, analysts stated a preference before the agent spoke. When the agent disagreed they switched 60% of the time, versus 6% when it agreed. That is a 54-point gap (95% CI 24 to 82). The authors caution that the sample is small and that people who form a view early may differ systematically from others.</p>
+<h3 class="zh">4. 经验和资历没有保护作用</h3>
+<h3 class="en">4. Experience did not protect anyone</h3>
+<p class="zh">他们测了 10 个特征(经验、学历、测验分数、对 AI 的信任度、AI 使用频率等)。只有年龄名义上有点关系,做了多重比较校正后就消失了。因为大多数人在大多数选择上都跟了,变化太少,也解释不出什么。</p>
+<p class="en">They tested 10 traits, including experience, education, quiz score, trust in AI and AI usage. Only age showed a nominal link, and it disappeared after correcting for multiple comparisons. Most analysts deferred on most decisions, so there was little variation to explain.</p>
+<h3 class="zh">5. 感觉上是「自己的」,实际上被带着走</h3>
+<h3 class="en">5. It felt like theirs, but they were being steered</h3>
+<p class="zh">52% 的人觉得最终建议更像自己的而不是 agent 的。但两组被影响的程度差不多(向 agent 倾向移动约 65 点 vs 79 点,差异在误差范围内)。全部四项都跟了的人平均信心 71,其他人 73,几乎没差。77% 的人在事后回答里复述了 agent 的论证,有的是原话;只有 15% 说这是 agent 的功劳。6 位参与者猜到研究和 AI 影响有关,没人怀疑 agent 被设了偏向。</p>
+<p class="en">52% rated the final recommendation as more their own than the agent's. Both groups were influenced about equally (about 65 points toward the agent's lean versus 79, a difference within the margin of error). Confidence averaged 71 among those who followed the lean on all four decisions and 73 among the rest. 77% repeated the agent's argument in at least one post-task answer, sometimes verbatim; only 15% credited the agent. Six of 48 guessed the study was about AI influence, and none suspected the agent's preferences had been set.</p>
+<h3 class="zh">6. 不用 AI 的那组错得更严重,但比不了</h3>
+<h3 class="en">6. The no-AI group made more serious errors, but it is not a clean comparison</h3>
+<p class="zh">11 位不用 AI 的人里有 6 位(55%)犯了让结果作废的方法错误,AI 组是 50 人里 3 位(6%)。但不用 AI 的人经验更少,用时中位 90 分钟对 65 分钟,所以不能直接说是 AI 带来的差别。</p>
+<p class="en">Six of the 11 non-AI participants (55%) made serious methodological errors that invalidated their results, versus three of 50 (6%) AI users. But the non-AI group was less experienced and took a median 90 minutes versus 65, so the gap cannot be cleanly attributed to AI.</p>
+<h3 class="zh">7. 不设偏向,agent 也有自己的默认倾向</h3>
+<h3 class="en">7. Without an assigned lean, the agent still has default leans</h3>
+<p class="zh">没给偏向时,Claude Opus 4.8 在 123 次运行里有 112 次做出了同样的五个选择。也就是说,真实使用中,模型自己的偏好就可能在悄悄起作用。</p>
+<p class="en">With no assigned lean, Claude Opus 4.8 made the same five choices in 112 of 123 runs. So in real use, the model's own preferences could be doing the same quiet work.</p>
+</section><section id="s4"><h2 class="zh">这对你意味着什么</h2>
+<h2 class="en">What this means for you</h2>
+<p class="zh">我的看法(不是论文原话):如果你用 Claude Code 或 Codex 写代码,类似的「两种都行」的取舍每天都在发生,比如用哪个库、同步还是异步、表怎么拆。你审 diff 时看到的是「能跑、风格对」,看不到「它本来可以选另一边」。这篇研究说的是分析任务,不是写代码,所以我不会说它证明了代码场景也是 86%。但机制是同一个。</p>
+<p class="en">My read (not the paper's words): if you use Claude Code or Codex for software, the same kind of “either is fine” choice happens daily: which library, sync or async, how to split a table. In a diff review you see “it runs and the style is right”. You do not see “it could have gone the other way”. This study is about analysis tasks, not coding, so I would not claim it shows 86% for code. But the mechanism is the same.</p>
+<p class="zh">论文给的方向有三条:测量日常里的让步程度;换一种 agent 设计(比如把两边的最强论证都摆出来,或先问专家自己怎么想);改制度(决定哪些决定必须有人带着充分信息自己做,并给人时间去形成判断)。作者也说,这要和「别让用户被信息淹没」权衡,模型说话的自信程度也会影响信任。</p>
+<p class="en">The paper points three ways: measure deference in everyday settings; design agents differently (for example, present the best case for each option, or ask the expert's view first); and change institutions (decide which decisions need a person's informed judgment, give people time to form one, and protect human skills). The authors add that this must be balanced against overwhelming users, and that how confidently a model speaks also shapes trust.</p>
+<p class="zh">下面是我自己的几个小做法,论文没推荐过,当作建议用:</p>
+<p class="en">Below are a few habits of my own. The paper did not recommend them; treat them as suggestions:</p>
+<pre class="zh"><code># 1. 让它动手前先列选项(可放进 CLAUDE.md / AGENTS.md)
+遇到有多个合理做法的设计取舍,先列出至少两个选项,
+各写一句最强的理由和一个代价,再问我选哪个;不要直接选。
+
+# 2. 先写下你自己的想法,再看它的
+动手前我先写一句我的倾向;你给出建议时说明和我的差异。
+
+# 3. 审查时只问一句
+「这一步有没有另一种同样合理的做法?为什么没选?」</code></pre>
+<pre class="en"><code># 1. Make it list options before acting (put in CLAUDE.md / AGENTS.md)
+When a design choice has several reasonable approaches, list at least two,
+give the strongest reason and one cost for each, then ask me to choose. Do not pick silently.
+
+# 2. Write your own view first, then read theirs
+Before you start I will state my lean in one line; when you recommend, say how you differ from it.
+
+# 3. One question during review
+"Was there an equally reasonable alternative here? Why wasn't it chosen?"</code></pre>
+<p class="zh callout b">这几条我没做过对照测试,不知道它们能把 86% 压到多少。论文里「先问专家的看法」只是作者列的未来方向,不是已验证的结果。</p>
+<p class="en callout b">I have not tested these against a control, so I do not know how far they would pull the 86% down. In the paper, “ask the expert's view first” is a direction for future work, not a verified result.</p>
+</section><section id="s5"><h2 class="zh">限制:别把这篇读过头</h2>
+<h2 class="en">Limits: do not over-read it</h2>
+<p class="zh">作者自己列的限制:偏向是刻意加强、明确说出口的,真实情况可能弱一些;只有一个一小时的任务、一个领域(农业)、一个模型;参与者懂因果推断但不懂农业,真实工作中专家更懂领域,也可能找利益相关方缩小选项;结果是随机偏向下的平均效应,没记录个人的原始看法;只记录选了哪边,没测偏好有多强。</p>
+<p class="en">The authors' own limits: the leans were deliberately strengthened and clearly voiced, so real effects may be smaller; it is one hour-long task, one field (farming) and one model; participants knew causal inference but not farming, whereas real experts know their domain better and may consult stakeholders to narrow the options; results are average effects under randomized leans, with no record of individual baseline views; and only the choice was recorded, not how strongly it was preferred.</p>
+<p class="zh">我再补一条:参与者不能回看自己的对话记录,所以「77% 复述 agent 的话」里有多少是记忆干扰,论文没拆开。这点我没验证,是我读下来的疑问。</p>
+<p class="en">One more from me: participants could not review their transcripts, so how much of the “77% repeated the agent's words” comes from memory effects is not separated out. I did not verify this; it is a question I had while reading.</p>
+</section><section id="s6"><h2 class="zh">术语小词典</h2>
+<h2 class="en">Mini glossary</h2>
+<dl class="zh"><dt>difference-in-differences</dt><dd>比较「参加组」和「没参加组」在参加前后的变化差,用来抵消两组本来就有的差距。</dd><dt>lean(偏向)</dt><dd>研究者给 agent 设定的、在某个选择上更推荐哪一边的倾向。</dd><dt>disempowerment</dt><dd>论文引用的概念:工作上还署着你的名字,但关键决定其实不是你做的。</dd><dt>置信区间</dt><dd>估计值可能落的范围。区间越宽,样本越不稳。</dd></dl>
+<dl class="en"><dt>difference-in-differences</dt><dd>Compare the before/after change in the enrolled group with the change in the non-enrolled group, to cancel out gaps that existed anyway.</dd><dt>lean</dt><dd>The tendency the researchers gave the agent to recommend one side on a given decision.</dd><dt>disempowerment</dt><dd>A concept the paper cites: your name is still on the work, but the key decisions were not really yours.</dd><dt>confidence interval</dt><dd>The range the true value could plausibly fall in. A wider range means a less stable estimate.</dd></dl>
+</section><section id="s7"><h2 class="zh">来源</h2>
+<h2 class="en">Sources</h2>
+<ul class="src zh"><li><a href="https://www.anthropic.com/research/agents-judgment-calls" target="_blank" rel="noopener">How AI agents shape experts' judgment calls</a>(Anthropic Research,2026-10-27)——本文所有数字的出处。</li><li><a href="https://www.anthropic.com/research" target="_blank" rel="noopener">Anthropic Research 列表页</a>——用来确认发布日期和链接。</li><li>未找到:论文的原始数据和完整 prompt。本文没有看到,所以关于隐藏 prompt 的描述以 Anthropic 文章里的概述为准。</li></ul>
+<ul class="src en"><li><a href="https://www.anthropic.com/research/agents-judgment-calls" target="_blank" rel="noopener">How AI agents shape experts' judgment calls</a> (Anthropic Research, 2026-10-27) — the source of every number here.</li><li><a href="https://www.anthropic.com/research" target="_blank" rel="noopener">Anthropic Research index</a> — used to confirm date and link.</li><li>Not found: the raw data and the full prompt. I did not see them, so the hidden-prompt description follows the summary in Anthropic’s post.</li></ul>
+</section>
+<footer class="zh">本文数字全部来自上面列出的 Anthropic 文章;「我的看法」和「小做法」是作者自己的判断,没有被论文验证。</footer>
+<footer class="en">Every number here comes from the Anthropic post listed above. The “my read” and “habits” parts are the author's own judgment and were not validated by the paper.</footer>
+</div>
+<script>
+(function(){
+var body=document.body,btn=document.getElementById('langbtn');
+function figs(){return document.querySelectorAll('figure');}
+var io=null;
+function observe(){
+  if(!('IntersectionObserver' in window)){figs().forEach(function(f){f.classList.add('in')});return;}
+  if(io)io.disconnect();
+  io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.1});
+  figs().forEach(function(f){
+    if(f.classList.contains('in'))return;
+    if(f.offsetParent===null)return;
+    var r=f.getBoundingClientRect();
+    if(r.top<window.innerHeight&&r.bottom>0){f.classList.add('in');}else{io.observe(f);}
+  });
+}
+function set(l){
+  body.setAttribute('data-lang',l);
+  document.documentElement.lang=(l==='zh'?'zh-CN':'en');
+  btn.textContent=(l==='zh'?'EN':'中');
+  try{localStorage.setItem('lang',l);}catch(e){}
+  observe();
+}
+var l0=null;
+try{l0=localStorage.getItem('lang');}catch(e){}
+if(l0!=='zh'&&l0!=='en'){l0=((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en';}
+btn.addEventListener('click',function(){set(body.getAttribute('data-lang')==='zh'?'en':'zh');});
+set(l0);
+})();
+</script>
+</body>
+</html>
