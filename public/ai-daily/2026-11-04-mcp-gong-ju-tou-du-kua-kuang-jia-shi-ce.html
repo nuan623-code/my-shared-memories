@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GRX3Y2VQJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3GRX3Y2VQJ');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP 工具投毒:别人写的工具描述如何指挥你的 agent | MCP Tool Poisoning: How Someone Else's Tool Description Steers Your Agent</title>
+<style>
+:root{--bg:#f7f8fb;--ink:#1a1d2e;--ink2:#3c4360;--muted:#6b7390;--line:#e1e4ee;--acc:#2f4fb3;--accs:#e8edfb;--card:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#12141c;--ink:#e8eaf3;--ink2:#c3c8dc;--muted:#8e96b3;--line:#2a2f42;--acc:#8fa8ff;--accs:#1d2440;--card:#1a1d29}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body[data-lang="zh"] .en{display:none!important}body[data-lang="en"] .zh{display:none!important}
+header{padding:38px 20px 26px;border-bottom:1px solid var(--line);background:var(--card)}
+.wrap{max-width:820px;margin:0 auto}
+h1{font-size:clamp(24px,5vw,34px);line-height:1.3;margin:0 0 8px}
+.meta{color:var(--muted);font-size:14px;margin:0}
+#lang{position:fixed;top:12px;right:12px;z-index:9;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 14px;border-radius:99px;font-size:14px;cursor:pointer;font-weight:700}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 20px;margin:22px 0}
+nav.toc ol{margin:6px 0 0;padding-left:22px}nav.toc a{color:var(--acc);text-decoration:none}
+main{padding-bottom:60px}section{margin-top:34px}
+h2{font-size:22px;margin:0 0 10px;border-left:4px solid var(--acc);padding-left:10px}
+p{margin:10px 0}.callout{background:var(--accs);border-radius:10px;padding:12px 16px;margin:14px 0}
+pre{background:#10131c;color:#e6e9f5;padding:14px;border-radius:10px;overflow-x:auto;font-size:13.5px;line-height:1.55}
+code{font-family:ui-monospace,Menlo,Consolas,monospace}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--accs)}
+figure.fig{margin:18px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s}
+figure.fig.in{opacity:1;transform:none}figure svg{width:100%;height:auto;display:block}figcaption{font-size:13px;color:var(--muted);text-align:center;margin-top:4px}
+ul{padding-left:22px}li{margin:6px 0}a{color:var(--acc)}
+footer{border-top:1px solid var(--line);padding:20px;color:var(--muted);font-size:13px}
+@media(max-width:600px){body{font-size:15.5px}header{padding-top:54px}}
+</style>
+
+<!-- ms-seo -->
+<meta name="description" content="EN MCP 工具投毒:别人写的工具描述,如何指挥你的 agent MCP Tool Poisoning: How Someone Else&#x27;s Tool Description Steers Your Agent 20…">
+<meta property="og:title" content="MCP 工具投毒:别人写的工具描述如何指挥你的 agent | MCP Tool Poisoning: How Someone Else&#x27;s Tool Description Steers Your Agent">
+<meta property="og:description" content="EN MCP 工具投毒:别人写的工具描述,如何指挥你的 agent MCP Tool Poisoning: How Someone Else&#x27;s Tool Description Steers Your Agent 20…">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://mingyuyang.com/ai-daily/2026-11-04-mcp-gong-ju-tou-du-kua-kuang-jia-shi-ce.html">
+<meta property="og:site_name" content="Mingyu's Library">
+<meta property="og:image" content="https://mingyuyang.com/share-card.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mingyuyang.com/share-card.png">
+<link rel="canonical" href="https://mingyuyang.com/ai-daily/2026-11-04-mcp-gong-ju-tou-du-kua-kuang-jia-shi-ce.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "MCP 工具投毒:别人写的工具描述如何指挥你的 agent | MCP Tool Poisoning: How Someone Else's Tool Description Steers Your Agent", "inLanguage": "zh-CN", "mainEntityOfPage": "https://mingyuyang.com/ai-daily/2026-11-04-mcp-gong-ju-tou-du-kua-kuang-jia-shi-ce.html", "image": "https://mingyuyang.com/share-card.png", "author": {"@type": "Person", "name": "Mingyu Yang", "url": "https://mingyuyang.com"}, "publisher": {"@type": "Person", "name": "Mingyu Yang"}, "datePublished": "2026-11-04", "dateModified": "2026-11-04"}</script>
+</head>
+<body data-lang="zh">
+<a id="ms-home-pill" href="/" style="position:fixed;top:12px;right:12px;z-index:99999;background:rgba(11,31,63,.88);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><img id="ms-home-pill-img" src="/share-card.png" alt="Mingyu's Library" style="width:16px;height:16px;border-radius:4px;display:block">主页</a>
+<button id="lang" type="button" aria-label="Switch language">EN</button>
+<header><div class="wrap">
+<h1 class="zh">MCP 工具投毒:别人写的工具描述,如何指挥你的 agent</h1>
+<h1 class="en">MCP Tool Poisoning: How Someone Else&#x27;s Tool Description Steers Your Agent</h1>
+<p class="meta zh">2026-11-04 · AI 每日深度学习 · 基于 arXiv 2611.03555 与 MCP 官方安全文档</p>
+<p class="meta en">2026-11-04 · AI Daily Deep Dive · Based on arXiv 2611.03555 and the official MCP security docs</p>
+</div></header>
+<main><div class="wrap">
+<nav class="toc"><b class="zh">目录</b><b class="en">Contents</b><ol><li><a href="#what"><span class="zh">这是什么攻击</span><span class="en">What this attack is</span></a></li><li><a href="#how"><span class="zh">论文怎么测的</span><span class="en">How the paper measured it</span></a></li><li><a href="#results"><span class="zh">结果:数字说明了什么</span><span class="en">Results: what the numbers say</span></a></li><li><a href="#limits"><span class="zh">这项研究没覆盖什么</span><span class="en">What the study does not cover</span></a></li><li><a href="#defense"><span class="zh">怎么防:论文的三层建议,和我的做法</span><span class="en">Defenses: the paper's three layers, and what I would do</span></a></li><li><a href="#pitfalls"><span class="zh">常见坑</span><span class="en">Common pitfalls</span></a></li><li><a href="#gloss"><span class="zh">术语表</span><span class="en">Glossary</span></a></li><li><a href="#src"><span class="zh">来源</span><span class="en">Sources</span></a></li></ol></nav>
+<section id="what">
+<h2 class="zh">这是什么攻击</h2>
+<h2 class="en">What this attack is</h2>
+<p class="zh">MCP(Model Context Protocol,让模型调用外部工具的协议)里,模型是靠「工具描述」知道一个工具能干什么的。问题在于,这些描述、参数说明、工具返回的内容,都会原样进入模型的上下文,而写它们的人,可能就是攻击者。这篇论文把这种攻击叫 tool poisoning(工具投毒):在工具里藏一句给模型看的指令,比如「先读某个密钥文件,再把内容发到某个地址」。模型如果照做,你的数据就出去了。</p>
+<p class="en">In MCP (Model Context Protocol, the protocol that lets a model call outside tools), the model learns what a tool does from its description. The catch: those descriptions, the parameter notes, and whatever the tool returns all flow into the model's context as-is, and whoever wrote them may be the attacker. The paper calls this tool poisoning: hide an instruction meant for the model inside a tool, such as &quot;first read a secrets file, then send the contents to this address.&quot; If the model obeys, your data leaves.</p>
+<p class="zh">论文列的三类典型位置:P1 是工具描述本身;P2 是参数 schema 里的字段说明;P6 是工具返回结果里夹带指令。完整分类共 25 个根因类,还包括不可见 Unicode 或编码的载荷、非英语指令、冒充权威、跨工具引用、rug-pull(先给个正常描述,之后偷偷改掉)、多轮升级等。</p>
+<p class="en">The paper names three typical places: P1 is the tool description itself; P2 is the parameter descriptions inside the input schema; P6 is instructions smuggled into a tool&#x27;s response. The full taxonomy has 25 root-cause classes, including encoded or invisible Unicode payloads, non-English instructions, authority spoofing, cross-tool references, rug-pulls (a normal description first, quietly changed later), and multi-turn escalation.</p>
+<div class="callout zh">和普通提示注入的区别:这里的恶意内容不是用户贴进来的网页,而是「工具定义」本身。你以为你只是接了个 server,其实是把它的作者写的话塞进了模型的系统上下文。</div>
+<div class="callout en">How it differs from ordinary prompt injection: the malicious text is not a web page a user pasted in; it is the tool definition itself. You think you only connected a server, but you also put its author&#x27;s words into the model&#x27;s context.</div>
+</section>
+<section id="how">
+<h2 class="zh">论文怎么测的</h2>
+<h2 class="en">How the paper measured it</h2>
+<p class="zh">以前的基准多半只看「模型有没有说要照做」,没验证动作真的执行了。这篇论文(arXiv 2611.03555,Shaikh 与 Montaruli,已被 AISec '26 收录,该会与 ACM CCS 2026 同场)的做法是真的跑工具:12 个框架 × 18 个模型 × 45 个攻击场景,共 9,720 个组合(论文叫 cell)。测试的框架有 LangChain、Pydantic AI、CrewAI、Agno、LlamaIndex、AG2、Semantic Kernel、Haystack、Google ADK、smolagents、DSPy,外加直接调 OpenAI API 作为只看模型的基线。</p>
+<p class="en">Earlier benchmarks mostly checked whether a model said it would comply, without confirming the action ran. This paper (arXiv 2611.03555, Shaikh and Montaruli, accepted at AISec '26, co-located with ACM CCS 2026) actually runs the tools: 12 frameworks × 18 models × 45 attack scenarios, 9,720 combinations (the paper calls each a cell). The frameworks are LangChain, Pydantic AI, CrewAI, Agno, LlamaIndex, AG2, Semantic Kernel, Haystack, Google ADK, smolagents and DSPy, plus the raw OpenAI API as a model-only baseline.</p>
+<p class="zh">判定用「双重检查」(dual oracle):一是看模型发出的工具调用参数里有没有 canary(诱饵)端点或埋好的假密钥,代表「它想这么做」;二是看 canary 的 HTTP 服务器有没有真的收到请求,代表「它真的做了」。任一项成立就算这个组合有漏洞,两项同时成立就是独立证据,说明数据真的送出去了。论文开源了测试工具 mcpvenom。</p>
+<p class="en">Success is judged by a dual oracle. One check looks for the canary endpoint or a planted fake secret in the arguments of the tool call the model issued (it tried to). The other checks whether the canary HTTP server actually received a request (it really did). Either one marks the cell as vulnerable; both together are independent evidence that data really left. The authors released the test tool, mcpvenom.</p>
+<figure class="zh fig"><svg viewBox="0 0 640 250" role="img" aria-label="投毒链路与双重检查"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#5b6475"/></marker></defs><rect x="8" y="40" width="138" height="64" rx="10" fill="#fde8e8" stroke="#c0392b"/><text x="77.0" y="64" text-anchor="middle" font-size="13" fill="#5a1010">恶意 MCP server</text><text x="77.0" y="82" text-anchor="middle" font-size="13" fill="#5a1010">工具描述里藏着指令</text><rect x="170" y="40" width="138" height="64" rx="10" fill="#fff4e5" stroke="#d98324"/><text x="239.0" y="64" text-anchor="middle" font-size="13" fill="#5a3300">client 照单全收</text><text x="239.0" y="82" text-anchor="middle" font-size="13" fill="#5a3300">描述进入模型上下文</text><rect x="332" y="40" width="138" height="64" rx="10" fill="#fff4e5" stroke="#d98324"/><text x="401.0" y="64" text-anchor="middle" font-size="13" fill="#5a3300">模型发出工具调用</text><text x="401.0" y="82" text-anchor="middle" font-size="13" fill="#5a3300">参数里带密钥或端点</text><rect x="494" y="40" width="138" height="64" rx="10" fill="#fde8e8" stroke="#c0392b"/><text x="563.0" y="64" text-anchor="middle" font-size="13" fill="#5a1010">攻击者的 canary 服务器</text><text x="563.0" y="82" text-anchor="middle" font-size="13" fill="#5a1010">收到请求</text><line x1="146" y1="72" x2="168" y2="72" stroke="#5b6475" stroke-width="2" marker-end="url(#ar)"/><line x1="308" y1="72" x2="330" y2="72" stroke="#5b6475" stroke-width="2" marker-end="url(#ar)"/><line x1="470" y1="72" x2="492" y2="72" stroke="#5b6475" stroke-width="2" marker-end="url(#ar)"/><circle cx="401" cy="124" r="11" fill="#3a6fd8"/><text x="401" y="128" text-anchor="middle" font-size="12" fill="#fff">1</text><circle cx="563" cy="124" r="11" fill="#3a6fd8"/><text x="563" y="128" text-anchor="middle" font-size="12" fill="#fff">2</text><text x="10" y="180" font-size="12.5" fill="#143a85">1 · 检查(意图):调用参数里有没有 canary 端点或密钥</text><text x="10" y="206" font-size="12.5" fill="#143a85">2 · 检查(执行):canary 服务器真的收到请求了吗</text></svg><figcaption>图 1:论文的攻击链路和「双重检查」</figcaption></figure>
+<figure class="en fig"><svg viewBox="0 0 640 250" role="img" aria-label="Poisoning chain and dual oracle"><defs><marker id="ar-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#5b6475"/></marker></defs><rect x="8" y="40" width="138" height="64" rx="10" fill="#fde8e8" stroke="#c0392b"/><text x="77.0" y="64" text-anchor="middle" font-size="13" fill="#5a1010">Malicious MCP server</text><text x="77.0" y="82" text-anchor="middle" font-size="13" fill="#5a1010">hides instructions in a tool description</text><rect x="170" y="40" width="138" height="64" rx="10" fill="#fff4e5" stroke="#d98324"/><text x="239.0" y="64" text-anchor="middle" font-size="13" fill="#5a3300">Client passes it on</text><text x="239.0" y="82" text-anchor="middle" font-size="13" fill="#5a3300">description enters model context</text><rect x="332" y="40" width="138" height="64" rx="10" fill="#fff4e5" stroke="#d98324"/><text x="401.0" y="64" text-anchor="middle" font-size="13" fill="#5a3300">Model issues a tool call</text><text x="401.0" y="82" text-anchor="middle" font-size="13" fill="#5a3300">args carry secret or endpoint</text><rect x="494" y="40" width="138" height="64" rx="10" fill="#fde8e8" stroke="#c0392b"/><text x="563.0" y="64" text-anchor="middle" font-size="13" fill="#5a1010">Attacker canary server</text><text x="563.0" y="82" text-anchor="middle" font-size="13" fill="#5a1010">receives a request</text><line x1="146" y1="72" x2="168" y2="72" stroke="#5b6475" stroke-width="2" marker-end="url(#ar-e)"/><line x1="308" y1="72" x2="330" y2="72" stroke="#5b6475" stroke-width="2" marker-end="url(#ar-e)"/><line x1="470" y1="72" x2="492" y2="72" stroke="#5b6475" stroke-width="2" marker-end="url(#ar-e)"/><circle cx="401" cy="124" r="11" fill="#3a6fd8"/><text x="401" y="128" text-anchor="middle" font-size="12" fill="#fff">1</text><circle cx="563" cy="124" r="11" fill="#3a6fd8"/><text x="563" y="128" text-anchor="middle" font-size="12" fill="#fff">2</text><text x="10" y="180" font-size="12.5" fill="#143a85">1 · Check (intent): do call arguments contain the canary endpoint or secret?</text><text x="10" y="206" font-size="12.5" fill="#143a85">2 · Check (execution): did the canary server actually get a request?</text></svg><figcaption>Figure 1: the attack chain and the paper&#x27;s dual oracle</figcaption></figure>
+</section>
+<section id="results">
+<h2 class="zh">结果:数字说明了什么</h2>
+<h2 class="en">Results: what the numbers say</h2>
+<p class="zh">总体攻击成功率 22.9%(9,720 个组合里有 2,113 个有漏洞)。在这 2,113 个里,64.9% 发出了攻击者要的工具调用,23.0% 真的连上了攻击者的端点,12.1% 被确认把密钥送了出去。也就是说,模型「想照做」的比例远高于「真的泄露」的比例,中间隔着框架、权限和网络。</p>
+<p class="en">Overall attack success was 22.9% (2,113 of 9,720 cells were vulnerable). Within those 2,113, 64.9% dispatched the attacker&#x27;s tool call, 23.0% actually contacted the attacker&#x27;s endpoint, and 12.1% verifiably exfiltrated a secret. So models &quot;wanting to comply&quot; is far more common than real leakage; framework, permissions and network sit in between.</p>
+<figure class="zh fig"><svg viewBox="0 0 640 230" role="img" aria-label="攻击逐级漏斗"><rect x="10" y="18" width="560.0" height="26" rx="6" fill="#8fa8ff"/><text x="10" y="62" font-size="13" fill="#3c4360">有漏洞的组合(2,113 个)=100%</text><rect x="10" y="70" width="363.4" height="26" rx="6" fill="#d98324"/><text x="10" y="114" font-size="13" fill="#3c4360">发出了攻击者要求的工具调用 64.9%</text><rect x="10" y="122" width="128.8" height="26" rx="6" fill="#c0392b"/><text x="10" y="166" font-size="13" fill="#3c4360">真的连上了攻击者端点 23.0%</text><rect x="10" y="174" width="67.8" height="26" rx="6" fill="#7a1f1f"/><text x="10" y="218" font-size="13" fill="#3c4360">确认把密钥送出去了 12.1%</text></svg><figcaption>图 2:在「有漏洞」的组合里,攻击一路走到哪一步(百分比以有漏洞的组合为底)</figcaption></figure>
+<figure class="en fig"><svg viewBox="0 0 640 230" role="img" aria-label="Attack funnel"><rect x="10" y="18" width="560.0" height="26" rx="6" fill="#8fa8ff"/><text x="10" y="62" font-size="13" fill="#3c4360">Vulnerable cells (2,113) = 100%</text><rect x="10" y="70" width="363.4" height="26" rx="6" fill="#d98324"/><text x="10" y="114" font-size="13" fill="#3c4360">Dispatched the attacker's tool call: 64.9%</text><rect x="10" y="122" width="128.8" height="26" rx="6" fill="#c0392b"/><text x="10" y="166" font-size="13" fill="#3c4360">Actually contacted the attacker endpoint: 23.0%</text><rect x="10" y="174" width="67.8" height="26" rx="6" fill="#7a1f1f"/><text x="10" y="218" font-size="13" fill="#3c4360">Verified secret exfiltration: 12.1%</text></svg><figcaption>Figure 2: among vulnerable cells, how far the attack got (percentages are of vulnerable cells)</figcaption></figure>
+<p class="zh">更有意思的是「谁决定结果」:九个核心框架的攻击成功率都落在 23% 到 26% 之间(chi-squared = 3.30,p = 0.91,即看不出框架之间有差别),而不同模型的成功率从 0.4% 到 49.7%。论文点名的两端:最低是 Claude Fable 5(0.4%),最高是 Amazon Nova Pro(49.7%)。另一个数据点:Claude Opus 4.8 在 530 个组合里只有 8 个有漏洞,出现了 223 次明确拒绝。</p>
+<p class="en">The more interesting finding is what decides the outcome. The nine core frameworks all land between 23% and 26% (chi-squared = 3.30, p = 0.91, so no detectable difference between frameworks), while per-model success runs from 0.4% to 49.7%. The paper names both ends: lowest is Claude Fable 5 (0.4%), highest is Amazon Nova Pro (49.7%). One more data point: Claude Opus 4.8 was vulnerable in 8 of 530 cells, with 223 explicit refusals.</p>
+<div class="tw zh"><table><tr><th>指标</th><th>数值</th></tr><tr><td>组合总数</td><td>9,720(12 框架 × 18 模型 × 45 场景)</td></tr><tr><td>总体攻击成功率</td><td>22.9%(2,113 个有漏洞)</td></tr><tr><td>九个核心框架</td><td>23%–26%,p = 0.91</td></tr><tr><td>各模型成功率</td><td>0.4% – 49.7%</td></tr><tr><td>正则描述扫描器</td><td>拦下 45 个场景中的 20 个,误报率 7.2%</td></tr><tr><td>负责任披露</td><td>5 次,发给 4 个厂商,全部被拒</td></tr></table></div>
+<div class="tw en"><table><tr><th>Metric</th><th>Value</th></tr><tr><td>Total cells</td><td>9,720 (12 frameworks × 18 models × 45 scenarios)</td></tr><tr><td>Overall attack success</td><td>22.9% (2,113 vulnerable)</td></tr><tr><td>Nine core frameworks</td><td>23%–26%, p = 0.91</td></tr><tr><td>Per-model success</td><td>0.4% – 49.7%</td></tr><tr><td>Regex description scanner</td><td>flags 20 of 45 scenarios, 7.2% false positives</td></tr><tr><td>Coordinated disclosure</td><td>5 reports to 4 vendors, all rejected</td></tr></table></div>
+<p class="zh">论文的结论有两条我觉得最该记住。一,没有框架有刻意的防御,个别框架只是「碰巧」挡住某些情况。二,用正则扫描工具描述只是部分有效:45 个场景只发现 20 个,还有 7.2% 的误报。</p>
+<p class="en">Two conclusions are worth keeping. First, no framework implements an intentional defense; a few block some cases only incidentally. Second, scanning tool descriptions with regexes is only a partial control: it catches 20 of 45 scenarios and has a 7.2% false-positive rate.</p>
+</section>
+<section id="limits">
+<h2 class="zh">这项研究没覆盖什么</h2>
+<h2 class="en">What the study does not cover</h2>
+<p class="zh">我读到的是论文摘要和一份整理过的 HTML 视图,没有逐段读全文,下面的局限来自论文自己列的部分。</p>
+<p class="en">I read the abstract and a condensed HTML view, not the full text line by line. The limits below are the ones the paper itself lists.</p>
+<ul class="zh"><li>模型版本是 2026 年 7 月时线上的状态,其中 8 个标识没有带日期的快照,之后更新可能改变结果。</li><li>只测了约 50 个支持 MCP 的框架里的 12 个。</li><li>45 个场景覆盖 25 类里的 23 类,多数是单轮交互,多智能体和多轮攻击偏少。</li><li>只测了外传数据(exfiltration),没测其他危害。</li><li>出错的组合没有「不投毒」的对照,没法判断是攻击还是框架引起的。</li><li>场景是公开的、对所有模型一样,部分结果可能来自训练时见过,而不是真的对齐更好。</li></ul>
+<ul class="en"><li>Model versions are as served in July 2026; eight identifiers lack dated snapshots, so later updates could change results.</li><li>Only 12 of roughly 50 MCP-capable frameworks were tested.</li><li>The 45 scenarios cover 23 of the 25 classes, mostly single-turn; multi-agent and multi-turn cases are underrepresented.</li><li>Only exfiltration was measured, not other harms.</li><li>Error cells have no no-poisoning baseline, so they cannot be attributed to the attack or to the framework.</li><li>The scenarios are public and identical across models, so some results may reflect training exposure rather than better alignment.</li></ul>
+<div class="callout zh">我的读法(判断,不是论文原话):0.4% 这种低数字很吸引人,但它是一次快照,而且场景公开。更稳妥的结论是「模型差异很大,值得把它当成选型指标之一」,不是「用某个模型就安全了」。</div>
+<div class="callout en">My reading (judgment, not the paper&#x27;s words): a number like 0.4% is attractive, but it is one snapshot on public scenarios. The safer takeaway is &quot;models differ a lot, so treat it as one selection criterion,&quot; not &quot;this model makes you safe.&quot;</div>
+</section>
+<section id="defense">
+<h2 class="zh">怎么防:论文的三层建议,和我的做法</h2>
+<h2 class="en">Defenses: the paper's three layers, and what I would do</h2>
+<p class="zh">论文给的建议分三层。协议层:用内容类型元数据把「描述」和「指令」分开;给工具描述做哈希固定(pinning),变了就告警。框架层:扫描描述里的指令模式;新增或变更的描述要人工批准;同一次 <code>tools/list</code> 之间描述不可变。部署层:工具定义签名、server 白名单、基于 canary 的运行时监控,以及按实测的攻击成功率来选模型。</p>
+<p class="en">The paper recommends three layers. Protocol: content-type metadata that separates descriptions from instructions; pin description hashes and alert on change. Framework: scan descriptions for instruction patterns; require human approval for new or changed descriptions; keep descriptions immutable between <code>tools/list</code> calls. Deployment: signed tool definitions, server allowlists, canary-based runtime monitoring, and choosing models by measured attack success.</p>
+<p class="zh">MCP 官方的 Security Best Practices 页我也读了。要老实说:它主要讲授权和传输层的问题(confused deputy、token passthrough、SSRF、本地 server 被攻破、scope 最小化等),<b>没有专门讲工具描述注入</b>。能借用的是它关于本地 server 的建议:一键配置前展示完整命令并要求明确同意、在沙箱里以最小权限运行,以及 scope 做渐进式最小授权。</p>
+<p class="en">I also read the official MCP Security Best Practices page. To be straight about it: it focuses on authorization and transport problems (confused deputy, token passthrough, SSRF, local server compromise, scope minimization) and <b>does not specifically cover tool-description injection</b>. What carries over is its advice on local servers: show the full command and require explicit consent before one-click setup, run them sandboxed with minimal privileges, and grant scopes progressively and minimally.</p>
+<p class="zh"><b>我自己会这样做(以下是我的判断):</b></p><p class="en"><b>What I would do (my judgment):</b></p>
+<ul class="zh"><li>接新 MCP server 前,先把它的工具描述和 schema 整个读一遍,别只看名字。</li><li>网络出口用白名单。投毒要成功,最后一步往往是「往外发」;出口堵住,12.1% 那一档就进不来。</li><li>给 agent 的凭据按任务发,别把整台机器的密钥都放在它读得到的地方。</li><li>在 Claude Code 里,可以用 <code>PreToolUse</code> hook 检查工具调用里的目标域名,并给 hook 设 <code>onFailure: "block"</code>,这样脚本坏了也不会默认放行(见今天的 Claude 小课)。</li><li>在仓库里放一份假的 <code>.env</code> 当 canary,看有没有人读它。</li></ul>
+<ul class="en"><li>Before connecting a new MCP server, read its full tool descriptions and schemas, not just the names.</li><li>Allowlist your network egress. The last step of a poisoning attack is usually &quot;send it out&quot;; if egress is closed, the 12.1% tier cannot happen.</li><li>Give the agent credentials per task, not every key on the machine.</li><li>In Claude Code, a <code>PreToolUse</code> hook can check the destination of a tool call, and <code>onFailure: "block"</code> makes a broken hook script fail closed instead of letting everything through (see today's Claude lesson).</li><li>Plant a fake <code>.env</code> as a canary and watch for reads.</li></ul>
+</section>
+<section id="pitfalls">
+<h2 class="zh">常见坑</h2>
+<h2 class="en">Common pitfalls</h2>
+<ul class="zh"><li>以为「换个框架就安全」。这项实测里框架之间看不出差别。</li><li>以为正则扫描就够了。它在论文里只拦下 45 个场景中的 20 个。</li><li>只看「模型拒绝了」。拒绝次数多不代表没有漏网的组合。</li><li>只审一次。rug-pull 是先给正常描述、后改,所以要对「描述变了」做告警。</li><li>把一次快照当长期结论。模型每次更新,数字都可能变。</li></ul>
+<ul class="en"><li>Assuming &quot;switch frameworks and you are safe.&quot; In this measurement, frameworks showed no detectable difference.</li><li>Assuming a regex scan is enough. It flagged only 20 of 45 scenarios in the paper.</li><li>Looking only at refusals. Many refusals do not mean no cell slipped through.</li><li>Reviewing once. A rug-pull ships a clean description first and changes it later, so alert on description changes.</li><li>Treating one snapshot as a lasting conclusion. Numbers can move with every model update.</li></ul>
+</section>
+<section id="gloss">
+<h2 class="zh">术语表</h2>
+<h2 class="en">Glossary</h2>
+<ul class="zh"><li><b>Tool poisoning(工具投毒)</b>:在工具的描述、schema 或返回内容里藏给模型看的恶意指令。</li><li><b>Cell(组合)</b>:一个「框架 × 模型 × 场景」的测试单元。</li><li><b>Dual oracle(双重检查)</b>:同时看调用参数和 canary 服务器日志的判定方式。</li><li><b>Canary(诱饵)</b>:专门埋的假密钥或假端点,被碰到就说明有泄露企图。</li><li><b>Rug-pull</b>:先给正常工具定义,之后偷偷改成恶意的。</li><li><b>Exfiltration(外传)</b>:把数据发到不该去的地方。</li></ul>
+<ul class="en"><li><b>Tool poisoning</b>: hiding malicious instructions for the model in a tool&#x27;s description, schema or response.</li><li><b>Cell</b>: one framework × model × scenario test unit.</li><li><b>Dual oracle</b>: judging success from both the call arguments and the canary server log.</li><li><b>Canary</b>: a planted fake secret or endpoint; touching it signals an attempt to leak.</li><li><b>Rug-pull</b>: shipping a clean tool definition first, then quietly changing it to a malicious one.</li><li><b>Exfiltration</b>: sending data somewhere it should not go.</li></ul>
+</section>
+<section id="src">
+<h2 class="zh">来源</h2>
+<h2 class="en">Sources</h2>
+<ul class="zh"><li>Shaikh, Montaruli,《MCP Tool Poisoning in Agentic AI Frameworks: A Cross-Framework Measurement Study》,arXiv 2611.03555,2026-11-02:<a href="https://arxiv.org/abs/2611.03555">arxiv.org/abs/2611.03555</a>(摘要及 HTML 视图的整理版)</li><li>MCP 官方《Security Best Practices》:<a href="https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices">modelcontextprotocol.io</a></li><li>Claude Code 文档《Hooks》(onFailure):<a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li></ul>
+<ul class="en"><li>Shaikh, Montaruli, &quot;MCP Tool Poisoning in Agentic AI Frameworks: A Cross-Framework Measurement Study,&quot; arXiv 2611.03555, 2026-11-02: <a href="https://arxiv.org/abs/2611.03555">arxiv.org/abs/2611.03555</a> (abstract plus a condensed view of the HTML version)</li><li>MCP official &quot;Security Best Practices&quot;: <a href="https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices">modelcontextprotocol.io</a></li><li>Claude Code docs, &quot;Hooks&quot; (onFailure): <a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li></ul>
+<p class="zh">我没有逐段读论文全文,凡是摘要之外的数字都来自论文 HTML 版的整理视图;论文是预印本,尚未公开同行评审结果(虽然标注已被 AISec '26 收录)。</p>
+<p class="en">I did not read the full paper line by line; numbers beyond the abstract come from a condensed view of the HTML version. It is a preprint (stated as accepted at AISec '26) and I have not seen the review.</p>
+</section>
+
+</div></main>
+<footer><div class="wrap">
+<p class="zh">本文为个人学习整理。论文为预印本;凡标注「我的判断」「我自己会这样做」的部分是作者的看法,不是原文结论。</p>
+<p class="en">Personal study notes. The paper is a preprint; parts marked as my judgment or &quot;what I would do&quot; are the author&#x27;s view, not the source&#x27;s conclusions.</p>
+</div></footer>
+<script>
+(function(){
+var b=document.body,btn=document.getElementById('lang');
+function get(){try{return localStorage.getItem('aid-lang')}catch(e){return null}}
+function set(v){try{localStorage.setItem('aid-lang',v)}catch(e){}}
+var l=get();if(l!=='zh'&&l!=='en'){l=(navigator.language||'').toLowerCase().indexOf('zh')===0?'zh':'en'}
+var io=null;
+function visible(el){return el.offsetParent!==null}
+function figs(){var fs=document.querySelectorAll('figure.fig');
+ for(var i=0;i<fs.length;i++){var f=fs[i];if(f.classList.contains('in'))continue;if(!visible(f))continue;
+  var r=f.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0){f.classList.add('in')}else if(io){io.observe(f)}}}
+if('IntersectionObserver' in window){io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.15})}
+function apply(v){l=v;b.setAttribute('data-lang',v);document.documentElement.lang=v==='zh'?'zh-CN':'en';btn.textContent=v==='zh'?'EN':'中';set(v);figs()}
+btn.addEventListener('click',function(){apply(l==='zh'?'en':'zh')});
+apply(l);
+if(!io){var fs=document.querySelectorAll('figure.fig');for(var i=0;i<fs.length;i++)fs[i].classList.add('in')}
+})();
+</script>
+</body>
+</html>
